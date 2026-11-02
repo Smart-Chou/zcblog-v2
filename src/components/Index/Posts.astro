@@ -1,21 +1,11 @@
 ---
 import { t, defaultLocale, type Locale } from "~/utils/i18n";
+import type { CollectionEntry } from "astro:content";
 
-interface Post {
-    id: string;
-    data: {
-        title: string;
-        description?: string | null;
-        pubDate: Date;
-        image?: {
-            url: string | { src: string; width: number; height: number };
-            alt: string;
-        };
-    };
-}
+type PostEntry = CollectionEntry<"article">;
 
 interface Props {
-    posts: Post[];
+    posts: PostEntry[];
 }
 
 const { posts } = Astro.props;
@@ -28,8 +18,8 @@ const articlePrefix = locale === "en" ? "/en/article" : "/article";
 const toArticleUrl = (id: string) =>
     `${articlePrefix}/${locale === "en" ? id.replace(/-en$/, "") : id}/`;
 
-function getImageUrl(image: Post["data"]["image"]): string {
-    if (!image) return "";
+function getImageUrl(image: PostEntry["data"]["image"]): string {
+    if (!image || !image.url) return "";
     if (typeof image.url === "string") return image.url;
     return image.url.src;
 }

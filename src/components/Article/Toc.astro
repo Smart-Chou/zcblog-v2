@@ -107,6 +107,9 @@ for (const h of headings) {
             const tocContent = tocWrapper.querySelector(".toc-content") as HTMLElement | null;
             if (!tocContent) return;
 
+            // const 别名：function 声明会被提升，TS 不会把外层 let/const 的窄化带进闭包
+            const tocRoot = tocWrapper;
+
             // Cancel previous scroll listener to prevent leaks across SPA navigations
             if (tocAbortController) {
                 tocAbortController.abort();
@@ -118,12 +121,12 @@ for (const h of headings) {
 
             // ---- 激活路径管理：只高亮当前激活标题及其祖先 ----
             function updateActivePath() {
-                const activeLink = tocWrapper.querySelector(
+                const activeLink = tocRoot.querySelector(
                     ".is-active-link",
                 ) as HTMLElement | null;
 
                 // 清除所有旧路径
-                tocWrapper
+                tocRoot
                     .querySelectorAll(".is-active-path")
                     .forEach((el) => el.classList.remove("is-active-path"));
 
@@ -131,7 +134,7 @@ for (const h of headings) {
 
                 // 从激活链接向上遍历，标记所有祖先 .toc-list-item
                 let el: HTMLElement | null = activeLink;
-                while (el && el !== tocWrapper) {
+                while (el && el !== tocRoot) {
                     if (el.classList.contains("toc-list-item")) {
                         el.classList.add("is-active-path");
                     }

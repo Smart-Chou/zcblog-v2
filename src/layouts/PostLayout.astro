@@ -1,9 +1,7 @@
 ---
-
+// 已废弃：卡片外壳请用 ~/components/UI/PostCardShell.astro。
+// 保留此文件仅为旧引用兼容（包边界审计 2026-11-02）。
+import PostCardShell from "~/components/UI/PostCardShell.astro";
 ---
 
-<div class="post-card content-box">
-    <div class="post-card-content">
-        <slot />
-    </div>
-</div>
+<PostCardShell><slot /></PostCardShell>

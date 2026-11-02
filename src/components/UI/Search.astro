@@ -262,8 +262,8 @@ const searchPlaceholder = t(loc, "common.searchPlaceholder");
 
 <script>
     import { onPageReady } from "~/utils/page-lifecycle";
-    import "../../scripts/search-template.js";
-    import { applyResultTemplate } from "../../scripts/search-template.js";
+    import "~/utils/search-template.js";
+    import { applyResultTemplate } from "~/utils/search-template.js";
 
     // View Transition 的 DOM morphing 会破坏 Pagefind 内部创建的 <dialog> 元素。
     // 导航后完全销毁旧实例并创建新实例，确保 clean state。

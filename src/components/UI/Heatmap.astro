@@ -16,7 +16,4 @@ const { postsData } = Astro.props;
 
 <div class="heatmap-container" id="heatmap-container" data-posts={JSON.stringify(postsData)}></div>
 
-<script>
-    import { registerHeatmap } from "~/scripts/heatmap";
-    registerHeatmap();
-</script>
+<!-- 行为已上移到页面层（ArchivesContent 的 client script）；组件只负责渲染。 -->

@@ -1,6 +1,6 @@
 ---
 import { normalizeTag } from "~/utils/article-stats";
-import PostLayout from "~/layouts/PostLayout.astro";
+import PostCardShell from "~/components/UI/PostCardShell.astro";
 import PostTag from "~/components/Article/PostTag.astro";
 import PostMeta from "~/components/Article/PostMeta.astro";
 import PostCardImage from "~/components/Article/PostCardImage.astro";
@@ -40,7 +40,7 @@ const {
 } = Astro.props;
 ---
 
-<PostLayout>
+<PostCardShell>
     <div class="post-card-header">
         {(<PostCardImage imagePath={imagePath} altText={altText} loading={loading} />)}
         {
@@ -72,7 +72,7 @@ const {
         }
     </div>
     <a href={postUrl} class="post-card-link" aria-label={`Read more: ${title}`}>Read More</a>
-</PostLayout>
+</PostCardShell>
 
 <style>
     .post-card-header {

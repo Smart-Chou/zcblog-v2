@@ -1,0 +1,10 @@
+---
+// 卡片外壳：只负责 post-card 容器与内边距，不拥有数据与行为。
+// 从 layouts/PostLayout 下沉而来（包边界审计 2026-11-02）。
+---
+
+<div class="post-card content-box">
+    <div class="post-card-content">
+        <slot />
+    </div>
+</div>

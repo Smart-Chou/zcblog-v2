@@ -201,11 +201,17 @@ async function initStaticFancybox(options: Partial<FancyboxOptions> = {}): Promi
  * 2. 每次切换时先取消上一次的操作（AbortController）
  * 3. 自动检测当前页面是否匹配 selector，不匹配则跳过
  */
-let _fancyboxBound = false;
 let _fancyboxController: AbortController | null = null;
+const _registeredSelectors = new Set<string>();
 
 function registerFancybox(selector: string, fn: () => Promise<void>): void {
     if (typeof document === "undefined") return;
+
+    // 每个 handler 自己持有 page-load 监听。之前用一个全局 _fancyboxBound，
+    // 只有第一个注册的 handler 能收到 swup 换页后的 astro:page-load；
+    // 从首页 swup 进入文章页时，文章 handler 的监听根本没挂上，灯箱就不工作。
+    if (_registeredSelectors.has(selector)) return;
+    _registeredSelectors.add(selector);
 
     const init = async () => {
         // 检查当前页面是否包含目标选择器，不匹配则跳过
@@ -218,17 +224,13 @@ function registerFancybox(selector: string, fn: () => Promise<void>): void {
         await fn();
     };
 
-    // 只注册一次，防止 View Transitions 累积
-    if (!_fancyboxBound) {
-        _fancyboxBound = true;
-        document.addEventListener("astro:page-load", init);
-    }
+    document.addEventListener("astro:page-load", () => void init());
 
-    // 首屏加载
-    if (document.readyState !== "loading") {
-        init();
+    // 首屏加载；脚本可能晚于 astro:page-load 才加载，补一帧
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => void init(), { once: true });
     } else {
-        document.addEventListener("DOMContentLoaded", init, { once: true });
+        requestAnimationFrame(() => void init());
     }
 }
 
@@ -236,9 +238,12 @@ export const initEssayFancybox = () =>
     registerFancybox(".essay-images", () => initDynamicFancybox(".essay-images", { debug: false }));
 
 export const initArticleFancybox = () =>
-    registerFancybox(".post-content", () =>
-        initDynamicFancybox(".post-content", { debug: false, articleMode: true }),
+    registerFancybox(".post-content:not([data-fancybox-off])", () =>
+        initDynamicFancybox(".post-content:not([data-fancybox-off])", {
+            debug: false,
+            articleMode: true,
+        }),
     );
 
 export const initAlbumFancybox = () =>
-    registerFancybox(".album-images", () => initStaticFancybox({ debug: false }));
+    registerFancybox("#fancybox-gallery", () => initStaticFancybox({ debug: false }));

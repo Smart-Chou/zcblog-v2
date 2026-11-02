@@ -167,6 +167,7 @@ const firstTag = currentTags[0] || "";
             class="post-content"
             data-pagefind-body
             data-pagefind-meta={`title:${frontmatter.title}`}
+            data-fancybox-off={frontmatter.fancybox === false ? "" : undefined}
         >
             <h2 id="post-content-title" class="toc-ignore sr-only" data-pagefind-ignore>
                 {frontmatter.title}
@@ -196,7 +197,6 @@ const firstTag = currentTags[0] || "";
 
 <!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
 
-{frontmatter.fancybox !== false && <script>import "~/scripts/fancybox-handler.ts";</script>}
 {frontmatter.markmap && <script>import "~/scripts/markmap-renderer.ts";</script>}
 {frontmatter.chart && <script>import "~/scripts/chart-renderer.ts";</script>}
 {frontmatter.reveal && <script>import "~/scripts/reveal-renderer.ts";</script>}

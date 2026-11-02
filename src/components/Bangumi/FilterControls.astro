@@ -61,7 +61,7 @@ const { filters, activeFilter, sectionId } = Astro.props;
                     if (filter === "all" || status === filter) {
                         item.classList.remove("hidden");
                         (item as HTMLElement).style.display = "";
-                        item.querySelectorAll("img[data-src]").forEach((img) => {
+                        item.querySelectorAll<HTMLImageElement>("img[data-src]").forEach((img) => {
                             const src = img.getAttribute("data-src");
                             if (src) {
                                 img.src = src;
