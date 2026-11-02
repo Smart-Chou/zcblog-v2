@@ -121,9 +121,7 @@ for (const h of headings) {
 
             // ---- 激活路径管理：只高亮当前激活标题及其祖先 ----
             function updateActivePath() {
-                const activeLink = tocRoot.querySelector(
-                    ".is-active-link",
-                ) as HTMLElement | null;
+                const activeLink = tocRoot.querySelector(".is-active-link") as HTMLElement | null;
 
                 // 清除所有旧路径
                 tocRoot
