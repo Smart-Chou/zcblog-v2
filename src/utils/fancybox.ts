@@ -138,6 +138,10 @@ async function initDynamicFancybox(
             const link = document.createElement("a");
             link.href = img.src;
             link.setAttribute("data-fancybox", "gallery");
+            // 图片的优化产物是同源 /assets URL，swup 会把它当站内链接截走，
+            // 在 Fancybox 的 click 处理器之前导航到图片本身。标记为 no-swup，
+            // 让点击留给灯箱处理。
+            link.setAttribute("data-no-swup", "");
             link.setAttribute("data-caption", img.alt || "");
             if (options.articleMode) {
                 link.classList.add("img-link");
