@@ -41,6 +41,62 @@ jobs:
             - name: Run unit tests
               run: pnpm test:unit
 
+            # M1-5：DESIGN.md §5.6.13 P1–P10 + 12 个 atom 的落地检查（A1–A8）。
+            # 纯 node + 仓库内文件，不需要构建、不需要浏览器；本地命令与 CI 完全相同。
+            - name: Atom / token gates (§5.6.13)
+              run: node scripts/gates/verify-atoms.mjs
+
+    # ---- 视觉门禁：/design/atoms 72 张像素基线（Linux）----
+    # 与 test/gates 平行跑。三条硬约束：
+    #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），
+    #     镜像里的浏览器构建号跟版本绑定，跨版本截图不可比。
+    #  2. 基线 e2e/__screenshots__/design-atoms-linux/ 就是在**这个镜像**里生成的
+    #     （`--update-snapshots`），所以判定用 maxDiffPixels: 0，不放大阈值。
+    #  3. 不带 --update-snapshots、--retries=0：72/72 必须是第一次就过，
+    #     连跑两遍才算稳定；重试会把 flake 藏起来。
+    visual:
+        name: visual (design/atoms · linux baselines)
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        container:
+            image: mcr.microsoft.com/playwright:v1.63.0-noble
+            options: --ipc=host
+        env:
+            # 显式钉平台：基线目录与阈值由 project 决定（见 playwright.config.ts）
+            PLAYWRIGHT_BASELINE_PLATFORM: linux
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable
+
+            - name: Install dependencies
+              run: corepack pnpm install --frozen-lockfile
+
+            # 只构建，不跑 fetch:all：/design/atoms 不依赖内容仓，视觉门禁不该被
+            # 第三方 API 抖动拖红（内容相关的断言在 gates job 里）。
+            - name: Build (astro preview output)
+              run: corepack pnpm exec astro build
+
+            - name: Visual regression · pass 1/2
+              run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
+
+            - name: Visual regression · pass 2/2 (stability)
+              run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
+
+            - name: Upload visual diff on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: visual-diff
+                  path: |
+                      test-results/
+                      playwright-report/
+                  retention-days: 7
+                  if-no-files-found: ignore
+
     # ---- S4 门禁：构建断言 + 内容检查 + 性能预算 ----
     # 和 deploy.yml 的 Build 段保持同一套 env；这里**不部署**，只验门槛。
     gates:
