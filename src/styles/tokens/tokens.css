@@ -2,7 +2,7 @@
    tokens.css — GENERATED FILE, DO NOT EDIT BY HAND
    source : src/styles/tokens/tokens.json
    version: 1.1.0
-   sha256 : 95ea569c9009717772e938ef8c5c895cf96220910c944b23d2077b1e714c4852
+   sha256 : 881046225ed60c8236bb549297f1d77f2277192eb96dd1ef4dcd13481a661f20
    build  : node src/styles/tokens/build-tokens.mjs
    order  : :root{palette} → :root{primitive} → :root{semantic.light}
             → [data-theme="dark"]{semantic.dark} → @media{responsive}
@@ -41,7 +41,7 @@
   /* accent */
   --palette-accent-300: #f0745b;
   --palette-accent-400: #e05d43;
-  --palette-accent-500: #c84b31;
+  --palette-accent-500: #2563eb;
   --palette-accent-600: #b03a22;
   --palette-accent-700: #9e290f;
   /* success */
