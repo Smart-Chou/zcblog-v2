@@ -59,8 +59,12 @@ export function kindOf(entry: DocEntry): DocKind {
     return entry.kind ?? entry.layer;
 }
 
-/** atom/molecule 的 slug 集合；legacy UI 取名时用它判断是否要加 `ui-` 前缀。 */
-export const ATOM_SLUGS: ReadonlySet<string> = new Set(DOCS.map((entry) => entry.slug));
+/** atom/molecule 的 slug 集合（按 layer 过滤；M2-10 加入 legacy UI 后依然只含 12 条）；legacy UI 取名时用它判断是否要加 `ui-` 前缀。 */
+export const ATOM_SLUGS: ReadonlySet<string> = new Set(
+    DOCS.filter((entry) => entry.layer === "atom" || entry.layer === "molecule").map(
+        (entry) => entry.slug,
+    ),
+);
 
 /** 名字 → 文档 slug。与 atom 同名时加 `ui-` 前缀，其余原样小写。 */
 export function legacyUiSlug(name: string): string {
@@ -69,17 +73,22 @@ export function legacyUiSlug(name: string): string {
 }
 
 /**
- * registry 自检（构建期 + 门禁共用同一条判据）。
+ * registry 自检（构建期执行；`verify-component-inventory.mjs` 的 I1/I5 是同一条判据）。
  *
- * 1. 12 份文档的 slug 唯一；
- * 2. 每份数据文件的 `slug` 与注册名一致；
- * 3. legacy UI slug 不得与 atom slug 重合（否则 `/design/...` 路由冲突）。
+ * 1. slug 唯一；
+ * 2. slug = name 小写（legacy UI 允许且仅允许在 atom 同名时加 `ui-` 前缀）；
+ * 3. atom/molecule 的 slug 保持短名、全小写（路由 `/design/atoms/<slug>/` 不被 legacy 抢走）。
  */
 export function assertRegistry(): void {
     const seen = new Set<string>();
     for (const entry of DOCS) {
-        if (entry.slug !== entry.name.toLowerCase() && !ATOM_SLUGS.has(entry.slug)) {
+        const prefixed = entry.slug.startsWith(LEGACY_UI_SLUG_PREFIX);
+        const base = prefixed ? entry.slug.slice(LEGACY_UI_SLUG_PREFIX.length) : entry.slug;
+        if (base !== entry.name.toLowerCase()) {
             throw new Error(`Registry slug 与 name 不一致：${entry.slug} / ${entry.name}`);
+        }
+        if (prefixed && !ATOM_SLUGS.has(base)) {
+            throw new Error(`只有与 atom 同名的 legacy UI 才加 ui- 前缀：${entry.slug}`);
         }
         if (seen.has(entry.slug)) throw new Error(`Registry slug 重复：${entry.slug}`);
         seen.add(entry.slug);
@@ -88,3 +97,5 @@ export function assertRegistry(): void {
         if (slug !== slug.toLowerCase()) throw new Error(`Atom slug 必须小写：${slug}`);
     }
 }
+
+assertRegistry();
