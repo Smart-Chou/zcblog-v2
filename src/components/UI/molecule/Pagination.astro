@@ -83,7 +83,10 @@ const pages = total > 1 ? buildItems() : [];
                             <Icon name="tabler:chevron-left" size="sm" />
                         </a>
                     ) : (
-                        <span class="pagination__nav pagination__nav--disabled" aria-disabled="true">
+                        <span
+                            class="pagination__nav pagination__nav--disabled"
+                            aria-disabled="true"
+                        >
                             <Icon name="tabler:chevron-left" size="sm" />
                         </span>
                     )}
@@ -95,7 +98,10 @@ const pages = total > 1 ? buildItems() : [];
                                 …
                             </span>
                         ) : item === clampedCurrent ? (
-                            <span class="pagination__page pagination__page--current" aria-current="page">
+                            <span
+                                class="pagination__page pagination__page--current"
+                                aria-current="page"
+                            >
                                 {item}
                             </span>
                         ) : (
@@ -119,7 +125,10 @@ const pages = total > 1 ? buildItems() : [];
                             <Icon name="tabler:chevron-right" size="sm" />
                         </a>
                     ) : (
-                        <span class="pagination__nav pagination__nav--disabled" aria-disabled="true">
+                        <span
+                            class="pagination__nav pagination__nav--disabled"
+                            aria-disabled="true"
+                        >
                             <Icon name="tabler:chevron-right" size="sm" />
                         </span>
                     )}

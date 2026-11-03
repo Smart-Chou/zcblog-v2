@@ -31,8 +31,7 @@ const {
 } = Astro.props;
 
 const clampedLines = Math.min(Math.max(Math.round(lines), 1), 6);
-const safeRatio =
-    ratio && ["16/9", "4/3", "1/1", "3/4"].includes(ratio) ? ratio : undefined;
+const safeRatio = ratio && ["16/9", "4/3", "1/1", "3/4"].includes(ratio) ? ratio : undefined;
 ---
 
 <div
@@ -69,11 +68,7 @@ const safeRatio =
     {
         variant === "circle" && (
             <span
-                class:list={[
-                    "skeleton__shape",
-                    "skeleton__circle",
-                    `skeleton__circle--${size}`,
-                ]}
+                class:list={["skeleton__shape", "skeleton__circle", `skeleton__circle--${size}`]}
                 aria-hidden="true"
             />
         )

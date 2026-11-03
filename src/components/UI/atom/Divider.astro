@@ -12,7 +12,12 @@ export interface Props {
     class?: string;
 }
 
-const { orientation = "horizontal", spacing = "md", decorative = false, class: className } = Astro.props;
+const {
+    orientation = "horizontal",
+    spacing = "md",
+    decorative = false,
+    class: className,
+} = Astro.props;
 
 const classes = ["divider", `divider--${orientation}`, `divider--space-${spacing}`, className];
 ---

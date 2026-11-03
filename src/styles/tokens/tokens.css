@@ -2,7 +2,7 @@
    tokens.css — GENERATED FILE, DO NOT EDIT BY HAND
    source : src/styles/tokens/tokens.json
    version: 1.1.0
-   sha256 : 35ea67aee251672421c936922b01b3728a504c72490d09f85bcaa03b8ec6ce4e
+   sha256 : 95ea569c9009717772e938ef8c5c895cf96220910c944b23d2077b1e714c4852
    build  : node src/styles/tokens/build-tokens.mjs
    order  : :root{palette} → :root{primitive} → :root{semantic.light}
             → [data-theme="dark"]{semantic.dark} → @media{responsive}

@@ -56,20 +56,15 @@ const breadcrumb5 = [
                 <p class="page-kicker">Design system</p>
                 <h1 class="page-title">Core atoms &amp; molecules</h1>
             </div>
-            <button
-                id="theme-toggle"
-                class="theme-toggle"
-                type="button"
-                aria-pressed="false"
-            >
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
                 Toggle dark
             </button>
         </header>
 
         <p class="page-note">
             Static fixtures for every variant, size and visible state. Hover, active and
-            focus-visible are live: hover an element or press Tab. Components ship 0 JS; only
-            this page carries the theme switch.
+            focus-visible are live: hover an element or press Tab. Components ship 0 JS; only this
+            page carries the theme switch.
         </p>
 
         <main class="specimens">
@@ -90,19 +85,23 @@ const breadcrumb5 = [
                 }
                 <div class="specimen__row">
                     <span class="label">disabled</span>
-                    {buttonVariants.map((variant) => (
-                        <Button variant={variant} size="md" disabled>
-                            {`${variant} disabled`}
-                        </Button>
-                    ))}
+                    {
+                        buttonVariants.map((variant) => (
+                            <Button variant={variant} size="md" disabled>
+                                {`${variant} disabled`}
+                            </Button>
+                        ))
+                    }
                 </div>
                 <div class="specimen__row">
                     <span class="label">loading</span>
-                    {buttonVariants.map((variant) => (
-                        <Button variant={variant} size="md" loading>
-                            {`${variant} loading`}
-                        </Button>
-                    ))}
+                    {
+                        buttonVariants.map((variant) => (
+                            <Button variant={variant} size="md" loading>
+                                {`${variant} loading`}
+                            </Button>
+                        ))
+                    }
                 </div>
                 <div class="specimen__row">
                     <span class="label">icons</span>
@@ -125,8 +124,8 @@ const breadcrumb5 = [
                 <div class="specimen__row">
                     <span class="label">inline</span>
                     <p class="prose">
-                        Body copy with an <Link href="/design/atoms/">inline link</Link> that
-                        keeps its underline.
+                        Body copy with an <Link href="/design/atoms/">inline link</Link> that keeps its
+                        underline.
                     </p>
                 </div>
                 <div class="specimen__row">
@@ -168,7 +167,13 @@ const breadcrumb5 = [
                         removable
                     </Tag>
                     <Tag tone="info" size="md" href="/design/atoms/">filter link</Tag>
-                    <Tag tone="warning" size="md" href="/design/atoms/" removable removeLabel="Remove warning">
+                    <Tag
+                        tone="warning"
+                        size="md"
+                        href="/design/atoms/"
+                        removable
+                        removeLabel="Remove warning"
+                    >
                         link + remove
                     </Tag>
                 </div>
@@ -296,15 +301,15 @@ const breadcrumb5 = [
                 <h2 class="specimen__title">7 · Avatar</h2>
                 <div class="specimen__row">
                     <span class="label">fallback circle</span>
-                    {avatarSizes.map((size) => (
-                        <Avatar size={size} initials="MC" />
-                    ))}
+                    {avatarSizes.map((size) => <Avatar size={size} initials="MC" />)}
                 </div>
                 <div class="specimen__row">
                     <span class="label">fallback rounded</span>
-                    {avatarSizes.map((size) => (
-                        <Avatar size={size} shape="rounded" initials="MC" />
-                    ))}
+                    {
+                        avatarSizes.map((size) => (
+                            <Avatar size={size} shape="rounded" initials="MC" />
+                        ))
+                    }
                 </div>
                 <div class="specimen__row">
                     <span class="label">image</span>
@@ -315,21 +320,25 @@ const breadcrumb5 = [
 
             <section class="specimen" data-specimen="divider">
                 <h2 class="specimen__title">8 · Divider</h2>
-                {spacings.map((spacing) => (
-                    <div class="specimen__stack">
-                        <span class="label">{`horizontal · ${spacing}`}</span>
-                        <Divider orientation="horizontal" spacing={spacing} />
-                    </div>
-                ))}
+                {
+                    spacings.map((spacing) => (
+                        <div class="specimen__stack">
+                            <span class="label">{`horizontal · ${spacing}`}</span>
+                            <Divider orientation="horizontal" spacing={spacing} />
+                        </div>
+                    ))
+                }
                 <div class="specimen__row">
                     <span class="label">vertical</span>
-                    {spacings.map((spacing) => (
-                        <div class="divider-row">
-                            <span class="prose">left</span>
-                            <Divider orientation="vertical" spacing={spacing} />
-                            <span class="prose">right</span>
-                        </div>
-                    ))}
+                    {
+                        spacings.map((spacing) => (
+                            <div class="divider-row">
+                                <span class="prose">left</span>
+                                <Divider orientation="vertical" spacing={spacing} />
+                                <span class="prose">right</span>
+                            </div>
+                        ))
+                    }
                 </div>
             </section>
 
@@ -387,15 +396,16 @@ const breadcrumb5 = [
 
             <section class="specimen" data-specimen="alert">
                 <h2 class="specimen__title">11 · Alert</h2>
-                {alerts.map((tone) => (
-                    <Alert tone={tone} title={`${tone} alert`}>
-                        Content is passed through the default slot; tone is carried by icon and
-                        text, not colour alone.
-                    </Alert>
-                ))}
+                {
+                    alerts.map((tone) => (
+                        <Alert tone={tone} title={`${tone} alert`}>
+                            Content is passed through the default slot; tone is carried by icon and
+                            text, not colour alone.
+                        </Alert>
+                    ))
+                }
                 <Alert tone="info" dismissible closeLabel="Dismiss information alert">
-                    A dismissible alert only renders the close button; the parent owns the
-                    state.
+                    A dismissible alert only renders the close button; the parent owns the state.
                 </Alert>
                 <Alert tone="warning" live="polite" title="Polite live region">
                     role=&quot;status&quot; is set from the live prop.

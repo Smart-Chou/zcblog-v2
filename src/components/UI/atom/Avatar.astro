@@ -48,13 +48,7 @@ const dimension = Number.parseFloat(primitive[SIZE_TOKEN[size]]);
 {
     src ? (
         <img
-            class:list={[
-                "avatar",
-                "avatar--img",
-                `avatar--${size}`,
-                `avatar--${shape}`,
-                className,
-            ]}
+            class:list={["avatar", "avatar--img", `avatar--${size}`, `avatar--${shape}`, className]}
             src={src}
             alt={decorative ? "" : (alt ?? "")}
             aria-hidden={decorative ? "true" : undefined}

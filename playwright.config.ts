@@ -73,7 +73,9 @@ export default defineConfig({
     webServer: {
         // 用本地 bin 而不是 `pnpm exec`：webServer 由 /bin/sh 拉起，PATH 里不一定有 pnpm
         // （本机走 corepack、CI 走 corepack shim）。这条命令在 macOS 与 Linux 镜像里都能跑。
-        command: "./node_modules/.bin/astro preview --port 4321",
+        // --force：.astro/preview.json 里可能残留上一次被 SIGKILL 的 pid（CI 步骤/容器
+        // 被中断时会发生），没有这个标志 astro preview 会直接退出，门禁假红。
+        command: "./node_modules/.bin/astro preview --port 4321 --force",
         url: "http://localhost:4321",
         reuseExistingServer: !process.env.CI,
     },
