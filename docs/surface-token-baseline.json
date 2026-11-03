@@ -1,0 +1,114 @@
+{
+    "version": 1,
+    "generated_by": "node scripts/gates/verify-surface-tokens.mjs --update",
+    "rules": {
+        "pages": "src/pages/**：hex / rgb() / hsl() = 0，Tailwind = 0，px 只允许 0/1px/2px 与 @media 断点。存量登记在 pages_exempt，只减不增；新增即 FAIL。",
+        "components": "src/components/**（UI/atom、UI/molecule 由 verify-atoms 判）：颜色字面量必须在 components 基线内，新增即 FAIL；基线只减不增（清理后用 --update 收紧）。"
+    },
+    "frozen_total": 84,
+    "totals": {
+        "files": 20,
+        "literals": 84,
+        "hex6": 33,
+        "hex3": 11,
+        "color_function": 40
+    },
+    "components": {
+        "src/components/Bangumi/Card.astro": [
+            "rgba(0,0,0,0.5)",
+            "rgba(255,255,255,0.2)",
+            "rgba(255,255,255,0.8)"
+        ],
+        "src/components/BaseHead/BaseHead.astro": ["#1c1917", "#2d2822", "#e8e3de", "#fbf8f4"],
+        "src/components/BaseHead/Robots.astro": ["#1c1917", "#ffffff"],
+        "src/components/Douban/DoubanCard.astro": ["#f5a623", "#fff", "rgba(0,0,0,0.65)"],
+        "src/components/Gallery/AlbumCard.astro": [
+            "#e8e3de",
+            "#e8e3de",
+            "#e8e3de",
+            "rgba(0,0,0,0.5)",
+            "rgba(255,255,255,0.2)"
+        ],
+        "src/components/Icons/index.ts": ["#229ed9", "#2aabee", "#55acee", "#fff"],
+        "src/components/Layout/ToggleTheme.astro": ["#3b82f6", "#f59e0b"],
+        "src/components/Pages/DonateContent.astro": [
+            "#e74c3c",
+            "#f2a19a",
+            "rgba(255,255,255,0.65)"
+        ],
+        "src/components/Pages/FriendsContent.astro": [
+            "#fff",
+            "rgba(176,128,60,0.15)",
+            "rgba(194,65,59,0.04)",
+            "rgba(194,65,59,0.06)",
+            "rgba(194,65,59,0.06)",
+            "rgba(194,65,59,0.08)",
+            "rgba(194,65,59,0.12)",
+            "rgba(194,65,59,0.15)",
+            "rgba(194,65,59,0.2)",
+            "rgba(194,65,59,0.2)",
+            "rgba(77,124,77,0.08)"
+        ],
+        "src/components/Pages/TagsIndexContent.astro": [
+            "#1d4ed8",
+            "#1d4ed8",
+            "#1e3a5f",
+            "#1e40af",
+            "#2563eb",
+            "#3b82f6",
+            "#3b82f6",
+            "#60a5fa",
+            "#60a5fa",
+            "#93c5fd"
+        ],
+        "src/components/UI/Badge.astro": [
+            "hsl(140,40%,65%)",
+            "hsl(210,50%,75%)",
+            "hsl(40,60%,70%)",
+            "hsl(var(--hue-accent,0),50%,70%)",
+            "hsla(140,50%,30%,0.2)",
+            "hsla(210,50%,30%,0.2)",
+            "hsla(40,60%,30%,0.2)",
+            "hsla(var(--hue-accent,0),50%,30%,0.2)"
+        ],
+        "src/components/UI/Button.astro": ["#fff", "#fff", "rgba(0,0,0,0.15)"],
+        "src/components/UI/Card.astro": ["#f0f0f0", "rgba(0,0,0,0.8)"],
+        "src/components/UI/CardGrid.astro": ["#ffd700", "rgba(0,0,0,0.6)"],
+        "src/components/UI/DonatorsList.astro": [
+            "#f2a19a",
+            "rgba(0,0,0,0.08)",
+            "rgba(0,0,0,0.08)",
+            "rgba(0,0,0,0.6)",
+            "rgba(255,255,255,0.03)",
+            "rgba(255,255,255,0.05)",
+            "rgba(255,255,255,0.06)",
+            "rgba(255,255,255,0.12)",
+            "rgba(255,255,255,0.65)",
+            "rgba(255,255,255,0.92)"
+        ],
+        "src/components/UI/EssayItem.astro": ["#fff"],
+        "src/components/UI/FriendPill.astro": ["#55504a", "#fff"],
+        "src/components/UI/Hitokoto.astro": ["#6b6762"],
+        "src/components/UI/Notice.astro": [
+            "#fff",
+            "#fff",
+            "#fff",
+            "#fff",
+            "rgba(255,255,255,0.2)",
+            "rgba(255,255,255,0.3)",
+            "rgba(255,255,255,0.3)"
+        ],
+        "src/components/UI/Watermark.astro": ["#000000"]
+    },
+    "pages_exempt": {
+        "src/pages/500.astro": ["px:600px"],
+        "src/pages/[...custom].astro": ["px:800px"],
+        "src/pages/albums/[album].astro": [
+            "color:rgba(0,0,0,0.15)",
+            "color:rgba(0,0,0,0.7)",
+            "px:1200px",
+            "px:15px",
+            "px:8px"
+        ]
+    }
+}

@@ -67,8 +67,20 @@ export interface SizeTable {
     rows: string[][];
 }
 
+/**
+ * 文档种类（M2-1）。
+ *
+ * - `atom` / `molecule`：M1-6 的 12 份组件文档，`layer` 直接就是 kind。
+ * - `ui`：M2-10 的 23 份 legacy UI 文档（`src/components/UI/*.astro`）。
+ *
+ * `kind` 在 `DocEntry` 里是可选的：12 份 atom 数据（`data/*.json`）一行不改，
+ * 由 `kindOf()` 从 `layer` 派生；legacy UI 的 JSON 在 M2-10 才出现，届时显式写 `kind: "ui"`。
+ */
+export type DocKind = "atom" | "molecule" | "ui";
+
 export interface DocEntry {
     slug: string;
+    kind?: DocKind;
     name: string;
     cn: string;
     layer: "atom" | "molecule";

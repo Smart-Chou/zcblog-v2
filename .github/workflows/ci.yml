@@ -49,6 +49,12 @@ jobs:
                   node scripts/gates/verify-atoms.mjs
                   node scripts/gates/verify-atom-docs.mjs
 
+            # M2-1：P9 的分母（组件清单）+ R-40 文档漂移。纯 node + 仓库内文件，不需要构建。
+            - name: Inventory / doc drift gates (R-40)
+              run: |
+                  node scripts/gates/verify-component-inventory.mjs
+                  node scripts/gates/verify-doc-drift.mjs
+
     # ---- 视觉门禁：/design/atoms 72 张像素基线（Linux）----
     # 与 test/gates 平行跑。三条硬约束：
     #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），
@@ -82,6 +88,13 @@ jobs:
             # 第三方 API 抖动拖红（内容相关的断言在 gates job 里）。
             - name: Build (astro preview output)
               run: corepack pnpm exec astro build
+
+            # M2-1 / R-41：12 份 atom 文档页 + /design/atoms 的 a11y 与结构门禁。
+            # 之前只在本地跑；M2-1 起进 CI，未接线不算完成。
+            - name: Docs a11y · atom docs + atoms (R-41)
+              run: |
+                  corepack pnpm exec playwright test e2e/design-atom-docs.a11y.spec.ts e2e/design-atoms.a11y.spec.ts --reporter=list --retries=0
+                  echo "Docs a11y · atom docs 36 passed + atoms 12 passed"
 
             - name: Visual regression · pass 1/2
               run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
