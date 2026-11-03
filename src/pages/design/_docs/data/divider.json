@@ -1,0 +1,107 @@
+{
+    "slug": "divider",
+    "name": "Divider",
+    "cn": "分隔线",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.8",
+    "source": "src/components/UI/atom/Divider.astro",
+    "purpose": "在两组内容之间画一条 hairline，给节奏，不给信息。",
+    "notFor": [
+        "卡片/输入框的边界 → 用 `border`（`border-subtle` 已经承担）。",
+        "表单项分组 → 间距（`--space-*`）。",
+        "有语义的章节切换 → 用标题（`<hr>` 不是标题）。"
+    ],
+    "props": [
+        {
+            "name": "orientation",
+            "type": "enum",
+            "default": "`horizontal`",
+            "values": "`horizontal` / `vertical`",
+            "notes": "竖向只能用在横向排布的容器里（`display: flex`），否则高度塌成 0。"
+        },
+        {
+            "name": "spacing",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`none` / `sm` / `md` / `lg`",
+            "notes": "上下（或左右）外边距档位，见附录 A。"
+        },
+        {
+            "name": "decorative",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "`true` → 纯装饰，`aria-hidden`；`false` → 结构化 `<hr>`（竖向为 `role=\"separator\"`）。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "1px `--color-border-subtle`；水平 `border-block-start`，竖直 `border-inline-start`",
+            "aria": "`decorative=false` 时 `<hr>` 自带 `separator`（竖向 `role=\"separator\" aria-orientation=\"vertical\"`）；`decorative=true` 时 `aria-hidden=\"true\"`"
+        }
+    ],
+    "a11y": {
+        "semantics": "水平 + `decorative=false` → `<hr>`；竖向 → `<div role=\"separator\" aria-orientation=\"vertical\">`（`<hr>` 表达不了竖线）；`decorative=true` → `<div aria-hidden=\"true\">`。",
+        "keyboard": "不参与。",
+        "aria": "只有「主题切换」这类结构分界才该用 `<hr>`；纯视觉留白用 `decorative=true`，否则读屏用户会在每个分隔线处听到「分隔符」。",
+        "contrast": [
+            {
+                "pair": "`border-subtle` / `bg-canvas`（默认，装饰性）",
+                "light": "1.20",
+                "dark": "1.37",
+                "threshold": "§3.14.4 已登记豁免（1px 装饰线不承担 3:1）"
+            },
+            {
+                "pair": "`border-default` / `bg-canvas`（唯一分组线索时才用）",
+                "light": "3.04",
+                "dark": "3.32",
+                "threshold": "≥ 3.0（非文本）"
+            }
+        ],
+        "focusRing": "不适用。",
+        "target": "不适用。",
+        "reducedMotion": "不适用。",
+        "notes": [
+            "要让分隔线成为唯一分组线索时，改用 `--color-border-default` 并在使用处写明理由。"
+        ]
+    },
+    "tokens": {
+        "color": ["--color-border-subtle", "--color-border-default"],
+        "metric": ["--space-3", "--space-4", "--space-6", "--space-8", "--space-12"],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "间距（DESIGN.md §5.6.8）",
+        "columns": ["spacing", "水平（上下 margin）", "竖直（左右 margin）"],
+        "rows": [
+            ["`none`", "0", "0"],
+            ["`sm`", "`--space-4`", "`--space-3`"],
+            ["`md`", "`--space-8`", "`--space-4`"],
+            ["`lg`", "`--space-12`", "`--space-6`"]
+        ]
+    },
+    "forbidden": [
+        "在容器上写 `border-top` 假装分隔线。",
+        "用 `border-left` 彩色条（N10）。",
+        "装饰线用 `--color-border-default`（把 3:1 的预算花在留白上）。",
+        "用 Divider 代替标题做章节切分。",
+        "竖向 Divider 放进非 flex 容器（高度会塌成 0）。"
+    ],
+    "related": ["card", "breadcrumb"]
+}

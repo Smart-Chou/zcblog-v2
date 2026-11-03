@@ -42,9 +42,12 @@ jobs:
               run: pnpm test:unit
 
             # M1-5：DESIGN.md §5.6.13 P1–P10 + 12 个 atom 的落地检查（A1–A8）。
+            # M1-6：12 份 atom 文档（D1–D7；D8 需要 dist，在 gates job 里跑）。
             # 纯 node + 仓库内文件，不需要构建、不需要浏览器；本地命令与 CI 完全相同。
             - name: Atom / token gates (§5.6.13)
-              run: node scripts/gates/verify-atoms.mjs
+              run: |
+                  node scripts/gates/verify-atoms.mjs
+                  node scripts/gates/verify-atom-docs.mjs
 
     # ---- 视觉门禁：/design/atoms 72 张像素基线（Linux）----
     # 与 test/gates 平行跑。三条硬约束：
@@ -168,6 +171,10 @@ jobs:
 
             - name: Verify build (A1 / A11 / A13 + pagefind)
               run: node scripts/verify-build.mjs
+
+            # M1-6：文档页的构建产物检查（D8：7 个 section + 无空表）
+            - name: Atom docs gate (dist)
+              run: node scripts/gates/verify-atom-docs.mjs --dist
 
             - name: Content checks (A2 遗留字段 / A3 相对图)
               run: |

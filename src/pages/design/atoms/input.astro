@@ -1,0 +1,59 @@
+---
+/**
+ * /design/atoms/input/ — Input 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/input.json · 契约：DESIGN.md §5.6.4
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Input from "~/components/UI/atom/Input.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+
+const doc = bySlug("input");
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="grid" caption="default / hint / required / size">
+        <Input
+            name="doc-search"
+            label="搜索"
+            type="search"
+            size="md"
+            placeholder="搜索归档"
+            hint="hint 通过 aria-describedby 关联。"
+        >
+            <Icon slot="prefix" name="tabler:focus-centered" size="sm" />
+        </Input>
+        <Input
+            name="doc-email"
+            label="邮箱"
+            type="email"
+            size="sm"
+            required
+            requiredLabel="（必填）"
+            autocomplete="email"
+            placeholder="you@example.com"
+        />
+        <Input
+            name="doc-url"
+            label="URL"
+            type="url"
+            size="lg"
+            value="https://example.com/"
+            hint="value 由父级渲染。"
+        />
+    </DemoFrame>
+
+    <DemoFrame layout="grid" caption="disabled / readonly / invalid">
+        <Input name="doc-disabled" label="Disabled" size="md" value="不可编辑" disabled />
+        <Input name="doc-readonly" label="Readonly" size="md" value="只读值" readonly />
+        <Input
+            name="doc-error"
+            label="Email"
+            type="email"
+            size="md"
+            value="not-an-email"
+            error="请输入有效的邮箱地址。"
+        />
+    </DemoFrame>
+</AtomDoc>

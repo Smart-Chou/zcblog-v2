@@ -1,0 +1,56 @@
+---
+/**
+ * /design/atoms/divider/ — Divider 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/divider.json · 契约：DESIGN.md §5.6.8
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Divider from "~/components/UI/atom/Divider.astro";
+
+const doc = bySlug("divider");
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="stack" caption="horizontal · spacing none（<hr>：结构化分隔）">
+        <p>上一组内容</p>
+        <Divider orientation="horizontal" spacing="none" />
+        <p>下一组内容</p>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="horizontal · spacing sm">
+        <p>上一组内容</p>
+        <Divider orientation="horizontal" spacing="sm" />
+        <p>下一组内容</p>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="horizontal · spacing md（默认）">
+        <p>上一组内容</p>
+        <Divider orientation="horizontal" spacing="md" />
+        <p>下一组内容</p>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="horizontal · spacing lg">
+        <p>上一组内容</p>
+        <Divider orientation="horizontal" spacing="lg" />
+        <p>下一组内容</p>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="runway"
+        caption="vertical：容器必须是 flex（这里 align-self: stretch 撑满 40 高）"
+    >
+        <span>左</span>
+        <Divider orientation="vertical" spacing="md" />
+        <span>右</span>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="decorative=true：纯视觉留白，aria-hidden（读屏不会听到「分隔符」）"
+    >
+        <p>上一组内容</p>
+        <Divider orientation="horizontal" spacing="sm" decorative />
+        <p>下一组内容</p>
+    </DemoFrame>
+</AtomDoc>

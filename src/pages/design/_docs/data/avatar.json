@@ -1,0 +1,153 @@
+{
+    "slug": "avatar",
+    "name": "Avatar",
+    "cn": "头像",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.7",
+    "source": "src/components/UI/atom/Avatar.astro",
+    "purpose": "作者/用户的身份标识：有头像图走 `<img>`，缺图时用首字母回退（构建期分支）。",
+    "notFor": [
+        "只是装饰性色块 → Divider / 占位。",
+        "用户列表 → organism。",
+        "头像要可点 → 由父级 Link 包裹（Avatar 自身不可交互）。"
+    ],
+    "props": [
+        {
+            "name": "src",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "缺省即走首字母回退（构建期分支，不做运行期 onerror）。"
+        },
+        {
+            "name": "alt",
+            "type": "string",
+            "default": "—",
+            "values": "`src` 存在且非装饰时必填",
+            "notes": "身份描述（人名），不是「头像」。"
+        },
+        {
+            "name": "size",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`xs` / `sm` / `md` / `lg` / `xl`",
+            "notes": "见附录 A 尺寸表；`width` / `height` 属性从同一 token 推导，防 CLS。"
+        },
+        {
+            "name": "shape",
+            "type": "enum",
+            "default": "`circle`",
+            "values": "`circle` / `rounded`",
+            "notes": "`circle` → `--radius-pill`；`rounded` → `--radius-md`（`xs` 时 `--radius-sm`）。"
+        },
+        {
+            "name": "initials",
+            "type": "string",
+            "default": "—",
+            "values": "1–2 个字符",
+            "notes": "回退文本；与 `src` 互斥（`src` 优先）。"
+        },
+        {
+            "name": "decorative",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "相邻已有姓名文本时置 `true` → `alt=\"\"` + `aria-hidden`。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：头像里不放文字/徽标（徽标属 organism 的卡）。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "图片路径：`<img>` + 1px `--color-border-subtle` 描边；回退路径：底 `--color-bg-muted` + 字 `--color-fg-default`",
+            "aria": "图片：`alt`；回退：`aria-hidden=\"true\"`（首字母是图片的替代物，不再重复播报）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<img>`（有 `src`）/ `<span aria-hidden=\"true\">`（回退）。",
+        "keyboard": "不参与（不可交互）。",
+        "aria": "`alt` 必填或 `decorative`；回退时 `aria-hidden=\"true\"` 且必须有相邻可见姓名，否则身份信息彻底丢失。",
+        "contrast": [
+            {
+                "pair": "回退首字母 `fg-default` / `bg-muted`",
+                "light": "8.05",
+                "dark": "8.94",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "反例：`fg-muted` / `bg-muted`（不采用）",
+                "light": "4.18",
+                "dark": "4.34",
+                "threshold": "不达 4.5，因此改字色"
+            }
+        ],
+        "focusRing": "不适用。",
+        "target": "不适用（不可点；若可点，热区由父级 Link 提供）。",
+        "reducedMotion": "不适用。",
+        "notes": [
+            "运行期加载失败不做 `onerror` 兜底（JS 预算 0）；`alt` 由浏览器显示为文本，等价于降级。",
+            "`fallback`（无 `src`）是构建期分支，不是运行时状态。"
+        ]
+    },
+    "tokens": {
+        "color": ["--color-bg-muted", "--color-fg-default", "--color-border-subtle"],
+        "metric": [
+            "--space-6",
+            "--space-8",
+            "--space-10",
+            "--space-12",
+            "--space-16",
+            "--radius-pill",
+            "--radius-md",
+            "--radius-sm",
+            "--text-xs",
+            "--text-sm",
+            "--text-base",
+            "--text-lg",
+            "--font-sans",
+            "--font-weight-medium",
+            "--leading-none"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.7）",
+        "columns": ["size", "边长", "回退字号", "描边", "圆角"],
+        "rows": [
+            [
+                "`xs`",
+                "`--space-6`",
+                "`--text-xs`",
+                "1px `--color-border-subtle`",
+                "`--radius-pill`（`rounded` 时 `--radius-sm`）"
+            ],
+            ["`sm`", "`--space-8`", "`--text-xs`", "同上", "同上"],
+            ["`md`", "`--space-10`", "`--text-sm`", "同上", "同上"],
+            ["`lg`", "`--space-12`", "`--text-base`", "同上", "同上"],
+            ["`xl`", "`--space-16`", "`--text-lg`", "同上", "同上"]
+        ]
+    },
+    "forbidden": [
+        "有 `src` 却不给 `alt`（也不设 `decorative`）。",
+        "用 `background-image` 裁头像（图片语义与 `alt` 一起丢掉）。",
+        "首字母回退用 `--color-fg-muted`（实测 4.18 / 4.34 不达标）。",
+        "把首字母做成图片。",
+        "头像里塞徽标/在线状态点。",
+        "给 Avatar 加 `onclick`（可点就交给父级 Link / Button）。"
+    ],
+    "related": ["skeleton", "card"]
+}

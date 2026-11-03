@@ -1,0 +1,225 @@
+{
+    "slug": "tag",
+    "name": "Tag",
+    "cn": "标签",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.3",
+    "source": "src/components/UI/atom/Tag.astro",
+    "purpose": "给内容打一个短标记（分类、状态、筛选项）；可移除变体只渲染触发按钮，状态归父级。",
+    "notFor": [
+        "需要多行说明 → Alert。",
+        "计数徽标 → 用 `tone=\"neutral\"` 的静态 Tag。",
+        "导航筛选项列表 → organism（Tag 只渲染单项）。"
+    ],
+    "props": [
+        {
+            "name": "tone",
+            "type": "enum",
+            "default": "`neutral`",
+            "values": "`neutral` / `accent` / `success` / `warning` / `danger` / `info`",
+            "notes": "语义色调（§5.5 六值闭集）；`danger` 复用 accent 色相。"
+        },
+        {
+            "name": "size",
+            "type": "enum",
+            "default": "`sm`",
+            "values": "`sm` / `md`",
+            "notes": "见附录 A 尺寸表。"
+        },
+        {
+            "name": "selected",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "已选中的筛选项；边框 + `aria-current` 是第二通道。"
+        },
+        {
+            "name": "removable",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "渲染移除按钮；行为由父级绑定（组件不自己 remove）。"
+        },
+        {
+            "name": "href",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "传入即渲染 `<a>`（筛选项）；不传渲染 `<span>`。"
+        },
+        {
+            "name": "removeLabel",
+            "type": "string",
+            "default": "—",
+            "values": "`removable` 时必填",
+            "notes": "移除按钮的 `aria-label`（i18n 由页面注入；建议拼上标签文字）。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default",
+            "required": "是",
+            "notes": "标签文字（短，≤ 12 个全角字符；超了应改用正文）。"
+        },
+        {
+            "name": "icon-start",
+            "required": "否",
+            "notes": "前置图标（如状态点），装饰性。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`neutral`：底 `--color-bg-muted` + 字 `--color-fg-default` + 描边 `--color-border-subtle`；`accent`：底 `--color-bg-surface` + 字 `--color-fg-link` + 描边 `--color-border-accent`；其余四档用 `--color-status-{success|warning|danger|info}-{bg|fg|border}`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "仅 `href` 或 `removable` 时，`@media (hover: hover)`",
+            "visual": "叠一层 `--color-overlay-hover`（`linear-gradient`），描边转 `--color-border-default`；不改 tone 色",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦（仅可交互 Tag 与移除按钮）",
+            "visual": "G4 焦点环（环画在 Tag 外沿）",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "selected",
+            "trigger": "`selected=true`",
+            "visual": "底 `--color-bg-selected` + 字 `--color-fg-default` + 描边 `--color-border-accent`（边框是第二通道，不只靠底色）",
+            "aria": "`aria-current=\"true\"`"
+        }
+    ],
+    "a11y": {
+        "semantics": "静态 `<span>`；`href` 时 `<a href>`；`removable` 时内含 `<button>`。`href` + `removable` 同时存在时，移除按钮是 `<a>` 的兄弟（`span.tag-pair` 包裹），因为 HTML 不允许交互嵌套。",
+        "keyboard": "只有可交互 Tag 进 Tab 序列；移除按钮单独一次 Tab（不合并）。",
+        "aria": "`aria-current=\"true\"` 表达选中；移除按钮的 `aria-label` 来自 `removeLabel`（必须含标签文字，由页面拼）。",
+        "contrast": [
+            {
+                "pair": "selected 字 `fg-default` / `bg-selected`",
+                "light": "8.09",
+                "dark": "9.39",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "neutral 字 `fg-default` / `bg-muted`",
+                "light": "8.05",
+                "dark": "8.94",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "accent 字 `fg-link` / `bg-surface`",
+                "light": "6.04",
+                "dark": "4.72",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "info 字 `status-info-fg` / `-bg`",
+                "light": "8.49",
+                "dark": "8.73",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "success 字 `status-success-fg` / `-bg`",
+                "light": "4.60",
+                "dark": "5.62",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "warning 字 `status-warning-fg` / `-bg`",
+                "light": "4.58",
+                "dark": "4.97",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "danger 字 `status-danger-fg` / `-bg`",
+                "light": "6.21",
+                "dark": "5.63",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "反例：accent 若用 `accent-subtle` 做底（不采用）",
+                "light": "5.47",
+                "dark": "3.53",
+                "threshold": "因此改用 `bg-surface`"
+            }
+        ],
+        "focusRing": "G4；环画在 Tag 外沿，`outline-offset: 2px`，不压到相邻 Tag。",
+        "target": "`sm` 24（`--space-6`）刚好达标；移除按钮单独点按 ≥ 24（`--space-6` 见方），不许把热区压到相邻元素。",
+        "reducedMotion": "过渡归 0。",
+        "notes": [
+            "accent 档不用 `--color-accent-subtle` 做底：`fg-link` 在其上深色只有 3.53。",
+            "tone 不是状态：`tone` 是变体，状态词只有 default / hover / focus-visible / selected。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-muted",
+            "--color-bg-surface",
+            "--color-bg-selected",
+            "--color-fg-default",
+            "--color-fg-link",
+            "--color-fg-muted",
+            "--color-border-subtle",
+            "--color-border-default",
+            "--color-border-accent",
+            "--color-overlay-hover",
+            "--color-ring-focus",
+            "--color-status-success-bg",
+            "--color-status-success-fg",
+            "--color-status-success-border",
+            "--color-status-warning-bg",
+            "--color-status-warning-fg",
+            "--color-status-warning-border",
+            "--color-status-danger-bg",
+            "--color-status-danger-fg",
+            "--color-status-danger-border",
+            "--color-status-info-bg",
+            "--color-status-info-fg",
+            "--color-status-info-border"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-3",
+            "--space-6",
+            "--space-8",
+            "--radius-pill",
+            "--text-xs",
+            "--text-sm",
+            "--font-sans",
+            "--font-weight-medium",
+            "--leading-none",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.3）",
+        "columns": ["size", "高度", "内边距 x", "字号", "圆角"],
+        "rows": [
+            ["`sm`", "`--space-6`", "`--space-2`", "`--text-xs`", "`--radius-pill`"],
+            ["`md`", "`--space-8`", "`--space-3`", "`--text-sm`", "`--radius-pill`"]
+        ]
+    },
+    "forbidden": [
+        "用 Tag 承载多句文案或链接列表。",
+        "用 `--color-accent-subtle` 给 accent Tag 做底（深色 3.53）。",
+        "自造第 7 种 `tone`。",
+        "移除按钮只有图标、没有 `aria-label`（N4）。",
+        "移除按钮自己 `remove()`（状态归父级）。",
+        "`selected` 只改底色不加 `aria-*`（G7 / N5）。"
+    ],
+    "related": ["button", "icon"]
+}

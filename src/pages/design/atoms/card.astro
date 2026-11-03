@@ -1,0 +1,49 @@
+---
+/**
+ * /design/atoms/card/ — Card 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/card.json · 契约：DESIGN.md §5.6.5
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Card from "~/components/UI/atom/Card.astro";
+import Link from "~/components/UI/atom/Link.astro";
+
+const doc = bySlug("card");
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame
+        layout="grid"
+        caption="flat / raised / interactive（focus-within 时焦点环画在卡片外沿）"
+    >
+        <Card variant="flat" padding="md" labelledby="doc-card-flat">
+            <h3 id="doc-card-flat">A flat card</h3>
+            <p>纸面边界：1px 描边、无阴影。</p>
+        </Card>
+
+        <Card variant="raised" padding="md" labelledby="doc-card-raised">
+            <h3 id="doc-card-raised">A raised card</h3>
+            <p>一级阴影，且必须有描边（Border Ground Rule）。</p>
+        </Card>
+
+        <Card variant="interactive" padding="md" labelledby="doc-card-interactive">
+            <h3 id="doc-card-interactive">
+                <Link href="/design/atoms/card/">An interactive card</Link>
+            </h3>
+            <p>把焦点移到标题链接上，卡片外沿会出现焦点环。</p>
+        </Card>
+    </DemoFrame>
+
+    <DemoFrame layout="grid" caption="padding：none / lg；as 决定容器语义">
+        <Card variant="flat" padding="lg" labelledby="doc-card-lg">
+            <h3 id="doc-card-lg">Large padding</h3>
+            <p>padding lg 用 --space-8。</p>
+        </Card>
+
+        <Card variant="flat" padding="md" as="section" labelledby="doc-card-section">
+            <h3 id="doc-card-section">Section card</h3>
+            <p>容器元素由 as 选择（这里渲染成 section）。</p>
+        </Card>
+    </DemoFrame>
+</AtomDoc>

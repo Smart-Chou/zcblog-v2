@@ -1,0 +1,29 @@
+---
+/**
+ * /design/atoms/avatar/ — Avatar 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/avatar.json · 契约：DESIGN.md §5.6.7
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Avatar from "~/components/UI/atom/Avatar.astro";
+
+const doc = bySlug("avatar");
+const sizes = ["xs", "sm", "md", "lg", "xl"] as const;
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="row" caption="首字母回退 · circle（构建期分支，不需要 JS）">
+        {sizes.map((size) => <Avatar size={size} initials="MC" />)}
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="首字母回退 · rounded">
+        {sizes.map((size) => <Avatar size={size} shape="rounded" initials="MC" />)}
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="图片路径：alt 是身份描述（人名），不是「头像」">
+        <Avatar src="/favicon.svg" alt="Marx Chou" size="md" />
+        <Avatar src="/favicon.svg" alt="Marx Chou" size="lg" shape="rounded" />
+        <Avatar src="/favicon.svg" alt="" size="md" decorative />
+    </DemoFrame>
+</AtomDoc>

@@ -1,0 +1,141 @@
+{
+    "slug": "skeleton",
+    "name": "Skeleton",
+    "cn": "骨架屏",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.12",
+    "source": "src/components/UI/atom/Skeleton.astro",
+    "purpose": "在内容到达之前占住排版位置，避免加载完成后跳动（CLS）；它是「还没到的内容」的形状，不是装饰。",
+    "notFor": [
+        "加载 < 200ms 的本地数据 → 直接渲染（骨架闪一下比不显示更糟）。",
+        "需要重试/失败态 → Skeleton + 文案。",
+        "内容形状未知 → 用 `block` 一档，不要编造假卡片。"
+    ],
+    "props": [
+        {
+            "name": "variant",
+            "type": "enum",
+            "default": "`text`",
+            "values": "`text` / `block` / `circle`",
+            "notes": "见附录 A 尺寸表。"
+        },
+        {
+            "name": "lines",
+            "type": "number",
+            "default": "`1`",
+            "values": "1–6（仅 `text`，越界自动夹取）",
+            "notes": "文本行数；最后一行宽度 60%（百分比合法）。"
+        },
+        {
+            "name": "ratio",
+            "type": "string",
+            "default": "—",
+            "values": "`16/9` / `4/3` / `1/1` / `3/4`（仅 `block`）",
+            "notes": "图片占位比例；不传则高度由父容器决定（组件写成 `aspect-ratio`，非比例值会被忽略）。"
+        },
+        {
+            "name": "size",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`xs` / `sm` / `md` / `lg` / `xl`（仅 `circle`）",
+            "notes": "与 Avatar 同一套 scale。"
+        },
+        {
+            "name": "loadingLabel",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "读屏播报的「加载中」（i18n 由页面注入）；视觉上不显示文字。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：骨架里不能有真实内容。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "底 `--color-bg-muted`；微光扫过用 `--color-overlay-hover`（叠层，不改基色）；`animation: skeleton-shimmer` 用 `--duration-slower` + `--ease-linear` + `infinite`（N6 的唯一豁免之一）",
+            "aria": "外层 `role=\"status\"` + `aria-busy=\"true\"` + `aria-live=\"polite\"`；形状 `aria-hidden=\"true\"`"
+        }
+    ],
+    "a11y": {
+        "semantics": "外层 `<div role=\"status\" aria-busy=\"true\" aria-live=\"polite\">`；内部形状 `aria-hidden=\"true\"`。读屏只会听到 `loadingLabel` 一次，不会被 6 个灰块刷屏。",
+        "keyboard": "不参与（不可聚焦）。",
+        "aria": "`role=\"status\"` + `aria-live=\"polite\"`（内容到达时父级把整块替换掉即可）；不用 `aria-label` 代替 `loadingLabel` 的可见文案职责。",
+        "contrast": [
+            {
+                "pair": "微光叠层 `overlay-hover` / `bg-muted`",
+                "light": "1.08",
+                "dark": "1.16",
+                "threshold": "装饰性，不承担 3:1"
+            },
+            {
+                "pair": "骨架底 `bg-muted` / 画布",
+                "light": "1.05",
+                "dark": "1.21",
+                "threshold": "骨架不是控件，不设门槛（INFO）"
+            }
+        ],
+        "focusRing": "不适用。",
+        "target": "不适用。",
+        "reducedMotion": "`animation: none`（静态色块）；不许用「0 时长 + infinite」糊过去（部分浏览器仍会重绘）。",
+        "notes": [
+            "内容到达后必须卸载：Skeleton 不是「已加载」状态的一部分（父级负责替换，组件不做定时器）。",
+            "`prefers-reduced-motion: reduce` 下是静态块，不是把时长调成 0 还在循环。"
+        ]
+    },
+    "tokens": {
+        "color": ["--color-bg-muted", "--color-overlay-hover"],
+        "metric": [
+            "--space-2",
+            "--space-3",
+            "--space-6",
+            "--space-8",
+            "--space-10",
+            "--space-12",
+            "--space-16",
+            "--radius-sm",
+            "--radius-lg",
+            "--radius-pill",
+            "--duration-slower",
+            "--ease-linear",
+            "--font-sans"
+        ],
+        "none": "阴影 / 描边：无（它不是表面，没有层级）。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.12）",
+        "columns": ["variant", "高度", "宽度", "圆角"],
+        "rows": [
+            ["`text`（每行）", "`--space-3`", "100%（末行 60%）", "`--radius-sm`"],
+            ["`block`", "由 `ratio` 或父容器决定", "100%", "`--radius-lg`"],
+            [
+                "`circle`",
+                "`--space-6` / `--space-8` / `--space-10` / `--space-12` / `--space-16`（同 Avatar）",
+                "同高",
+                "`--radius-pill`"
+            ]
+        ]
+    },
+    "forbidden": [
+        "用 Skeleton 做装饰性 shimmer（§1.3 / N6）。",
+        "骨架做成真实卡片的形状（那是 organism 的事，且会诱使实现复制卡片结构）。",
+        "内容到达后还留着骨架占位。",
+        "给 Skeleton 加阴影/描边。",
+        "用 `infinite` 动画做骨架以外的任何东西（N6：唯一豁免是 Skeleton / spinner）。",
+        "`text` 行数 > 6（再长就该用 `block`）。"
+    ],
+    "related": ["avatar", "card"]
+}

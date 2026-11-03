@@ -1,0 +1,237 @@
+{
+    "slug": "button",
+    "name": "Button",
+    "cn": "按钮",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.1",
+    "source": "src/components/UI/atom/Button.astro",
+    "purpose": "触发一个当前页内的动作（提交、确认、展开）；动作的结果不由组件自己承担。",
+    "notFor": [
+        "跳转到另一个 URL → 用 Link（Button 不渲染 href）。",
+        "切换某个即时状态且不提交（如主题）→ 仍用 Button，状态放 `aria-pressed`，由父级维护。",
+        "危险且不可逆 → `variant=\"danger\"`，并让父级用 `<dialog>` 做二次确认。",
+        "导航项 → Link 的 `variant=\"nav\"`。"
+    ],
+    "props": [
+        {
+            "name": "variant",
+            "type": "enum",
+            "default": "`secondary`",
+            "values": "`primary` / `secondary` / `ghost` / `danger`",
+            "notes": "外形与层级。默认不是 `primary`：One Accent Rule 下「什么都不填就一片赤陶」是错的。"
+        },
+        {
+            "name": "size",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`sm` / `md` / `lg`",
+            "notes": "见附录 A 尺寸表。"
+        },
+        {
+            "name": "type",
+            "type": "enum",
+            "default": "`button`",
+            "values": "`button` / `submit` / `reset`",
+            "notes": "原生属性；表单内提交必须显式传 `submit`。"
+        },
+        {
+            "name": "disabled",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "用原生 `disabled`，不传 `aria-disabled`。"
+        },
+        {
+            "name": "loading",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "由父级状态驱动；`true` 时同时 `disabled` + `aria-busy=\"true\"`，文案不变。"
+        },
+        {
+            "name": "name",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "表单提交用；不进视觉。"
+        },
+        {
+            "name": "value",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "表单提交用；不进视觉。"
+        },
+        {
+            "name": "label",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "仅 icon-only 时必填，成为 `aria-label`；有 default slot 时必须为空。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类（`class:list`）；视觉相关类名不接受。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default",
+            "required": "是（icon-only 时否）",
+            "notes": "按钮文案；icon-only 时改传 `label`。"
+        },
+        {
+            "name": "icon-start",
+            "required": "否",
+            "notes": "前置图标（`Icon`，装饰性，`aria-hidden` 由 Icon 负责）。"
+        },
+        {
+            "name": "icon-end",
+            "required": "否",
+            "notes": "后置图标（如外链箭头）。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "primary：底 `--color-accent-solid` + 字 `--color-fg-on-accent`；secondary：底透明 + 描边 `--color-border-accent` + 字 `--color-fg-link`；ghost：底透明无框 + 字 `--color-fg-default`；danger：底 `--color-status-danger-solid` + 字 `--color-fg-on-accent`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)` 指针悬停",
+            "visual": "primary → 底 `--color-accent-solid-hover`；secondary → 底 `--color-accent-subtle`；ghost → 底 `--color-overlay-hover`；danger → 底 `--color-accent-solid-hover`（同色相，不新增 danger-hover 键）",
+            "aria": "无"
+        },
+        {
+            "state": "active",
+            "trigger": "按下",
+            "visual": "同 hover 底色 + `translateY(1px)`（不新增颜色 token）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "G4 焦点环：`outline: 2px solid var(--color-ring-focus); outline-offset: 2px`",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`disabled`",
+            "visual": "primary/danger → 底 `--color-bg-muted` + 字 `--color-fg-disabled`；secondary/ghost → 字 `--color-fg-disabled` + 描边 `--color-border-subtle`；`cursor: not-allowed`；不响应 hover",
+            "aria": "`disabled`（原生）"
+        },
+        {
+            "state": "loading",
+            "trigger": "`loading=true`",
+            "visual": "文案不变 + 前置 spinner（Icon）+ 底色按当前 variant；宽度不锁死在组件里，由父级保证不抖动",
+            "aria": "`aria-busy=\"true\"` + 同时 `disabled`"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<button type>`。不使用 `<a>`、也不使用 `<div role=\"button\">`。",
+        "keyboard": "Enter / Space 由原生触发；不使用 Esc 与方向键；`loading` 期间原生 `disabled` 已阻止重复触发。",
+        "aria": "`aria-busy`（loading）、`aria-label`（icon-only，来自 `label`）。不加 `role=\"button\"`（多余），不加 `aria-disabled`（有原生 `disabled`）。",
+        "contrast": [
+            {
+                "pair": "primary 字 `fg-on-accent` / `accent-solid`",
+                "light": "4.66",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "primary hover 字",
+                "light": "6.04",
+                "dark": "6.51",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "secondary 字 `fg-link` / `bg-surface`",
+                "light": "6.04",
+                "dark": "4.72",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "secondary 描边 `border-accent` / `bg-surface`",
+                "light": "4.66",
+                "dark": "4.72",
+                "threshold": "≥ 3.0（非文本）"
+            },
+            {
+                "pair": "ghost 字 `fg-default` / `bg-surface`",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "disabled 字 `fg-disabled` / `bg-muted`",
+                "light": "2.33",
+                "dark": "2.29",
+                "threshold": "1.4.3 豁免"
+            }
+        ],
+        "focusRing": "G4：`outline: 2px solid var(--color-ring-focus); outline-offset: 2px`。不用 `box-shadow` 造环；环对画布 4.44 / 5.15。",
+        "target": "`sm` 32（`--space-8`）≥ 24；`md` 40（`--space-10`）；`lg` 48（`--space-12`）≥ 44，主操作用 `lg`。",
+        "reducedMotion": "过渡时长归 0，取消 `translateY(1px)`，spinner 停止旋转（静态）。",
+        "notes": ["深色底上的字必须是 `--color-fg-on-accent`：白字在深色赤陶上只有 3.61。"]
+    },
+    "tokens": {
+        "color": [
+            "--color-accent-solid",
+            "--color-accent-solid-hover",
+            "--color-accent-subtle",
+            "--color-fg-on-accent",
+            "--color-fg-link",
+            "--color-border-accent",
+            "--color-fg-default",
+            "--color-overlay-hover",
+            "--color-status-danger-solid",
+            "--color-bg-muted",
+            "--color-fg-disabled",
+            "--color-border-subtle",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-6",
+            "--space-8",
+            "--space-10",
+            "--space-11",
+            "--space-12",
+            "--radius-md",
+            "--text-sm",
+            "--text-base",
+            "--font-sans",
+            "--font-weight-medium",
+            "--leading-none",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：无（按钮不吃 shadow；hover 抬升属 N10）。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.1）",
+        "columns": ["size", "高度", "内边距 x", "字号", "圆角"],
+        "rows": [
+            ["`sm`", "`--space-8`", "`--space-3`", "`--text-sm`", "`--radius-md`"],
+            ["`md`", "`--space-10`", "`--space-4`", "`--text-sm`", "`--radius-md`"],
+            ["`lg`", "`--space-12`", "`--space-6`", "`--text-base`", "`--radius-md`"]
+        ]
+    },
+    "forbidden": [
+        "用 `<a>` 实现按钮（跳转用 Link）。",
+        "icon-only 不传 `label`（N4）。",
+        "`loading` 时改变宽度或清空文案（抖动 + 读屏重读）。",
+        "`text-transform: uppercase`（中文无意义，英文破坏 body 风格）。",
+        "两个按钮等宽并排的营销 CTA。",
+        "hover 里加 `box-shadow` 抬升或 `translateY(-2px)`。",
+        "新增 `*-solid-hover` 这类 hover 专用语义键（§3.4 是闭集）。"
+    ],
+    "related": ["link", "icon"]
+}

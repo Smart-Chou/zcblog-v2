@@ -1,0 +1,208 @@
+{
+    "slug": "alert",
+    "name": "Alert",
+    "cn": "提示块",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.11",
+    "source": "src/components/UI/atom/Alert.astro",
+    "purpose": "在正文流里插入一条与内容相关的提示（版本变更、免责声明、过期警告）。",
+    "notFor": [
+        "全局横幅（跨页、可关闭、记 localStorage）→ organism（`Notice` 那一类）。",
+        "表单字段级错误 → Input 的 `error`。",
+        "临时反馈（操作成功）→ toast（organism，需要 JS）。"
+    ],
+    "props": [
+        {
+            "name": "tone",
+            "type": "enum",
+            "default": "`info`",
+            "values": "`neutral` / `success` / `warning` / `danger` / `info`",
+            "notes": "语义色调；tone 是变体，不是状态。"
+        },
+        {
+            "name": "live",
+            "type": "enum",
+            "default": "`none`",
+            "values": "`none` / `polite` / `assertive`",
+            "notes": "默认 `none`：页面加载时就存在的提示不该是 live region。`polite` → `role=\"status\"`，`assertive` → `role=\"alert\"`。"
+        },
+        {
+            "name": "title",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "可选标题（短句）；正文走 default slot。用 `--font-weight-semibold` 而非 `<h*>`。"
+        },
+        {
+            "name": "dismissible",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "只渲染关闭按钮，不自己 remove（状态归父级，§4.3）。"
+        },
+        {
+            "name": "closeLabel",
+            "type": "string",
+            "default": "—",
+            "values": "`dismissible` 时必填",
+            "notes": "关闭按钮的 `aria-label`（i18n）。"
+        },
+        {
+            "name": "icon",
+            "type": "boolean",
+            "default": "`true`",
+            "values": "—",
+            "notes": "是否显示 tone 图标；`false` 仅当正文已足够明确。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default",
+            "required": "是",
+            "notes": "提示正文（允许富文本：链接、`<code>`）。"
+        },
+        {
+            "name": "actions",
+            "required": "否",
+            "notes": "操作区（Button / Link，横向排列）。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "底、描边、字、图标都取 `--color-status-{success|warning|danger|info}-{bg|border|fg}` 同一档；`neutral` 用 `--color-bg-muted` + `--color-border-default` + `--color-fg-default`",
+            "aria": "`role` 由 `live` 决定：none → 无 role；polite → `status`；assertive → `alert`"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦（仅关闭按钮 / actions 里的元素）",
+            "visual": "G4 焦点环",
+            "aria": "无（原生）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div>` + 图标 + 正文；`live=\"polite\"` → `role=\"status\"`；`live=\"assertive\"` → `role=\"alert\"`；`live=\"none\"` → 无 role（普通区块）。",
+        "keyboard": "Alert 本身不聚焦；关闭按钮与 `actions` 里的元素进 Tab 序列。",
+        "aria": "图标 `aria-hidden=\"true\"`（由 Icon 负责）；标题用字重而非标题元素（Alert 不该插进标题大纲）；关闭按钮 `aria-label={closeLabel}`，不许只有 ✕ 图标没有 label（N4）。",
+        "contrast": [
+            {
+                "pair": "info 正文 `status-info-fg` / `-bg`",
+                "light": "8.49",
+                "dark": "8.73",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "success 正文 `status-success-fg` / `-bg`",
+                "light": "4.60",
+                "dark": "5.62",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "warning 正文 `status-warning-fg` / `-bg`",
+                "light": "4.58",
+                "dark": "4.97",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "danger 正文 `status-danger-fg` / `-bg`",
+                "light": "6.21",
+                "dark": "5.63",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "neutral 描边 `border-default` / `bg-canvas`",
+                "light": "3.04",
+                "dark": "3.32",
+                "threshold": "≥ 3.0"
+            },
+            {
+                "pair": "success / warning / danger 描边对画布",
+                "light": "1.88 / 1.58 / 1.82",
+                "dark": "2.12 / 1.99 / 1.88",
+                "threshold": "不设门槛（tone 由图标 + 文案表达）"
+            },
+            {
+                "pair": "正文内链接：`fg-link` → `fg-default` 局部收敛（dark 对 tone 底）",
+                "light": "—（未单独测量）",
+                "dark": "4.33 → 8.90",
+                "threshold": "≥ 4.5（D-0104）"
+            }
+        ],
+        "focusRing": "G4；关闭按钮与 actions 元素各自带环。",
+        "target": "关闭按钮 ≥ `--space-6`（24），实际由 Button `sm` 的 32 高度满足；不许把热区压到正文上。",
+        "reducedMotion": "过渡归 0；关闭动画不做（瞬时移除）。",
+        "notes": [
+            "`role=\"alert\"` 的唯一合法场景：内容由用户操作在运行时插入。页面加载即存在的提示用 `assertive` 会打断读屏，这是本组件最容易犯的错，所以默认值是 `none`。",
+            "Alert 子树内 `--color-fg-link` 被局部收敛为 `--color-fg-default`（D-0104）：dark 下 `fg-link` 对 tone 底只有 4.33，低于 4.5；几何、下划线、描边不变，第二通道仍是下划线与边框。",
+            "tone 不靠颜色单独表达：图标 + 文案是主通道（N5）；边界不承担 3:1。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-status-success-bg",
+            "--color-status-success-fg",
+            "--color-status-success-border",
+            "--color-status-warning-bg",
+            "--color-status-warning-fg",
+            "--color-status-warning-border",
+            "--color-status-danger-bg",
+            "--color-status-danger-fg",
+            "--color-status-danger-border",
+            "--color-status-info-bg",
+            "--color-status-info-fg",
+            "--color-status-info-border",
+            "--color-bg-muted",
+            "--color-border-default",
+            "--color-fg-default",
+            "--color-fg-link",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-3",
+            "--space-4",
+            "--space-5",
+            "--space-6",
+            "--radius-md",
+            "--text-sm",
+            "--text-base",
+            "--font-sans",
+            "--font-weight-semibold",
+            "--leading-snug",
+            "--leading-relaxed"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.11）",
+        "columns": ["项", "值"],
+        "rows": [
+            ["内边距", "`--space-4`"],
+            ["图标与正文间距", "`--space-3`"],
+            ["标题与正文间距", "`--space-1`"],
+            ["正文与 actions 间距", "`--space-3`"],
+            ["圆角", "`--radius-md`"],
+            ["图标尺寸", "`--space-5`（Icon `size=\"sm\"`）"],
+            ["标题", "`--text-base` + `--font-weight-semibold` + `--leading-snug`"],
+            ["正文", "`--text-sm` + `--leading-relaxed`"]
+        ]
+    },
+    "forbidden": [
+        "页面加载即存在的提示用 `live=\"assertive\"` / `role=\"alert\"`。",
+        "用 `border-left` 彩色条表达 tone（N10）。",
+        "只靠颜色区分 tone（必须有图标 + 文案，N5）。",
+        "把 `Notice` 的 `localStorage` / `sessionStorage` 逻辑搬进 Alert。",
+        "关闭按钮自己 `remove()`（父级控状态，G8）。",
+        "Alert 里套 Alert / 卡片套 Alert 再套卡片。",
+        "用 Alert 做营销横幅。"
+    ],
+    "related": ["icon", "button", "link"]
+}

@@ -1,0 +1,175 @@
+{
+    "slug": "link",
+    "name": "Link",
+    "cn": "链接",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.2",
+    "source": "src/components/UI/atom/Link.astro",
+    "purpose": "导航到另一个 URL 或当前页锚点。它是导航，不承载动作。",
+    "notFor": [
+        "触发动作（提交、打开弹窗、切换状态）→ Button。",
+        "当前页不可达的项（禁用态）→ 渲染纯文本；Link 不提供 `disabled`。",
+        "整块卡片可点 → Card + 唯一的标题链接（不用 stretched link）。"
+    ],
+    "props": [
+        {
+            "name": "href",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "空 `href`、`href=\"#\"`、`javascript:` 都属违规。"
+        },
+        {
+            "name": "variant",
+            "type": "enum",
+            "default": "`inline`",
+            "values": "`inline` / `nav` / `standalone`",
+            "notes": "见第 4 节 States 与附录 A 尺寸表。"
+        },
+        {
+            "name": "external",
+            "type": "boolean",
+            "default": "由 `href` 推导",
+            "values": "—",
+            "notes": "跨源时加 `target=\"_blank\"` + `rel=\"noopener noreferrer\"`；显式传入可覆盖推导。"
+        },
+        {
+            "name": "current",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "当前页 / 当前语言 → `aria-current=\"page\"`。"
+        },
+        {
+            "name": "label",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "仅 icon-only 或可见文字不足时使用。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default",
+            "required": "是",
+            "notes": "链接文字。"
+        },
+        {
+            "name": "icon-end",
+            "required": "否",
+            "notes": "后置图标（外链箭头、`standalone` 的「→」）；由 `<span class=\"link__icon\">` 包裹，hover 时整体位移。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`inline`：字 `--color-fg-link` + 常驻下划线；`nav`：字 `--color-fg-default`、无下划线；`standalone`：字 `--color-fg-link` + `icon-end`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`",
+            "visual": "字 `--color-fg-link-hover`；`nav` 另加底 `--color-overlay-hover`；`standalone` 的 icon 位移（`transform`，reduced-motion 下取消）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "G4 焦点环 `outline: 2px solid var(--color-ring-focus); outline-offset: 2px`",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "selected",
+            "trigger": "`current=true`（§5.3 记在「其它」列，不是状态词）",
+            "visual": "`nav`：底 `--color-bg-selected` + 字 `--color-fg-default`；`inline` / `standalone`：只把字改为 `--color-fg-default`（不给正文链接加底）",
+            "aria": "`aria-current=\"page\"`"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<a href>`；没有 `disabled` 属性。外链由 `target`/`rel` 表达，不加英文 SR-only 文案（10 locale 下会产生未翻译字符串）。",
+        "keyboard": "Tab / Enter 原生；焦点顺序跟随 DOM，不用正数 `tabindex`。",
+        "aria": "`aria-current=\"page\"`（当前项）；`aria-label` 仅当可见文字不足；装饰图标 `aria-hidden=\"true\"`（由 Icon 负责）。",
+        "contrast": [
+            {
+                "pair": "`inline` 字 `fg-link` / `bg-canvas`",
+                "light": "5.76",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "`nav` 字 `fg-default` / `bg-canvas`",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "hover 字 `fg-link-hover` / 画布（同 `fg-code-accent` 色对）",
+                "light": "6.83",
+                "dark": "5.37",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "`nav` current 底 `bg-selected` / 字 `fg-default`",
+                "light": "8.09",
+                "dark": "9.39",
+                "threshold": "≥ 4.5"
+            }
+        ],
+        "focusRing": "G4；`outline-offset: 2px` 让环不压到相邻文字。",
+        "target": "`nav` 项整行 ≥ `--space-11`（44）；`inline` 链接按行高，不额外扩（扩了会串行）。",
+        "reducedMotion": "icon 位移取消、颜色过渡归 0。",
+        "notes": [
+            "正文里的链接必须常驻下划线（1.4.1 link-in-text-block）：只靠颜色区分 = N5 违规。",
+            "`:visited` 不做样式（泄露阅读历史，且状态闭集里没有这一项）。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-fg-link",
+            "--color-fg-link-hover",
+            "--color-fg-default",
+            "--color-bg-selected",
+            "--color-overlay-hover",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-3",
+            "--space-10",
+            "--space-11",
+            "--radius-sm",
+            "--text-sm",
+            "--font-sans",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.2）",
+        "columns": ["variant", "高度", "内边距 x", "字号", "圆角"],
+        "rows": [
+            ["`inline`", "行高决定（不设高度）", "0", "继承（不设字号）", "0"],
+            ["`nav`", "`--space-11`", "`--space-3`", "`--text-sm`", "`--radius-sm`"],
+            ["`standalone`", "`--space-10`", "0", "`--text-sm`", "0"]
+        ]
+    },
+    "forbidden": [
+        "用 Link 触发动作（提交、打开弹窗、切换状态）。",
+        "给 Link 设固定字号/字重（正文里链接要跟随 h2/p 的排版角色）。",
+        "给 `:visited` 上色。",
+        "`<a>` 无 `href`、`href=\"#\"`、`href=\"javascript:…\"`。",
+        "外链不给 `external` 标记就 `target=\"_blank\"`。",
+        "用 `text-decoration: none` 去掉正文链接的下划线。"
+    ],
+    "related": ["button", "breadcrumb", "pagination"]
+}

@@ -1,0 +1,40 @@
+---
+/**
+ * /design/atoms/breadcrumb/ — Breadcrumb 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/breadcrumb.json · 契约：DESIGN.md §5.6.9
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Breadcrumb from "~/components/UI/molecule/Breadcrumb.astro";
+
+const doc = bySlug("breadcrumb");
+
+const two = [{ label: "首页", href: "/" }, { label: "组件文档" }];
+const three = [
+    { label: "首页", href: "/" },
+    { label: "设计系统", href: "/design/atoms/" },
+    { label: "Breadcrumb" },
+];
+const five = [
+    { label: "首页", href: "/" },
+    { label: "笔记", href: "/design/atoms/" },
+    { label: "设计", href: "/design/atoms/" },
+    { label: "系统", href: "/design/atoms/" },
+    { label: "组件" },
+];
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="stack" caption="2 项：末项不是链接（aria-current=page），分隔符由 CSS 生成">
+        <Breadcrumb items={two} navLabel="面包屑（2 项）" />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="3 项：祖先项各占一个 Tab 停靠点">
+        <Breadcrumb items={three} navLabel="面包屑（3 项）" />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="5 项：窄屏换行，不折叠、不省略">
+        <Breadcrumb items={five} navLabel="面包屑（5 项）" />
+    </DemoFrame>
+</AtomDoc>

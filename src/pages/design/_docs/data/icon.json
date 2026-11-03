@@ -1,0 +1,107 @@
+{
+    "slug": "icon",
+    "name": "Icon",
+    "cn": "图标",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.6",
+    "source": "src/components/UI/atom/Icon.astro",
+    "purpose": "用 SVG 画一个含义已被邻近文案表达的图形；传 `label` 时独立表达一个含义。",
+    "notFor": [
+        "图标是唯一交互目标 → 用 Button / Link 包住它（Icon 本身不可点）。",
+        "多色或渐变图标 → 不做。",
+        "品牌 logo → 用图片（有 `alt`）。"
+    ],
+    "props": [
+        {
+            "name": "name",
+            "type": "string",
+            "default": "—",
+            "values": "必填，`Icons/` 的闭集",
+            "notes": "图标名；不存在即构建期无图形（不做运行时兜底）。"
+        },
+        {
+            "name": "size",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`xs` / `sm` / `md` / `lg`",
+            "notes": "见附录 A 尺寸表。"
+        },
+        {
+            "name": "label",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "传了就变有语义（外层 `role=\"img\"` + `aria-label`）；不传一律装饰性。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：图标是纯 SVG，不接受内容。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`fill` / `stroke` = `currentColor`，颜色由父级决定（Icon 不消费任何 `--color-*`）；尺寸由外层 `font-size` 驱动",
+            "aria": "无 `label`：外层 `<span>` 带 `aria-hidden=\"true\"`；有 `label`：`role=\"img\"` + `aria-label`"
+        }
+    ],
+    "a11y": {
+        "semantics": "内联 `<svg>` 包在 `<span class=\"icon\">` 里；不用图标字体、不用 `<i class=\"icon-…\">`（§3.5.1 第四族禁令）。",
+        "keyboard": "不参与（不是可聚焦元素）。",
+        "aria": "默认 `aria-hidden=\"true\"`；`label` 存在时外层 `role=\"img\"` + `aria-label`。两者互斥，不允许同时 `aria-hidden` 又有 `label`。`focusable=\"false\"` 由现代浏览器默认行为覆盖（DynamicIcon 不透传该属性），已由 e2e 键盘用例实测不进 Tab 序列。",
+        "contrast": [
+            {
+                "pair": "图标颜色（继承父级）",
+                "light": "不适用",
+                "dark": "不适用",
+                "threshold": "父组件的色对负责"
+            },
+            {
+                "pair": "若图标是唯一状态指示（不推荐）",
+                "light": "≥ 3.0",
+                "dark": "≥ 3.0",
+                "threshold": "须记入 §6.2 例外"
+            }
+        ],
+        "focusRing": "不适用（不可聚焦）。",
+        "target": "不适用——Icon 不是目标；父级（Button / Link）负责 ≥ 24 / ≥ 44（G6）。",
+        "reducedMotion": "不适用（静态 SVG）。",
+        "notes": [
+            "判定规则：图标旁已有可见文字表达同一含义 → 装饰性；图标独立表达状态 → 装饰性 + 文案必须另外说清（N5）。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": ["--space-4", "--space-5", "--space-6", "--space-8"],
+        "none": "颜色：无。`fill` / `stroke` 只允许 `currentColor`（本节唯一不吃 `--color-*` 的组件，因为颜色必须由上下文决定）。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.6）",
+        "columns": ["size", "边长", "典型用途"],
+        "rows": [
+            ["`xs`", "`--space-4`", "行内小图标、Tag 内"],
+            ["`sm`", "`--space-5`", "按钮内、Alert 图标"],
+            ["`md`", "`--space-6`", "默认、导航项"],
+            ["`lg`", "`--space-8`", "空状态、卡片占位"]
+        ]
+    },
+    "forbidden": [
+        "图标字体或 `<i>` + `background-image`。",
+        "`fill` / `stroke` 写 hex、rgb 或 `--color-*`（唯一合法值是 `currentColor`）。",
+        "新增组件再用重复内联 `<path>`（不复用 sprite）。",
+        "无 `label` 却承载唯一语义（读屏听不到）。",
+        "把 Icon 当点击目标（`<svg onclick>`）。"
+    ],
+    "related": ["button", "link", "alert"]
+}

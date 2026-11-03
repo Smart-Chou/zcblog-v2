@@ -1,0 +1,55 @@
+---
+/**
+ * /design/atoms/alert/ — Alert 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/alert.json · 契约：DESIGN.md §5.6.11
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Alert from "~/components/UI/atom/Alert.astro";
+import Button from "~/components/UI/atom/Button.astro";
+import Link from "~/components/UI/atom/Link.astro";
+
+const doc = bySlug("alert");
+const tones = ["neutral", "success", "warning", "danger", "info"] as const;
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="stack" caption="tone × 5：tone 由图标 + 文案表达，不只靠颜色">
+        {
+            tones.map((tone) => (
+                <Alert tone={tone} title={`${tone} 提示`}>
+                    tone 的识别依据是图标与文案；边框不承担 3:1。
+                </Alert>
+            ))
+        }
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="dismissible：只渲染关闭按钮，remove 由父级持有">
+        <Alert tone="info" dismissible closeLabel="关闭信息提示">
+            可关闭提示：组件不自持状态，父级绑定事件或重渲染。
+        </Alert>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="live：polite → role=status；assertive → role=alert（仅运行时插入才用）"
+    >
+        <Alert tone="warning" live="polite" title="polite 实时区">
+            role=status：等当前朗读结束后播报。
+        </Alert>
+        <Alert tone="danger" live="assertive" title="assertive 实时区">
+            role=alert：只在内容由用户操作在运行时插入时使用。
+        </Alert>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="icon=false + actions：正文已足够明确时可省图标">
+        <Alert tone="success" icon={false} title="不带图标">
+            图标可以关掉，但文案必须自己说清状态。
+            <div slot="actions">
+                <Button variant="secondary" size="sm">操作</Button>
+                <Link href="/design/atoms/alert/" variant="inline">详情</Link>
+            </div>
+        </Alert>
+    </DemoFrame>
+</AtomDoc>

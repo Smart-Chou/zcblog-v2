@@ -19,6 +19,7 @@ import Alert from "~/components/UI/atom/Alert.astro";
 import Skeleton from "~/components/UI/atom/Skeleton.astro";
 import Breadcrumb from "~/components/UI/molecule/Breadcrumb.astro";
 import Pagination from "~/components/UI/molecule/Pagination.astro";
+import { DOCS } from "./_docs/index";
 
 const buttonVariants = ["primary", "secondary", "ghost", "danger"] as const;
 const buttonSizes = ["sm", "md", "lg"] as const;
@@ -455,6 +456,22 @@ const breadcrumb5 = [
                     </div>
                 </div>
             </section>
+
+            <section class="specimen specimen--docs" data-docs-index>
+                <h2 class="specimen__title">Docs · 12 份组件文档</h2>
+                <p class="page-note">
+                    Props / Slots / States / a11y / token 白名单与可交互示例，每个组件一页。
+                </p>
+                <ul class="docs-index">
+                    {
+                        DOCS.map((entry) => (
+                            <li>
+                                <Link href={`/design/atoms/${entry.slug}/`}>{entry.name}</Link>
+                            </li>
+                        ))
+                    }
+                </ul>
+            </section>
         </main>
 
         <script is:inline>
@@ -640,6 +657,16 @@ const breadcrumb5 = [
                 align-items: center;
                 gap: var(--space-1);
                 block-size: var(--space-8);
+            }
+
+            .docs-index {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-4);
+                margin: 0;
+                padding: 0;
+                list-style: none;
+                font-size: var(--text-sm);
             }
         </style>
     </body>

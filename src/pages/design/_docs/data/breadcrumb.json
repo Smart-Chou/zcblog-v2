@@ -1,0 +1,138 @@
+{
+    "slug": "breadcrumb",
+    "name": "Breadcrumb",
+    "cn": "面包屑",
+    "layer": "molecule",
+    "spec": "DESIGN.md §5.6.9",
+    "source": "src/components/UI/molecule/Breadcrumb.astro",
+    "purpose": "告诉读者「我在站点结构的哪一层」，并提供向上导航。",
+    "notFor": [
+        "只有两层且父级就是首页 → 用返回链接即可。",
+        "内容不在层级结构里（如标签聚合页）→ 用 Tag 列表。",
+        "超过 5 层 → 先修信息架构（面包屑不该用来兜 IA 的烂摊子）。"
+    ],
+    "props": [
+        {
+            "name": "items",
+            "type": "Array<{ label: string; href?: string }>",
+            "default": "—",
+            "values": "必填，≥ 2 项",
+            "notes": "最后一项无 `href`（当前页）；中间项必须有 `href`。"
+        },
+        {
+            "name": "navLabel",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "`<nav aria-label>` 的文本（i18n 由页面注入，G1）。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：内容全部由 `items` 决定。开放 slot 会让页面塞进按钮/下拉，破坏「纯导航」契约。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "祖先项：字 `--color-fg-muted`、无下划线；当前项：字 `--color-fg-default` + `--font-weight-medium`",
+            "aria": "当前项 `aria-current=\"page\"`（不是链接）"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`（仅祖先项）",
+            "visual": "字 `--color-fg-link` + 下划线出现（第二通道）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦（仅祖先项）",
+            "visual": "G4 焦点环（环贴着链接文字，`inline` 尺度）",
+            "aria": "无（原生）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<nav aria-label={navLabel}>` + `<ol>` + `<li>`。用有序列表：面包屑天然是层级序列，`ol` 让读屏能播报「第 2 项，共 4 项」。",
+        "keyboard": "祖先项各占一个 Tab 停靠点（≤ 4 项，可接受）；当前项不是链接，不进 Tab 序列。",
+        "aria": "末项 `aria-current=\"page\"`；分隔符由 CSS 生成（`li:not(:last-child)::after`），不写成文本节点——否则读屏会把「/」念成「斜杠」，10 个 locale 还得各自翻译。",
+        "contrast": [
+            {
+                "pair": "祖先项 `fg-muted` / `bg-canvas`",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "当前项 `fg-default` / `bg-canvas`",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "hover 字 `fg-link` / `bg-canvas`",
+                "light": "5.76",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            }
+        ],
+        "focusRing": "G4；`outline-offset: 2px` 让环不压到相邻分隔符。",
+        "target": "祖先项 ≥ `--space-6`（24）由 `padding-block: var(--space-1)` 补足（G6）；不允许用 `::after` 扩大热区压到分隔符。",
+        "reducedMotion": "颜色过渡归 0。",
+        "notes": [
+            "不折叠、不省略：窄屏允许换行（`flex-wrap: wrap`）；折叠需要 JS 或服务端猜视口，M1 两条都不做。",
+            "`current`（末项）在 §5.3 矩阵里记在「其它」列而不是 `selected`，实现照抄矩阵。",
+            "实现未 import Link：自渲染 `<a class=\"breadcrumb__link\">`，视觉与 Link 的 nav 尺寸不同（高度由 padding 补足），避免正文链接字号被组件锁死。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-fg-muted",
+            "--color-fg-default",
+            "--color-fg-link",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-6",
+            "--radius-xs",
+            "--text-sm",
+            "--font-sans",
+            "--font-weight-medium",
+            "--leading-snug",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.9）",
+        "columns": ["项", "值"],
+        "rows": [
+            ["字号 / 行高", "`--text-sm` / `--leading-snug`"],
+            ["项间距（gap）", "`--space-2`"],
+            ["分隔符左右间距", "`--space-1`"],
+            ["项的纵向 padding", "`--space-1`（补到 24 的目标高度）"],
+            ["圆角（焦点环内沿）", "`--radius-xs`"]
+        ]
+    },
+    "forbidden": [
+        "折叠 / 省略号（需要 JS 或猜视口）。",
+        "末项做成链接（当前页链接自己 = 无效点击）。",
+        "分隔符写成文本节点（读屏噪音 + i18n 负担）。",
+        "用 `<div>` / `<span>` 堆链接（丢失列表语义与「第 n 项」播报）。",
+        "在 molecule 里 import organism 或取数据（D1 / D4）。",
+        "多个 `<nav>` 都不带 `aria-label`。"
+    ],
+    "related": ["link", "pagination"]
+}

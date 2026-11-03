@@ -1,0 +1,92 @@
+---
+/**
+ * DocTable — 文档页的表格渲染器（M1-6）。
+ *
+ * 所有单元格都经 rich() 处理（转义 + 反引号/token 代码样式），因此文档数据里
+ * 写 `<button>` 不会被当成标签，写 `--space-4` 会自动上等宽字体。
+ *
+ * 宽表在窄屏下允许横向滚动：滚动区自身可聚焦（`tabindex="0"` + `role="region"`），
+ * 既满足 axe 的 scrollable-region-focusable，也给出与 G4 一致的焦点环。
+ */
+import { rich } from "./rich";
+
+interface Props {
+    label: string;
+    columns: string[];
+    rows: string[][];
+}
+
+const { label, columns, rows } = Astro.props;
+---
+
+<div class="doc-table" role="region" aria-label={label} tabindex="0">
+    <table>
+        <thead>
+            <tr>
+                {columns.map((column) => <th scope="col" set:html={rich(column)} />)}
+            </tr>
+        </thead>
+        <tbody>
+            {
+                rows.map((row) => (
+                    <tr>
+                        {row.map((cell) => (
+                            <td set:html={rich(cell)} />
+                        ))}
+                    </tr>
+                ))
+            }
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .doc-table {
+        max-inline-size: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
+        background-color: var(--color-bg-surface);
+    }
+
+    .doc-table:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        font-size: var(--text-sm);
+        line-height: var(--leading-normal);
+    }
+
+    th,
+    td {
+        padding: var(--space-2) var(--space-3);
+        border-block-end: 1px solid var(--color-border-subtle);
+        text-align: start;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+    }
+
+    th {
+        background-color: var(--color-bg-muted);
+        color: var(--color-fg-heading);
+        font-weight: var(--font-weight-semibold);
+        white-space: nowrap;
+    }
+
+    tbody tr:last-child td {
+        border-block-end: 0;
+    }
+
+    td :global(code),
+    th :global(code) {
+        padding: 0;
+        background: none;
+        color: inherit;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+</style>

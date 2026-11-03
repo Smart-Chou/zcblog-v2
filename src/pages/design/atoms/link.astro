@@ -1,0 +1,41 @@
+---
+/**
+ * /design/atoms/link/ — Link 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/link.json · 契约：DESIGN.md §5.6.2
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Link from "~/components/UI/atom/Link.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+
+const doc = bySlug("link");
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="row" caption="inline：正文内常驻下划线（第二通道，不只靠颜色）">
+        <p>
+            正文里的一段话，带一个 <Link href="/design/atoms/">inline 链接</Link>，
+            它必须始终带下划线。
+        </p>
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="nav：导航项 ≥ 44 高；current 用 aria-current=page">
+        <Link href="/design/atoms/" variant="nav">Docs</Link>
+        <Link href="/design/atoms/" variant="nav" current>Design</Link>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="row"
+        caption="standalone：字 + icon-end，hover 时图标位移（reduced-motion 取消）"
+    >
+        <Link href="/design/atoms/" variant="standalone">
+            读规格
+            <Icon slot="icon-end" name="tabler:arrow-up-right" size="sm" />
+        </Link>
+        <Link href="https://example.com/" variant="standalone">
+            外链（自动 target=_blank + rel=noopener noreferrer）
+            <Icon slot="icon-end" name="tabler:external-link" size="sm" />
+        </Link>
+    </DemoFrame>
+</AtomDoc>

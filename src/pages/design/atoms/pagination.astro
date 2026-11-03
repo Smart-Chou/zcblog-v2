@@ -1,0 +1,70 @@
+---
+/**
+ * /design/atoms/pagination/ — Pagination 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/pagination.json · 契约：DESIGN.md §5.6.10
+ *
+ * 示例链接都指回本页的 hash（baseHref = 本页），保证是真实可点的路径而不是死链。
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Pagination from "~/components/UI/molecule/Pagination.astro";
+
+const doc = bySlug("pagination");
+const base = "/design/atoms/pagination/";
+const template = "/design/atoms/pagination/#page-{page}";
+const labels = {
+    prevLabel: "上一页",
+    nextLabel: "下一页",
+    pageLabel: "第 {page} 页",
+};
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="total=5 · current=1：左箭头为 aria-disabled 的 span，不是链接"
+    >
+        <Pagination
+            current={1}
+            total={5}
+            baseHref={base}
+            hrefTemplate={template}
+            navLabel="分页，共 5 页"
+            {...labels}
+        />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="total=12 · current=6：窗口两侧出现省略号（不可聚焦）">
+        <Pagination
+            current={6}
+            total={12}
+            baseHref={base}
+            hrefTemplate={template}
+            navLabel="分页，中间窗口"
+            {...labels}
+        />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="total=12 · current=12：右箭头为 disabled 态">
+        <Pagination
+            current={12}
+            total={12}
+            baseHref={base}
+            hrefTemplate={template}
+            navLabel="分页，最后一页"
+            {...labels}
+        />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="total=1：按契约渲染为空（下方没有任何元素）">
+        <Pagination
+            current={1}
+            total={1}
+            baseHref={base}
+            hrefTemplate={template}
+            navLabel="分页，单页"
+            {...labels}
+        />
+    </DemoFrame>
+</AtomDoc>

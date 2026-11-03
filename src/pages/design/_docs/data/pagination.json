@@ -1,0 +1,214 @@
+{
+    "slug": "pagination",
+    "name": "Pagination",
+    "cn": "分页",
+    "layer": "molecule",
+    "spec": "DESIGN.md §5.6.10",
+    "source": "src/components/UI/molecule/Pagination.astro",
+    "purpose": "在可索引的路径分页之间导航（`/blog/page/2/` 这种），不产生查询串；窗口算法在构建期算完。",
+    "notFor": [
+        "无限滚动 / 「加载更多」→ organism（需要 JS 与请求）。",
+        "只有两页 → 上一页/下一页两个 Link。",
+        "筛选结果分页 → 先修 URL 策略（M1 不做）。"
+    ],
+    "props": [
+        {
+            "name": "current",
+            "type": "number",
+            "default": "—",
+            "values": "必填，1 起",
+            "notes": "当前页；越界值会被夹到 `1..max(total,1)`。"
+        },
+        {
+            "name": "total",
+            "type": "number",
+            "default": "—",
+            "values": "必填，≥ 1",
+            "notes": "总页数；`total ≤ 1` 时组件渲染为空（不占位）。"
+        },
+        {
+            "name": "baseHref",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "第 1 页的 URL（`current=1` 时用它，不拼 `{page}`）。"
+        },
+        {
+            "name": "hrefTemplate",
+            "type": "string",
+            "default": "—",
+            "values": "必填，含 `{page}`",
+            "notes": "如 `/blog/page/{page}/`；替换后必须是真实可抓取路径。"
+        },
+        {
+            "name": "siblings",
+            "type": "number",
+            "default": "`1`",
+            "values": "0–2（越界自动夹取）",
+            "notes": "当前页左右各显示几页；总项数由窗口算法决定。"
+        },
+        {
+            "name": "navLabel",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "`<nav aria-label>`（i18n）。"
+        },
+        {
+            "name": "prevLabel",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "上一页的可访问名称。"
+        },
+        {
+            "name": "nextLabel",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "下一页的可访问名称。"
+        },
+        {
+            "name": "pageLabel",
+            "type": "string",
+            "default": "—",
+            "values": "必填，含 `{page}`",
+            "notes": "页码链接的可访问名称模板，如「第 {page} 页」（只写数字对读屏不够）。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：页码是算法生成的，不由页面插入。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "页码字 `--color-fg-muted`；描边 1px `--color-border-subtle`；底透明",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`",
+            "visual": "字 `--color-fg-link` + 底 `--color-overlay-hover` + 描边 `--color-border-default`",
+            "aria": "无"
+        },
+        {
+            "state": "active",
+            "trigger": "按下",
+            "visual": "底 `--color-bg-selected`（瞬时）+ `translateY(1px)`",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "G4 焦点环",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "上一页/下一页到达边界",
+            "visual": "字 `--color-fg-disabled`、描边 `--color-border-subtle`、`cursor: not-allowed`；不响应 hover",
+            "aria": "渲染为 `<span aria-disabled=\"true\">`，不是 `<a>`"
+        },
+        {
+            "state": "selected",
+            "trigger": "`current` 那一项",
+            "visual": "底 `--color-bg-selected` + 字 `--color-fg-default` + `--font-weight-medium` + 描边 `--color-border-accent`（第二通道：边框 + 字重）",
+            "aria": "渲染为 `<span aria-current=\"page\">`，不是 `<a>`"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<nav aria-label={navLabel}>` + `<ol>` + `<li>`；上一页/下一页是 `<a aria-label={prevLabel|nextLabel}>`（图标按钮）。",
+        "keyboard": "只有真实链接进 Tab 序列；当前页与省略号不是链接——「按 N 次 Tab 才能跳过页码」不会发生。",
+        "aria": "`aria-current=\"page\"`（当前页）、`aria-disabled=\"true\"`（边界）、`aria-label`（页码用 `pageLabel` 模板，箭头用 prev/nextLabel）；省略号 `aria-hidden=\"true\"`。不用 `title` 代替 `aria-label`。",
+        "contrast": [
+            {
+                "pair": "页码 `fg-muted` / `bg-canvas`",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "当前页 `fg-default` / `bg-selected`",
+                "light": "8.09",
+                "dark": "9.39",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "hover 字 `fg-link` / `bg-canvas`",
+                "light": "5.76",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "disabled 字 `fg-disabled` / `bg-canvas`",
+                "light": "2.33",
+                "dark": "2.29",
+                "threshold": "1.4.3 豁免"
+            }
+        ],
+        "focusRing": "G4；页码方块与箭头按钮都用 `outline-offset: 2px`。",
+        "target": "页码方块 `--space-10`（40 ≥ 24）；上一页/下一页 `--space-11`（44）。",
+        "reducedMotion": "`translateY(1px)` 取消、过渡归 0。",
+        "notes": [
+            "窗口算法（实现契约）：始终显示第 1 页与第 `total` 页；当前页左右各 `siblings` 页；窗口与两端之间缺 ≥ 1 页时渲染省略号占位（不可聚焦）；`total ≤ 2×siblings+5` 时全量显示、无省略号。",
+            "URL 必须是可索引路径（`/blog/page/2/`），不是 `?page=2`——查询串对 SEO 与 Cloudflare 缓存规则都不友好。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-fg-muted",
+            "--color-fg-default",
+            "--color-fg-link",
+            "--color-fg-disabled",
+            "--color-bg-selected",
+            "--color-overlay-hover",
+            "--color-border-subtle",
+            "--color-border-default",
+            "--color-border-accent",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-3",
+            "--space-10",
+            "--space-11",
+            "--radius-md",
+            "--text-sm",
+            "--font-sans",
+            "--font-weight-medium",
+            "--leading-none",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.10）",
+        "columns": ["元素", "边长", "内边距 x", "字号", "圆角"],
+        "rows": [
+            ["页码", "`--space-10`", "0（正方形）", "`--text-sm`", "`--radius-md`"],
+            ["上一页 / 下一页", "`--space-11`", "`--space-3`", "`--text-sm`", "`--radius-md`"]
+        ]
+    },
+    "forbidden": [
+        "生成 `?page=` 查询串（静态站必须可索引路径）。",
+        "当前页做成链接、边界做成 `href=\"#\"`（死链 + 读屏噪音）。",
+        "省略号做成链接或可聚焦元素。",
+        "在组件里 import i18n / 站点配置取文案（D4 禁止；文案全部走 props，G1）。",
+        "内联 `<style>` 写 px 宽高。",
+        "把 `total` 全量渲染（1000 页 = 1000 个链接）。"
+    ],
+    "related": ["link", "breadcrumb"]
+}

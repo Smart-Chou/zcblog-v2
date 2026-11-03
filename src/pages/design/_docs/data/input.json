@@ -1,0 +1,264 @@
+{
+    "slug": "input",
+    "name": "Input",
+    "cn": "输入框",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.4",
+    "source": "src/components/UI/atom/Input.astro",
+    "purpose": "单行文本输入（搜索、订阅邮箱、评论昵称）；label / hint / 错误文案的 id 关联全部由组件生成。",
+    "notFor": [
+        "多行文本 → 原生 `<textarea>`（M1 不做封装）。",
+        "筛选器 → Tag 组。",
+        "文件上传 → 原生 `<input type=\"file\">` + Button。"
+    ],
+    "props": [
+        {
+            "name": "label",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "可见 label 文本；不由组件兜底（G1）。"
+        },
+        {
+            "name": "name",
+            "type": "string",
+            "default": "—",
+            "values": "必填",
+            "notes": "表单字段名；`id`、`<name>-hint`、`<name>-error` 都从它派生。"
+        },
+        {
+            "name": "type",
+            "type": "enum",
+            "default": "`text`",
+            "values": "`text` / `email` / `url` / `search` / `password` / `number`",
+            "notes": "闭集；其它类型直接用原生 input。"
+        },
+        {
+            "name": "size",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`sm` / `md` / `lg`",
+            "notes": "见附录 A 尺寸表。"
+        },
+        {
+            "name": "value",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "受控语义由父级决定；组件只把它写到 `value` 属性。"
+        },
+        {
+            "name": "placeholder",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "不得替代 label。"
+        },
+        {
+            "name": "hint",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "辅助说明，`aria-describedby` 关联（顺序 hint → error）。"
+        },
+        {
+            "name": "error",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "非空即 invalid（单一真源，不设独立 `invalid` 开关）。"
+        },
+        {
+            "name": "disabled",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "原生。"
+        },
+        {
+            "name": "readonly",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "原生（非状态词，见附录 B）。"
+        },
+        {
+            "name": "required",
+            "type": "boolean",
+            "default": "`false`",
+            "values": "—",
+            "notes": "原生 + 可见文案（`requiredLabel`），不许只用星号或颜色。"
+        },
+        {
+            "name": "requiredLabel",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "`required` 的可见标记文案（如「（必填）」），i18n 由页面注入。"
+        },
+        {
+            "name": "autocomplete",
+            "type": "string",
+            "default": "—",
+            "values": "原生取值",
+            "notes": "邮箱/姓名类字段必须给。"
+        },
+        {
+            "name": "inputmode",
+            "type": "enum",
+            "default": "—",
+            "values": "`text` / `email` / `url` / `search` / `none` / `tel` / `numeric` / `decimal`",
+            "notes": "`number` 类型要配。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "prefix",
+            "required": "否",
+            "notes": "前置图标（如搜索放大镜），装饰性（`aria-hidden`）。"
+        },
+        {
+            "name": "suffix",
+            "required": "否",
+            "notes": "只允许静态元素（单位、快捷键提示）；清空按钮需要 JS，M1 不做。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "底 `--color-bg-surface`；描边 1px `--color-border-default`；字 `--color-fg-default`；placeholder `--color-fg-muted`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`",
+            "visual": "描边 `--color-border-strong`",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘/鼠标聚焦（`:focus-within`）",
+            "visual": "描边 `--color-border-accent` + G4 焦点环画在 `.field__control` 上",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`disabled`",
+            "visual": "底 `--color-bg-muted` + 字 `--color-fg-disabled` + 描边 `--color-border-subtle`；`cursor: not-allowed`",
+            "aria": "`disabled`（原生）"
+        },
+        {
+            "state": "invalid",
+            "trigger": "`error` 非空",
+            "visual": "描边 `--color-status-danger-solid` + 错误文案 `--color-status-danger-fg` + 错误图标（第二通道）",
+            "aria": "`aria-invalid=\"true\"` + `aria-describedby` 含错误 id"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<label for>` + `<input type>`；label 必须可见（不允许 `sr-only` 替代）。",
+        "keyboard": "原生（Tab 进入、方向键移动光标）；不拦截快捷键。",
+        "aria": "`aria-describedby` 串 `hint` 与 `error` 的 id（hint → error）；`aria-invalid=\"true\"` 仅当 error；`required` 用原生属性，不额外加 `aria-required`。",
+        "contrast": [
+            {
+                "pair": "字 `fg-default` / `bg-surface`",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "placeholder `fg-muted` / `bg-surface`",
+                "light": "4.87",
+                "dark": "4.71",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "描边 `border-default` / `bg-surface`",
+                "light": "3.19",
+                "dark": "3.04",
+                "threshold": "≥ 3.0（非文本）"
+            },
+            {
+                "pair": "readonly 字 `fg-default` / `bg-sunken`",
+                "light": "8.49",
+                "dark": "8.73",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "错误描边 `status-danger-solid` / `bg-surface`",
+                "light": "6.21",
+                "dark": "5.63",
+                "threshold": "≥ 3.0（非文本）"
+            }
+        ],
+        "focusRing": "G4 画在 `.field__control`：`outline: 2px solid var(--color-ring-focus); outline-offset: 2px`；`input` 自身的 `outline: none` 是等价替代，不是裸去掉。",
+        "target": "高度 ≥ `--space-8`（32）已满足 24；主操作 ≥ 44 由提交按钮承担（G6）。",
+        "reducedMotion": "边框/底色过渡归 0。",
+        "notes": [
+            "错误文案的播报：静态渲染用文本 + `aria-describedby`；只有「用户操作后运行时插入」的文案才加 `role=\"alert\"`。",
+            "`readonly` 不是状态词：底改 `--color-bg-sunken`，其余同 default。",
+            "`loading` 不适用：输入框没有异步态，提交中由按钮的 `loading` 表达。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-surface",
+            "--color-bg-muted",
+            "--color-bg-sunken",
+            "--color-fg-default",
+            "--color-fg-muted",
+            "--color-fg-disabled",
+            "--color-border-default",
+            "--color-border-strong",
+            "--color-border-accent",
+            "--color-border-subtle",
+            "--color-status-danger-solid",
+            "--color-status-danger-fg",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-8",
+            "--space-10",
+            "--space-12",
+            "--radius-sm",
+            "--text-sm",
+            "--text-base",
+            "--font-sans",
+            "--font-weight-medium",
+            "--font-weight-regular",
+            "--leading-normal",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.4）",
+        "columns": ["size", "高度", "内边距 x", "字号", "圆角"],
+        "rows": [
+            ["`sm`", "`--space-8`", "`--space-3`", "`--text-sm`", "`--radius-sm`"],
+            ["`md`", "`--space-10`", "`--space-4`", "`--text-base`", "`--radius-sm`"],
+            ["`lg`", "`--space-12`", "`--space-4`", "`--text-base`", "`--radius-sm`"]
+        ]
+    },
+    "forbidden": [
+        "用 `placeholder` 代替 label（读屏与自动填充都会失灵）。",
+        "`outline: none` 且没有等价的焦点可见方案。",
+        "`required` 只靠颜色或星号表达（必须有文案，G7）。",
+        "自造清除按钮 / 密码可见切换（需要 JS，M1 的 0 字节预算内不做）。",
+        "隐藏 label（`sr-only` 也算）。",
+        "用 `invalid` 双开关：`error` 为空却设 `invalid=true`。"
+    ],
+    "related": ["button", "icon"]
+}

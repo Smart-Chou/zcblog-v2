@@ -1,0 +1,50 @@
+---
+/**
+ * /design/atoms/tag/ — Tag 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/tag.json · 契约：DESIGN.md §5.6.3
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Tag from "~/components/UI/atom/Tag.astro";
+
+const doc = bySlug("tag");
+const tones = ["neutral", "accent", "success", "warning", "danger", "info"] as const;
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="row" caption="tone × size（sm）">
+        {
+            tones.map((tone) => (
+                <Tag tone={tone} size="sm">
+                    {tone}
+                </Tag>
+            ))
+        }
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="tone × size（md）">
+        {
+            tones.map((tone) => (
+                <Tag tone={tone} size="md">
+                    {tone}
+                </Tag>
+            ))
+        }
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="states：selected / removable / 筛选项链接 / 链接 + 移除">
+        <Tag tone="accent" size="md" selected>selected</Tag>
+        <Tag tone="neutral" size="md" removable removeLabel="移除 neutral">removable</Tag>
+        <Tag tone="info" size="md" href="/design/atoms/tag/">filter link</Tag>
+        <Tag
+            tone="warning"
+            size="md"
+            href="/design/atoms/tag/"
+            removable
+            removeLabel="移除 warning"
+        >
+            link + remove
+        </Tag>
+    </DemoFrame>
+</AtomDoc>

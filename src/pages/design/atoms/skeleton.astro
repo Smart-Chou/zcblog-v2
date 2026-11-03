@@ -1,0 +1,31 @@
+---
+/**
+ * /design/atoms/skeleton/ — Skeleton 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/skeleton.json · 契约：DESIGN.md §5.6.12
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Skeleton from "~/components/UI/atom/Skeleton.astro";
+
+const doc = bySlug("skeleton");
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="grid" caption="text：1 / 3 / 6 行（末行 60% 宽）">
+        <Skeleton variant="text" lines={1} loadingLabel="正在加载文本" />
+        <Skeleton variant="text" lines={3} loadingLabel="正在加载文本" />
+        <Skeleton variant="text" lines={6} loadingLabel="正在加载文本" />
+    </DemoFrame>
+
+    <DemoFrame layout="grid" caption="block：ratio 16/9 与 1/1（不带 ratio 时高度由父容器决定）">
+        <Skeleton variant="block" ratio="16/9" loadingLabel="正在加载图片" />
+        <Skeleton variant="block" ratio="1/1" loadingLabel="正在加载图片" />
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="circle：与 Avatar 同一套 scale（sm / md / xl）">
+        <Skeleton variant="circle" size="sm" loadingLabel="正在加载头像" />
+        <Skeleton variant="circle" size="md" loadingLabel="正在加载头像" />
+        <Skeleton variant="circle" size="xl" loadingLabel="正在加载头像" />
+    </DemoFrame>
+</AtomDoc>

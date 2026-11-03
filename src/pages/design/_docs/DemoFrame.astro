@@ -1,0 +1,82 @@
+---
+/**
+ * DemoFrame — 文档页「示例」区的画框（M1-6）。
+ *
+ * 只做布局脚手架：边框 / 底色 / 间距全部走 token，不参与任何组件视觉。
+ * slot 内容由文档页传入（真实组件实例），所以画框自己用 :global() 把 3 条
+ * 演示用排版规则限定在 `.frame__stage` 之下——这不是组件样式，组件样式仍在组件里。
+ */
+interface Props {
+    layout?: "row" | "stack" | "grid" | "runway";
+    caption?: string;
+}
+
+const { layout = "row", caption } = Astro.props;
+---
+
+<figure class:list={["frame", `frame--${layout}`]}>
+    {caption && <figcaption class="frame__caption">{caption}</figcaption>}
+    <div class="frame__stage">
+        <slot />
+    </div>
+</figure>
+
+<style>
+    .frame {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        margin: 0;
+        padding: var(--space-6);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-surface);
+    }
+
+    .frame__caption {
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .frame__stage {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .frame--stack .frame__stage {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .frame--grid .frame__stage {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(var(--layout-sidebar), 1fr));
+        align-items: start;
+    }
+
+    /* 竖向 Divider 需要一条有高度的跑道：align-self: stretch 的竖线会撑满这一行。 */
+    .frame--runway .frame__stage {
+        align-items: center;
+        block-size: var(--space-10);
+        gap: var(--space-4);
+    }
+
+    /* 演示脚手架：卡片标题 / 正文 / 段落，仅作用于示例区。 */
+    .frame__stage :global(h3) {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--leading-snug);
+    }
+
+    .frame__stage :global(p) {
+        margin: 0;
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+</style>

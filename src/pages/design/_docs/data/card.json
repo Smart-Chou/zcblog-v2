@@ -1,0 +1,181 @@
+{
+    "slug": "card",
+    "name": "Card",
+    "cn": "卡片",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.5",
+    "source": "src/components/UI/atom/Card.astro",
+    "purpose": "给一组相关内容一个纸面边界（标题 + 摘要 + 元信息），让「块」与「文」分开。",
+    "notFor": [
+        "内容只有一行 → 列表项。",
+        "需要整块跳转 → Card + 唯一标题链接（不是整卡 onclick / role=\"link\"）。",
+        "卡片要嵌套 → 拆层级（N10 禁止卡片套卡片）。",
+        "媒体卡（封面图 + 标题）→ organism（`PostCardShell` 一侧），不进 atom。"
+    ],
+    "props": [
+        {
+            "name": "variant",
+            "type": "enum",
+            "default": "`flat`",
+            "values": "`flat` / `raised` / `interactive`",
+            "notes": "`flat` 无阴影；`raised` 加一级阴影；`interactive` 可 hover / focus-within。"
+        },
+        {
+            "name": "padding",
+            "type": "enum",
+            "default": "`md`",
+            "values": "`none` / `md` / `lg`",
+            "notes": "内边距档位；`media` 贴边时用 `none` + 内部再包一层。"
+        },
+        {
+            "name": "as",
+            "type": "enum",
+            "default": "`article`",
+            "values": "`article` / `div` / `li` / `section`",
+            "notes": "语义容器；列表里的卡用 `li`。"
+        },
+        {
+            "name": "labelledby",
+            "type": "string",
+            "default": "—",
+            "values": "标题元素 id",
+            "notes": "用于 `aria-labelledby`；`article` 时应传。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "media",
+            "required": "否",
+            "notes": "封面/缩略图（由父级决定 `<img>` 还是占位）；贴边，圆角由上沿裁切。"
+        },
+        {
+            "name": "header",
+            "required": "否",
+            "notes": "eyebrow / 元信息行。"
+        },
+        {
+            "name": "default",
+            "required": "是",
+            "notes": "标题 + 摘要。"
+        },
+        {
+            "name": "footer",
+            "required": "否",
+            "notes": "标签、时间、操作。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "底 `--color-bg-surface` + 描边 1px `--color-border-subtle`；`flat` 无阴影，`raised` 加 `--shadow-1`（有阴影必有描边，§3.8）",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "仅 `interactive`，`@media (hover: hover)`",
+            "visual": "描边 `--color-border-default` + `--shadow-3`；不做 `transform` 位移（卡内文字会抖）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "仅 `interactive`：卡内链接获得焦点时由 `:focus-within` 触发",
+            "visual": "G4 焦点环画在卡片外沿（`static` 卡不加）",
+            "aria": "无（焦点在子元素上，原生）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<article aria-labelledby>`（或 `li` / `section`，由 `as` 决定）；不用 `div[role=\"link\"]`、不给整卡 `tabindex`。",
+        "keyboard": "卡本身不进 Tab 序列；只有卡内真实链接/按钮进。",
+        "aria": "`aria-labelledby` 指向标题（一屏 9–12 张卡时，读屏用户能听到「卡片名」而不只是「文章」）。",
+        "contrast": [
+            {
+                "pair": "正文 `fg-default` / `bg-surface`",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "meta `fg-muted` / `bg-surface`",
+                "light": "4.87",
+                "dark": "4.71",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "标题 `fg-heading` / `bg-surface`",
+                "light": "17.09",
+                "dark": "14.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "`raised` 正文 `fg-default` / `bg-raised`",
+                "light": "9.39",
+                "dark": "8.27",
+                "threshold": "≥ 4.5"
+            }
+        ],
+        "focusRing": "G4；`interactive` 卡用 `:focus-within` 让环出现在卡的外沿（`outline`，不改布局）。",
+        "target": "卡内链接/按钮各自 ≥ `--space-6`（24）；`media` 不是点击目标。",
+        "reducedMotion": "`interactive` 的 `box-shadow` / `border-color` 过渡归 0（阴影变化不是位移，允许瞬时切换）。",
+        "notes": [
+            "一个交互区只能有一个真链接：`interactive` 卡内若有两个链接，hover 视觉仍作用于整卡，但焦点环只跟真实焦点。",
+            "`disabled` 不适用：卡不是控件；不可点的卡就是 `flat`。",
+            "`flat` / `raised` / `interactive` 是 variant，不是状态。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-surface",
+            "--color-border-subtle",
+            "--color-border-default",
+            "--color-fg-heading",
+            "--color-fg-default",
+            "--color-fg-muted",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-6",
+            "--space-8",
+            "--radius-lg",
+            "--text-lg",
+            "--text-sm",
+            "--font-serif",
+            "--font-weight-semibold",
+            "--leading-relaxed",
+            "--leading-snug",
+            "--shadow-1",
+            "--shadow-3",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "不吃 `--color-bg-raised`：Card 的底永远是 `bg-surface`，`raised` 只加阴影。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.5）",
+        "columns": ["padding", "内边距（四边）", "槽间距", "圆角"],
+        "rows": [
+            ["`none`", "0", "`--space-2`", "`--radius-lg`"],
+            ["`md`", "`--space-6`", "`--space-3`", "`--radius-lg`"],
+            ["`lg`", "`--space-8`", "`--space-4`", "`--radius-lg`"]
+        ]
+    },
+    "forbidden": [
+        "卡片套卡片（N10）。",
+        "每张卡都加阴影（不靠投影堆层级）。",
+        "整卡可点（`div` + `onclick` / `role=\"link\"` / 伪元素覆盖层）。",
+        "Card 里 import organism 或取数据（D4）。",
+        "用 `border-left` 彩色条做分类色（N10）。",
+        "`flat` 卡加 `--shadow-*`。"
+    ],
+    "related": ["link", "tag", "skeleton"]
+}

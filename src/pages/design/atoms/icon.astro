@@ -1,0 +1,26 @@
+---
+/**
+ * /design/atoms/icon/ — Icon 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/icon.json · 契约：DESIGN.md §5.6.6
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Icon from "~/components/UI/atom/Icon.astro";
+
+const doc = bySlug("icon");
+const sizes = ["xs", "sm", "md", "lg"] as const;
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="row" caption="size：xs / sm / md / lg（边长见附录 A）">
+        {sizes.map((size) => <Icon name="tabler:check" size={size} />)}
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="装饰 vs 有语义：不传 label → aria-hidden；传 label → role=img">
+        <Icon name="tabler:info-circle" size="md" />
+        <span>（左边这个图标是装饰性的，读屏不会播报）</span>
+        <Icon name="tabler:info-circle" size="md" label="信息" />
+        <span>（这个由 label 提供可访问名称）</span>
+    </DemoFrame>
+</AtomDoc>

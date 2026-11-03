@@ -1,0 +1,65 @@
+---
+/**
+ * /design/atoms/button/ — Button 文档页（M1-6）
+ * 数据：src/pages/design/_docs/data/button.json · 契约：DESIGN.md §5.6.1
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import Button from "~/components/UI/atom/Button.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+
+const doc = bySlug("button");
+const variants = ["primary", "secondary", "ghost", "danger"] as const;
+const sizes = ["sm", "md", "lg"] as const;
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="row" caption="variant × size（共 12 个组合）">
+        {
+            variants.map((variant) => (
+                <>
+                    {sizes.map((size) => (
+                        <Button variant={variant} size={size}>
+                            {`${variant} ${size}`}
+                        </Button>
+                    ))}
+                </>
+            ))
+        }
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="disabled：不响应 hover，不可聚焦">
+        {
+            variants.map((variant) => (
+                <Button variant={variant} size="md" disabled>
+                    {`${variant} disabled`}
+                </Button>
+            ))
+        }
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="loading：文案不变 + spinner + aria-busy">
+        {
+            variants.map((variant) => (
+                <Button variant={variant} size="md" loading>
+                    {`${variant} loading`}
+                </Button>
+            ))
+        }
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="icon-start / icon-end / icon-only（label 必填）">
+        <Button variant="secondary" size="md">
+            <Icon slot="icon-start" name="tabler:check" size="sm" />
+            前置图标
+        </Button>
+        <Button variant="secondary" size="md">
+            后置图标
+            <Icon slot="icon-end" name="tabler:arrow-up-right" size="sm" />
+        </Button>
+        <Button variant="secondary" size="md" label="Search">
+            <Icon name="tabler:focus-centered" size="sm" />
+        </Button>
+    </DemoFrame>
+</AtomDoc>
