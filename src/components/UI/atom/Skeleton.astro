@@ -1,0 +1,181 @@
+---
+/**
+ * Skeleton — DESIGN.md §5.6.12（atom）
+ *
+ * 内容到达前占住排版位置（CLS）。外层 role="status" + aria-busy，形状 aria-hidden。
+ * 内容到达后由父级整块替换，组件不做定时器。依赖白名单：无。JS 0 字节。
+ */
+type Size = "xs" | "sm" | "md" | "lg" | "xl";
+type Ratio = "16/9" | "4/3" | "1/1" | "3/4";
+
+export interface Props {
+    variant?: "text" | "block" | "circle";
+    /** 1–6，仅 text。 */
+    lines?: number;
+    /** 仅 block；不传则高度由父容器决定。 */
+    ratio?: Ratio;
+    /** 仅 circle，与 Avatar 同一套 scale。 */
+    size?: Size;
+    /** 必填：读屏播报的加载中（i18n 由页面注入）。 */
+    loadingLabel: string;
+    class?: string;
+}
+
+const {
+    variant = "text",
+    lines = 1,
+    ratio,
+    size = "md",
+    loadingLabel,
+    class: className,
+} = Astro.props;
+
+const clampedLines = Math.min(Math.max(Math.round(lines), 1), 6);
+const safeRatio =
+    ratio && ["16/9", "4/3", "1/1", "3/4"].includes(ratio) ? ratio : undefined;
+---
+
+<div
+    class:list={["skeleton", `skeleton--${variant}`, className]}
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+>
+    <span class="skeleton__label">{loadingLabel}</span>
+    {
+        variant === "text" && (
+            <span class="skeleton__lines" aria-hidden="true">
+                {Array.from({ length: clampedLines }, (_, index) => (
+                    <span
+                        class:list={[
+                            "skeleton__shape",
+                            "skeleton__line",
+                            { "skeleton__line--last": index === clampedLines - 1 },
+                        ]}
+                    />
+                ))}
+            </span>
+        )
+    }
+    {
+        variant === "block" && (
+            <span
+                class="skeleton__shape skeleton__block"
+                aria-hidden="true"
+                style={safeRatio ? `aspect-ratio: ${safeRatio}` : undefined}
+            />
+        )
+    }
+    {
+        variant === "circle" && (
+            <span
+                class:list={[
+                    "skeleton__shape",
+                    "skeleton__circle",
+                    `skeleton__circle--${size}`,
+                ]}
+                aria-hidden="true"
+            />
+        )
+    }
+</div>
+
+<style>
+    .skeleton {
+        display: block;
+        font-family: var(--font-sans);
+    }
+
+    .skeleton__label {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .skeleton__lines {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .skeleton__shape {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        background-color: var(--color-bg-muted);
+    }
+
+    .skeleton__shape::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            90deg,
+            var(--color-bg-muted),
+            var(--color-overlay-hover),
+            var(--color-bg-muted)
+        );
+        transform: translateX(-100%);
+        animation: skeleton-shimmer var(--duration-slower) var(--ease-linear) infinite;
+    }
+
+    .skeleton__line {
+        inline-size: 100%;
+        block-size: var(--space-3);
+        border-radius: var(--radius-sm);
+    }
+
+    .skeleton__line--last {
+        inline-size: 60%;
+    }
+
+    .skeleton__block {
+        inline-size: 100%;
+        block-size: 100%;
+        border-radius: var(--radius-lg);
+    }
+
+    .skeleton__circle {
+        border-radius: var(--radius-pill);
+    }
+
+    .skeleton__circle--xs {
+        inline-size: var(--space-6);
+        block-size: var(--space-6);
+    }
+
+    .skeleton__circle--sm {
+        inline-size: var(--space-8);
+        block-size: var(--space-8);
+    }
+
+    .skeleton__circle--md {
+        inline-size: var(--space-10);
+        block-size: var(--space-10);
+    }
+
+    .skeleton__circle--lg {
+        inline-size: var(--space-12);
+        block-size: var(--space-12);
+    }
+
+    .skeleton__circle--xl {
+        inline-size: var(--space-16);
+        block-size: var(--space-16);
+    }
+
+    @keyframes skeleton-shimmer {
+        to {
+            transform: translateX(100%);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .skeleton__shape::after {
+            animation: none;
+        }
+    }
+</style>

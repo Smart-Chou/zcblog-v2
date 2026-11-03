@@ -1,0 +1,61 @@
+---
+/**
+ * Icon — DESIGN.md §5.6.6（atom）
+ *
+ * 依赖白名单：Icons/DynamicIcon。
+ * 颜色：本组件不消费任何 --color-*；fill/stroke 由图标数据里的 currentColor 继承父级。
+ * 尺寸：--space-*（用 font-size 驱动 DynamicIcon 的字号基准画布）。
+ *
+ * 语义：DynamicIcon 产出的是不可注入属性的 <svg>，因此 aria 语义由外层 span 承担
+ * （aria-hidden 对整棵子树生效；role="img" + aria-label 表达有语义图标）。
+ * SVG 的 focusable="false" 无法注入（DynamicIcon 不透传属性）；现代浏览器里 <svg>
+ * 默认不进 Tab 序列（该属性只对 IE / 旧 Edge 有意义）。
+ */
+import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+
+export interface Props {
+    /** Icons/ 闭集里的图标名；不存在时构建期即无图形（不做运行时兜底）。 */
+    name: string;
+    size?: "xs" | "sm" | "md" | "lg";
+    /** 传入即变有语义（role="img" + aria-label）；不传一律装饰性。 */
+    label?: string;
+    class?: string;
+}
+
+const { name, size = "md", label, class: className } = Astro.props;
+---
+
+<span
+    class:list={["icon", `icon--${size}`, className]}
+    role={label ? "img" : undefined}
+    aria-label={label}
+    aria-hidden={label ? undefined : "true"}
+>
+    <DynamicIcon name={name} />
+</span>
+
+<style>
+    .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        line-height: 0;
+    }
+
+    .icon--xs {
+        font-size: var(--space-4);
+    }
+
+    .icon--sm {
+        font-size: var(--space-5);
+    }
+
+    .icon--md {
+        font-size: var(--space-6);
+    }
+
+    .icon--lg {
+        font-size: var(--space-8);
+    }
+</style>

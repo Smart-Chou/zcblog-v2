@@ -1,0 +1,109 @@
+---
+/**
+ * Breadcrumb — DESIGN.md §5.6.9（molecule）
+ *
+ * <nav aria-label> + 有序列表；末项 aria-current="page" 且不是链接；
+ * 分隔符由 CSS 生成（不写成文本节点，避免读屏念「斜杠」与 i18n 负担）。
+ * 不折叠、不省略，窄屏换行。JS 0 字节。
+ */
+export interface Props {
+    /** 必填，≥2 项；最后一项无 href（当前页），中间项必须有 href。 */
+    items: Array<{ label: string; href?: string }>;
+    /** 必填：<nav aria-label> 的文本（i18n 由页面注入）。 */
+    navLabel: string;
+    class?: string;
+}
+
+const { items, navLabel, class: className } = Astro.props;
+---
+
+<nav class:list={["breadcrumb", className]} aria-label={navLabel}>
+    <ol class="breadcrumb__list">
+        {
+            items.map((item, index) => {
+                const isLast = index === items.length - 1;
+                return (
+                    <li class="breadcrumb__item">
+                        {isLast ? (
+                            <span class="breadcrumb__current" aria-current="page">
+                                {item.label}
+                            </span>
+                        ) : item.href ? (
+                            <a class="breadcrumb__link" href={item.href}>
+                                {item.label}
+                            </a>
+                        ) : (
+                            <span class="breadcrumb__link">{item.label}</span>
+                        )}
+                    </li>
+                );
+            })
+        }
+    </ol>
+</nav>
+
+<style>
+    .breadcrumb {
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: var(--leading-snug);
+    }
+
+    .breadcrumb__list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .breadcrumb__item {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .breadcrumb__item:not(:last-child)::after {
+        content: "/";
+        margin-inline: var(--space-1);
+        color: var(--color-fg-muted);
+    }
+
+    .breadcrumb__link {
+        display: inline-flex;
+        align-items: center;
+        padding-block: var(--space-1);
+        border-radius: var(--radius-xs);
+        color: var(--color-fg-muted);
+        text-decoration: none;
+        transition: color var(--duration-fast) var(--ease-standard);
+    }
+
+    @media (hover: hover) {
+        .breadcrumb__link:hover {
+            color: var(--color-fg-link);
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+        }
+    }
+
+    .breadcrumb__link:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .breadcrumb__current {
+        display: inline-flex;
+        align-items: center;
+        padding-block: var(--space-1);
+        color: var(--color-fg-default);
+        font-weight: var(--font-weight-medium);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .breadcrumb__link {
+            transition: none;
+        }
+    }
+</style>

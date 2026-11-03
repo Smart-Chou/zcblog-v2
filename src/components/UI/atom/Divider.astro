@@ -1,0 +1,82 @@
+---
+/**
+ * Divider — DESIGN.md §5.6.8（atom）
+ *
+ * 两组内容之间的 hairline。decorative=false 时用 <hr>（结构化分隔），竖向用 role="separator"。
+ * 依赖白名单：无。JS 0 字节。
+ */
+export interface Props {
+    orientation?: "horizontal" | "vertical";
+    spacing?: "none" | "sm" | "md" | "lg";
+    decorative?: boolean;
+    class?: string;
+}
+
+const { orientation = "horizontal", spacing = "md", decorative = false, class: className } = Astro.props;
+
+const classes = ["divider", `divider--${orientation}`, `divider--space-${spacing}`, className];
+---
+
+{
+    orientation === "horizontal" && !decorative ? (
+        <hr class:list={classes} />
+    ) : (
+        <div
+            class:list={classes}
+            role={decorative ? undefined : "separator"}
+            aria-orientation={!decorative && orientation === "vertical" ? "vertical" : undefined}
+            aria-hidden={decorative ? "true" : undefined}
+        />
+    )
+}
+
+<style>
+    .divider {
+        margin: 0;
+        border: 0;
+    }
+
+    .divider--horizontal {
+        inline-size: 100%;
+        block-size: 0;
+        border-block-start: 1px solid var(--color-border-subtle);
+    }
+
+    .divider--vertical {
+        inline-size: 0;
+        align-self: stretch;
+        border-inline-start: 1px solid var(--color-border-subtle);
+    }
+
+    .divider--horizontal.divider--space-none {
+        margin-block: 0;
+    }
+
+    .divider--horizontal.divider--space-sm {
+        margin-block: var(--space-4);
+    }
+
+    .divider--horizontal.divider--space-md {
+        margin-block: var(--space-8);
+    }
+
+    .divider--horizontal.divider--space-lg {
+        margin-block: var(--space-12);
+    }
+
+    .divider--vertical.divider--space-none {
+        margin-inline: 0;
+    }
+
+    .divider--vertical.divider--space-sm {
+        margin-inline: var(--space-3);
+    }
+
+    .divider--vertical.divider--space-md {
+        margin-inline: var(--space-4);
+    }
+
+    .divider--vertical.divider--space-lg {
+        margin-inline: var(--space-6);
+    }
+</style>

@@ -39,7 +39,6 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import rehypeCallouts from "rehype-callouts";
 import astroVtBot from "astro-vtbot";
-import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import swup from "@swup/astro";
 
@@ -270,6 +269,10 @@ export default defineConfig({
             },
             // 过滤不需要收录的页面
             filter: (page) => {
+                // 设计实验页不进 sitemap（16-m1-brief §3.4：不放进主导航；不参与 sitemap）
+                if (page.includes("/design/")) {
+                    return false;
+                }
                 // 排除跳转中转页
                 if (page === `${siteCfg.url}/redirect/` || page === `${siteCfg.url}/en/redirect/`) {
                     return false;
@@ -358,7 +361,7 @@ export default defineConfig({
         concurrency: Number(process.env.BUILD_CONCURRENCY) || os.cpus().length,
     },
     vite: {
-        plugins: [tailwindcss(), ...pwaPlugins],
+        plugins: [...pwaPlugins],
         // 预览构建整段编译掉 SW 注册（预览写的是自毁 sw.js，注册会无限重载）
         define: {
             __PWA_ENABLED__: JSON.stringify(!isPreviewBuild),

@@ -1,0 +1,145 @@
+---
+/**
+ * Avatar — DESIGN.md §5.6.7（atom）
+ *
+ * 身份标识：有 src 走 <img>，缺省走首字母回退（构建期分支，不做运行期 onerror）。
+ * width/height 属性从 tokens.json 的 --space-* 推导，防 CLS 且不复制数值。
+ * 依赖白名单：无。JS 0 字节。
+ */
+import tokens from "~/styles/tokens/tokens.json";
+
+type Size = "xs" | "sm" | "md" | "lg" | "xl";
+
+export interface Props {
+    src?: string;
+    /** src 存在且非装饰时必填：身份描述（人名）。 */
+    alt?: string;
+    size?: Size;
+    shape?: "circle" | "rounded";
+    /** 1–2 个字符；与 src 互斥（src 优先）。 */
+    initials?: string;
+    /** 相邻已有姓名文本时置 true → alt="" + aria-hidden。 */
+    decorative?: boolean;
+    class?: string;
+}
+
+const {
+    src,
+    alt,
+    size = "md",
+    shape = "circle",
+    initials,
+    decorative = false,
+    class: className,
+} = Astro.props;
+
+const SIZE_TOKEN: Record<Size, string> = {
+    xs: "--space-6",
+    sm: "--space-8",
+    md: "--space-10",
+    lg: "--space-12",
+    xl: "--space-16",
+};
+
+const primitive = tokens.primitive as Record<string, string>;
+const dimension = Number.parseFloat(primitive[SIZE_TOKEN[size]]);
+---
+
+{
+    src ? (
+        <img
+            class:list={[
+                "avatar",
+                "avatar--img",
+                `avatar--${size}`,
+                `avatar--${shape}`,
+                className,
+            ]}
+            src={src}
+            alt={decorative ? "" : (alt ?? "")}
+            aria-hidden={decorative ? "true" : undefined}
+            width={dimension}
+            height={dimension}
+            decoding="async"
+        />
+    ) : (
+        <span
+            class:list={[
+                "avatar",
+                "avatar--fallback",
+                `avatar--${size}`,
+                `avatar--${shape}`,
+                className,
+            ]}
+            aria-hidden="true"
+        >
+            {initials}
+        </span>
+    )
+}
+
+<style>
+    .avatar {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        overflow: hidden;
+    }
+
+    .avatar--circle {
+        border-radius: var(--radius-pill);
+    }
+
+    .avatar--rounded {
+        border-radius: var(--radius-md);
+    }
+
+    .avatar--xs.avatar--rounded {
+        border-radius: var(--radius-sm);
+    }
+
+    .avatar--img {
+        border: 1px solid var(--color-border-subtle);
+        object-fit: cover;
+    }
+
+    .avatar--fallback {
+        background-color: var(--color-bg-muted);
+        color: var(--color-fg-default);
+        font-family: var(--font-sans);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--leading-none);
+    }
+
+    .avatar--xs {
+        inline-size: var(--space-6);
+        block-size: var(--space-6);
+        font-size: var(--text-xs);
+    }
+
+    .avatar--sm {
+        inline-size: var(--space-8);
+        block-size: var(--space-8);
+        font-size: var(--text-xs);
+    }
+
+    .avatar--md {
+        inline-size: var(--space-10);
+        block-size: var(--space-10);
+        font-size: var(--text-sm);
+    }
+
+    .avatar--lg {
+        inline-size: var(--space-12);
+        block-size: var(--space-12);
+        font-size: var(--text-base);
+    }
+
+    .avatar--xl {
+        inline-size: var(--space-16);
+        block-size: var(--space-16);
+        font-size: var(--text-lg);
+    }
+</style>

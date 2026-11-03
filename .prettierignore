@@ -5,6 +5,9 @@
 # 不格式化 JSON 数据文件
 src/data/*.json
 
+# 生成物：由 src/styles/tokens/build-tokens.mjs 输出，格式化会让 G-T1（逐字节一致）永远红
+src/styles/tokens/tokens.css
+
 # 不格式化特定的 TypeScript 文件
 src/components/Icons/index.ts
 

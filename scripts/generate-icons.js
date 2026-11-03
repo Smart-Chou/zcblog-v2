@@ -63,7 +63,9 @@ function extractIconNames(content) {
         // <DynamicIcon name="xxx:yyy" />
         /DynamicIcon\s+name=["']([a-z0-9-]+:[a-z0-9-]+)["']/gi,
         // DynamicIcon name={`xxx:yyy`}
-        /DynamicIcon\s+name=\{["'`]([a-z0-9-]+:[a-z0-9-]+)["'`]\}/gi,
+        /DynamicIcon\s+name=\{[`'"]([a-z0-9-]+:[a-z0-9-]+)[`'"]\}/gi,
+        // <Icon name="xxx:yyy" /> / <Icon class="..." name="xxx:yyy" />（UI/atom/Icon 包装组件）
+        /<Icon\s+[^>]*name=["']([a-z0-9-]+:[a-z0-9-]+)["']/gi,
         // getIconSvg("xxx:yyy") 或 getIconSvg('xxx:yyy')
         /getIconSvg\(["']([a-z0-9-]+:[a-z0-9-]+)["']\)/gi,
         // hasIcon("xxx:yyy")

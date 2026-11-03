@@ -1,0 +1,159 @@
+---
+/**
+ * Alert — DESIGN.md §5.6.11（atom）
+ *
+ * 正文流里的提示块。live 默认 none：页面加载即存在的提示不该是 live region。
+ * dismissible 只渲染关闭按钮，状态归父级（JS 0 字节）。
+ * 依赖白名单：Icon、Button。
+ */
+import Icon from "./Icon.astro";
+import Button from "./Button.astro";
+
+type Tone = "neutral" | "success" | "warning" | "danger" | "info";
+
+export interface Props {
+    tone?: Tone;
+    live?: "none" | "polite" | "assertive";
+    /** 可选标题（短句）；正文走 default slot。 */
+    title?: string;
+    dismissible?: boolean;
+    /** dismissible 时必填：关闭按钮的 aria-label（i18n）。 */
+    closeLabel?: string;
+    icon?: boolean;
+    class?: string;
+}
+
+const {
+    tone = "info",
+    live = "none",
+    title,
+    dismissible = false,
+    closeLabel,
+    icon = true,
+    class: className,
+} = Astro.props;
+
+const role = live === "polite" ? "status" : live === "assertive" ? "alert" : undefined;
+---
+
+<div class:list={["alert", `alert--${tone}`, className]} role={role}>
+    {
+        icon && (
+            <span class="alert__icon">
+                {tone === "neutral" && <Icon name="tabler:point-filled" size="sm" />}
+                {tone === "success" && <Icon name="tabler:circle-check" size="sm" />}
+                {tone === "warning" && <Icon name="tabler:alert-triangle" size="sm" />}
+                {tone === "danger" && <Icon name="tabler:alert-triangle-filled" size="sm" />}
+                {tone === "info" && <Icon name="tabler:info-circle" size="sm" />}
+            </span>
+        )
+    }
+    <div class="alert__content">
+        {title && <p class="alert__title">{title}</p>}
+        <div class="alert__message"><slot /></div>
+        {
+            Astro.slots.has("actions") && (
+                <div class="alert__actions">
+                    <slot name="actions" />
+                </div>
+            )
+        }
+    </div>
+    {
+        dismissible && (
+            <span class="alert__close">
+                <Button variant="ghost" size="sm" label={closeLabel}>
+                    <Icon name="tabler:x" size="sm" />
+                </Button>
+            </span>
+        )
+    }
+</div>
+
+<style>
+    .alert {
+        box-sizing: border-box;
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-md);
+        font-family: var(--font-sans);
+        /*
+         * a11y 修复（M1-5）：tone 底色上 --color-fg-link 在 dark 只有 4.32:1
+         * （success-bg #1b261f / fg-link #e05d43），低于 4.5；§5.6.13-B 未覆盖这个色对。
+         * Alert 子树内把链接色收敛到 --color-fg-default（对 tone 底色 ≥8:1）。
+         * 只改字色，几何与下划线/描边不动 —— 可交互的第二通道仍是下划线与边框（G7）。
+         */
+        --color-fg-link: var(--color-fg-default);
+    }
+
+    .alert--neutral {
+        background-color: var(--color-bg-muted);
+        border-color: var(--color-border-default);
+        color: var(--color-fg-default);
+    }
+
+    .alert--success {
+        background-color: var(--color-status-success-bg);
+        border-color: var(--color-status-success-border);
+        color: var(--color-status-success-fg);
+    }
+
+    .alert--warning {
+        background-color: var(--color-status-warning-bg);
+        border-color: var(--color-status-warning-border);
+        color: var(--color-status-warning-fg);
+    }
+
+    .alert--danger {
+        background-color: var(--color-status-danger-bg);
+        border-color: var(--color-status-danger-border);
+        color: var(--color-status-danger-fg);
+    }
+
+    .alert--info {
+        background-color: var(--color-status-info-bg);
+        border-color: var(--color-status-info-border);
+        color: var(--color-status-info-fg);
+    }
+
+    .alert__icon {
+        display: inline-flex;
+        flex: none;
+        color: inherit;
+    }
+
+    .alert__content {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-inline-size: 0;
+    }
+
+    .alert__title {
+        margin: 0;
+        font-size: var(--text-base);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--leading-snug);
+    }
+
+    .alert__message {
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+
+    .alert__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        margin-block-start: var(--space-3);
+    }
+
+    .alert__close {
+        display: inline-flex;
+        flex: none;
+    }
+</style>

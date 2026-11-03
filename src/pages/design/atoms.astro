@@ -1,0 +1,636 @@
+---
+/**
+ * /design/atoms — DESIGN.md §5.6 / 16-m1-brief §3.4
+ *
+ * 设计实验页：12 个核心组件（10 atom + 2 molecule）的全部 variant × size × 可见状态。
+ * 只服务预览与评审：noindex，不进主导航。
+ * 组件本身 0 JS；本页只有一段主题切换脚本（fixture 控件，不属于组件库）。
+ */
+import "../../styles/tokens/tokens.css";
+import Button from "~/components/UI/atom/Button.astro";
+import Link from "~/components/UI/atom/Link.astro";
+import Tag from "~/components/UI/atom/Tag.astro";
+import Input from "~/components/UI/atom/Input.astro";
+import Card from "~/components/UI/atom/Card.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Avatar from "~/components/UI/atom/Avatar.astro";
+import Divider from "~/components/UI/atom/Divider.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import Skeleton from "~/components/UI/atom/Skeleton.astro";
+import Breadcrumb from "~/components/UI/molecule/Breadcrumb.astro";
+import Pagination from "~/components/UI/molecule/Pagination.astro";
+
+const buttonVariants = ["primary", "secondary", "ghost", "danger"] as const;
+const buttonSizes = ["sm", "md", "lg"] as const;
+const tagTones = ["neutral", "accent", "success", "warning", "danger", "info"] as const;
+const alerts = ["neutral", "success", "warning", "danger", "info"] as const;
+const avatarSizes = ["xs", "sm", "md", "lg", "xl"] as const;
+const spacings = ["none", "sm", "md", "lg"] as const;
+
+const breadcrumb2 = [{ label: "Home", href: "/" }, { label: "Design" }];
+const breadcrumb3 = [
+    { label: "Home", href: "/" },
+    { label: "Design", href: "/design/atoms/" },
+    { label: "Atoms" },
+];
+const breadcrumb5 = [
+    { label: "Home", href: "/" },
+    { label: "Notes", href: "/design/atoms/" },
+    { label: "Design", href: "/design/atoms/" },
+    { label: "System", href: "/design/atoms/" },
+    { label: "Atoms" },
+];
+---
+
+<!doctype html>
+<html lang="en" data-theme="light">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>Design — atoms</title>
+    </head>
+    <body>
+        <header class="page-head">
+            <div>
+                <p class="page-kicker">Design system</p>
+                <h1 class="page-title">Core atoms &amp; molecules</h1>
+            </div>
+            <button
+                id="theme-toggle"
+                class="theme-toggle"
+                type="button"
+                aria-pressed="false"
+            >
+                Toggle dark
+            </button>
+        </header>
+
+        <p class="page-note">
+            Static fixtures for every variant, size and visible state. Hover, active and
+            focus-visible are live: hover an element or press Tab. Components ship 0 JS; only
+            this page carries the theme switch.
+        </p>
+
+        <main class="specimens">
+            <section class="specimen" data-specimen="button">
+                <h2 class="specimen__title">1 · Button</h2>
+                <p class="page-note">variant × size, then disabled / loading / icon slots.</p>
+                {
+                    buttonVariants.map((variant) => (
+                        <div class="specimen__row">
+                            <span class="label">{variant}</span>
+                            {buttonSizes.map((size) => (
+                                <Button variant={variant} size={size}>
+                                    {`${variant} ${size}`}
+                                </Button>
+                            ))}
+                        </div>
+                    ))
+                }
+                <div class="specimen__row">
+                    <span class="label">disabled</span>
+                    {buttonVariants.map((variant) => (
+                        <Button variant={variant} size="md" disabled>
+                            {`${variant} disabled`}
+                        </Button>
+                    ))}
+                </div>
+                <div class="specimen__row">
+                    <span class="label">loading</span>
+                    {buttonVariants.map((variant) => (
+                        <Button variant={variant} size="md" loading>
+                            {`${variant} loading`}
+                        </Button>
+                    ))}
+                </div>
+                <div class="specimen__row">
+                    <span class="label">icons</span>
+                    <Button variant="secondary" size="md">
+                        <Icon slot="icon-start" name="tabler:check" size="sm" />
+                        With start icon
+                    </Button>
+                    <Button variant="secondary" size="md">
+                        With end icon
+                        <Icon slot="icon-end" name="tabler:arrow-up-right" size="sm" />
+                    </Button>
+                    <Button variant="secondary" size="sm" label="Search">
+                        <Icon name="tabler:focus-centered" size="sm" />
+                    </Button>
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="link">
+                <h2 class="specimen__title">2 · Link</h2>
+                <div class="specimen__row">
+                    <span class="label">inline</span>
+                    <p class="prose">
+                        Body copy with an <Link href="/design/atoms/">inline link</Link> that
+                        keeps its underline.
+                    </p>
+                </div>
+                <div class="specimen__row">
+                    <span class="label">nav</span>
+                    <Link href="/design/atoms/" variant="nav">Docs</Link>
+                    <Link href="/design/atoms/" variant="nav" current>Design</Link>
+                </div>
+                <div class="specimen__row">
+                    <span class="label">standalone</span>
+                    <Link href="/design/atoms/" variant="standalone">
+                        Read the spec
+                        <Icon slot="icon-end" name="tabler:arrow-up-right" size="sm" />
+                    </Link>
+                    <Link href="https://example.com/" variant="standalone">
+                        External resource
+                        <Icon slot="icon-end" name="tabler:arrow-up-right" size="sm" />
+                    </Link>
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="tag">
+                <h2 class="specimen__title">3 · Tag</h2>
+                {
+                    (["sm", "md"] as const).map((size) => (
+                        <div class="specimen__row">
+                            <span class="label">{size}</span>
+                            {tagTones.map((tone) => (
+                                <Tag tone={tone} size={size}>
+                                    {tone}
+                                </Tag>
+                            ))}
+                        </div>
+                    ))
+                }
+                <div class="specimen__row">
+                    <span class="label">states</span>
+                    <Tag tone="accent" size="md" selected>selected</Tag>
+                    <Tag tone="neutral" size="md" removable removeLabel="Remove neutral">
+                        removable
+                    </Tag>
+                    <Tag tone="info" size="md" href="/design/atoms/">filter link</Tag>
+                    <Tag tone="warning" size="md" href="/design/atoms/" removable removeLabel="Remove warning">
+                        link + remove
+                    </Tag>
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="input">
+                <h2 class="specimen__title">4 · Input</h2>
+                <div class="input-grid">
+                    <Input
+                        name="demo-search"
+                        label="Search"
+                        type="search"
+                        size="md"
+                        placeholder="Search the archive"
+                        hint="Hint text is linked with aria-describedby."
+                    >
+                        <Icon slot="prefix" name="tabler:focus-centered" size="sm" />
+                    </Input>
+                    <Input
+                        name="demo-email"
+                        label="Email"
+                        type="email"
+                        size="sm"
+                        required
+                        requiredLabel="(required)"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                    />
+                    <Input
+                        name="demo-url"
+                        label="URL"
+                        type="url"
+                        size="lg"
+                        value="https://example.com/"
+                        hint="Value is rendered by the parent."
+                    />
+                    <Input
+                        name="demo-disabled"
+                        label="Disabled"
+                        size="md"
+                        value="Not editable"
+                        disabled
+                    />
+                    <Input
+                        name="demo-readonly"
+                        label="Readonly"
+                        size="md"
+                        value="Read only value"
+                        readonly
+                    />
+                    <Input
+                        name="demo-error"
+                        label="Email"
+                        type="email"
+                        size="md"
+                        value="not-an-email"
+                        error="Enter a valid email address."
+                    />
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="card">
+                <h2 class="specimen__title">5 · Card</h2>
+                <div class="card-grid">
+                    <Card variant="flat" padding="md" labelledby="card-flat-title">
+                        <div slot="header" class="label">flat · md</div>
+                        <h3 id="card-flat-title" class="card-title">A flat card</h3>
+                        <p class="card-text">
+                            Paper boundary with a hairline border and no shadow.
+                        </p>
+                        <div slot="footer" class="label">footer</div>
+                    </Card>
+                    <Card variant="raised" padding="md" labelledby="card-raised-title">
+                        <div slot="header" class="label">raised · md</div>
+                        <h3 id="card-raised-title" class="card-title">A raised card</h3>
+                        <p class="card-text">Elevation level one, always with a border.</p>
+                        <div slot="footer" class="label">footer</div>
+                    </Card>
+                    <Card variant="interactive" padding="md" labelledby="card-interactive-title">
+                        <div slot="media" class="media-placeholder"></div>
+                        <div slot="header" class="label">interactive · md</div>
+                        <h3 id="card-interactive-title" class="card-title">
+                            <Link href="/design/atoms/">An interactive card</Link>
+                        </h3>
+                        <p class="card-text">
+                            Focus the title link to see the focus ring on the card edge.
+                        </p>
+                        <div slot="footer" class="label">footer</div>
+                    </Card>
+                    <Card variant="flat" padding="lg" labelledby="card-lg-title">
+                        <h3 id="card-lg-title" class="card-title">Large padding</h3>
+                        <p class="card-text">Padding lg uses --space-8.</p>
+                    </Card>
+                    <Card variant="flat" padding="none" labelledby="card-none-title">
+                        <div slot="media" class="media-placeholder"></div>
+                        <div class="card-inset">
+                            <h3 id="card-none-title" class="card-title">No padding</h3>
+                            <p class="card-text">Media stays flush with the border.</p>
+                        </div>
+                    </Card>
+                    <Card variant="flat" padding="md" as="section" labelledby="card-section-title">
+                        <h3 id="card-section-title" class="card-title">Section card</h3>
+                        <p class="card-text">The container element is chosen with the as prop.</p>
+                    </Card>
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="icon">
+                <h2 class="specimen__title">6 · Icon</h2>
+                <div class="specimen__row">
+                    <span class="label">sizes</span>
+                    <Icon name="tabler:check" size="xs" />
+                    <Icon name="tabler:check" size="sm" />
+                    <Icon name="tabler:check" size="md" />
+                    <Icon name="tabler:check" size="lg" />
+                </div>
+                <div class="specimen__row">
+                    <span class="label">labelled</span>
+                    <Icon name="tabler:info-circle" size="md" label="Information" />
+                    <span class="prose">Decorative icons are aria-hidden.</span>
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="avatar">
+                <h2 class="specimen__title">7 · Avatar</h2>
+                <div class="specimen__row">
+                    <span class="label">fallback circle</span>
+                    {avatarSizes.map((size) => (
+                        <Avatar size={size} initials="MC" />
+                    ))}
+                </div>
+                <div class="specimen__row">
+                    <span class="label">fallback rounded</span>
+                    {avatarSizes.map((size) => (
+                        <Avatar size={size} shape="rounded" initials="MC" />
+                    ))}
+                </div>
+                <div class="specimen__row">
+                    <span class="label">image</span>
+                    <Avatar src="/favicon.svg" alt="Marx Chou" size="md" />
+                    <Avatar src="/favicon.svg" alt="Marx Chou" size="lg" shape="rounded" />
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="divider">
+                <h2 class="specimen__title">8 · Divider</h2>
+                {spacings.map((spacing) => (
+                    <div class="specimen__stack">
+                        <span class="label">{`horizontal · ${spacing}`}</span>
+                        <Divider orientation="horizontal" spacing={spacing} />
+                    </div>
+                ))}
+                <div class="specimen__row">
+                    <span class="label">vertical</span>
+                    {spacings.map((spacing) => (
+                        <div class="divider-row">
+                            <span class="prose">left</span>
+                            <Divider orientation="vertical" spacing={spacing} />
+                            <span class="prose">right</span>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section class="specimen" data-specimen="breadcrumb">
+                <h2 class="specimen__title">9 · Breadcrumb</h2>
+                <Breadcrumb items={breadcrumb2} navLabel="Breadcrumb (2 items)" />
+                <Breadcrumb items={breadcrumb3} navLabel="Breadcrumb (3 items)" />
+                <Breadcrumb items={breadcrumb5} navLabel="Breadcrumb (5 items)" />
+            </section>
+
+            <section class="specimen" data-specimen="pagination">
+                <h2 class="specimen__title">10 · Pagination</h2>
+                <Pagination
+                    current={1}
+                    total={5}
+                    baseHref="/design/atoms/"
+                    hrefTemplate="/design/atoms/#page-{page}"
+                    navLabel="Pagination, 5 pages"
+                    prevLabel="Previous page"
+                    nextLabel="Next page"
+                    pageLabel="Page {page}"
+                />
+                <Pagination
+                    current={6}
+                    total={12}
+                    baseHref="/design/atoms/"
+                    hrefTemplate="/design/atoms/#page-{page}"
+                    navLabel="Pagination, middle window"
+                    prevLabel="Previous page"
+                    nextLabel="Next page"
+                    pageLabel="Page {page}"
+                />
+                <Pagination
+                    current={12}
+                    total={12}
+                    baseHref="/design/atoms/"
+                    hrefTemplate="/design/atoms/#page-{page}"
+                    navLabel="Pagination, last page"
+                    prevLabel="Previous page"
+                    nextLabel="Next page"
+                    pageLabel="Page {page}"
+                />
+                <p class="page-note">total=1 renders nothing (by contract):</p>
+                <Pagination
+                    current={1}
+                    total={1}
+                    baseHref="/design/atoms/"
+                    hrefTemplate="/design/atoms/#page-{page}"
+                    navLabel="Pagination, single page"
+                    prevLabel="Previous page"
+                    nextLabel="Next page"
+                    pageLabel="Page {page}"
+                />
+            </section>
+
+            <section class="specimen" data-specimen="alert">
+                <h2 class="specimen__title">11 · Alert</h2>
+                {alerts.map((tone) => (
+                    <Alert tone={tone} title={`${tone} alert`}>
+                        Content is passed through the default slot; tone is carried by icon and
+                        text, not colour alone.
+                    </Alert>
+                ))}
+                <Alert tone="info" dismissible closeLabel="Dismiss information alert">
+                    A dismissible alert only renders the close button; the parent owns the
+                    state.
+                </Alert>
+                <Alert tone="warning" live="polite" title="Polite live region">
+                    role=&quot;status&quot; is set from the live prop.
+                </Alert>
+                <Alert tone="danger" live="assertive" title="Assertive live region">
+                    role=&quot;alert&quot; is only correct for runtime insertion.
+                </Alert>
+                <Alert tone="success" icon={false} title="Without icon">
+                    Icons can be turned off when the copy is already explicit.
+                    <div slot="actions">
+                        <Button variant="secondary" size="sm">Action</Button>
+                        <Link href="/design/atoms/" variant="inline">Details</Link>
+                    </div>
+                </Alert>
+            </section>
+
+            <section class="specimen" data-specimen="skeleton">
+                <h2 class="specimen__title">12 · Skeleton</h2>
+                <div class="skeleton-grid">
+                    <div class="specimen__stack">
+                        <span class="label">text · 1 line</span>
+                        <Skeleton variant="text" lines={1} loadingLabel="Loading text" />
+                    </div>
+                    <div class="specimen__stack">
+                        <span class="label">text · 3 lines</span>
+                        <Skeleton variant="text" lines={3} loadingLabel="Loading text" />
+                    </div>
+                    <div class="specimen__stack">
+                        <span class="label">text · 6 lines</span>
+                        <Skeleton variant="text" lines={6} loadingLabel="Loading text" />
+                    </div>
+                    <div class="specimen__stack">
+                        <span class="label">block · 16/9</span>
+                        <Skeleton variant="block" ratio="16/9" loadingLabel="Loading image" />
+                    </div>
+                    <div class="specimen__stack">
+                        <span class="label">block · 1/1</span>
+                        <Skeleton variant="block" ratio="1/1" loadingLabel="Loading image" />
+                    </div>
+                    <div class="specimen__stack">
+                        <span class="label">circle</span>
+                        <div class="specimen__row">
+                            <Skeleton variant="circle" size="sm" loadingLabel="Loading avatar" />
+                            <Skeleton variant="circle" size="md" loadingLabel="Loading avatar" />
+                            <Skeleton variant="circle" size="xl" loadingLabel="Loading avatar" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <script is:inline>
+            (() => {
+                const button = document.getElementById("theme-toggle");
+                if (!button) return;
+                const root = document.documentElement;
+                const apply = (theme) => {
+                    root.setAttribute("data-theme", theme);
+                    button.setAttribute("aria-pressed", String(theme === "dark"));
+                };
+                button.addEventListener("click", () => {
+                    apply(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+                });
+                apply("light");
+            })();
+        </script>
+
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
+
+            html {
+                background-color: var(--color-bg-canvas);
+                color: var(--color-fg-default);
+            }
+
+            body {
+                margin: 0 auto;
+                max-inline-size: var(--layout-content);
+                padding: var(--space-8) var(--space-6);
+                background-color: var(--color-bg-canvas);
+                font-family: var(--font-sans);
+                line-height: var(--leading-normal);
+            }
+
+            .page-head {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-end;
+                justify-content: space-between;
+                gap: var(--space-4);
+                padding-block-end: var(--space-6);
+                border-block-end: 1px solid var(--color-border-subtle);
+            }
+
+            .page-kicker {
+                margin: 0 0 var(--space-1);
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+            }
+
+            .page-title {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-family: var(--font-serif);
+                font-size: var(--text-3xl);
+                line-height: var(--leading-tight);
+            }
+
+            .page-note {
+                margin: 0;
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+                line-height: var(--leading-normal);
+            }
+
+            .theme-toggle {
+                padding: var(--space-2) var(--space-4);
+                border: 1px solid var(--color-border-default);
+                border-radius: var(--radius-md);
+                background-color: var(--color-bg-surface);
+                color: var(--color-fg-default);
+                font-family: var(--font-sans);
+                font-size: var(--text-sm);
+                cursor: pointer;
+            }
+
+            .theme-toggle:focus-visible {
+                outline: 2px solid var(--color-ring-focus);
+                outline-offset: 2px;
+            }
+
+            .specimens {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-12);
+                padding-block: var(--space-8);
+            }
+
+            .specimen {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-4);
+                padding-block-end: var(--space-8);
+                border-block-end: 1px solid var(--color-border-subtle);
+            }
+
+            .specimen__title {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-family: var(--font-serif);
+                font-size: var(--text-2xl);
+                line-height: var(--leading-snug);
+            }
+
+            .specimen__row {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: var(--space-3);
+            }
+
+            .specimen__stack {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-2);
+            }
+
+            .label {
+                color: var(--color-fg-muted);
+                font-family: var(--font-mono);
+                font-size: var(--text-xs);
+            }
+
+            .prose {
+                margin: 0;
+                font-size: var(--text-sm);
+                line-height: var(--leading-relaxed);
+            }
+
+            .input-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(var(--layout-sidebar), 1fr));
+                gap: var(--space-6);
+            }
+
+            .card-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(var(--layout-sidebar), 1fr));
+                gap: var(--space-6);
+            }
+
+            .skeleton-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(var(--layout-sidebar), 1fr));
+                gap: var(--space-6);
+                align-items: start;
+            }
+
+            .card-title {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-family: var(--font-serif);
+                font-size: var(--text-lg);
+                font-weight: var(--font-weight-semibold);
+                line-height: var(--leading-snug);
+            }
+
+            .card-text {
+                margin: 0;
+                font-size: var(--text-sm);
+                line-height: var(--leading-relaxed);
+            }
+
+            .card-inset {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-2);
+                padding: var(--space-6);
+            }
+
+            .media-placeholder {
+                min-block-size: var(--space-24);
+                background-color: var(--color-bg-muted);
+            }
+
+            .divider-row {
+                display: flex;
+                align-items: center;
+                gap: var(--space-1);
+                block-size: var(--space-8);
+            }
+        </style>
+    </body>
+</html>

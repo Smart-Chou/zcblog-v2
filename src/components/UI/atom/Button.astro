@@ -1,0 +1,208 @@
+---
+/**
+ * Button — DESIGN.md §5.6.1（atom）
+ *
+ * 触发当前页内的动作（提交 / 确认 / 展开），跳转请用 Link。
+ * JS 0 字节：loading 与 disabled 都是父级传入的静态 props。
+ * 依赖白名单：Icons/DynamicIcon（spinner、可选图标）。
+ */
+import Icon from "./Icon.astro";
+
+export interface Props {
+    variant?: "primary" | "secondary" | "ghost" | "danger";
+    size?: "sm" | "md" | "lg";
+    type?: "button" | "submit" | "reset";
+    disabled?: boolean;
+    /** 由父级状态驱动；true 时同时 disabled + aria-busy。 */
+    loading?: boolean;
+    name?: string;
+    value?: string;
+    /** 仅 icon-only 时必填（成为 aria-label）；有默认 slot 时必须为空。 */
+    label?: string;
+    class?: string;
+}
+
+const {
+    variant = "secondary",
+    size = "md",
+    type = "button",
+    disabled = false,
+    loading = false,
+    name,
+    value,
+    label,
+    class: className,
+} = Astro.props;
+
+const isDisabled = disabled || loading;
+---
+
+<button
+    type={type}
+    class:list={[
+        "button",
+        `button--${variant}`,
+        `button--${size}`,
+        { "button--loading": loading },
+        className,
+    ]}
+    disabled={isDisabled}
+    aria-busy={loading ? "true" : undefined}
+    aria-label={label}
+    name={name}
+    value={value}
+>
+    {loading && <Icon class="button__spinner" name="tabler:loader-2" size="sm" />}
+    <slot name="icon-start" />
+    <slot />
+    <slot name="icon-end" />
+</button>
+
+<style>
+    .button {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        padding-block: 0;
+        border: 0;
+        border-radius: var(--radius-md);
+        font-family: var(--font-sans);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--leading-none);
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+            background-color var(--duration-fast) var(--ease-standard),
+            color var(--duration-fast) var(--ease-standard),
+            border-color var(--duration-fast) var(--ease-standard),
+            transform var(--duration-fast) var(--ease-standard);
+    }
+
+    .button--sm {
+        block-size: var(--space-8);
+        padding-inline: var(--space-3);
+        font-size: var(--text-sm);
+    }
+
+    .button--md {
+        block-size: var(--space-10);
+        padding-inline: var(--space-4);
+        font-size: var(--text-sm);
+    }
+
+    .button--lg {
+        block-size: var(--space-12);
+        padding-inline: var(--space-6);
+        font-size: var(--text-base);
+    }
+
+    .button--primary {
+        background-color: var(--color-accent-solid);
+        color: var(--color-fg-on-accent);
+    }
+
+    .button--secondary {
+        background: none;
+        border: 1px solid var(--color-border-accent);
+        color: var(--color-fg-link);
+    }
+
+    .button--ghost {
+        background: none;
+        color: var(--color-fg-default);
+    }
+
+    .button--danger {
+        background-color: var(--color-status-danger-solid);
+        color: var(--color-fg-on-accent);
+    }
+
+    @media (hover: hover) {
+        .button--primary:hover:not(:disabled) {
+            background-color: var(--color-accent-solid-hover);
+        }
+
+        .button--secondary:hover:not(:disabled) {
+            background-color: var(--color-accent-subtle);
+        }
+
+        .button--ghost:hover:not(:disabled) {
+            background-color: var(--color-overlay-hover);
+        }
+
+        .button--danger:hover:not(:disabled) {
+            background-color: var(--color-accent-solid-hover);
+        }
+    }
+
+    .button--primary:active:not(:disabled),
+    .button--danger:active:not(:disabled) {
+        background-color: var(--color-accent-solid-hover);
+    }
+
+    .button--secondary:active:not(:disabled) {
+        background-color: var(--color-accent-subtle);
+    }
+
+    .button--ghost:active:not(:disabled) {
+        background-color: var(--color-overlay-hover);
+    }
+
+    .button:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+
+    .button:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .button:disabled {
+        cursor: not-allowed;
+    }
+
+    .button--primary:disabled,
+    .button--danger:disabled {
+        background-color: var(--color-bg-muted);
+        color: var(--color-fg-disabled);
+    }
+
+    .button--secondary:disabled {
+        background: none;
+        border-color: var(--color-border-subtle);
+        color: var(--color-fg-disabled);
+    }
+
+    .button--ghost:disabled {
+        background: none;
+        border: 1px solid var(--color-border-subtle);
+        color: var(--color-fg-disabled);
+    }
+
+    .button__spinner {
+        animation: button-spin var(--duration-slower) var(--ease-linear) infinite;
+    }
+
+    @keyframes button-spin {
+        to {
+            transform: rotate(1turn);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .button {
+            transition: none;
+        }
+
+        .button:active:not(:disabled) {
+            transform: none;
+        }
+
+        .button__spinner {
+            animation: none;
+        }
+    }
+</style>

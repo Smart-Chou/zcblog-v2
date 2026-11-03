@@ -1,0 +1,202 @@
+---
+/**
+ * Tag — DESIGN.md §5.6.3（atom）
+ *
+ * 给内容打一个短标记；可移除变体的状态归父级（组件只渲染触发按钮，JS 0 字节）。
+ * 依赖白名单：Icons/DynamicIcon（关闭叉）。
+ */
+import Icon from "./Icon.astro";
+
+export interface Props {
+    tone?: "neutral" | "accent" | "success" | "warning" | "danger" | "info";
+    size?: "sm" | "md";
+    selected?: boolean;
+    removable?: boolean;
+    /** 传入即渲染 <a>（筛选项）；不传渲染 <span>。 */
+    href?: string;
+    /** removable 时必填：移除按钮的 aria-label（i18n 由页面注入）。 */
+    removeLabel?: string;
+    class?: string;
+}
+
+const {
+    tone = "neutral",
+    size = "sm",
+    selected = false,
+    removable = false,
+    href,
+    removeLabel,
+    class: className,
+} = Astro.props;
+
+const isLink = Boolean(href);
+const classes = [
+    "tag",
+    `tag--${tone}`,
+    `tag--${size}`,
+    { "tag--selected": selected, "tag--interactive": isLink || removable },
+    className,
+];
+---
+
+{
+    isLink ? (
+        <span class="tag-pair">
+            <a
+                class:list={classes}
+                href={href}
+                aria-current={selected ? "true" : undefined}
+            >
+                <slot name="icon-start" />
+                <slot />
+            </a>
+            {removable && (
+                <button
+                    type="button"
+                    class="tag__remove tag__remove--sibling"
+                    aria-label={removeLabel}
+                >
+                    <Icon name="tabler:x" size="xs" />
+                </button>
+            )}
+        </span>
+    ) : (
+        <span class:list={classes}>
+            <slot name="icon-start" />
+            <slot />
+            {removable && (
+                <button type="button" class="tag__remove" aria-label={removeLabel}>
+                    <Icon name="tabler:x" size="xs" />
+                </button>
+            )}
+        </span>
+    )
+}
+
+<style>
+    .tag {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-pill);
+        font-family: var(--font-sans);
+        font-weight: var(--font-weight-medium);
+        line-height: var(--leading-none);
+        text-decoration: none;
+        transition:
+            background-color var(--duration-fast) var(--ease-standard),
+            border-color var(--duration-fast) var(--ease-standard);
+    }
+
+    .tag--sm {
+        block-size: var(--space-6);
+        padding-inline: var(--space-2);
+        font-size: var(--text-xs);
+    }
+
+    .tag--md {
+        block-size: var(--space-8);
+        padding-inline: var(--space-3);
+        font-size: var(--text-sm);
+    }
+
+    .tag--neutral {
+        background-color: var(--color-bg-muted);
+        color: var(--color-fg-default);
+        border-color: var(--color-border-subtle);
+    }
+
+    .tag--accent {
+        background-color: var(--color-bg-surface);
+        color: var(--color-fg-link);
+        border-color: var(--color-border-accent);
+    }
+
+    .tag--success {
+        background-color: var(--color-status-success-bg);
+        color: var(--color-status-success-fg);
+        border-color: var(--color-status-success-border);
+    }
+
+    .tag--warning {
+        background-color: var(--color-status-warning-bg);
+        color: var(--color-status-warning-fg);
+        border-color: var(--color-status-warning-border);
+    }
+
+    .tag--danger {
+        background-color: var(--color-status-danger-bg);
+        color: var(--color-status-danger-fg);
+        border-color: var(--color-status-danger-border);
+    }
+
+    .tag--info {
+        background-color: var(--color-status-info-bg);
+        color: var(--color-status-info-fg);
+        border-color: var(--color-status-info-border);
+    }
+
+    .tag--selected {
+        background-color: var(--color-bg-selected);
+        color: var(--color-fg-default);
+        border-color: var(--color-border-accent);
+    }
+
+    @media (hover: hover) {
+        .tag--interactive:hover {
+            background-image: linear-gradient(
+                var(--color-overlay-hover),
+                var(--color-overlay-hover)
+            );
+            border-color: var(--color-border-default);
+        }
+    }
+
+    .tag:focus-visible,
+    .tag__remove:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .tag-pair {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .tag__remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: var(--space-6);
+        block-size: var(--space-6);
+        margin-block: calc(var(--space-1) * -1);
+        padding: 0;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: none;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .tag__remove--sibling {
+        margin-block: 0;
+        border: 1px solid var(--color-border-subtle);
+        color: var(--color-fg-muted);
+    }
+
+    @media (hover: hover) {
+        .tag__remove:hover {
+            background-color: var(--color-overlay-hover);
+            color: var(--color-fg-default);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .tag {
+            transition: none;
+        }
+    }
+</style>

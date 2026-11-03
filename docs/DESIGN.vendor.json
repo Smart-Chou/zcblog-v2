@@ -1,0 +1,17 @@
+{
+    "note": "zcblog-v2/docs/DESIGN.md 是 blog2.0 工作区真源文档的逐字节同步快照。G-T3 解析此快照的 §3.4 表（52 个 --color-* 键）与 tokens.json 的 semantic 键集合比对；CI 只读这份快照，不依赖任何仓库外路径。",
+    "vendoredFile": "docs/DESIGN.md",
+    "sourceHint": "../../hermes-desktop-files/blog2.0/docs/DESIGN.md",
+    "sourceHintBase": "zcblog-v2 仓库根（仅开发机提示；CI 不可读，门禁不依赖它）",
+    "md5": "d681e87164ff6cdc9b9905167b1b8448",
+    "bytes": 179257,
+    "lines": 2622,
+    "section34Keys": 52,
+    "syncedAt": "2026-11-03",
+    "syncedBy": "M1-3 (t_b41fe047)：§4.1 目录示例 ui/→UI/（×3）+ §5.6.0 G1 判据路径 + 目录大小写说明；§3.4 未动",
+    "previousMd5": "b5c71a27b23b46a5231ad5b9a61e1338",
+    "previousSyncNote": "首次快照取自 t_f44ee43d 完成时的版本；同日重同步一次（真源仅改了 §13 的 product-charter 一行，§3.4 键集合未变）。",
+    "resyncWhen": "blog2.0/docs/DESIGN.md 的 §3.4 键集合或 §3.4 表格结构变动后（例如 t_15455edf 重写 §3.3–§3.12 的值表）。只改数值不需要重同步——G-T3 只认键名，不认数值。",
+    "resyncCommand": "cp ../../hermes-desktop-files/blog2.0/docs/DESIGN.md docs/DESIGN.md  # 然后更新本文件的 md5/bytes/lines/syncedAt，最后 node scripts/gates/check-tokens.mjs",
+    "whyNotSymlink": "符号链接在 CI（只 checkout 代码仓）与 Windows 检出上都会断，且会把仓库外路径变成隐式依赖。"
+}

@@ -1,0 +1,234 @@
+---
+/**
+ * Pagination — DESIGN.md §5.6.10（molecule）
+ *
+ * 可索引路径分页（/blog/page/2/），窗口算法在构建期算完（JS 0 字节）。
+ * 当前页与边界禁用项渲染为 span（不是死链）；省略号不可聚焦。
+ * 依赖白名单：Icons/DynamicIcon（左右箭头）。
+ */
+import Icon from "../atom/Icon.astro";
+
+type Item = number | "ellipsis";
+
+export interface Props {
+    /** 必填，1 起。 */
+    current: number;
+    /** 必填，≥1；total ≤ 1 时组件渲染为空。 */
+    total: number;
+    /** 必填：第 1 页的 URL（current=1 时用它，不拼模板）。 */
+    baseHref: string;
+    /** 必填，含 {page}。 */
+    hrefTemplate: string;
+    /** 0–2：当前页左右各显示几页。 */
+    siblings?: number;
+    navLabel: string;
+    prevLabel: string;
+    nextLabel: string;
+    /** 必填，含 {page}：页码链接的可访问名称模板。 */
+    pageLabel: string;
+    class?: string;
+}
+
+const {
+    current,
+    total,
+    baseHref,
+    hrefTemplate,
+    siblings = 1,
+    navLabel,
+    prevLabel,
+    nextLabel,
+    pageLabel,
+    class: className,
+} = Astro.props;
+
+const clampedCurrent = Math.min(Math.max(Math.round(current), 1), Math.max(total, 1));
+const siblingsCount = Math.min(Math.max(Math.round(siblings), 0), 2);
+
+function buildItems(): Item[] {
+    if (total <= siblingsCount * 2 + 5) {
+        return Array.from({ length: total }, (_, index) => index + 1);
+    }
+    const left = Math.max(clampedCurrent - siblingsCount, 1);
+    const right = Math.min(clampedCurrent + siblingsCount, total);
+    const items: Item[] = [1];
+    if (left > 2) items.push("ellipsis");
+    for (let page = Math.max(left, 2); page <= Math.min(right, total - 1); page += 1) {
+        items.push(page);
+    }
+    if (right < total - 1) items.push("ellipsis");
+    items.push(total);
+    return items;
+}
+
+function hrefFor(page: number): string {
+    if (page <= 1) return baseHref;
+    return hrefTemplate.replace("{page}", String(page));
+}
+
+const pages = total > 1 ? buildItems() : [];
+---
+
+{
+    total > 1 && (
+        <nav class:list={["pagination", className]} aria-label={navLabel}>
+            <ol class="pagination__list">
+                <li class="pagination__item">
+                    {clampedCurrent > 1 ? (
+                        <a
+                            class="pagination__nav"
+                            href={hrefFor(clampedCurrent - 1)}
+                            aria-label={prevLabel}
+                        >
+                            <Icon name="tabler:chevron-left" size="sm" />
+                        </a>
+                    ) : (
+                        <span class="pagination__nav pagination__nav--disabled" aria-disabled="true">
+                            <Icon name="tabler:chevron-left" size="sm" />
+                        </span>
+                    )}
+                </li>
+                {pages.map((item) => (
+                    <li class="pagination__item">
+                        {item === "ellipsis" ? (
+                            <span class="pagination__ellipsis" aria-hidden="true">
+                                …
+                            </span>
+                        ) : item === clampedCurrent ? (
+                            <span class="pagination__page pagination__page--current" aria-current="page">
+                                {item}
+                            </span>
+                        ) : (
+                            <a
+                                class="pagination__page"
+                                href={hrefFor(item)}
+                                aria-label={pageLabel.replace("{page}", String(item))}
+                            >
+                                {item}
+                            </a>
+                        )}
+                    </li>
+                ))}
+                <li class="pagination__item">
+                    {clampedCurrent < total ? (
+                        <a
+                            class="pagination__nav"
+                            href={hrefFor(clampedCurrent + 1)}
+                            aria-label={nextLabel}
+                        >
+                            <Icon name="tabler:chevron-right" size="sm" />
+                        </a>
+                    ) : (
+                        <span class="pagination__nav pagination__nav--disabled" aria-disabled="true">
+                            <Icon name="tabler:chevron-right" size="sm" />
+                        </span>
+                    )}
+                </li>
+            </ol>
+        </nav>
+    )
+}
+
+<style>
+    .pagination {
+        font-family: var(--font-sans);
+    }
+
+    .pagination__list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-1);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .pagination__item {
+        display: inline-flex;
+    }
+
+    .pagination__page,
+    .pagination__nav {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--color-fg-muted);
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: var(--leading-none);
+        text-decoration: none;
+        transition:
+            background-color var(--duration-fast) var(--ease-standard),
+            border-color var(--duration-fast) var(--ease-standard),
+            color var(--duration-fast) var(--ease-standard),
+            transform var(--duration-fast) var(--ease-standard);
+    }
+
+    .pagination__page {
+        inline-size: var(--space-10);
+        block-size: var(--space-10);
+    }
+
+    .pagination__nav {
+        block-size: var(--space-11);
+        padding-inline: var(--space-3);
+    }
+
+    @media (hover: hover) {
+        .pagination__page:hover,
+        .pagination__nav:hover {
+            background-color: var(--color-overlay-hover);
+            border-color: var(--color-border-default);
+            color: var(--color-fg-link);
+        }
+    }
+
+    .pagination__page:active,
+    .pagination__nav:active {
+        background-color: var(--color-bg-selected);
+        transform: translateY(1px);
+    }
+
+    .pagination__page:focus-visible,
+    .pagination__nav:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .pagination__page--current {
+        background-color: var(--color-bg-selected);
+        border-color: var(--color-border-accent);
+        color: var(--color-fg-default);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .pagination__nav--disabled {
+        color: var(--color-fg-disabled);
+        cursor: not-allowed;
+    }
+
+    .pagination__ellipsis {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: var(--space-10);
+        block-size: var(--space-10);
+        color: var(--color-fg-muted);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pagination__page,
+        .pagination__nav {
+            transition: none;
+        }
+
+        .pagination__page:active,
+        .pagination__nav:active {
+            transform: none;
+        }
+    }
+</style>

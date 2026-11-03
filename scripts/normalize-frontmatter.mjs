@@ -20,6 +20,10 @@ import { join } from "node:path";
 
 const FEATURE_KEYS = ["mermaid", "mathjax", "katex", "plantuml", "chart", "markmap"];
 const DIR = process.argv[2];
+// --add-only：只把布尔键补成 features，不删除任何遗留键。
+// 用于「内容仓迁移」场景：旧站 schema 仍声明了这六个布尔键，删了会让旧站丢特性，
+// 而旧站对未知键是「strip」而不是报错，所以两边可以共存（先加 features，切流后再删布尔键）。
+const ADD_ONLY = process.argv.includes("--add-only");
 
 if (!DIR) {
     console.error("用法: node scripts/normalize-frontmatter.mjs <内容目录>");
@@ -58,12 +62,16 @@ function normalizeFile(path) {
         const m = line.match(/^([A-Za-z0-9_-]+):\s*(\S*)\s*$/);
         if (m && FEATURE_KEYS.includes(m[1])) {
             if (m[2] === "true") enabled.push(m[1]);
-            continue; // 六个布尔键全部删除，无论 true/false
+            if (ADD_ONLY) kept.push(line); // 迁移模式：保留原键，旧站还要用
+            continue; // 默认（CI 拷贝）六个布尔键全部删除
         }
         // v1 的单值分类，v2 schema 里没有对应概念（v2 只有 tags）。
         // 只有 1 篇还带它（handsome-beautify-record.md，category: 日常），丢掉不做映射：
         // 映射成 tag 会凭空多出一个 /tags/日常/ 页面，属于 V1 不该发生的变化。
-        if (/^category:/.test(line)) continue;
+        if (/^category:/.test(line)) {
+            if (ADD_ONLY) kept.push(line);
+            continue;
+        }
         kept.push(line);
     }
 

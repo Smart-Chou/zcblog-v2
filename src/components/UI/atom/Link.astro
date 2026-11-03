@@ -1,0 +1,134 @@
+---
+/**
+ * Link — DESIGN.md §5.6.2（atom）
+ *
+ * 导航到另一个 URL 或当前页锚点，不承载动作；Link 没有 disabled。
+ * JS 0 字节。依赖白名单：Icons/DynamicIcon（icon-end）。
+ */
+export interface Props {
+    href: string;
+    variant?: "inline" | "nav" | "standalone";
+    /** 缺省按 href 是否跨源推导；显式传入可覆盖。 */
+    external?: boolean;
+    /** 当前页 / 当前语言 → aria-current="page"。 */
+    current?: boolean;
+    /** 仅 icon-only 或可见文字不足时。 */
+    label?: string;
+    class?: string;
+}
+
+const { href, variant = "inline", external, current = false, label, class: className } = Astro.props;
+
+const siteOrigin = Astro.site?.origin ?? Astro.url.origin;
+let derivedExternal = false;
+try {
+    derivedExternal = new URL(href, siteOrigin).origin !== siteOrigin;
+} catch {
+    derivedExternal = false;
+}
+const isExternal = external ?? derivedExternal;
+---
+
+<a
+    href={href}
+    class:list={["link", `link--${variant}`, { "link--current": current }, className]}
+    target={isExternal ? "_blank" : undefined}
+    rel={isExternal ? "noopener noreferrer" : undefined}
+    aria-current={current ? "page" : undefined}
+    aria-label={label}
+    data-external={isExternal ? "true" : undefined}
+>
+    <slot />
+    <span class="link__icon"><slot name="icon-end" /></span>
+</a>
+
+<style>
+    .link {
+        font-family: var(--font-sans);
+        transition: color var(--duration-fast) var(--ease-standard);
+    }
+
+    .link--inline {
+        color: var(--color-fg-link);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+    }
+
+    .link--nav {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-block-size: var(--space-11);
+        padding-inline: var(--space-3);
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-default);
+        font-size: var(--text-sm);
+        text-decoration: none;
+    }
+
+    .link--standalone {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-block-size: var(--space-10);
+        color: var(--color-fg-link);
+        font-size: var(--text-sm);
+        text-decoration: none;
+    }
+
+    .link__icon {
+        display: inline-flex;
+        align-items: center;
+        transition: transform var(--duration-fast) var(--ease-standard);
+    }
+
+    .link--inline .link__icon {
+        margin-inline-start: var(--space-1);
+    }
+
+    @media (hover: hover) {
+        .link--inline:hover {
+            color: var(--color-fg-link-hover);
+        }
+
+        .link--nav:hover {
+            background-color: var(--color-overlay-hover);
+            color: var(--color-fg-link-hover);
+        }
+
+        .link--standalone:hover {
+            color: var(--color-fg-link-hover);
+        }
+
+        .link--standalone:hover .link__icon {
+            transform: translateX(var(--space-1));
+        }
+    }
+
+    .link--nav.link--current {
+        background-color: var(--color-bg-selected);
+        color: var(--color-fg-default);
+    }
+
+    .link--inline.link--current,
+    .link--standalone.link--current {
+        color: var(--color-fg-default);
+    }
+
+    .link:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .link,
+        .link__icon {
+            transition: none;
+        }
+
+        .link--standalone:hover .link__icon {
+            transform: none;
+        }
+    }
+</style>

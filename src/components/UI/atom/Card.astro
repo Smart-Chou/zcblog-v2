@@ -1,0 +1,128 @@
+---
+/**
+ * Card — DESIGN.md §5.6.5（atom）
+ *
+ * 只做容器（无 href / image / 数据）：给一组内容一个纸面边界。
+ * 依赖白名单：无（不 import 任何组件）。JS 0 字节。
+ */
+export interface Props {
+    variant?: "flat" | "raised" | "interactive";
+    padding?: "none" | "md" | "lg";
+    as?: "article" | "div" | "li" | "section";
+    /** 标题元素 id；article 时应传。 */
+    labelledby?: string;
+    class?: string;
+}
+
+const {
+    variant = "flat",
+    padding = "md",
+    as = "article",
+    labelledby,
+    class: className,
+} = Astro.props;
+
+const Element = as;
+---
+
+<Element
+    class:list={["card", `card--${variant}`, `card--pad-${padding}`, className]}
+    aria-labelledby={labelledby}
+>
+    {
+        Astro.slots.has("media") && (
+            <div class="card__media">
+                <slot name="media" />
+            </div>
+        )
+    }
+    <div class="card__body">
+        {
+            Astro.slots.has("header") && (
+                <div class="card__header">
+                    <slot name="header" />
+                </div>
+            )
+        }
+        <div class="card__content"><slot /></div>
+        {
+            Astro.slots.has("footer") && (
+                <div class="card__footer">
+                    <slot name="footer" />
+                </div>
+            )
+        }
+    </div>
+</Element>
+
+<style>
+    .card {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-surface);
+    }
+
+    .card--raised {
+        box-shadow: var(--shadow-1);
+    }
+
+    .card--interactive {
+        transition:
+            border-color var(--duration-fast) var(--ease-standard),
+            box-shadow var(--duration-fast) var(--ease-standard);
+    }
+
+    @media (hover: hover) {
+        .card--interactive:hover {
+            border-color: var(--color-border-default);
+            box-shadow: var(--shadow-3);
+        }
+    }
+
+    .card--interactive:focus-within {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .card__media {
+        display: block;
+        overflow: hidden;
+        border-start-start-radius: var(--radius-lg);
+        border-start-end-radius: var(--radius-lg);
+    }
+
+    .card__media :global(img) {
+        display: block;
+        inline-size: 100%;
+        block-size: auto;
+    }
+
+    .card__body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card--pad-none .card__body {
+        padding: 0;
+        gap: var(--space-2);
+    }
+
+    .card--pad-md .card__body {
+        padding: var(--space-6);
+        gap: var(--space-3);
+    }
+
+    .card--pad-lg .card__body {
+        padding: var(--space-8);
+        gap: var(--space-4);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .card--interactive {
+            transition: none;
+        }
+    }
+</style>

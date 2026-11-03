@@ -63,8 +63,8 @@
    ========================================= */
 :root {
     /* Font families — --font-body / --font-heading / --font-mono retained from variables.css.
-     NOTE: Do NOT alias --font-body to --font-sans — Tailwind v4 @theme outputs
-     --font-sans as unlayered CSS, which overrides any layered definition. */
+     NOTE: Do NOT alias --font-body to --font-sans — a same-name alias is a CSS
+     cycle and resolves to empty. */
     /* --font-mono is already in variables.css — pass-through */
 
     /* Semantic type scale — maps numbered scale to semantic roles */

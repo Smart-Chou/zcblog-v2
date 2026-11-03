@@ -1,0 +1,258 @@
+---
+/**
+ * Input — DESIGN.md §5.6.4（atom）
+ *
+ * 单行文本输入；label / hint / error 的 id 关联全部由组件生成。
+ * invalid 的单一真源是 error 非空。JS 0 字节。
+ * 依赖白名单：Icons/DynamicIcon（prefix 与错误图标）。
+ */
+import Icon from "./Icon.astro";
+
+export interface Props {
+    /** 必填：可见 label 文本（G1，不由组件兜底）。 */
+    label: string;
+    /** 必填：表单字段名；id 与 hint/error 的 id 都从它派生。 */
+    name: string;
+    type?: "text" | "email" | "url" | "search" | "password" | "number";
+    size?: "sm" | "md" | "lg";
+    value?: string;
+    placeholder?: string;
+    hint?: string;
+    /** 非空即 invalid（单一真源，不设独立 invalid 开关）。 */
+    error?: string;
+    disabled?: boolean;
+    readonly?: boolean;
+    required?: boolean;
+    /** required 的可见文案（G7：不许只用星号或颜色表达）。 */
+    requiredLabel?: string;
+    autocomplete?: string;
+    inputmode?: "text" | "email" | "url" | "search" | "none" | "tel" | "numeric" | "decimal";
+    class?: string;
+}
+
+const {
+    label,
+    name,
+    type = "text",
+    size = "md",
+    value,
+    placeholder,
+    hint,
+    error,
+    disabled = false,
+    readonly = false,
+    required = false,
+    requiredLabel,
+    autocomplete,
+    inputmode,
+    class: className,
+} = Astro.props;
+
+const fieldId = name;
+const hintId = `${name}-hint`;
+const errorId = `${name}-error`;
+const describedBy =
+    [hint ? hintId : null, error ? errorId : null]
+        .filter((id): id is string => Boolean(id))
+        .join(" ") || undefined;
+---
+
+<div
+    class:list={[
+        "field",
+        `field--${size}`,
+        {
+            "field--disabled": disabled,
+            "field--readonly": readonly,
+            "field--invalid": Boolean(error),
+        },
+        className,
+    ]}
+>
+    <label class="field__label" for={fieldId}>
+        {label}
+        {required && requiredLabel && <span class="field__required">{requiredLabel}</span>}
+    </label>
+    <span class="field__control">
+        {
+            Astro.slots.has("prefix") && (
+                <span class="field__affix">
+                    <slot name="prefix" />
+                </span>
+            )
+        }
+        <input
+            id={fieldId}
+            class="field__input"
+            name={name}
+            type={type}
+            value={value}
+            placeholder={placeholder}
+            disabled={disabled}
+            readonly={readonly}
+            required={required}
+            autocomplete={autocomplete}
+            inputmode={inputmode}
+            aria-invalid={error ? "true" : undefined}
+            aria-describedby={describedBy}
+        />
+        {
+            Astro.slots.has("suffix") && (
+                <span class="field__affix">
+                    <slot name="suffix" />
+                </span>
+            )
+        }
+    </span>
+    {
+        (hint || error) && (
+            <span class="field__messages">
+                {hint && (
+                    <span class="field__hint" id={hintId}>
+                        {hint}
+                    </span>
+                )}
+                {error && (
+                    <span class="field__error" id={errorId}>
+                        <Icon name="tabler:alert-triangle" size="xs" />
+                        {error}
+                    </span>
+                )}
+            </span>
+        )
+    }
+</div>
+
+<style>
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        font-family: var(--font-sans);
+    }
+
+    .field__label {
+        display: inline-flex;
+        align-items: baseline;
+        gap: var(--space-1);
+        color: var(--color-fg-default);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .field__required {
+        color: var(--color-fg-muted);
+        font-weight: var(--font-weight-regular);
+    }
+
+    .field__control {
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-sm);
+        background-color: var(--color-bg-surface);
+        transition:
+            border-color var(--duration-fast) var(--ease-standard),
+            background-color var(--duration-fast) var(--ease-standard);
+    }
+
+    .field--sm .field__control {
+        block-size: var(--space-8);
+        padding-inline: var(--space-3);
+        font-size: var(--text-sm);
+    }
+
+    .field--md .field__control {
+        block-size: var(--space-10);
+        padding-inline: var(--space-4);
+        font-size: var(--text-base);
+    }
+
+    .field--lg .field__control {
+        block-size: var(--space-12);
+        padding-inline: var(--space-4);
+        font-size: var(--text-base);
+    }
+
+    .field__input {
+        flex: 1;
+        min-inline-size: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--color-fg-default);
+        font-family: inherit;
+        font-size: inherit;
+        line-height: var(--leading-normal);
+        /* 焦点环由 .field__control:focus-within 承担（等价替代，非裸 outline:none） */
+        outline: none;
+    }
+
+    .field__input::placeholder {
+        color: var(--color-fg-muted);
+    }
+
+    .field__affix {
+        display: inline-flex;
+        align-items: center;
+        color: var(--color-fg-muted);
+    }
+
+    .field__messages {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .field__hint {
+        color: var(--color-fg-muted);
+        font-size: var(--text-sm);
+        line-height: var(--leading-normal);
+    }
+
+    .field__error {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        color: var(--color-status-danger-fg);
+        font-size: var(--text-sm);
+    }
+
+    @media (hover: hover) {
+        .field__control:hover {
+            border-color: var(--color-border-strong);
+        }
+    }
+
+    .field__control:focus-within {
+        border-color: var(--color-border-accent);
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .field--invalid .field__control {
+        border-color: var(--color-status-danger-solid);
+    }
+
+    .field--disabled .field__control {
+        background-color: var(--color-bg-muted);
+        border-color: var(--color-border-subtle);
+    }
+
+    .field--disabled .field__input {
+        color: var(--color-fg-disabled);
+        cursor: not-allowed;
+    }
+
+    .field--readonly .field__control {
+        background-color: var(--color-bg-sunken);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .field__control {
+            transition: none;
+        }
+    }
+</style>
