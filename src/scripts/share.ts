@@ -6,7 +6,13 @@
  * - 微信内置浏览器：微信入口改为"点右上角"提示；隐藏系统分享
  * - Umami 埋点（share 事件）
  * View Transitions 兼容：document 级事件委托 + 模块级一次注册
+ * M2-5：微信弹层接进 overlay 基座（[data-overlay="share"] / 焦点归还 / Tab 循环 / scrim）。
+ *        基座按需 import()：没点过分享 = 不下载 overlay 模块 = 0 初始化。
  */
+
+type OverlayModule = typeof import("./overlay");
+let overlayModule: OverlayModule | null = null;
+const loadOverlay = () => import("./overlay").then((mod) => (overlayModule = mod));
 
 const isWeChatBrowser = /MicroMessenger/i.test(navigator.userAgent);
 
@@ -55,7 +61,15 @@ function track(platform: string) {
 function closeWrap(wrap: Element) {
     wrap.classList.remove("open");
     wrap.querySelector("[data-share-action='wechat']")?.setAttribute("aria-expanded", "false");
-    wrap.querySelector(".share-pop")?.setAttribute("aria-hidden", "true");
+    const pop = wrap.querySelector<HTMLElement>(".share-pop");
+    pop?.setAttribute("aria-hidden", "true");
+    if (!pop) return;
+    if (overlayModule) overlayModule.close(pop);
+    else {
+        // 基座还没加载（弹层开了又立刻关）：直接清标记，保证关闭态 0 个 [data-overlay]
+        pop.removeAttribute("data-overlay");
+        pop.removeAttribute("aria-modal");
+    }
 }
 
 function closeAllPops() {
@@ -102,8 +116,21 @@ function handleAction(actionEl: Element, root: HTMLElement) {
         });
         const open = wrap.classList.toggle("open");
         actionEl.setAttribute("aria-expanded", String(open));
-        wrap.querySelector(".share-pop")?.setAttribute("aria-hidden", String(!open));
-        if (open) track("wechat");
+        const pop = wrap.querySelector<HTMLElement>(".share-pop");
+        pop?.setAttribute("aria-hidden", String(!open));
+        if (open && pop) {
+            track("wechat");
+            void loadOverlay().then((mod) => {
+                // 下载期间用户可能已经收起：只在仍打开时挂载
+                if (wrap.classList.contains("open"))
+                    mod.open(pop, "share", {
+                        returnTo: actionEl as HTMLElement,
+                        focus: pop.querySelector<HTMLElement>("[data-share-close]"),
+                    });
+            });
+        } else {
+            closeWrap(wrap);
+        }
         return;
     }
     if (action === "copy") {
@@ -159,6 +186,19 @@ function initShareUi() {
     document.querySelectorAll<HTMLElement>("[data-post-share]").forEach((root) => {
         const wechatWrap = root.querySelector<HTMLElement>(".share-wechat-wrap");
         const nativeBtn = root.querySelector<HTMLElement>(".share-icon--native");
+
+        // M2-5：基座关闭（Esc / scrim / 关闭按钮）后同步宿主 class 与 aria
+        root.querySelectorAll<HTMLElement>(".share-pop").forEach((pop) => {
+            if (pop.dataset.ovlSync) return;
+            pop.dataset.ovlSync = "1";
+            pop.addEventListener("ovl:close", () => {
+                pop.closest(".share-wechat-wrap")?.classList.remove("open");
+                wechatWrap
+                    ?.querySelector("[data-share-action='wechat']")
+                    ?.setAttribute("aria-expanded", "false");
+                pop.setAttribute("aria-hidden", "true");
+            });
+        });
 
         if (isWeChatBrowser) {
             // 微信内：保留微信入口（触发"点右上角"提示），隐藏系统分享

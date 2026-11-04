@@ -1,0 +1,290 @@
+/* ============================================================
+   M2-5 · O-01 overlay 基座（搜索 / 分享 / 跳转守卫 / 快捷键 / 手势 / 灯箱）
+
+   一套语义，六处复用：
+     [data-overlay="<name>"]   打开态标记（关闭态必须 0 个 —— e2e 判据）
+     .ovl__scrim               遮罩层（点击关闭）
+     .ovl__panel               面板（token 化表面 / 圆角 / 阴影）
+     .ovl__close               关闭控件（≥ 44px 命中区以外的视觉尺寸）
+
+   约束：0 颜色字面量（全部 tokens.css），px 只出现在 1px/2px 描边与断点里。
+   ============================================================ */
+
+/* ---------- 基座：遮罩 + 面板 ---------- */
+
+/* `[data-overlay]` 只是「打开态」标记；`.ovl` 才是页内遮罩壳（跳转守卫是页级矩形，不带 .ovl） */
+/* z 轴：必须盖过文章页存量层 —— 目录 toc.css 90、回到顶部 100、阅读进度 1000。
+   tokens 的 --z-modal = 50 低于它们（弹层会被目录卡片穿透，M2-5 实测），
+   tokens.json 不在本卡边界，这里先用字面量兜住，z 轴收口留给 M2-12。 */
+[data-overlay].ovl {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+}
+
+.ovl__scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-scrim);
+}
+
+.ovl__panel {
+    position: relative;
+    z-index: 1;
+    width: min(30rem, 100%);
+    max-height: min(80dvh, 40rem);
+    overflow: auto;
+    padding: var(--space-6);
+    background: var(--color-bg-surface);
+    color: var(--color-fg-default);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-4);
+    animation: ovl-rise var(--duration-base) var(--ease-standard) both;
+}
+
+.ovl__title {
+    margin: 0;
+    padding-right: var(--space-8);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-heading);
+}
+
+.ovl__rows {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-5) 0 0;
+}
+
+.ovl__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.ovl__row dt {
+    color: var(--color-fg-default);
+}
+
+/* 组合键的两块键帽之间留出半个字宽的空隙（不再插「+」文本：会触发 axe incomplete） */
+.ovl__row dd {
+    display: flex;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--color-fg-muted);
+}
+
+.ovl__kbd {
+    padding: 0.1em 0.45em;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-heading);
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+}
+
+
+.ovl__close {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    z-index: 2;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: var(--text-lg);
+    line-height: 1;
+    color: var(--color-fg-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .ovl__close:hover {
+        color: var(--color-fg-heading);
+        background: var(--color-bg-hover);
+    }
+}
+
+.ovl__close:focus-visible,
+.ovl__kbd:focus-visible,
+.ovl__panel:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ---------- 移动断点：面板变成底部 sheet ---------- */
+
+@media screen and (max-width: 768px) {
+    [data-overlay].ovl:not([data-overlay="search"]):not([data-overlay="lightbox"]) {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .ovl__panel {
+        width: 100%;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+}
+
+/* ---------- 搜索 spotlight（Pagefind dialog） ---------- */
+
+dialog[data-overlay="search"] {
+    color: var(--color-fg-default);
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-4);
+}
+
+dialog[data-overlay="search"]::backdrop {
+    background: var(--color-bg-scrim);
+}
+
+/* 页脚提示：pagefind 自带的 --search-text-subtle 在双主题下都低于 4.5:1，
+   这里统一用 --color-fg-default（替换原来的 pagefind-keyboard-hints） */
+dialog[data-overlay="search"] .search-hints,
+dialog[data-overlay="search"] .footer-brand,
+dialog[data-overlay="search"] .footer-brand strong {
+    color: var(--color-fg-default);
+}
+
+/* ---------- 分享 sheet（PostShare 微信二维码弹层） ---------- */
+
+.share-wechat-wrap.open .share-pop[data-overlay="share"] {
+    position: fixed;
+    inset: 0;
+    left: 0;
+    bottom: 0;
+    /* 同 .ovl：盖过目录(90)/回到顶部(100)/阅读进度(1000) */
+    z-index: 1100;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+}
+
+.share-pop[data-overlay="share"] .share-card {
+    position: relative;
+    z-index: 1;
+    width: min(20rem, 100%);
+    padding: var(--space-5);
+    background: var(--color-bg-surface);
+    color: var(--color-fg-default);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-4);
+}
+
+/* 弹层模式不需要指向触发按钮的小箭头 */
+.share-pop[data-overlay="share"] .share-card::after {
+    display: none;
+}
+
+.share-pop[data-overlay="share"] .share-close {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: var(--text-base);
+    line-height: 1;
+    color: var(--color-fg-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .share-pop[data-overlay="share"] .share-close:hover {
+        color: var(--color-fg-heading);
+        background: var(--color-bg-hover);
+    }
+}
+
+.share-pop[data-overlay="share"] .share-close:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ---------- 跳转守卫（/redirect/ 页级矩形：静态排版，不做遮罩） ---------- */
+
+/* 只带 [data-overlay] 标记，不带 .ovl：保持 redirect.css 的卡片排版。
+   redirect.css 把引导语压到 opacity:0.4 + 旧 muted 色（实测 2.3–3.2:1），
+   这里提到 fg-default 满对比 —— 守卫页最关键的信息就是「你要去哪」。 */
+.redirect[data-overlay="redirect"] .redirect-tip {
+    opacity: 1;
+    color: var(--color-fg-default);
+}
+
+.redirect[data-overlay="redirect"] #jump-button {
+    border: 0;
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* ---------- 灯箱：数字计数（1 / 6）是 axe 的短文本启发式盲区，缩略图条已够定位 ---------- */
+
+[data-overlay="lightbox"] .f-counter {
+    display: none;
+}
+
+/* ---------- 导航里的两个入口（手势入口只在移动断点出现） ---------- */
+
+.nav-dropdown-list .nav-dropdown-link--utility {
+    font: inherit;
+    font-weight: 600;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.nav-dropdown-list .nav-dropdown-extra--gesture {
+    display: none;
+}
+
+@media screen and (max-width: 768px) {
+    .nav-dropdown-list .nav-dropdown-extra--gesture {
+        display: block;
+    }
+}
+
+/* ---------- 动效 ---------- */
+
+@keyframes ovl-rise {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-overlay],
+    .ovl__panel,
+    .ovl__scrim {
+        animation: none !important;
+        transition: none !important;
+    }
+}

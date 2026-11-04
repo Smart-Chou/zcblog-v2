@@ -70,6 +70,31 @@ function isActive(href: string) {
                 );
             })
         }
+        {
+            /* M2-5：overlay 入口（键盘速查 / 手势速查）。手势入口只在移动断点出现
+               （overlays.css 的 .nav-dropdown-extra--gesture），桌面端隐藏。
+               `?` 也能直接开快捷键速查（src/scripts/overlay.ts）。 */
+        }
+        <li class="nav-dropdown-extra">
+            <button
+                type="button"
+                class="nav-dropdown-link nav-dropdown-link--utility"
+                data-ovl-open="shortcuts"
+                data-ovl-locale={loc}
+            >
+                {isEn ? "Shortcuts" : "快捷键"}
+            </button>
+        </li>
+        <li class="nav-dropdown-extra nav-dropdown-extra--gesture">
+            <button
+                type="button"
+                class="nav-dropdown-link nav-dropdown-link--utility"
+                data-ovl-open="gestures"
+                data-ovl-locale={loc}
+            >
+                {isEn ? "Gestures" : "手势"}
+            </button>
+        </li>
     </ul>
 </nav>
 
@@ -150,6 +175,10 @@ function isActive(href: string) {
         }
     });
 
+    /* M2-5：快捷键速查 / 手势速查入口 —— 见文末 is:inline 脚本。
+       这里不留 import()：带动态 import 的 script 会被 Astro 提升成独立文件，
+       等于给每页多加一个请求与 0.8KB 首屏 JS（实测 list 页 JS 会超预算）。 */
+
     window.addEventListener(
         "scroll",
         () => {
@@ -165,6 +194,43 @@ function isActive(href: string) {
     document.addEventListener("astro:after-swap", () => {
         setOpen(false);
     });
+</script>
+
+<script is:inline>
+    /* M2-5：快捷键 / 手势速查入口。
+       overlay 基座是按需加载的（关闭态 0 请求 / 0 初始化），热身钩子由 Search.astro 的
+       module 脚本注入（window.__ovlSheet）。这里只做转发 —— 本段是 is:inline，
+       不会让 Nav 的 module script 变成独立首屏文件（那样每页多 0.8KB JS + 1 个请求）。 */
+    (function () {
+        function open(name, el) {
+            // 基座已加载时它自己接管（避免同一次点击开两个面板）
+            if (window.__ovlLoaded || !window.__ovlSheet) return;
+            window.__ovlSheet(name, el);
+        }
+        document.addEventListener(
+            "click",
+            function (event) {
+                var hit = event.target && event.target.closest;
+                var trigger = hit && event.target.closest("[data-ovl-open]");
+                if (!trigger) return;
+                event.preventDefault();
+                open(trigger.getAttribute("data-ovl-open") || "shortcuts", trigger);
+            },
+            true,
+        );
+        document.addEventListener(
+            "keydown",
+            function (event) {
+                if (event.key !== "?" || event.metaKey || event.ctrlKey || event.altKey) return;
+                var target = event.target;
+                if (target && target.closest && target.closest("input,textarea,select,[contenteditable=true]"))
+                    return;
+                event.preventDefault();
+                open("shortcuts", document.getElementById("nav-menu-btn"));
+            },
+            true,
+        );
+    })();
 </script>
 
 <style>

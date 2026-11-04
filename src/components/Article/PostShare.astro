@@ -9,6 +9,8 @@ import { share } from "~/config";
 import { getIconSvg } from "~/components/Icons";
 import { t, getLocale } from "~/utils/i18n";
 import { renderSVG } from "uqr";
+// M2-5：分享 sheet 的表皮（[data-overlay="share"] 规则在 overlays.css）
+import "~/styles/pages/overlays.css";
 
 interface Props {
     title: string;
@@ -86,6 +88,7 @@ const items = (share.enable ? share.sites : []).flatMap((id) => {
 });
 
 const shareToLabel = t(locale, "article.shareTo");
+const closeLabel = locale === "en" ? "Close" : "关闭";
 const qrSvg = items.some((item) => item.action === "wechat")
     ? renderSVG(canonicalUrl, { ecc: "M", border: 4 })
     : "";
@@ -119,8 +122,21 @@ const qrSvg = items.some((item) => item.action === "wechat")
                                 >
                                     <Fragment set:html={icon} />
                                 </button>
-                                <div class="share-pop" aria-hidden="true">
+                                <div
+                                    class="share-pop"
+                                    aria-hidden="true"
+                                    aria-label={shareToLabel}
+                                >
                                     <div class="share-card">
+                                        <button
+                                            type="button"
+                                            class="share-close"
+                                            data-share-close
+                                            data-ovl-close
+                                            aria-label={closeLabel}
+                                        >
+                                            <Fragment set:html={getIconSvg("tabler:x")} />
+                                        </button>
                                         <div class="share-qr">
                                             <div class="share-qr-img">
                                                 <Fragment set:html={qrSvg} />

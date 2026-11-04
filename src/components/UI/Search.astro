@@ -4,6 +4,8 @@
  * Requires `pnpm build` once to generate public/pagefind/ for dev server.
  */
 import { t, getLocale, type Locale } from "~/utils/i18n";
+// M2-5：overlay 基座样式（搜索 / 分享 / 速查 / 灯箱 / 跳转守卫共用一份）
+import "~/styles/pages/overlays.css";
 
 interface Props {
     locale?: string;
@@ -102,6 +104,9 @@ const searchPlaceholder = t(loc, "common.searchPlaceholder");
             document.head.appendChild(l);
         }
         function loadPagefind() {
+            // M2-5：overlay 基座与 pagefind 同一批热身时机（悬停 / ⌘K / 点按），
+            // 二者都是按需加载 —— 关闭态 0 请求 / 0 初始化。
+            if (window.__ovlWarm) window.__ovlWarm();
             if (pfPromise) return pfPromise;
             ensurePagefindCss();
             pfPromise = new Promise(function (resolve) {
@@ -253,7 +258,7 @@ const searchPlaceholder = t(loc, "common.searchPlaceholder");
         <pagefind-results max-sub-results="5"></pagefind-results>
     </pagefind-modal-body>
     <pagefind-modal-footer>
-        <pagefind-keyboard-hints></pagefind-keyboard-hints>
+        <div class="search-hints">{t(loc, "common.search")} · ↑↓ / Tab · Enter · Esc</div>
         <div class="footer-brand">
             Search by <strong>Pagefind</strong>
         </div>
@@ -261,9 +266,21 @@ const searchPlaceholder = t(loc, "common.searchPlaceholder");
 </pagefind-modal>
 
 <script>
-    import { onPageReady } from "~/utils/page-lifecycle";
     import "~/utils/search-template.js";
     import { applyResultTemplate } from "~/utils/search-template.js";
+
+    /**
+     * M2-5：overlay 基座按需加载（关闭态 = 0 请求 / 0 初始化）。
+     * 与 pagefind 同一批热身时机 —— is:inline 段在「悬停 / ⌘K / 点按」时调 __ovlWarm()，
+     * 从没碰过搜索的人不为这套行为付任何字节；import() 由浏览器缓存，重复调用不重复下载。
+     */
+    (window as unknown as { __ovlWarm?: () => void }).__ovlWarm = () =>
+        void import("~/scripts/overlay").then((mod) => mod.watchSearch());
+    (window as unknown as { __ovlSheet?: (name: string, opener: Element | null) => void }).__ovlSheet =
+        (name, opener) =>
+            void import("~/scripts/overlay").then((mod) =>
+                mod.openSheet(name as "shortcuts" | "gestures", opener as HTMLElement),
+            );
 
     // View Transition 的 DOM morphing 会破坏 Pagefind 内部创建的 <dialog> 元素。
     // 导航后完全销毁旧实例并创建新实例，确保 clean state。

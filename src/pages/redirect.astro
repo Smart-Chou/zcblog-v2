@@ -4,6 +4,8 @@ import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
 import { site } from "~/config";
 import { t, getLocale } from "~/utils/i18n";
 import "~/styles/redirect.css";
+// M2-5：overlay 基座（跳转守卫在这个基座里是「页级矩形」：只带 [data-overlay] 标记）
+import "~/styles/pages/overlays.css";
 
 const loc = getLocale(Astro.currentLocale || "zh");
 
@@ -30,11 +32,16 @@ const scriptTexts = JSON.stringify({
     publishedTime={new Date()}
     modifiedTime={new Date()}
 >
-    <div class="redirect">
+    <div
+        class="redirect"
+        data-overlay="redirect"
+        role="dialog"
+        aria-labelledby="redirect-tip"
+    >
         <span class="redirect-tip" id="redirect-tip"
             >{t(loc, "redirect.leavingMessage", { site: site.title })}</span
         >
-        <span id="url"></span>
+        <span id="url" aria-live="polite"></span>
         <div id="jump-content" class="warn">
             <span id="site-info">
                 <span class="redirect-icon warn-icon" aria-hidden="true">
@@ -42,7 +49,7 @@ const scriptTexts = JSON.stringify({
                 </span>
                 {t(loc, "redirect.safetyWarning")}
             </span>
-            <div id="jump-button">{t(loc, "redirect.continueButton")}</div>
+            <button type="button" id="jump-button">{t(loc, "redirect.continueButton")}</button>
         </div>
     </div>
     <script is:inline define:vars={{ domainsJson, scriptTexts }}>
@@ -55,6 +62,8 @@ const scriptTexts = JSON.stringify({
         const urlTip = document.getElementById("site-info");
         const jumpContent = document.getElementById("jump-content");
         const jumpButton = document.getElementById("jump-button");
+        // M2-5：守卫矩形就是 overlay 的「打开态」根节点
+        const guard = document.querySelector('[data-overlay="redirect"]');
         // 网址白名单
         const siteDomains = JSON.parse(domainsJson);
         const whitelist = [
@@ -117,8 +126,8 @@ const scriptTexts = JSON.stringify({
                         // 显示提示信息
                         urlTip.textContent = texts.blacklistedSite;
                         jumpButton.textContent = texts.blockedButton;
+                        jumpButton.disabled = true;
                         jumpButton.style.cursor = "not-allowed";
-                        jumpButton.style.pointerEvents = "none";
                         jumpButton.style.opacity = "0.4";
                         jumpContent.className = "danger";
                         return true;
@@ -137,6 +146,12 @@ const scriptTexts = JSON.stringify({
                 }
             } catch (error) {
                 console.error("Error during URL parsing:", error);
+                // M2-5：解析失败 = 没有可守卫的目标 → 守卫矩形退出打开态（[data-overlay] 归零）
+                if (guard) {
+                    guard.removeAttribute("data-overlay");
+                    guard.removeAttribute("role");
+                    guard.removeAttribute("aria-labelledby");
+                }
                 tipDescription.remove();
                 jumpContent.remove();
                 urlDom.textContent = texts.fetchFailed;
