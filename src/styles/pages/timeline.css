@@ -12,6 +12,9 @@
    ============================================================ */
 
 .timeline {
+    /* 左轨固定宽度：日期列的右边缘必须落在同一条竖线上，
+       否则「11.04」（5 字）与「09」（2 字）各撑各的宽度，竖线会随条目左右跳。 */
+    --timeline-rail: 3.5rem;
     display: flex;
     flex-direction: column;
     gap: var(--space-10);
@@ -69,12 +72,15 @@
 
 .timeline-item {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: var(--timeline-rail) minmax(0, 1fr);
     column-gap: var(--space-4);
     min-inline-size: 0;
 }
 
-/* 左轨：日期在上、圆点压在竖线上；竖线用伪元素，随条目高度自适应 */
+/* 左轨：日期在上、圆点压在竖线上。
+   竖线用 **border** 而不是 ::before/::after：axe 的 color-contrast 遇到容器里的伪元素
+   会拿不到背景色，把日期整段判成 incomplete（实测 time[datetime="2026-09"] 等 3 条）。
+   每条自己带 border，竖线随条目高度自适应，也不需要在列表上做定位。 */
 .timeline-item__rail {
     position: relative;
     display: flex;
@@ -84,21 +90,7 @@
     min-inline-size: 0;
     padding-block-start: var(--space-1);
     padding-inline-end: var(--space-4);
-}
-
-.timeline-item__rail::before {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    inset-inline-end: 0;
-    inline-size: 1px;
-    background-color: var(--color-border-subtle);
-}
-
-/* 最后一条的竖线不往下拖：否则会在时间线尾部留一截没有终点的线 */
-.timeline-year__items > .timeline-item:last-child .timeline-item__rail::before {
-    inset-block-end: auto;
-    block-size: var(--space-5);
+    border-inline-end: 1px solid var(--color-border-subtle);
 }
 
 .timeline-item__date {
@@ -292,6 +284,7 @@
 
 @media (max-width: 450px) {
     .timeline {
+        --timeline-rail: 3rem;
         gap: var(--space-8);
     }
 

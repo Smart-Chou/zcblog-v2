@@ -31,7 +31,11 @@ const groups = groupTimeline(feed.items);
 const oldestYear = groups.at(-1)?.year ?? null;
 const newestYear = groups.at(0)?.year ?? null;
 const spanLabel =
-    oldestYear && newestYear ? (oldestYear === newestYear ? newestYear : `${oldestYear}–${newestYear}`) : "";
+    oldestYear && newestYear
+        ? oldestYear === newestYear
+            ? newestYear
+            : `${oldestYear}–${newestYear}`
+        : "";
 
 const copy = isEn
     ? {
@@ -154,7 +158,10 @@ const spanText = `${copy.spanOne} ${spanLabel}`;
                                     aria-labelledby={`timeline-year-${group.year}`}
                                 >
                                     <div class="timeline-year__head">
-                                        <h3 class="timeline-year__label" id={`timeline-year-${group.year}`}>
+                                        <h3
+                                            class="timeline-year__label"
+                                            id={`timeline-year-${group.year}`}
+                                        >
                                             {group.year}
                                         </h3>
                                         <p class="timeline-year__count">
