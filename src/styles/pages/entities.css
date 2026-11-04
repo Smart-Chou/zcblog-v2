@@ -195,6 +195,8 @@
     letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
     font-variant-numeric: tabular-nums;
+    /* 与标题首行的字面基线对齐（12px mono 比 20px 衬线短一截） */
+    padding-block-start: var(--space-1);
 }
 
 .project-card__id {
@@ -337,6 +339,52 @@
     outline-offset: 2px;
 }
 
+/* 奇数张卡时最后一张跨两列：5 个项目在双栏网格里会留一个整列空位，
+   跨列收尾比「右下角空着」稳；项目数变偶数时这条规则自动失效。 */
+@media (min-width: 1024px) {
+    .project-grid__item:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    .project-grid__item:last-child:nth-child(odd) .project-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "head head"
+            "summary highlights"
+            "stack links";
+        column-gap: var(--space-10);
+        align-items: start;
+    }
+
+    .project-grid__item:last-child:nth-child(odd) .project-card__head {
+        grid-area: head;
+    }
+
+    .project-grid__item:last-child:nth-child(odd) .project-card__summary {
+        grid-area: summary;
+        max-inline-size: var(--measure-prose);
+    }
+
+    .project-grid__item:last-child:nth-child(odd) .project-card__highlights {
+        grid-area: highlights;
+    }
+
+    .project-grid__item:last-child:nth-child(odd) .project-card__stack {
+        grid-area: stack;
+        align-self: end;
+    }
+
+    .project-grid__item:last-child:nth-child(odd) .project-card__links {
+        grid-area: links;
+        justify-content: flex-end;
+        align-self: end;
+        margin-block-start: 0;
+        padding-block-start: 0;
+        border-block-start: 0;
+    }
+}
+
 /* ── 技能分组 ─────────────────────────────────────────────── */
 
 .skill-legend {
@@ -426,6 +474,7 @@
     letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
     font-variant-numeric: tabular-nums;
+    padding-block-start: var(--space-1);
 }
 
 .skill-group__intro {
@@ -454,6 +503,7 @@
 
 .skill-group__count {
     margin: 0;
+    padding-block-start: var(--space-1);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     letter-spacing: var(--tracking-wide);
@@ -484,8 +534,8 @@
 }
 
 .skill__main {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: var(--space-1) var(--space-3);
 }
@@ -538,6 +588,19 @@
 }
 
 /* ── 空态 / 错误态 ────────────────────────────────────────── */
+
+/* 部分条目被丢弃时的降级提示（`entry-dropped`）：不让「少了一条」变成静默 */
+.entities-notice {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 2px solid var(--color-status-warning-solid);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg-sunken);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    /* sunken 底色：小字用默认前景色 */
+    color: var(--color-fg-default);
+}
 
 .entities-state {
     display: flex;

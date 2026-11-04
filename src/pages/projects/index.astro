@@ -127,6 +127,16 @@ const stackLabel = `${stackCount} ${copy.stackOne}`;
             </div>
 
             {
+                feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                    <p class="entities-notice" data-projects-dropped={feed.dropped}>
+                        {isEn
+                            ? `${feed.dropped} entries failed validation and are not listed below.`
+                            : `有 ${feed.dropped} 条数据未通过校验，未在下方列出。`}
+                    </p>
+                )
+            }
+
+            {
                 feed.status === "ok" && (
                     <ol class="project-grid" role="list">
                         {items.map((project, index) => (

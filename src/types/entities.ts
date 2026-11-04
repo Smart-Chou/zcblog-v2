@@ -171,7 +171,11 @@ export function isIsoMonth(value: unknown): value is string {
 }
 
 export function isIsoDay(value: unknown): value is string {
-    return typeof value === "string" && ISO_DAY.test(value);
+    // 只验格式不够：`2026-02-31` 能过正则，而 Date.parse 会静默归一成 2026-03-03，
+    // 于是「显示的日期」和「算新鲜度用的日期」差几天且永不报错。round-trip 一次钉死。
+    if (typeof value !== "string" || !ISO_DAY.test(value)) return false;
+    const time = Date.parse(`${value}T00:00:00Z`);
+    return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value;
 }
 
 export function isHttpUrl(value: unknown): value is string {
@@ -264,7 +268,7 @@ export interface EntitySpec<T> {
     kind: EntityKind;
     /** 结构校验；空数组 = 通过。 */
     validate(value: unknown): string[];
-    /** 条目级的最后更新日期（新鲜度按最旧的一条算）。 */
+    /** 条目级的最后更新日期（门禁按它逐条判新鲜度）。 */
     updatedOf(value: T): string | null;
     /** 定位一个条目（门禁打印与去重用）。 */
     keyOf(value: T): string;
@@ -368,9 +372,8 @@ export function normalizeCollection<T>(
 
     const dropped = raw.length - items.length;
 
-    // 新鲜度：meta.updated 优先；没有就取条目里最新的 updated。
-    // 「最旧的一条」不参与这里——条目各自的 updated 由门禁单独列 warning，
-    // 页面只报数据文件整体的最后维护时间。
+    // 新鲜度：meta.updated 优先；没有就取条目里**最新**的 updated（页面只报数据文件整体的
+    // 最后维护时间）。条目各自过期的口径在门禁 E7：逐条列 WARN，不在这里合并。
     const metaUpdated = meta && isIsoDay(meta.updated) ? meta.updated : null;
     const itemUpdated = items
         .map((item) => spec.updatedOf(item))

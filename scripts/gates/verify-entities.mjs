@@ -256,6 +256,8 @@ function checkNegative(contract) {
         ["stack 空数组", { ...validProject, stack: [] }],
         ["links 非 http", { ...validProject, links: [{ label: "x", href: "javascript:alert(1)" }] }],
         ["id 不是 slug", { ...validProject, id: "Demo Project" }],
+        // 正则能过、日历不存在：Date.parse 会静默归一成 03-03，必须判出
+        ["updated 不是真实日历日", { ...validProject, updated: "2026-02-31" }],
     ];
     for (const [name, fixture] of cases) {
         if (contract.validateProject(fixture).length === 0) problems.push(`validateProject 放过了「${name}」`);
