@@ -4,19 +4,24 @@ import zhTW from "~/data/i18n/zh-TW.json";
 import ja from "~/data/i18n/ja.json";
 import ko from "~/data/i18n/ko.json";
 import fr from "~/data/i18n/fr.json";
+import de from "~/data/i18n/de.json";
+import es from "~/data/i18n/es.json";
+import ptBR from "~/data/i18n/pt-BR.json";
+import ru from "~/data/i18n/ru.json";
 
 /**
- * i18n registry（M2-11a）
+ * i18n registry（M2-11a 建 · M2-11b 收口 10 语言）
  * ------------------------------------------------------------------
  * 这一层只做两件事：**语言注册表** + **缺词回退**，不碰任何文案内容。
  *
  * 1. registry：`locales` 是唯一的语言清单。新增一门语言 = 加一个 JSON + 一行
  *    import；页面路由、语言切换器、门禁（verify-i18n.mjs）全部从它派生，
  *    不允许任何地方再硬编码 `zh | en`。
- * 2. fallback：词典按 `[locale, "zh"]` 依次查找。没翻到的键回落到中文，
- *    中文也没有才返回 key 本身（老行为，便于红队发现漏词）。因此**部分翻译
- *    是合法状态**：新接的语言可以只翻「路由关键键」，其余先吃中文兜底，
- *    `coverage()` 会把比例报出来，门禁按「关键键 100% + 总量报数」判。
+ * 2. fallback：词典按 `[locale, "zh"]` 依次查找。没翻到的键回落到中文
+ *    （`defaultLocale` = zh，它的 HTML 语言标签就是 `zh-CN`），中文也没有才返回
+ *    key 本身（老行为，便于红队发现漏词）。因此**部分翻译是合法状态**：新接
+ *    的语言可以只翻「路由关键键」，其余先吃中文兜底，`coverage()` 会把比例
+ *    报出来，门禁按「关键键 100% + 总量报数」判。
  *
  * 路由边界（重要）：
  * - `en` 有自己手写的静态路由（src/pages/en/**，既有卡维护），`[locale]`
@@ -33,7 +38,18 @@ import fr from "~/data/i18n/fr.json";
 export const defaultLocale = "zh";
 
 /** 语言注册表：顺序 = 语言切换器里的展示顺序。 */
-export const locales = ["zh", "en", "zh-TW", "ja", "ko", "fr"] as const;
+export const locales = [
+    "zh",
+    "en",
+    "zh-TW",
+    "ja",
+    "ko",
+    "fr",
+    "de",
+    "es",
+    "pt-BR",
+    "ru",
+] as const;
 export type Locale = (typeof locales)[number];
 
 /** 有独立正文的语言（文章集合的 `lang` 字段取值范围）。 */
@@ -61,6 +77,10 @@ export const localeMeta: Record<Locale, LocaleMeta> = {
     ja: { label: "日本語", tag: "ja", hreflang: "ja", name: "日本語" },
     ko: { label: "한국어", tag: "ko", hreflang: "ko", name: "한국어" },
     fr: { label: "FR", tag: "fr", hreflang: "fr", name: "Français" },
+    de: { label: "DE", tag: "de", hreflang: "de", name: "Deutsch" },
+    es: { label: "ES", tag: "es", hreflang: "es", name: "Español" },
+    "pt-BR": { label: "PT", tag: "pt-BR", hreflang: "pt-BR", name: "Português (Brasil)" },
+    ru: { label: "RU", tag: "ru", hreflang: "ru", name: "Русский" },
 };
 
 type Dict = typeof zh;
@@ -76,6 +96,10 @@ const translations: Record<Locale, DeepPartial<Dict>> = {
     ja,
     ko,
     fr,
+    de,
+    es,
+    "pt-BR": ptBR,
+    ru,
 };
 
 /* ─────────────────── 构建开关 ─────────────────── */

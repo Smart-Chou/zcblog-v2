@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * verify-i18n.mjs — i18n 注册表 / 回退链 / 路由能力的可执行判据（M2-11a）
+ * verify-i18n.mjs — i18n 注册表 / 回退链 / 路由能力的可执行判据（M2-11a 建 · M2-11b 收口 10 门）
  *
  * 为什么要跑真代码：注册表的语义（谁回退到谁、哪些语言已经被本次构建启用）
  * 是**行为**，不是文本。所以这里把 `src/utils/i18n.ts` 复制成一份临时模块
@@ -16,8 +16,10 @@
  *   I5  回退链：任何键在任何语言下都能取到值（不返回 key 本身）；缺词必须回退到 zh 原文
  *   I6  覆盖率报数（棘轮下限 45%）
  *   I7  5 个 [locale] 模板路由存在、都用 templateLocales()；不得与静态语言目录撞名
- *   I8  I18N_LOCALES 开关语义（未设置 = zh,en；all = 6；清单 = 子集）
- *   I9  （可选，VERIFY_I18N_DIST=1）dist 产物断言：4 语言的 5 个路由都落了盘
+ *   I8  I18N_LOCALES 开关语义（未设置 = zh,en；all = 10；清单 = 子集）
+ *   I9  （可选，VERIFY_I18N_DIST=1）dist 产物断言：8 语言的 5 个路由都落了盘、无整站复制
+ *   I10 （可选，VERIFY_I18N_DIST=1）dist 产物里**没有原始 key**（`site.title` 这种
+ *       漏翻标记）—— 每个 HTML 都扫一遍全量基准键，命中即红
  *
  * 退出码：0 全绿 / 1 有红。
  */
@@ -35,8 +37,8 @@ const TEMPLATE_PAGES = [
     "src/pages/[locale]/culture.astro",
     "src/pages/[locale]/blog/[page].astro",
 ];
-/** 这 4 个语言由 [locale] 模板接管；zh 无前缀，en 有手写路由 */
-const TEMPLATE_LOCALES = ["zh-TW", "ja", "ko", "fr"];
+/** 这 8 个语言由 [locale] 模板接管；zh 无前缀，en 有手写路由 */
+const TEMPLATE_LOCALES = ["zh-TW", "ja", "ko", "fr", "de", "es", "pt-BR", "ru"];
 /** 路由关键键的顶层分组：这 5 个路由页面 + 全局外壳（nav/footer）会用到的全部键 */
 const CRITICAL_GROUPS = [
     "site",
@@ -169,7 +171,9 @@ try {
         "I4",
         "路由关键键 100% 直译",
         criticalGaps.length === 0,
-        criticalGaps.length ? criticalGaps.join(" · ") : `${criticalKeys.length} 键 × 4 语言`,
+        criticalGaps.length
+            ? criticalGaps.join(" · ")
+            : `${criticalKeys.length} 键 × ${TEMPLATE_LOCALES.length} 语言`,
     );
 
     /* I5 —— 回退链真的接得住 */
@@ -247,7 +251,13 @@ try {
     const dflt = probe(undefined);
     const all = probe("all");
     const subset = probe("ja,fr");
-    const junk = probe("de,xx");
+    const junk = probe("xx,yy");
+    const fallbackChainOk = locales.every((locale) => {
+        const chain = mod.fallbackChain(locale);
+        return locale === mod.defaultLocale
+            ? chain.join(",") === mod.defaultLocale
+            : chain.join(",") === `${locale},${mod.defaultLocale}`;
+    });
     const switchOk =
         dflt.enabled.join(",") === "zh,en" &&
         dflt.templates.length === 0 &&
@@ -255,13 +265,15 @@ try {
         all.templates.join(",") === TEMPLATE_LOCALES.join(",") &&
         subset.enabled.join(",") === "ja,fr" &&
         subset.templates.join(",") === "ja,fr" &&
-        junk.enabled.join(",") === "zh,en";
+        junk.enabled.join(",") === "zh,en" &&
+        fallbackChainOk;
     probe(undefined);
     record(
         "I8",
-        "I18N_LOCALES 开关语义",
+        "I18N_LOCALES 开关语义 / fallback",
         switchOk,
-        `默认 ${dflt.enabled.join("+")} · all→${all.templates.length} 模板语言 · 子集 ${subset.enabled.join("+")}`,
+        `默认 ${dflt.enabled.join("+")} · all→${all.templates.length} 模板语言 · 子集 ${subset.enabled.join("+")} · ` +
+            `未知清单→${junk.enabled.join("+")} · 回退链全指 ${mod.defaultLocale}（zh-CN）`,
     );
 
     /* I9 —— dist 产物（可选）：路由集 + 页数 */
@@ -309,11 +321,42 @@ try {
         }
         record(
             "I9",
-            "dist：4 语言 × 5 路由 / 无整站复制",
+            `${TEMPLATE_LOCALES.length} 语言 × 5 路由 / 无整站复制`,
             problems.length === 0,
             problems.length
                 ? problems.slice(0, 3).join(" · ")
                 : `${TEMPLATE_LOCALES.length} 语言 × ${expected} 页（含 ${zhBlogPages} 个分页）`,
+        );
+
+        /* I10 —— dist 里不许留原始 key（漏翻的直接可见标记） */
+        const targets = [...TEMPLATE_LOCALES, "zh", "en"];
+        const leaks = [];
+        let scanned = 0;
+        // 一次性编译成 alternation：570 个 HTML × 212 键逐个 indexOf 太慢
+        const keyRe = new RegExp(
+            `(?:${mod.allKeys
+                .map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+                .join("|")})(?![A-Za-z0-9_])`,
+            "g",
+        );
+        for (const locale of targets) {
+            const dir = join(distDir, locale);
+            if (!existsSync(dir)) continue;
+            for (const file of walk(dir)) {
+                const html = readFileSync(file, "utf8");
+                scanned += 1;
+                keyRe.lastIndex = 0;
+                const hit = keyRe.exec(html);
+                if (hit) leaks.push(`${file.slice(distDir.length + 1)} → ${hit[0]}`);
+            }
+        }
+        record(
+            "I10",
+            "dist 无原始 key（漏翻标记）",
+            leaks.length === 0,
+            leaks.length
+                ? `${leaks.length} 个页面：${leaks.slice(0, 3).join(" · ")}`
+                : `${scanned} 个 HTML × ${mod.allKeys.length} 基准键，0 命中`,
         );
     }
 } finally {

@@ -1,0 +1,157 @@
+{
+    "site": {
+        "title": "Marx's Blog",
+        "subtitle": "Здесь нет ответов — только попутчики.",
+        "description": "Личный блог MarxChou — инди-разработчика-самоучки из Шэньчжэня, который с нуля делает SaaS-продукты с помощью ИИ. Записываю опыты с инструментами, подводные камни, проверку идей и данные о доходах.",
+        "coverImage": "avatar.png",
+        "coverImageAlt": "Обложка Marx's Blog"
+    },
+    "nav": {
+        "home": "Главная",
+        "blog": "Блог",
+        "archives": "Архив",
+        "tags": "Теги",
+        "albums": "Альбомы",
+        "friends": "Друзья",
+        "about": "О сайте",
+        "bangumi": "Bangumi",
+        "stats": "Статистика",
+        "talks": "Заметки",
+        "gallery": "Галерея",
+        "services": "Сервисы"
+    },
+    "common": {
+        "search": "Поиск",
+        "searchPlaceholder": "Поиск статей...",
+        "loading": "Загрузка...",
+        "copy": "Копировать",
+        "copied": "Скопировано",
+        "share": "Поделиться",
+        "backToTop": "Наверх",
+        "readMore": "Читать далее",
+        "viewAll": "Смотреть все",
+        "prev": "Назад",
+        "next": "Вперёд",
+        "page": "Страница {page}",
+        "of": "из {total}",
+        "404": {
+            "title": "Страница не найдена",
+            "message": "Запрошенная страница не существует или была удалена.",
+            "heading": "Ой, здесь её нет.",
+            "backHome": "Вернуться на главную."
+        },
+        "500": {
+            "title": "Ошибка сервера",
+            "message": "На сервере произошла ошибка. Попробуйте позже.",
+            "pageTitle": "500 — ошибка сервера",
+            "pageDescription": "Что-то пошло не так при загрузке страницы",
+            "heading": "Ошибка сервера",
+            "description": "Что-то пошло не так при загрузке страницы. Мы уже исправляем.",
+            "backHome": "Вернуться на главную",
+            "browseArchives": "Смотреть архив"
+        }
+    },
+    "footer": {
+        "copyright": "Copyright",
+        "allRightsReserved": "Все права защищены",
+        "icp": "Регистрация ICP",
+        "rss": "RSS-лента",
+        "sitemap": "Карта сайта"
+    },
+    "article": {
+        "published": "Опубликовано",
+        "updated": "Обновлено",
+        "readingTime": "Время чтения",
+        "views": "просмотров",
+        "tags": "Теги",
+        "categories": "Категории",
+        "author": "Автор",
+        "toc": "Содержание",
+        "shareTo": "Поделиться",
+        "qrcode": "Сканируйте, чтобы читать",
+        "share": {
+            "copy": "Скопировать ссылку",
+            "native": "Поделиться…",
+            "wechatHelper": "Открыто в WeChat? Нажмите ··· справа сверху.",
+            "inWechatHint": "Нажмите ··· справа сверху, чтобы поделиться"
+        }
+    },
+    "blog": {
+        "title": "Блог",
+        "description": "Все статьи",
+        "noMorePosts": "Больше статей нет",
+        "empty": "Статей пока нет — скоро будут.",
+        "sortBy": "Сортировка",
+        "newest": "Сначала новые",
+        "hottest": "Популярные"
+    },
+    "archives": {
+        "title": "Архив",
+        "description": "Архив статей",
+        "allPosts": "Все статьи",
+        "postCount": "Всего статей: {count}",
+        "subtitle": "(｡･∀･)ﾉﾞ С {startYear} года я опубликовал {totalPosts} статей общим объёмом {totalWords} символов."
+    },
+    "tags": {
+        "title": "Теги",
+        "description": "Все теги",
+        "postCount": "Всего статей: {count}",
+        "subtitle": "Посмотрите теги, которые вам интересны!",
+        "taggedCount": "Статей с тегом «{tag}»: {count}",
+        "emptyTitle": "Статей не найдено",
+        "emptyMessage": "Нет статей с тегом «{tag}»"
+    },
+    "home": {
+        "friendsTitle": "Дружеские ссылки",
+        "popularTitle": "В тренде",
+        "photosTitle": "Новые фото",
+        "moviesTitle": "Новые фильмы",
+        "booksTitle": "Новые книги"
+    },
+    "douban": {
+        "title": "Douban",
+        "description": "Мои книги, фильмы и музыка",
+        "empty": "Данных пока нет. Запустите",
+        "emptyHint": "чтобы получить данные",
+        "tabs": {
+            "book": "Книги",
+            "movie": "Фильмы",
+            "music": "Музыка"
+        },
+        "status": {
+            "wish": "Хочу",
+            "watching": "Смотрю",
+            "watched": "Просмотрено",
+            "reading": "Читаю",
+            "read": "Прочитано",
+            "listening": "Слушаю",
+            "listened": "Прослушано"
+        }
+    },
+    "bangumi": {
+        "title": "Bangumi",
+        "description": "Аниме и музыка",
+        "subtitle": "Моя коллекция аниме, книг, музыки и игр",
+        "buildTimePrefix": "Обновлено: ",
+        "emptyTitleNoUser": "ID пользователя Bangumi не настроен",
+        "emptyMessageNoUser": "Укажите ID пользователя Bangumi в коде",
+        "emptyTitleNoData": "Нет данных",
+        "emptyMessageNoData": "Ваша коллекция пуста",
+        "emptySection": "Нет данных",
+        "filters": {
+            "all": "Все",
+            "collect": "Собрано",
+            "doing": "В процессе",
+            "wish": "В планах",
+            "onHold": "Отложено",
+            "dropped": "Брошено"
+        },
+        "categories": {
+            "anime": "Аниме",
+            "book": "Книги",
+            "music": "Музыка",
+            "game": "Игры",
+            "tv": "Видео"
+        }
+    }
+}

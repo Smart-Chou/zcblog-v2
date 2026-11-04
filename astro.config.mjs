@@ -225,7 +225,7 @@ export default defineConfig({
     // 路由集只由 `src/pages/[locale]/**` 的 getStaticPaths 决定（5 条模板路由）。
     i18n: {
         defaultLocale: "zh",
-        locales: ["zh", "en", "zh-TW", "ja", "ko", "fr"],
+        locales: ["zh", "en", "zh-TW", "ja", "ko", "fr", "de", "es", "pt-BR", "ru"],
         routing: {
             prefixDefaultLocale: false, // 默认语言(中文)不带前缀
         },
@@ -298,16 +298,16 @@ export default defineConfig({
             },
             // 过滤不需要收录的页面
             filter: (page) => {
-                // 新语种的 5 个模板路由（M2-11a）暂时只有回退正文：canonical 指向
-                // 中文页，也不进 sitemap —— 否则同一批文章会以 6 个 URL 出现。
-                // 正文翻译落地后再放开（M2-11b）。
+                // 新语种的 5 个模板路由（M2-11a 建 4 门 · M2-11b 补齐 10 门）目前
+                // 都只有回退正文：canonical 指向中文页，也不进 sitemap —— 否则同一批
+                // 文章会以 9 个 URL 出现。正文翻译落地后再放开。
                 let pathname = page;
                 try {
                     pathname = new URL(page).pathname;
                 } catch {
                     /* page 已经是路径 */
                 }
-                if (/^\/(?:zh-TW|ja|ko|fr)(?:\/|$)/.test(pathname)) {
+                if (/^\/(?:zh-TW|ja|ko|fr|de|es|pt-BR|ru)(?:\/|$)/.test(pathname)) {
                     return false;
                 }
                 // 设计实验页不进 sitemap（16-m1-brief §3.4：不放进主导航；不参与 sitemap）

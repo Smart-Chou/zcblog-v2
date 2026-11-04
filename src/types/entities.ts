@@ -29,11 +29,22 @@ export const ENTITY_FRESHNESS_DAYS = 180;
  *
  * ⚠️ M2-11a：这里从 `"zh" | "en"` 放宽到**任意 UI 语言串**。原因：实体页的
  * `locale` 参数来自 `getLocale()`，注册表接入 zh-TW / ja / ko / fr 之后就是 6
- * 个值；而 `pick()` 与各 `*Label()` 的实现本来就是「非 en 一律按 zh」，
+ * 个值；M2-11b 收口 10 门（+ de / es / pt-BR / ru）后同理。而 `pick()` 与各
+ * `*Label()` 的实现本来就是「非 en 一律按 zh」，
  * 放宽类型不改变任何渲染结果（zh/en 逐字节一致，新语言按既定口径吃中文兜底）。
  * 数据侧仍然只有 zh/en 双语字段 —— `LocalizedText` 与校验口径未动。
  */
-export type EntityLocale = "zh" | "en" | "zh-TW" | "ja" | "ko" | "fr";
+export type EntityLocale =
+    | "zh"
+    | "en"
+    | "zh-TW"
+    | "ja"
+    | "ko"
+    | "fr"
+    | "de"
+    | "es"
+    | "pt-BR"
+    | "ru";
 
 /** 站点双语字段：两个语种都必填，缺一个门禁就红（避免 en 页面掉回中文）。 */
 export interface LocalizedText {

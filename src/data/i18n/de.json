@@ -1,0 +1,157 @@
+{
+    "site": {
+        "title": "Marx's Blog",
+        "subtitle": "Hier gibt es keine Antworten — nur Leute auf demselben Weg.",
+        "description": "Persönlicher Blog von MarxChou — Autodidakt ohne Informatikstudium aus Shenzhen, der mit KI-Unterstützung SaaS-Produkte von Grund auf baut. Dokumentiert Werkzeug-Experimente, Stolperfallen, Ideenvalidierung und Umsatzzahlen.",
+        "coverImage": "avatar.png",
+        "coverImageAlt": "Titelbild von Marx's Blog"
+    },
+    "nav": {
+        "home": "Start",
+        "blog": "Blog",
+        "archives": "Archiv",
+        "tags": "Schlagwörter",
+        "albums": "Alben",
+        "friends": "Freunde",
+        "about": "Über",
+        "bangumi": "Bangumi",
+        "stats": "Statistik",
+        "talks": "Notizen",
+        "gallery": "Galerie",
+        "services": "Dienste"
+    },
+    "common": {
+        "search": "Suche",
+        "searchPlaceholder": "Artikel suchen...",
+        "loading": "Wird geladen...",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "share": "Teilen",
+        "backToTop": "Nach oben",
+        "readMore": "Weiterlesen",
+        "viewAll": "Alle ansehen",
+        "prev": "Vorherige",
+        "next": "Nächste",
+        "page": "Seite {page}",
+        "of": "von {total}",
+        "404": {
+            "title": "Seite nicht gefunden",
+            "message": "Die gesuchte Seite existiert nicht oder wurde entfernt.",
+            "heading": "Hoppla, hier ist sie nicht.",
+            "backHome": "Zurück zur Startseite."
+        },
+        "500": {
+            "title": "Serverfehler",
+            "message": "Dem Server ist ein Fehler unterlaufen. Bitte später erneut versuchen.",
+            "pageTitle": "500 – Serverfehler",
+            "pageDescription": "Beim Laden der Seite ist ein Fehler aufgetreten",
+            "heading": "Serverfehler",
+            "description": "Beim Laden der Seite ist ein Fehler aufgetreten. Wir arbeiten an einer Lösung.",
+            "backHome": "Zurück zur Startseite",
+            "browseArchives": "Archiv ansehen"
+        }
+    },
+    "footer": {
+        "copyright": "Copyright",
+        "allRightsReserved": "Alle Rechte vorbehalten",
+        "icp": "ICP-Registrierung",
+        "rss": "RSS-Feed",
+        "sitemap": "Sitemap"
+    },
+    "article": {
+        "published": "Veröffentlicht",
+        "updated": "Aktualisiert",
+        "readingTime": "Lesezeit",
+        "views": "Aufrufe",
+        "tags": "Schlagwörter",
+        "categories": "Kategorien",
+        "author": "Autor",
+        "toc": "Inhaltsverzeichnis",
+        "shareTo": "Teilen",
+        "qrcode": "Per QR-Code lesen",
+        "share": {
+            "copy": "Link kopieren",
+            "native": "Teilen…",
+            "wechatHelper": "In WeChat geöffnet? Tippe oben rechts auf ···",
+            "inWechatHint": "Tippe oben rechts auf ···, um zu teilen"
+        }
+    },
+    "blog": {
+        "title": "Blog",
+        "description": "Alle Artikel",
+        "noMorePosts": "Keine weiteren Artikel",
+        "empty": "Noch keine Artikel — bleib dran.",
+        "sortBy": "Sortieren",
+        "newest": "Neueste",
+        "hottest": "Beliebt"
+    },
+    "archives": {
+        "title": "Archiv",
+        "description": "Artikelarchiv",
+        "allPosts": "Alle Artikel",
+        "postCount": "{count} Artikel insgesamt",
+        "subtitle": "(｡･∀･)ﾉﾞ Seit {startYear} habe ich {totalPosts} Artikel mit insgesamt {totalWords} Zeichen veröffentlicht."
+    },
+    "tags": {
+        "title": "Schlagwörter",
+        "description": "Alle Schlagwörter",
+        "postCount": "{count} Artikel insgesamt",
+        "subtitle": "Schau dir die Schlagwörter an, die dich interessieren!",
+        "taggedCount": "{count} Artikel mit dem Schlagwort „{tag}“",
+        "emptyTitle": "Keine Artikel gefunden",
+        "emptyMessage": "Keine Artikel mit dem Schlagwort „{tag}“"
+    },
+    "home": {
+        "friendsTitle": "Freundeslinks",
+        "popularTitle": "Im Trend",
+        "photosTitle": "Neueste Fotos",
+        "moviesTitle": "Neueste Filme",
+        "booksTitle": "Neueste Bücher"
+    },
+    "douban": {
+        "title": "Douban",
+        "description": "Meine Bücher, Filme und Musik",
+        "empty": "Noch keine Daten. Bitte zuerst ausführen",
+        "emptyHint": "um Daten zu holen",
+        "tabs": {
+            "book": "Bücher",
+            "movie": "Filme",
+            "music": "Musik"
+        },
+        "status": {
+            "wish": "Möchte ich",
+            "watching": "Schaue ich",
+            "watched": "Gesehen",
+            "reading": "Lese ich",
+            "read": "Gelesen",
+            "listening": "Höre ich",
+            "listened": "Gehört"
+        }
+    },
+    "bangumi": {
+        "title": "Bangumi",
+        "description": "Anime und Musik",
+        "subtitle": "Meine Sammlung an Anime, Büchern, Musik und Spielen",
+        "buildTimePrefix": "Zuletzt aktualisiert: ",
+        "emptyTitleNoUser": "Bangumi-Benutzer-ID nicht konfiguriert",
+        "emptyMessageNoUser": "Bitte die Bangumi-Benutzer-ID im Code eintragen",
+        "emptyTitleNoData": "Keine Daten",
+        "emptyMessageNoData": "Deine Sammlung ist leer",
+        "emptySection": "Keine Daten",
+        "filters": {
+            "all": "Alle",
+            "collect": "Gesammelt",
+            "doing": "Läuft",
+            "wish": "Wunschliste",
+            "onHold": "Pausiert",
+            "dropped": "Abgebrochen"
+        },
+        "categories": {
+            "anime": "Anime",
+            "book": "Bücher",
+            "music": "Musik",
+            "game": "Spiele",
+            "tv": "Video"
+        }
+    }
+}

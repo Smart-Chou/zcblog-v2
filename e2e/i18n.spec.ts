@@ -1,15 +1,18 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * i18n e2e（M2-11a）
+ * i18n e2e（M2-11a 建 · M2-11b 收口 8 门模板语言）
  *
  * 两种运行形态，同一份断言：
  * - 默认构建（只有 zh/en）：新语言的用例 `test.skip`，前 5 条照旧跑；
- * - `I18N_LOCALES=all` 构建后再 `astro preview`：4 个新语言的 5 条模板路由
+ * - `I18N_LOCALES=all` 构建后再 `astro preview`：8 个新语言的 5 条模板路由
  *   逐条断言（/、/blog/1/、/archives/、/tags/、/culture/）。
  *
  * 判据全部落在**用户能感知的信号**上：`<html lang>`、页面标题、canonical /
  * hreflang、导航链接指向、切换器当前项 —— 不断言构建期内部实现。
+ *
+ * M2-11b 追加：de / ru 在 390 宽下的横向溢出断言（德语长复合词与西里尔长词
+ * 是最容易把标题/导航撑破的两门语言，短标签语言看不出来的问题它们先炸）。
  */
 
 const LOCALES = [
@@ -17,6 +20,10 @@ const LOCALES = [
     { code: "ja", htmlLang: "ja", label: "日本語", archivesTitle: "アーカイブ" },
     { code: "ko", htmlLang: "ko", label: "한국어", archivesTitle: "아카이브" },
     { code: "fr", htmlLang: "fr", label: "FR", archivesTitle: "Archives" },
+    { code: "de", htmlLang: "de", label: "DE", archivesTitle: "Archiv" },
+    { code: "es", htmlLang: "es", label: "ES", archivesTitle: "Archivo" },
+    { code: "pt-BR", htmlLang: "pt-BR", label: "PT", archivesTitle: "Arquivo" },
+    { code: "ru", htmlLang: "ru", label: "RU", archivesTitle: "Архив" },
 ];
 
 /** 该语言是否已经落盘（默认构建里没有 → 整组用例跳过，而不是假红） */
@@ -150,3 +157,66 @@ test("从新语言切到另一门新语言", async ({ page }) => {
     await expect(page).toHaveURL(/\/ko\/archives\/$/);
     await expect(page.locator("html")).toHaveAttribute("lang", "ko");
 });
+
+/* ───────────────── de / ru：390 宽下不许横向溢出 ───────────────── */
+
+/**
+ * 德语靠复合词、俄语靠长西里尔词，两者在 390 宽（iPhone 12/13/14 竖屏）
+ * 最容易把 h1 / 统计数字 / 导航撑出视口 —— 这是模板复用同一套 CSS、只换文案
+ * 时唯一真正会「看得见」的回归。判据与 pages-culture 的溢出用例同口径：
+ * 越界元素（未被祖先 overflow 裁剪）+ documentElement.scrollWidth。
+ */
+for (const code of ["de", "ru"]) {
+    test(`[${code}] 390 宽无横向溢出`, async ({ page }) => {
+        test.skip(!(await localeBuilt(page, code)), `${code} 未构建（需 I18N_LOCALES=all）`);
+        for (const theme of ["light", "dark"]) {
+            for (const path of ["/", "/archives/", "/tags/"]) {
+                await page.setViewportSize({ width: 390, height: 844 });
+                await page.goto(`/${code}${path}`, { waitUntil: "load" });
+                await page.evaluate((value) => {
+                    document.documentElement.setAttribute("data-theme", value);
+                }, theme);
+                await page.evaluate(async () => {
+                    await document.fonts.ready;
+                });
+                const result = await page.evaluate(() => {
+                    const doc = document.documentElement;
+                    const limit = doc.clientWidth;
+                    const clippedByAncestor = (el: Element): boolean => {
+                        let node = el.parentElement;
+                        while (node && node !== document.body) {
+                            const style = getComputedStyle(node);
+                            if (/(auto|scroll|hidden|clip)/.test(style.overflowX)) {
+                                const rect = node.getBoundingClientRect();
+                                if (rect.right <= limit + 1) return true;
+                            }
+                            node = node.parentElement;
+                        }
+                        return false;
+                    };
+                    const offenders = [...document.querySelectorAll("body *")]
+                        .filter((el) => {
+                            const rect = el.getBoundingClientRect();
+                            if (!(rect.width > 0) || rect.right <= limit + 1) return false;
+                            return !clippedByAncestor(el);
+                        })
+                        .slice(0, 8)
+                        .map((el) => {
+                            const rect = el.getBoundingClientRect();
+                            return `${el.tagName.toLowerCase()} right=${Math.round(rect.right)} width=${Math.round(rect.width)} :: ${el.outerHTML.slice(0, 120)}`;
+                        });
+                    return {
+                        scrollWidth: doc.scrollWidth,
+                        clientWidth: doc.clientWidth,
+                        offenders,
+                    };
+                });
+                expect(result.offenders, `${code}${path}@390 (${theme}): 越界元素`).toEqual([]);
+                expect(
+                    result.scrollWidth,
+                    `${code}${path}@390 (${theme}): scrollWidth ${result.scrollWidth} > clientWidth ${result.clientWidth}`,
+                ).toBeLessThanOrEqual(result.clientWidth + 1);
+            }
+        }
+    });
+}

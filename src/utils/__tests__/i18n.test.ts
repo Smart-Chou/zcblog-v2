@@ -19,12 +19,17 @@ describe("getLocale", () => {
         expect(getLocale("en")).toBe("en");
     });
 
-    // M2-11a：注册表扩到 6 个语言，fr/ja/zh-TW 不再回落到 zh
+    // M2-11a：注册表扩到 6 个语言，fr/ja/zh-TW 不再回落到 zh（M2-11b 再加 4 门）
     it("returns the new registry locales as-is", () => {
         expect(getLocale("fr")).toBe("fr");
         expect(getLocale("ja")).toBe("ja");
         expect(getLocale("ko")).toBe("ko");
         expect(getLocale("zh-TW")).toBe("zh-TW");
+        expect(getLocale("de")).toBe("de");
+        expect(getLocale("es")).toBe("es");
+        expect(getLocale("pt-BR")).toBe("pt-BR");
+        expect(getLocale("ru")).toBe("ru");
+        expect(getLocale("pt-br")).toBe("pt-BR");
     });
 
     it("is case-insensitive but keeps the canonical form", () => {
@@ -34,8 +39,8 @@ describe("getLocale", () => {
     });
 
     it("returns defaultLocale for unknown locale", () => {
-        expect(getLocale("de")).toBe("zh");
-        expect(matchLocale("de")).toBeNull();
+        expect(getLocale("xx")).toBe("zh");
+        expect(matchLocale("xx")).toBeNull();
     });
 
     it("returns defaultLocale for empty string", () => {
@@ -128,7 +133,7 @@ describe("fallback chain", () => {
     it("reports coverage per locale", () => {
         expect(coverage("zh").ratio).toBe(1);
         expect(coverage("en").ratio).toBe(1);
-        for (const locale of ["zh-TW", "ja", "ko", "fr"] as const) {
+        for (const locale of ["zh-TW", "ja", "ko", "fr", "de", "es", "pt-BR", "ru"] as const) {
             const { translated, total, ratio } = coverage(locale);
             expect(total).toBeGreaterThan(100);
             expect(translated).toBeGreaterThan(50);
