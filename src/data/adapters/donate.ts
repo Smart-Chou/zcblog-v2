@@ -163,7 +163,7 @@ export function normalizeAccount(raw: unknown, index = 0): DonateAccount | null 
     const id = readText(record.id) ?? label ?? `account-${index + 1}`;
 
     const declared = record.kind === "qr" || record.kind === "link" ? record.kind : undefined;
-    const kind: DonateAccount["kind"] | null = qr ? "qr" : href ? "link" : declared ?? null;
+    const kind: DonateAccount["kind"] | null = qr ? "qr" : href ? "link" : (declared ?? null);
     if (!kind) return null;
     if (kind === "qr" && !qr) return null;
     if (kind === "link" && !href && !qr) return null;
@@ -208,8 +208,7 @@ export function normalizeDonator(raw: unknown): Donator | null {
 }
 
 type ListRead =
-    | { list: unknown[]; code?: undefined }
-    | { list: null; code: DonateIssueCode | null };
+    { list: unknown[]; code?: undefined } | { list: null; code: DonateIssueCode | null };
 
 function readList(raw: unknown): ListRead {
     if (raw === undefined || raw === null) return { list: null, code: null };
@@ -234,7 +233,7 @@ export function normalizeAccounts(raw: unknown): DonateAccount[] {
     const list = Array.isArray(raw)
         ? raw
         : typeof raw === "object"
-          ? ((raw as Record<string, unknown>).accounts as unknown[] | undefined) ?? []
+          ? (((raw as Record<string, unknown>).accounts as unknown[] | undefined) ?? [])
           : [];
 
     const seen = new Set<string>();
@@ -377,7 +376,10 @@ export function staticFeed(state: "empty" | "error" | "no-accounts"): DonateFeed
             enabled: true,
             accounts: [],
             donators: [],
-            issue: { code: "no-valid-entries", detail: "PUBLIC_DONATE_STATE=error（构建期 fixture）" },
+            issue: {
+                code: "no-valid-entries",
+                detail: "PUBLIC_DONATE_STATE=error（构建期 fixture）",
+            },
         });
     }
     if (state === "no-accounts") {

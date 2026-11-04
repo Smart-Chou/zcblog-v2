@@ -58,7 +58,9 @@ test("文章页结构与设计系统类名就位", async ({ page }) => {
     await expect(page.locator(".post-sheet #post-content")).toHaveCount(1);
     await expect(page.locator(".post-sheet .article-content")).toHaveCount(1);
     // 元信息仍带浏览量锚点（D-0090）
-    await expect(page.locator('.waline-pageview-count[data-path="/article/bitwarden/"]')).toHaveCount(1);
+    await expect(
+        page.locator('.waline-pageview-count[data-path="/article/bitwarden/"]'),
+    ).toHaveCount(1);
 });
 
 test("目录（TOC）构建期渲染且可跳转", async ({ page }) => {

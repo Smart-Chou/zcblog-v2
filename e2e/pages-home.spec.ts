@@ -107,7 +107,11 @@ test.describe("no horizontal overflow", () => {
                             const rect = el.getBoundingClientRect();
                             return `${el.tagName.toLowerCase()} right=${Math.round(rect.right)} width=${Math.round(rect.width)} :: ${el.outerHTML.slice(0, 160)}`;
                         });
-                    return { scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth, offenders };
+                    return {
+                        scrollWidth: doc.scrollWidth,
+                        clientWidth: doc.clientWidth,
+                        offenders,
+                    };
                 });
 
                 expect(result.offenders, `elements past the ${width}px viewport`).toEqual([]);
@@ -268,10 +272,11 @@ test("Tab 顺序 + 焦点环", async ({ page }) => {
         const nodes = [...document.querySelectorAll<HTMLElement>(selector)].filter(
             (node) =>
                 // checkVisibility 覆盖 display:none / visibility:hidden / content-visibility:hidden
-                ((node as HTMLElement & { checkVisibility?: (o?: object) => boolean }).checkVisibility
-                    ? (node as HTMLElement & { checkVisibility: (o?: object) => boolean }).checkVisibility(
-                          { checkVisibilityCSS: true },
-                      )
+                ((node as HTMLElement & { checkVisibility?: (o?: object) => boolean })
+                    .checkVisibility
+                    ? (
+                          node as HTMLElement & { checkVisibility: (o?: object) => boolean }
+                      ).checkVisibility({ checkVisibilityCSS: true })
                     : node.offsetParent !== null || node.getClientRects().length > 0) &&
                 !node.hasAttribute("disabled") &&
                 // tabIndex < 0 = 浏览器不会用 Tab 到它（含 tabindex="-1" 与 aria-hidden 的占位）
@@ -359,7 +364,13 @@ test("Tab 顺序 + 焦点环", async ({ page }) => {
 
     await test.info().attach("keyboard-tab-order.json", {
         body: JSON.stringify(
-            { expected: expected.length, visited: visited.length, ringToken, ringSamples, chromeSamples },
+            {
+                expected: expected.length,
+                visited: visited.length,
+                ringToken,
+                ringSamples,
+                chromeSamples,
+            },
             null,
             2,
         ),
@@ -380,23 +391,27 @@ test.describe("prefers-reduced-motion", () => {
         });
 
         const probes = await page.evaluate(() =>
-            [...document.querySelectorAll(".home-hero, .posts-section, .photos-section, .talk-section, .popular-section, .culture-section, .friends-section")].map(
-                (el) => {
-                    const rect = el.getBoundingClientRect();
-                    return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
-                },
-            ),
+            [
+                ...document.querySelectorAll(
+                    ".home-hero, .posts-section, .photos-section, .talk-section, .popular-section, .culture-section, .friends-section",
+                ),
+            ].map((el) => {
+                const rect = el.getBoundingClientRect();
+                return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+            }),
         );
 
         await page.waitForTimeout(1500);
 
         const after = await page.evaluate(() =>
-            [...document.querySelectorAll(".home-hero, .posts-section, .photos-section, .talk-section, .popular-section, .culture-section, .friends-section")].map(
-                (el) => {
-                    const rect = el.getBoundingClientRect();
-                    return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
-                },
-            ),
+            [
+                ...document.querySelectorAll(
+                    ".home-hero, .posts-section, .photos-section, .talk-section, .popular-section, .culture-section, .friends-section",
+                ),
+            ].map((el) => {
+                const rect = el.getBoundingClientRect();
+                return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+            }),
         );
 
         const running = await page.evaluate(() =>
@@ -460,9 +475,7 @@ test("关闭态 0 额外请求（本页无 overlay / 播放器 / 灯箱）", asy
     const requests: string[] = [];
     page.on("request", (request) => requests.push(request.url()));
     await page.goto("/", { waitUntil: "load" });
-    const leaked = requests.filter((url) =>
-        /waline|fancybox|pagefind|mermaid|katex/i.test(url),
-    );
+    const leaked = requests.filter((url) => /waline|fancybox|pagefind|mermaid|katex/i.test(url));
     expect(leaked, "首页不应加载 overlay / 评论 / 搜索运行时").toEqual([]);
 });
 
@@ -516,7 +529,8 @@ test.describe("evidence screenshots", () => {
                         .filter((img) => img.currentSrc && !img.complete)
                         .map((img) => img.currentSrc.slice(0, 120)),
                 );
-                if (broken.length > 0) console.log(`[shot] ${theme}@${width} 未完成加载图 ${broken.length} 张`);
+                if (broken.length > 0)
+                    console.log(`[shot] ${theme}@${width} 未完成加载图 ${broken.length} 张`);
                 await page.screenshot({ path: file, fullPage: true, animations: "disabled" });
                 console.log(`[shot] ${file}`);
                 expect(existsSync(file)).toBe(true);

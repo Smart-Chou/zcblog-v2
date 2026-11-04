@@ -171,7 +171,12 @@ function stripTags(text: string): string {
 /** 配图字段可能是字符串数组、也可能是 `{ url }` / `{ path }` / `{ src }` 对象数组。 */
 function readImages(record: Record<string, unknown>): string[] {
     const raw =
-        record.images ?? record.attachments ?? record.files ?? record.photos ?? record.media ?? null;
+        record.images ??
+        record.attachments ??
+        record.files ??
+        record.photos ??
+        record.media ??
+        null;
     if (!raw) return [];
 
     const list = Array.isArray(raw) ? raw : [raw];
@@ -267,9 +272,7 @@ export function normalizeTalk(raw: unknown, index = 0): TalkEntry | null {
     };
 }
 
-type ListRead =
-    | { list: unknown[]; code?: undefined }
-    | { list: null; code: TalksIssueCode | null };
+type ListRead = { list: unknown[]; code?: undefined } | { list: null; code: TalksIssueCode | null };
 
 /** 拆包裹：数组直接用；对象按 default/items/data/... 找一个数组。 */
 function readList(raw: unknown): ListRead {

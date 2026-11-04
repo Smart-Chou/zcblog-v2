@@ -59,9 +59,7 @@ const formatDay = (iso: string | null) =>
 
 const newestLabel = formatDay(resolved.newest);
 const countLabel = isEn ? `${resolved.total} entries` : `${resolved.total} 条`;
-const tagCountLabel = isEn
-    ? `${resolved.tags.length} topics`
-    : `${resolved.tags.length} 个话题`;
+const tagCountLabel = isEn ? `${resolved.tags.length} topics` : `${resolved.tags.length} 个话题`;
 const MAX_TAGS = 24;
 ---
 
@@ -187,9 +185,7 @@ const MAX_TAGS = 24;
                         <span class="talks-state__icon" aria-hidden="true">
                             <Icon name="tabler:message-chatbot-filled" size="lg" />
                         </span>
-                        <p class="talks-state__title">
-                            {isEn ? "No talks yet" : "还没有随笔"}
-                        </p>
+                        <p class="talks-state__title">{isEn ? "No talks yet" : "还没有随笔"}</p>
                         <p class="talks-state__text">
                             {isEn
                                 ? "This site has not connected its talk source yet — the page stays up, just empty."

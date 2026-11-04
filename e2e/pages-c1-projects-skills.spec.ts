@@ -28,8 +28,18 @@ const THEMES = ["light", "dark"] as const;
 const VIEWPORTS = [390, 768, 1440] as const;
 type Theme = (typeof THEMES)[number];
 
-const PROJECTS = { key: "projects", url: "/projects/", en: "/en/projects/", shell: ".entities--projects" } as const;
-const SKILLS = { key: "skills", url: "/skills/", en: "/en/skills/", shell: ".entities--skills" } as const;
+const PROJECTS = {
+    key: "projects",
+    url: "/projects/",
+    en: "/en/projects/",
+    shell: ".entities--projects",
+} as const;
+const SKILLS = {
+    key: "skills",
+    url: "/skills/",
+    en: "/en/skills/",
+    shell: ".entities--skills",
+} as const;
 const PAGES = [PROJECTS, SKILLS] as const;
 
 const EVIDENCE_DIR =
@@ -75,7 +85,8 @@ test.describe("routes", () => {
         const read = async (url: string, attrs: string[]) => {
             await page.goto(url, { waitUntil: "load" });
             const out: Record<string, string | null> = {};
-            for (const attr of attrs) out[attr] = await page.locator(`[${attr}]`).first().getAttribute(attr);
+            for (const attr of attrs)
+                out[attr] = await page.locator(`[${attr}]`).first().getAttribute(attr);
             return out;
         };
         const zh = await read(PROJECTS.url, ["data-projects-status", "data-projects-total"]);
@@ -152,7 +163,11 @@ for (const page_ of PAGES) {
                             const rect = el.getBoundingClientRect();
                             return `${el.tagName.toLowerCase()} right=${Math.round(rect.right)} width=${Math.round(rect.width)} :: ${el.outerHTML.slice(0, 120)}`;
                         });
-                    return { scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth, offenders };
+                    return {
+                        scrollWidth: doc.scrollWidth,
+                        clientWidth: doc.clientWidth,
+                        offenders,
+                    };
                 });
                 expect(result.offenders, `${page_.key}@${width} (${theme}): 越界元素`).toEqual([]);
                 expect(
@@ -179,11 +194,18 @@ async function runAxe(page: Page, contextSelector?: string) {
                 id: v.id,
                 impact: v.impact,
                 help: v.help,
-                nodes: v.nodes.map((n) => ({ target: n.target, html: n.html.slice(0, 200), summary: n.summary })),
+                nodes: v.nodes.map((n) => ({
+                    target: n.target,
+                    html: n.html.slice(0, 200),
+                    summary: n.summary,
+                })),
             }));
         const scope = selector ? document.querySelector(selector) : document;
         const result = (await axe.run(scope ?? document, {
-            runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
+            runOnly: {
+                type: "tag",
+                values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+            },
             resultTypes: ["violations", "incomplete"],
         })) as { violations: AxeViolation[]; incomplete: AxeViolation[] };
         return { violations: map(result.violations), incomplete: map(result.incomplete) };
@@ -198,7 +220,9 @@ for (const page_ of PAGES) {
             // 主题过渡必须落定，否则 axe 取到插值中间色（假红）
             await page.addStyleTag({ content: ".entities * { transition: none !important; }" });
             const { violations, incomplete } = await runAxe(page, page_.shell);
-            const serious = violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+            const serious = violations.filter(
+                (v) => v.impact === "serious" || v.impact === "critical",
+            );
             expect(
                 serious.map((v) => `${v.id} (${v.impact}) ${v.nodes[0]?.target ?? ""}`),
                 `${page_.key} ${theme}: serious/critical`,
@@ -207,7 +231,9 @@ for (const page_ of PAGES) {
                 incomplete.map((v) => `${v.id} ${v.nodes[0]?.target ?? ""}`),
                 `${page_.key} ${theme}: incomplete`,
             ).toEqual([]);
-            console.log(`[axe] ${page_.key} ${theme}: violations=${violations.length} incomplete=${incomplete.length}`);
+            console.log(
+                `[axe] ${page_.key} ${theme}: violations=${violations.length} incomplete=${incomplete.length}`,
+            );
         });
     }
 }
@@ -222,8 +248,11 @@ test("键盘：项目外链焦点环 ≥2px 且为 --color-ring-focus", async ({
     let reached = false;
     for (let i = 0; i < 80 && !reached; i += 1) {
         await page.keyboard.press("Tab");
-        reached = await page.evaluate(() =>
-            (document.activeElement as HTMLElement | null)?.classList.contains("project-card__link") ?? false,
+        reached = await page.evaluate(
+            () =>
+                (document.activeElement as HTMLElement | null)?.classList.contains(
+                    "project-card__link",
+                ) ?? false,
         );
     }
     expect(reached, "Tab 80 次仍未到达项目外链").toBe(true);
@@ -242,18 +271,24 @@ test("键盘：项目外链焦点环 ≥2px 且为 --color-ring-focus", async ({
     });
     expect(ring.style).not.toBe("none");
     expect(ring.width).toBeGreaterThanOrEqual(2);
-    console.log(`[focus] outline ${ring.width}px ${ring.style} ${ring.color} / token ${ring.expected}`);
+    console.log(
+        `[focus] outline ${ring.width}px ${ring.style} ${ring.color} / token ${ring.expected}`,
+    );
 });
 
 /* ───────────────────────── 6. 契约 ───────────────────────── */
 
 test("契约：项目卡片数 = 数据条数，卡片含标题/周期/技术栈，外链安全属性齐全", async ({ page }) => {
     await page.goto(PROJECTS.url, { waitUntil: "load" });
-    const total = Number(await page.locator(".entities--projects").getAttribute("data-projects-total"));
+    const total = Number(
+        await page.locator(".entities--projects").getAttribute("data-projects-total"),
+    );
     const cards = page.locator(".project-card");
     await expect(cards).toHaveCount(total);
 
-    const ids = await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-project-id")));
+    const ids = await cards.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("data-project-id")),
+    );
     expect(new Set(ids).size, "项目 id 必须唯一").toBe(ids.length);
 
     for (const id of ids) {
@@ -289,7 +324,9 @@ test("契约：技能组数/条数 = 数据，每行有文字分档与装饰刻�
         nodes.map((node) => ({
             text: (node.textContent ?? "").trim(),
             level: node.getAttribute("data-level"),
-            meterHidden: node.parentElement?.querySelector(".skill__meter")?.getAttribute("aria-hidden"),
+            meterHidden: node.parentElement
+                ?.querySelector(".skill__meter")
+                ?.getAttribute("aria-hidden"),
         })),
     );
     expect(levels.length).toBe(total);
@@ -319,7 +356,9 @@ test("导航：新增两个入口存在、不溢出、可点击", async ({ page 
             await expect(link, `${width}px: 导航缺 ${label}`).toHaveCount(1);
             const box = await link.boundingBox();
             expect(box, `${width}px: ${label} 无布局盒`).not.toBeNull();
-            const overflow = await nav.evaluate((el) => el.getBoundingClientRect().right - document.documentElement.clientWidth);
+            const overflow = await nav.evaluate(
+                (el) => el.getBoundingClientRect().right - document.documentElement.clientWidth,
+            );
             expect(overflow, `${width}px: 导航面板越界`).toBeLessThanOrEqual(1);
         }
 
@@ -365,7 +404,12 @@ test("空数据可构建：真实构建两页为空态，路由仍 200", async (
 test("证据截图：两页 × light/dark 1440 + skills light 390", async ({ page }) => {
     if (!existsSync(EVIDENCE_DIR)) mkdirSync(EVIDENCE_DIR, { recursive: true });
     const shots = [
-        { url: PROJECTS.url, theme: "light" as Theme, width: 1440, name: "projects-light-1440.png" },
+        {
+            url: PROJECTS.url,
+            theme: "light" as Theme,
+            width: 1440,
+            name: "projects-light-1440.png",
+        },
         { url: PROJECTS.url, theme: "dark" as Theme, width: 1440, name: "projects-dark-1440.png" },
         { url: SKILLS.url, theme: "light" as Theme, width: 1440, name: "skills-light-1440.png" },
         { url: SKILLS.url, theme: "light" as Theme, width: 390, name: "skills-light-390.png" },

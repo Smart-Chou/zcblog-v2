@@ -37,7 +37,8 @@ const feed = normalizeCollection(devices, devicesMeta, deviceSpec, {
 
 // 组内排序：在用的先出现，退役的垫底；同状态按名称排，读者扫视时顺序稳定。
 const items = [...feed.items].sort(
-    (a, b) => DEVICE_STATUS_RANK[a.status] - DEVICE_STATUS_RANK[b.status] || a.name.localeCompare(b.name),
+    (a, b) =>
+        DEVICE_STATUS_RANK[a.status] - DEVICE_STATUS_RANK[b.status] || a.name.localeCompare(b.name),
 );
 
 const groups = DEVICE_CATEGORY_ORDER.map((category) => ({
@@ -155,9 +156,15 @@ const specLabel = `${specCount} ${copy.specOne}`;
             {
                 feed.status === "ok" &&
                     groups.map((group) => (
-                        <section class="entities-section" aria-labelledby={`device-cat-${group.category}`}>
+                        <section
+                            class="entities-section"
+                            aria-labelledby={`device-cat-${group.category}`}
+                        >
                             <div class="entities-section__head">
-                                <h2 class="entities-section__title" id={`device-cat-${group.category}`}>
+                                <h2
+                                    class="entities-section__title"
+                                    id={`device-cat-${group.category}`}
+                                >
                                     {group.label}
                                 </h2>
                                 <p class="entities-section__meta">

@@ -24,7 +24,10 @@ import path from "node:path";
  *  · swup：首页 → 归档（站内点击）后页面样式已就位（width 1200）
  */
 
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 
 const THEMES = ["light", "dark"] as const;
 const VIEWPORTS = [390, 768, 1440] as const;
@@ -166,9 +169,10 @@ test.describe("no horizontal overflow", () => {
                             offenders,
                         };
                     });
-                    expect(result.offenders, `${item.key}@${width}: elements past the viewport`).toEqual(
-                        [],
-                    );
+                    expect(
+                        result.offenders,
+                        `${item.key}@${width}: elements past the viewport`,
+                    ).toEqual([]);
                     expect(
                         result.scrollWidth,
                         `${item.key}@${width}: scrollWidth ${result.scrollWidth} > clientWidth ${result.clientWidth}`,
@@ -287,11 +291,18 @@ test.describe("keyboard", () => {
             const shellSelector = item.shell;
             const focusables = await page.evaluate(
                 ({ sel }) =>
-                    [...document.querySelectorAll(`${sel} a[href], ${sel} button, ${sel} [tabindex]`)]
+                    [
+                        ...document.querySelectorAll(
+                            `${sel} a[href], ${sel} button, ${sel} [tabindex]`,
+                        ),
+                    ]
                         .filter(
                             (node) =>
-                                ((node as HTMLElement & { checkVisibility?: (o?: object) => boolean })
-                                    .checkVisibility
+                                ((
+                                    node as HTMLElement & {
+                                        checkVisibility?: (o?: object) => boolean;
+                                    }
+                                ).checkVisibility
                                     ? (
                                           node as HTMLElement & {
                                               checkVisibility: (o?: object) => boolean;
@@ -307,9 +318,10 @@ test.describe("keyboard", () => {
                         ),
                 { sel: shellSelector },
             );
-            expect(focusables.length, `${item.key}: focusable elements in page shell`).toBeGreaterThan(
-                3,
-            );
+            expect(
+                focusables.length,
+                `${item.key}: focusable elements in page shell`,
+            ).toBeGreaterThan(3);
 
             // Tab 到页面壳内，再逐个检查环；最多 40 个（标签图谱 272 个胶囊不逐个 Tab，抽样足够）
             const visited: string[] = [];
@@ -325,7 +337,9 @@ test.describe("keyboard", () => {
                     return {
                         inShell: Boolean(el.closest(sel)),
                         tag: el.tagName.toLowerCase(),
-                        text: (el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 30),
+                        text: (el.getAttribute("aria-label") ?? el.textContent ?? "")
+                            .trim()
+                            .slice(0, 30),
                         hasRing: style.outlineStyle !== "none" && width >= 2,
                         color: style.outlineColor,
                     };
@@ -339,7 +353,9 @@ test.describe("keyboard", () => {
                 visited.push(probe.text);
                 if (!probe.hasRing) problems.push(`${probe.tag} "${probe.text}" 没有 ≥2px 焦点环`);
                 else if (probe.color !== ringToken)
-                    problems.push(`${probe.tag} "${probe.text}" 焦点环 ${probe.color} ≠ ${ringToken}`);
+                    problems.push(
+                        `${probe.tag} "${probe.text}" 焦点环 ${probe.color} ≠ ${ringToken}`,
+                    );
             }
 
             console.log(
@@ -349,7 +365,11 @@ test.describe("keyboard", () => {
             expect(problems, `${item.key}: 焦点环`).toEqual([]);
 
             await test.info().attach(`keyboard-${item.key}.json`, {
-                body: JSON.stringify({ focusables: focusables.length, visited, ringToken }, null, 2),
+                body: JSON.stringify(
+                    { focusables: focusables.length, visited, ringToken },
+                    null,
+                    2,
+                ),
                 contentType: "application/json",
             });
         });
@@ -508,7 +528,10 @@ test("标签详情：卡片全部指向站内文章", async ({ page }) => {
     const hrefs = await page
         .locator(".tag-detail__posts .post-card-link")
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href") ?? ""));
-    expect(hrefs.every((href) => href.startsWith("/article/")), "卡片链接必须是站内文章").toBe(true);
+    expect(
+        hrefs.every((href) => href.startsWith("/article/")),
+        "卡片链接必须是站内文章",
+    ).toBe(true);
     console.log(`[tag-detail] ${count} 张卡片，全部指向 /article/*`);
 });
 
@@ -536,13 +559,18 @@ test.describe("404 terminal edition", () => {
 test("swup：首页 → 归档（站内点击）后页面样式就位", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/", { waitUntil: "load" });
-    await page.waitForFunction(() => Boolean((window as unknown as { swup?: unknown }).swup), undefined, {
-        timeout: 15_000,
-    });
+    await page.waitForFunction(
+        () => Boolean((window as unknown as { swup?: unknown }).swup),
+        undefined,
+        {
+            timeout: 15_000,
+        },
+    );
 
     await page.evaluate(() => {
-        const link = [...document.querySelectorAll('main a[href="/archives/"], header a[href="/archives/"]')]
-            .find((anchor) => !anchor.closest("[inert]")) as HTMLAnchorElement | undefined;
+        const link = [
+            ...document.querySelectorAll('main a[href="/archives/"], header a[href="/archives/"]'),
+        ].find((anchor) => !anchor.closest("[inert]")) as HTMLAnchorElement | undefined;
         if (!link) throw new Error("找不到指向 /archives/ 的站内链接");
         link.click();
     });

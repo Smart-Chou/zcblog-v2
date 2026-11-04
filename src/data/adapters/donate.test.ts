@@ -20,7 +20,14 @@ import {
 /** 站点当前形状（src/data/donators.json）：{ donators: [...] }。 */
 const siteLedger = {
     donators: [
-        { id: "1", name: "张三", avatar: "", amount: 50, date: "2026-01-18", message: "感谢你的分享！" },
+        {
+            id: "1",
+            name: "张三",
+            avatar: "",
+            amount: 50,
+            date: "2026-01-18",
+            message: "感谢你的分享！",
+        },
         { id: "2", name: "李四", avatar: "", amount: 100, date: "2026-01-20", message: "" },
         { id: "3", name: "吴十", avatar: "", amount: 40, date: "2026-02-05", message: "" },
     ],
@@ -28,7 +35,13 @@ const siteLedger = {
 
 /** 注入点形状（src/config/ui.ts · donatePage.accounts）。 */
 const accounts = [
-    { id: "wechat", kind: "qr", qr: "wechat-pay.png", label: "微信支付", icon: "mingcute:wechat-pay-line" },
+    {
+        id: "wechat",
+        kind: "qr",
+        qr: "wechat-pay.png",
+        label: "微信支付",
+        icon: "mingcute:wechat-pay-line",
+    },
     { id: "alipay", kind: "qr", qr: "alipay.jpg", label: "支付宝", icon: "mingcute:alipay-line" },
     {
         id: "paypal",
@@ -137,7 +150,11 @@ describe("loadDonate · 三态", () => {
     it("错误态：非数组、包裹里不是数组、整批记录全废（收款方式仍带出）", () => {
         expectStatus(loadDonate("字符串"), "error", "source-not-array");
         expectStatus(loadDonate({ donators: "nope" }), "error", "source-not-array");
-        expectStatus(loadDonate([{ name: 1 }, { amount: "x" }], { accounts }), "error", "no-valid-entries");
+        expectStatus(
+            loadDonate([{ name: 1 }, { amount: "x" }], { accounts }),
+            "error",
+            "no-valid-entries",
+        );
         expect(loadDonate([{ name: 1 }], { accounts }).accounts).toHaveLength(3);
     });
 

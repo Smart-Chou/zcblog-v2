@@ -35,7 +35,13 @@ const tocLabel = isEn ? "Contents" : "目录";
 <nav class="toc post-toc" aria-label={tocLabel}>
     <div class="post-toc__head">
         <span class="post-toc__title">{tocLabel}</span>
-        {nodes.length > 0 && <span class="post-toc__count" aria-hidden="true">{nodes.length}</span>}
+        {
+            nodes.length > 0 && (
+                <span class="post-toc__count" aria-hidden="true">
+                    {nodes.length}
+                </span>
+            )
+        }
     </div>
     <div class="toc-content">
         {

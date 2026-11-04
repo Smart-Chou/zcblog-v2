@@ -97,8 +97,7 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-2) var(--space-4);
-    border-block-end: 1px solid
-        color-mix(in oklab, var(--color-fg-inverse) 18%, transparent);
+    border-block-end: 1px solid color-mix(in oklab, var(--color-fg-inverse) 18%, transparent);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--color-fg-inverse);

@@ -276,11 +276,12 @@ const searchPlaceholder = t(loc, "common.searchPlaceholder");
      */
     (window as unknown as { __ovlWarm?: () => void }).__ovlWarm = () =>
         void import("~/scripts/overlay").then((mod) => mod.watchSearch());
-    (window as unknown as { __ovlSheet?: (name: string, opener: Element | null) => void }).__ovlSheet =
-        (name, opener) =>
-            void import("~/scripts/overlay").then((mod) =>
-                mod.openSheet(name as "shortcuts" | "gestures", opener as HTMLElement),
-            );
+    (
+        window as unknown as { __ovlSheet?: (name: string, opener: Element | null) => void }
+    ).__ovlSheet = (name, opener) =>
+        void import("~/scripts/overlay").then((mod) =>
+            mod.openSheet(name as "shortcuts" | "gestures", opener as HTMLElement),
+        );
 
     // View Transition 的 DOM morphing 会破坏 Pagefind 内部创建的 <dialog> 元素。
     // 导航后完全销毁旧实例并创建新实例，确保 clean state。

@@ -22,8 +22,14 @@ interface Props {
     variant?: "card" | "article";
 }
 
-const { publishedTime, modifiedTime, wordCount, readTime, currentSlug, variant = "card" } =
-    Astro.props;
+const {
+    publishedTime,
+    modifiedTime,
+    wordCount,
+    readTime,
+    currentSlug,
+    variant = "card",
+} = Astro.props;
 
 // 浏览计数路径：跟随当前语言前缀；英文页去掉 -en 后缀（中文页不裁剪）
 const isEnPage = Astro.url.pathname.startsWith("/en");

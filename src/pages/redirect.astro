@@ -32,12 +32,7 @@ const scriptTexts = JSON.stringify({
     publishedTime={new Date()}
     modifiedTime={new Date()}
 >
-    <div
-        class="redirect"
-        data-overlay="redirect"
-        role="dialog"
-        aria-labelledby="redirect-tip"
-    >
+    <div class="redirect" data-overlay="redirect" role="dialog" aria-labelledby="redirect-tip">
         <span class="redirect-tip" id="redirect-tip"
             >{t(loc, "redirect.leavingMessage", { site: site.title })}</span
         >

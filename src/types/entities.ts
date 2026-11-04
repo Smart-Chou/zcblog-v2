@@ -212,7 +212,14 @@ const DEVICE_CATEGORIES: readonly DeviceCategory[] = [
     "other",
 ];
 const DEVICE_STATUSES: readonly DeviceStatus[] = ["in-use", "backup", "retired"];
-const GAME_PLATFORMS: readonly GamePlatform[] = ["pc", "switch", "playstation", "xbox", "mobile", "vr"];
+const GAME_PLATFORMS: readonly GamePlatform[] = [
+    "pc",
+    "switch",
+    "playstation",
+    "xbox",
+    "mobile",
+    "vr",
+];
 const GAME_STATUSES: readonly GameStatus[] = ["playing", "finished", "shelved", "backlog"];
 
 export const PROJECT_REQUIRED_FIELDS = [
@@ -237,7 +244,14 @@ export const DEVICE_REQUIRED_FIELDS = [
     "updated",
 ] as const;
 
-export const GAME_REQUIRED_FIELDS = ["id", "title", "platforms", "status", "note", "updated"] as const;
+export const GAME_REQUIRED_FIELDS = [
+    "id",
+    "title",
+    "platforms",
+    "status",
+    "note",
+    "updated",
+] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value);
@@ -272,9 +286,11 @@ export function validateProject(value: unknown): string[] {
     const problems: string[] = [];
     const at = (field: string) => `projects[${String(value.id ?? "?")}].${field}`;
 
-    if (!isNonEmptyString(value.id) || !SLUG.test(value.id)) problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id))
+        problems.push(`${at("id")} 必须是小写连字符 slug`);
     if (!isLocalizedText(value.title)) problems.push(`${at("title")} 需要 zh + en 两个非空字符串`);
-    if (!isLocalizedText(value.summary)) problems.push(`${at("summary")} 需要 zh + en 两个非空字符串`);
+    if (!isLocalizedText(value.summary))
+        problems.push(`${at("summary")} 需要 zh + en 两个非空字符串`);
     if (!PROJECT_STATUSES.includes(value.status as ProjectStatus))
         problems.push(`${at("status")} 必须是 ${PROJECT_STATUSES.join(" / ")}`);
     if (!isIsoMonth(value.started)) problems.push(`${at("started")} 必须是 YYYY-MM`);
@@ -282,7 +298,11 @@ export function validateProject(value: unknown): string[] {
         problems.push(`${at("ended")} 必须是 YYYY-MM 或 null`);
     if (value.role !== undefined && !isLocalizedText(value.role))
         problems.push(`${at("role")} 需要 zh + en 两个非空字符串`);
-    if (!Array.isArray(value.stack) || value.stack.length === 0 || !value.stack.every(isNonEmptyString))
+    if (
+        !Array.isArray(value.stack) ||
+        value.stack.length === 0 ||
+        !value.stack.every(isNonEmptyString)
+    )
         problems.push(`${at("stack")} 必须是非空字符串数组（至少一项）`);
     if (
         value.highlights !== undefined &&
@@ -292,7 +312,9 @@ export function validateProject(value: unknown): string[] {
     if (value.links !== undefined) {
         const ok =
             Array.isArray(value.links) &&
-            value.links.every((link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href));
+            value.links.every(
+                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
+            );
         if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
     }
     if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
@@ -343,16 +365,22 @@ export function validateDevice(value: unknown): string[] {
     const problems: string[] = [];
     const at = (field: string) => `devices[${String(value.id ?? "?")}].${field}`;
 
-    if (!isNonEmptyString(value.id) || !SLUG.test(value.id)) problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id))
+        problems.push(`${at("id")} 必须是小写连字符 slug`);
     if (!isNonEmptyString(value.name)) problems.push(`${at("name")} 必须是非空字符串`);
     if (!DEVICE_CATEGORIES.includes(value.category as DeviceCategory))
         problems.push(`${at("category")} 必须是 ${DEVICE_CATEGORIES.join(" / ")}`);
     if (!DEVICE_STATUSES.includes(value.status as DeviceStatus))
         problems.push(`${at("status")} 必须是 ${DEVICE_STATUSES.join(" / ")}`);
-    if (!Array.isArray(value.specs) || value.specs.length === 0 || !value.specs.every(isNonEmptyString))
+    if (
+        !Array.isArray(value.specs) ||
+        value.specs.length === 0 ||
+        !value.specs.every(isNonEmptyString)
+    )
         problems.push(`${at("specs")} 必须是非空字符串数组（至少一项）`);
     if (!isLocalizedText(value.note)) problems.push(`${at("note")} 需要 zh + en 两个非空字符串`);
-    if (value.since !== undefined && !isIsoMonth(value.since)) problems.push(`${at("since")} 必须是 YYYY-MM`);
+    if (value.since !== undefined && !isIsoMonth(value.since))
+        problems.push(`${at("since")} 必须是 YYYY-MM`);
     if (value.until !== undefined && value.until !== null && !isIsoMonth(value.until))
         problems.push(`${at("until")} 必须是 YYYY-MM 或 null`);
     // 已退役却没有退役时间：页面上会显示「已退役 · 2024.05 — 至今」，自相矛盾。
@@ -363,7 +391,9 @@ export function validateDevice(value: unknown): string[] {
     if (value.links !== undefined) {
         const ok =
             Array.isArray(value.links) &&
-            value.links.every((link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href));
+            value.links.every(
+                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
+            );
         if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
     }
     if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
@@ -378,7 +408,8 @@ export function validateGame(value: unknown): string[] {
     const problems: string[] = [];
     const at = (field: string) => `games[${String(value.id ?? "?")}].${field}`;
 
-    if (!isNonEmptyString(value.id) || !SLUG.test(value.id)) problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id))
+        problems.push(`${at("id")} 必须是小写连字符 slug`);
     if (!isLocalizedText(value.title)) problems.push(`${at("title")} 需要 zh + en 两个非空字符串`);
     if (
         !Array.isArray(value.platforms) ||
@@ -392,12 +423,22 @@ export function validateGame(value: unknown): string[] {
         problems.push(`${at("year")} 必须是 YYYY`);
     if (
         value.hours !== undefined &&
-        !(typeof value.hours === "number" && Number.isInteger(value.hours) && value.hours >= 1 && value.hours <= 9999)
+        !(
+            typeof value.hours === "number" &&
+            Number.isInteger(value.hours) &&
+            value.hours >= 1 &&
+            value.hours <= 9999
+        )
     )
         problems.push(`${at("hours")} 必须是 1–9999 的整数（没统计就别写这个字段）`);
     if (
         value.rating !== undefined &&
-        !(typeof value.rating === "number" && Number.isInteger(value.rating) && value.rating >= 1 && value.rating <= 5)
+        !(
+            typeof value.rating === "number" &&
+            Number.isInteger(value.rating) &&
+            value.rating >= 1 &&
+            value.rating <= 5
+        )
     )
         problems.push(`${at("rating")} 必须是 1–5 的整数（不打分就别写这个字段，别写 0）`);
     if (!isLocalizedText(value.note)) problems.push(`${at("note")} 需要 zh + en 两个非空字符串`);
@@ -412,7 +453,8 @@ export function validateMeta(value: unknown): string[] {
     if (!isIsoDay(value.updated)) problems.push("meta.updated 必须是 YYYY-MM-DD");
     // 归属到人（14 §7 规则 4）：M2-7b 起必填，不许靠「写了就好」。
     if (!isNonEmptyString(value.owner)) problems.push("meta.owner 必填（14 §7 规则 4：归属到人）");
-    if (value.source !== undefined && !isNonEmptyString(value.source)) problems.push("meta.source 必须是非空字符串");
+    if (value.source !== undefined && !isNonEmptyString(value.source))
+        problems.push("meta.source 必须是非空字符串");
     return problems;
 }
 
@@ -499,7 +541,10 @@ export const projectSpec: EntitySpec<Project> = {
         ["started 不是 YYYY-MM", { ...projectSample(), started: "2026/01" }],
         ["ended 不是 YYYY-MM", { ...projectSample(), ended: "2026" }],
         ["stack 空数组", { ...projectSample(), stack: [] }],
-        ["links 非 http", { ...projectSample(), links: [{ label: "x", href: "javascript:alert(1)" }] }],
+        [
+            "links 非 http",
+            { ...projectSample(), links: [{ label: "x", href: "javascript:alert(1)" }] },
+        ],
         ["id 不是 slug", { ...projectSample(), id: "Demo Project" }],
         // 正则能过、日历不存在：Date.parse 会静默归一成 03-03，必须判出
         ["updated 不是真实日历日", { ...projectSample(), updated: "2026-02-31" }],
@@ -517,7 +562,10 @@ export const skillGroupSpec: EntitySpec<SkillGroup> = {
         ["items 空数组", { ...skillGroupSample(), items: [] }],
         ["level 越界", { ...skillGroupSample(), items: [{ name: "Astro", level: "master" }] }],
         ["条目缺 name", { ...skillGroupSample(), items: [{ level: "solid" }] }],
-        ["条目的 since 不是 YYYY", { ...skillGroupSample(), items: [{ name: "Astro", level: "solid", since: "26" }] }],
+        [
+            "条目的 since 不是 YYYY",
+            { ...skillGroupSample(), items: [{ name: "Astro", level: "solid", since: "26" }] },
+        ],
     ],
 };
 
@@ -650,16 +698,19 @@ export function normalizeCollection<T>(
     // 新鲜度：meta.updated 优先；没有就取条目里**最新**的 updated（页面只报数据文件整体的
     // 最后维护时间）。条目各自过期的口径在门禁 E7：逐条列 WARN，不在这里合并。
     const metaUpdated = meta && isIsoDay(meta.updated) ? meta.updated : null;
-    const itemUpdated = items
-        .map((item) => spec.updatedOf(item))
-        .filter((value): value is string => typeof value === "string")
-        .sort()
-        .at(-1) ?? null;
+    const itemUpdated =
+        items
+            .map((item) => spec.updatedOf(item))
+            .filter((value): value is string => typeof value === "string")
+            .sort()
+            .at(-1) ?? null;
     const updated = metaUpdated ?? itemUpdated;
     const updatedTime = parseDay(updated);
     const nowTime = parseDay(options.now ?? new Date().toISOString().slice(0, 10));
     const ageDays =
-        updatedTime === null || nowTime === null ? null : Math.floor((nowTime - updatedTime) / DAY_MS);
+        updatedTime === null || nowTime === null
+            ? null
+            : Math.floor((nowTime - updatedTime) / DAY_MS);
 
     const collection: EntityCollection<T> = {
         ...base,
@@ -689,7 +740,10 @@ export function normalizeCollection<T>(
         return {
             ...collection,
             status: "ok",
-            issue: { code: "entry-dropped", detail: `${dropped} 条被丢弃：${problems[0] ?? "未知原因"}` },
+            issue: {
+                code: "entry-dropped",
+                detail: `${dropped} 条被丢弃：${problems[0] ?? "未知原因"}`,
+            },
         };
     }
 
@@ -744,7 +798,11 @@ export function projectStatusLabel(status: ProjectStatus, locale: EntityLocale):
 }
 
 /** 数据新鲜度的可读口径：`2026-11-02 · 2 天前`。 */
-export function formatUpdated(updated: string | null, ageDays: number | null, locale: EntityLocale): string {
+export function formatUpdated(
+    updated: string | null,
+    ageDays: number | null,
+    locale: EntityLocale,
+): string {
     if (!updated) return "";
     if (ageDays === null) return updated;
     if (locale === "en") return `${updated} · ${ageDays} days ago`;
@@ -814,7 +872,12 @@ const GAME_STATUS_LABEL: Record<GameStatus, LocalizedText> = {
 };
 
 /** 页面分组顺序：在玩 → 已通关 → 待玩 → 搁置。 */
-export const GAME_STATUS_ORDER: readonly GameStatus[] = ["playing", "finished", "backlog", "shelved"];
+export const GAME_STATUS_ORDER: readonly GameStatus[] = [
+    "playing",
+    "finished",
+    "backlog",
+    "shelved",
+];
 
 export function gameStatusLabel(status: GameStatus, locale: EntityLocale): string {
     return pick(GAME_STATUS_LABEL[status] ?? GAME_STATUS_LABEL.playing, locale);

@@ -126,7 +126,10 @@ const terminalLines = isEn
                         {recent.map((post) => (
                             <li class="nf-beacons__item">
                                 <a class="nf-beacons__link" href={post.url}>
-                                    <time class="nf-beacons__date" datetime={post.date.toISOString()}>
+                                    <time
+                                        class="nf-beacons__date"
+                                        datetime={post.date.toISOString()}
+                                    >
                                         {fmt(post.date)}
                                     </time>
                                     <span class="nf-beacons__name">{post.title}</span>

@@ -16,7 +16,10 @@ import path from "node:path";
  *  · axe 只扫 overlay 子树（document 级存量债在共享 Header/Footer，属 M2-12）。
  */
 
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 const ARTICLE = "/article/blog-as-a-product/";
@@ -26,10 +29,14 @@ const REDIRECT_BAD = "/redirect/?url=bbb";
 const THEMES = ["light", "dark"] as const;
 type Theme = (typeof THEMES)[number];
 
-const count = (page: Page) => page.evaluate(() => document.querySelectorAll("[data-overlay]").length);
+const count = (page: Page) =>
+    page.evaluate(() => document.querySelectorAll("[data-overlay]").length);
 
 async function setTheme(page: Page, theme: Theme): Promise<void> {
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
@@ -127,7 +134,9 @@ async function prepare(page: Page, recipe: Recipe, theme: Theme): Promise<void> 
     await setTheme(page, theme);
     await page.evaluate(async () => {
         await document.fonts.ready;
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        await new Promise<void>((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => r())),
+        );
     });
 }
 
@@ -135,13 +144,17 @@ async function prepare(page: Page, recipe: Recipe, theme: Theme): Promise<void> 
 const OVERLAY_ASSET = /pagefind|fancybox|overlay[\w-]*\.[\w-]+\.js/;
 
 async function overlayAssets(page: Page): Promise<string[]> {
-    const names = await page.evaluate(() => performance.getEntriesByType("resource").map((e) => e.name));
+    const names = await page.evaluate(() =>
+        performance.getEntriesByType("resource").map((e) => e.name),
+    );
     return names.filter((name) => OVERLAY_ASSET.test(name));
 }
 
 /* ───────────────── 1. 关闭态：0 节点 / 0 额外请求 ───────────────── */
 
-test("关闭态：首页 / 文章 / 守卫三类页均 0 个 [data-overlay]，且不下载 overlay 基座", async ({ page }) => {
+test("关闭态：首页 / 文章 / 守卫三类页均 0 个 [data-overlay]，且不下载 overlay 基座", async ({
+    page,
+}) => {
     for (const url of ["/", ARTICLE, REDIRECT_BAD]) {
         const seen: string[] = [];
         page.on("request", (req) => seen.push(req.url()));
@@ -179,9 +192,11 @@ for (const theme of THEMES) {
             await expect(page.locator(`[data-overlay="${recipe.name}"]`)).toHaveCount(1);
             // 等入场动画走完再扫 axe：动画中途的 opacity <1 会让 color-contrast 判成 incomplete
             await page.evaluate(() =>
-                document.querySelectorAll("[data-overlay]").forEach((node) =>
-                    node.getAnimations({ subtree: true }).forEach((a) => a.finish()),
-                ),
+                document
+                    .querySelectorAll("[data-overlay]")
+                    .forEach((node) =>
+                        node.getAnimations({ subtree: true }).forEach((a) => a.finish()),
+                    ),
             );
             await page.waitForTimeout(120);
 
@@ -205,9 +220,10 @@ for (const theme of THEMES) {
             // 基座模块（overlay.*.js）首次打开必然要下载一次 —— 那不是「关闭态请求」；
             // 不该出现的只有 pagefind 模块 / 灯箱原图这类内容资源。
             if (!recipe.loadsOnOpen)
-                expect(pulled.filter((n) => /pagefind|fancybox/.test(n)), "打开不该拉内容资源").toEqual(
-                    [],
-                );
+                expect(
+                    pulled.filter((n) => /pagefind|fancybox/.test(n)),
+                    "打开不该拉内容资源",
+                ).toEqual([]);
 
             if (recipe.name === "redirect") return; // 守卫页是页级矩形：关闭态由上面「无效目标」用例覆盖
 
@@ -346,9 +362,12 @@ test.describe("prefers-reduced-motion", () => {
         await page.locator("pagefind-modal-trigger").click();
         await expect(page.locator('[data-overlay="search"]')).toHaveCount(1);
         await page.waitForTimeout(300);
-        const running = await page.evaluate(() =>
-            document.querySelector('[data-overlay="search"]')!.getAnimations({ subtree: true })
-                .filter((a) => a.playState === "running").length,
+        const running = await page.evaluate(
+            () =>
+                document
+                    .querySelector('[data-overlay="search"]')!
+                    .getAnimations({ subtree: true })
+                    .filter((a) => a.playState === "running").length,
         );
         expect(running).toBe(0);
     });

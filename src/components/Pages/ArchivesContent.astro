@@ -163,9 +163,11 @@ const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
                 <div>
                     <h2 id="heatmap-title" class="archives-section-title">{heatmapTitle}</h2>
                     <p class="archives-section-note">
-                        {isEn
-                            ? "Daily word count of the last 12 months — hover a cell for the post."
-                            : "近 12 个月的发文密度，悬停格子看当天文章。"}
+                        {
+                            isEn
+                                ? "Daily word count of the last 12 months — hover a cell for the post."
+                                : "近 12 个月的发文密度，悬停格子看当天文章。"
+                        }
                     </p>
                 </div>
                 <p class="archives-heatmap__meta">
@@ -215,9 +217,16 @@ const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
             </section>
 
             <aside class="archives-side" aria-label={isEn ? "Archive sidebars" : "归档侧栏"}>
-                <Card padding="md" as="section" class="archives-panel" labelledby="archives-tags-title">
+                <Card
+                    padding="md"
+                    as="section"
+                    class="archives-panel"
+                    labelledby="archives-tags-title"
+                >
                     <div class="archives-panel__head">
-                        <h2 id="archives-tags-title" class="archives-panel__title">{knowledgeTitle}</h2>
+                        <h2 id="archives-tags-title" class="archives-panel__title">
+                            {knowledgeTitle}
+                        </h2>
                         <Link href={tagsHref} variant="standalone" class="archives-panel__link">
                             {isEn ? "All" : "全部"}
                         </Link>
@@ -241,9 +250,16 @@ const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
                     </ul>
                 </Card>
 
-                <Card padding="md" as="section" class="archives-panel" labelledby="archives-links-title">
+                <Card
+                    padding="md"
+                    as="section"
+                    class="archives-panel"
+                    labelledby="archives-links-title"
+                >
                     <div class="archives-panel__head">
-                        <h2 id="archives-links-title" class="archives-panel__title">{shortcutsTitle}</h2>
+                        <h2 id="archives-links-title" class="archives-panel__title">
+                            {shortcutsTitle}
+                        </h2>
                     </div>
                     <ul class="archives-links">
                         <li>

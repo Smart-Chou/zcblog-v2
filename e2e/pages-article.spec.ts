@@ -24,7 +24,10 @@ import path from "node:path";
  *  · 分享 / 版权 / 相关三块在 390/1440、light/dark 的截图（ARTICLE_SHOTS=1 时落盘）
  */
 
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 
 const ARTICLE = "/article/bitwarden/";
 const ARTICLE_EN = "/en/article/blog-seo-practice/";
@@ -146,7 +149,11 @@ test.describe("no horizontal overflow", () => {
                             const rect = el.getBoundingClientRect();
                             return `${el.tagName.toLowerCase()} right=${Math.round(rect.right)} width=${Math.round(rect.width)} :: ${el.outerHTML.slice(0, 160)}`;
                         });
-                    return { scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth, offenders };
+                    return {
+                        scrollWidth: doc.scrollWidth,
+                        clientWidth: doc.clientWidth,
+                        offenders,
+                    };
                 });
 
                 expect(result.offenders, `elements past the ${width}px viewport`).toEqual([]);
@@ -218,7 +225,11 @@ test.describe("axe (WCAG 2.x A/AA)", () => {
             const docScope = await runAxe(page);
 
             await test.info().attach(`axe-${theme}-1440.json`, {
-                body: JSON.stringify({ post: postScope, toc: tocScope, document: docScope }, null, 2),
+                body: JSON.stringify(
+                    { post: postScope, toc: tocScope, document: docScope },
+                    null,
+                    2,
+                ),
                 contentType: "application/json",
             });
             const axeDir = path.join(process.cwd(), "test-results", "axe-article");
@@ -278,11 +289,7 @@ const ringProbe = (): RingProbe => {
     return {
         tag: el.tagName.toLowerCase(),
         label: (el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 40),
-        scope: el.closest(".post")
-            ? "post"
-            : el.closest(".toc.post-toc")
-              ? "toc"
-              : "chrome",
+        scope: el.closest(".post") ? "post" : el.closest(".toc.post-toc") ? "toc" : "chrome",
         ring: visible
             ? { style: style.outlineStyle, width: style.outlineWidth, color: style.outlineColor }
             : null,
@@ -312,10 +319,11 @@ test("Tab 顺序 + 焦点环", async ({ page }) => {
         const selector = "a[href], button, input, select, textarea, summary, [tabindex]";
         const nodes = [...document.querySelectorAll<HTMLElement>(selector)].filter(
             (node) =>
-                ((node as HTMLElement & { checkVisibility?: (o?: object) => boolean }).checkVisibility
-                    ? (node as HTMLElement & { checkVisibility: (o?: object) => boolean }).checkVisibility(
-                          { checkVisibilityCSS: true },
-                      )
+                ((node as HTMLElement & { checkVisibility?: (o?: object) => boolean })
+                    .checkVisibility
+                    ? (
+                          node as HTMLElement & { checkVisibility: (o?: object) => boolean }
+                      ).checkVisibility({ checkVisibilityCSS: true })
                     : node.offsetParent !== null || node.getClientRects().length > 0) &&
                 !node.hasAttribute("disabled") &&
                 node.tabIndex >= 0 &&
@@ -388,7 +396,9 @@ test("Tab 顺序 + 焦点环", async ({ page }) => {
     );
 
     expect(ringProblems, "每个获得焦点的元素都要有 ≥2px 的焦点环").toEqual([]);
-    expect(colorOffenders, "页面内容（.post / .toc）的焦点环颜色必须 = --color-ring-focus").toEqual([]);
+    expect(colorOffenders, "页面内容（.post / .toc）的焦点环颜色必须 = --color-ring-focus").toEqual(
+        [],
+    );
     expect(visited, "Tab 顺序必须与 DOM 顺序一致").toEqual(expected.map((entry) => entry.i));
 
     for (const sample of ringSamples) {
@@ -398,7 +408,13 @@ test("Tab 顺序 + 焦点环", async ({ page }) => {
 
     await test.info().attach("keyboard-tab-order.json", {
         body: JSON.stringify(
-            { expected: expected.length, visited: visited.length, ringToken, ringSamples, chromeSamples },
+            {
+                expected: expected.length,
+                visited: visited.length,
+                ringToken,
+                ringSamples,
+                chromeSamples,
+            },
             null,
             2,
         ),
@@ -424,7 +440,12 @@ test.describe("prefers-reduced-motion", () => {
                 (sel) =>
                     [...document.querySelectorAll(sel)].map((el) => {
                         const rect = el.getBoundingClientRect();
-                        return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+                        return {
+                            top: rect.top,
+                            left: rect.left,
+                            width: rect.width,
+                            height: rect.height,
+                        };
                     }),
                 selector,
             );
@@ -494,7 +515,9 @@ test("分享弹层关闭态：0 额外网络请求（二维码构建期内联）
     await page.waitForTimeout(600);
 
     // 二维码/分享图都不该走第三方接口：只有构建期 <svg>，没有任何 QR 服务请求
-    const qrRequests = requests.filter((url) => /qr|qrcode|chart\.googleapis|api\.qrserver/i.test(url));
+    const qrRequests = requests.filter((url) =>
+        /qr|qrcode|chart\.googleapis|api\.qrserver/i.test(url),
+    );
     expect(qrRequests, "分享二维码必须构建期生成，不能请求第三方 QR 服务").toEqual([]);
 
     // 微信弹层默认关闭：aria-hidden，且视觉上完全透明（opacity:0 不算 hidden，这里量计算值）
@@ -568,8 +591,12 @@ test("目录链接可跳（1440，tocbot 接管后）", async ({ page }) => {
     expect(target as number, "点击目录后标题必须落在固定页头下方").toBeGreaterThan(headerHeight);
     expect(target as number, "点击目录后标题应靠近视口顶部").toBeLessThan(headerHeight + 160);
     // location.hash 会把中文锚点百分号编码，比对前统一解码
-    expect(await page.evaluate(() => decodeURIComponent(location.hash))).toBe(decodeURIComponent(hash ?? ""));
-    console.log(`[toc] 点击 ${hash} → 标题 top=${(target as number).toFixed(1)}px（页头 ${headerHeight.toFixed(1)}px）`);
+    expect(await page.evaluate(() => decodeURIComponent(location.hash))).toBe(
+        decodeURIComponent(hash ?? ""),
+    );
+    console.log(
+        `[toc] 点击 ${hash} → 标题 top=${(target as number).toFixed(1)}px（页头 ${headerHeight.toFixed(1)}px）`,
+    );
 });
 
 test.describe("无 JS：目录仍渲染且可跳（D-0082）", () => {
@@ -716,7 +743,8 @@ test.describe("evidence screenshots", () => {
                 await blockShot(page, ".post-share", `share-${theme}-${width}.png`);
                 await blockShot(page, ".post-license", `license-${theme}-${width}.png`);
                 await blockShot(page, ".related-posts", `related-${theme}-${width}.png`);
-                if (width === 1440) await blockShot(page, ".toc.post-toc", `toc-${theme}-${width}.png`);
+                if (width === 1440)
+                    await blockShot(page, ".toc.post-toc", `toc-${theme}-${width}.png`);
 
                 // 正文首屏（标题 + 元信息 + 封面）
                 await blockShot(page, ".post-masthead", `masthead-${theme}-${width}.png`);

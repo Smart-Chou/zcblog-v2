@@ -68,9 +68,7 @@ describe("normalizeTalk · 单条归一化", () => {
     });
 
     it("API 形状：createdAt + attachments[{url}]，无 url 时不产生空字段", () => {
-        const talk = normalizeTalk(
-            (apiShape.items as unknown[])[0] as Record<string, unknown>,
-        );
+        const talk = normalizeTalk((apiShape.items as unknown[])[0] as Record<string, unknown>);
         expect(talk?.id).toBe("note-1");
         expect(talk?.tags).toEqual(["想法"]);
         expect(talk?.images).toEqual(["https://blinko.example/file/1.png"]);

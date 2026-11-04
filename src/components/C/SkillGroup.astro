@@ -27,13 +27,16 @@ const { group, locale, index } = Astro.props;
 
 const title = pick(group.title, locale);
 const summary = pick(group.summary, locale);
-const countLabel =
-    locale === "en" ? `${group.items.length} skills` : `${group.items.length} 项`;
+const countLabel = locale === "en" ? `${group.items.length} skills` : `${group.items.length} 项`;
 const ordinal = String(index).padStart(2, "0");
 const segments = [1, 2, 3, 4] as const;
 ---
 
-<section class="skill-group" data-skill-group={group.id} aria-labelledby={`skill-group-${group.id}`}>
+<section
+    class="skill-group"
+    data-skill-group={group.id}
+    aria-labelledby={`skill-group-${group.id}`}
+>
     <header class="skill-group__head">
         <span class="skill-group__index" aria-hidden="true">{ordinal}</span>
         <div class="skill-group__intro">
@@ -58,7 +61,12 @@ const segments = [1, 2, 3, 4] as const;
                             </span>
                             <span class="skill__meter" aria-hidden="true">
                                 {segments.map((segment) => (
-                                    <i class:list={["skill__meter-seg", { "is-on": segment <= rank }]} />
+                                    <i
+                                        class:list={[
+                                            "skill__meter-seg",
+                                            { "is-on": segment <= rank },
+                                        ]}
+                                    />
                                 ))}
                             </span>
                         </div>

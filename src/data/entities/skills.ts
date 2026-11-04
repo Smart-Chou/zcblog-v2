@@ -26,25 +26,37 @@ export const skills: SkillGroup[] = [
                 name: "Astro",
                 level: "deep",
                 since: "2023",
-                note: { zh: "静态优先、孤岛架构、内容集合", en: "Static-first, islands, content collections" },
+                note: {
+                    zh: "静态优先、孤岛架构、内容集合",
+                    en: "Static-first, islands, content collections",
+                },
             },
             {
                 name: "TypeScript",
                 level: "solid",
                 since: "2021",
-                note: { zh: "类型化数据契约与构建期校验", en: "Typed data contracts and build-time validation" },
+                note: {
+                    zh: "类型化数据契约与构建期校验",
+                    en: "Typed data contracts and build-time validation",
+                },
             },
             {
                 name: "CSS 设计系统",
                 level: "deep",
                 since: "2022",
-                note: { zh: "双层 token、原子组件、视觉回归", en: "Two-layer tokens, atoms, visual regression" },
+                note: {
+                    zh: "双层 token、原子组件、视觉回归",
+                    en: "Two-layer tokens, atoms, visual regression",
+                },
             },
             {
                 name: "可访问性",
                 level: "solid",
                 since: "2024",
-                note: { zh: "axe 门禁、键盘与焦点、reduced-motion", en: "axe gates, keyboard and focus, reduced-motion" },
+                note: {
+                    zh: "axe 门禁、键盘与焦点、reduced-motion",
+                    en: "axe gates, keyboard and focus, reduced-motion",
+                },
             },
             {
                 name: "性能预算",
@@ -85,7 +97,10 @@ export const skills: SkillGroup[] = [
                 name: "MCP / Agent 工具链",
                 level: "solid",
                 since: "2025",
-                note: { zh: "工具路由、技能库、上下文预算", en: "Tool routing, skill libraries, context budgets" },
+                note: {
+                    zh: "工具路由、技能库、上下文预算",
+                    en: "Tool routing, skill libraries, context budgets",
+                },
             },
             {
                 name: "Docker Compose",
@@ -108,19 +123,28 @@ export const skills: SkillGroup[] = [
                 name: "Arch Linux",
                 level: "solid",
                 since: "2024",
-                note: { zh: "服务器基座、包管理与内核升级", en: "Server base, package management, kernel upgrades" },
+                note: {
+                    zh: "服务器基座、包管理与内核升级",
+                    en: "Server base, package management, kernel upgrades",
+                },
             },
             {
                 name: "Cloudflare",
                 level: "working",
                 since: "2024",
-                note: { zh: "DNS、缓存规则、Pages、Tunnel + Access", en: "DNS, cache rules, Pages, Tunnel + Access" },
+                note: {
+                    zh: "DNS、缓存规则、Pages、Tunnel + Access",
+                    en: "DNS, cache rules, Pages, Tunnel + Access",
+                },
             },
             {
                 name: "Nginx / 1Panel",
                 level: "working",
                 since: "2023",
-                note: { zh: "反向代理、证书、面板化运维", en: "Reverse proxy, certificates, panel-based ops" },
+                note: {
+                    zh: "反向代理、证书、面板化运维",
+                    en: "Reverse proxy, certificates, panel-based ops",
+                },
             },
             {
                 name: "Tailscale",
@@ -149,25 +173,37 @@ export const skills: SkillGroup[] = [
                 name: "Git",
                 level: "solid",
                 since: "2020",
-                note: { zh: "分支策略、worktree、WIP 提交纪律", en: "Branching, worktrees, WIP commit discipline" },
+                note: {
+                    zh: "分支策略、worktree、WIP 提交纪律",
+                    en: "Branching, worktrees, WIP commit discipline",
+                },
             },
             {
                 name: "构建门禁",
                 level: "solid",
                 since: "2025",
-                note: { zh: "token / schema / 视觉 / 性能四类机器判据", en: "Token, schema, visual and perf machine checks" },
+                note: {
+                    zh: "token / schema / 视觉 / 性能四类机器判据",
+                    en: "Token, schema, visual and perf machine checks",
+                },
             },
             {
                 name: "技术写作",
                 level: "solid",
                 since: "2022",
-                note: { zh: "长文结构、去 AI 味、配图流水线", en: "Long-form structure, human voice, image pipeline" },
+                note: {
+                    zh: "长文结构、去 AI 味、配图流水线",
+                    en: "Long-form structure, human voice, image pipeline",
+                },
             },
             {
                 name: "拆卡与验收",
                 level: "working",
                 since: "2025",
-                note: { zh: "预算、文件边界、可复跑的验收命令", en: "Budgets, file boundaries, rerunnable acceptance commands" },
+                note: {
+                    zh: "预算、文件边界、可复跑的验收命令",
+                    en: "Budgets, file boundaries, rerunnable acceptance commands",
+                },
             },
         ],
         updated: "2026-10-30",

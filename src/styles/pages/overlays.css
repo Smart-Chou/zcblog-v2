@@ -90,7 +90,6 @@
     border-radius: var(--radius-sm);
 }
 
-
 .ovl__close {
     position: absolute;
     top: var(--space-3);

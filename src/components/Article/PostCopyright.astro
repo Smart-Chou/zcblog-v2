@@ -15,8 +15,10 @@ interface Props {
     year?: number;
 }
 
-const { locale = Astro.url.pathname.startsWith("/en/") ? "en" : "zh", year = new Date().getFullYear() } =
-    Astro.props;
+const {
+    locale = Astro.url.pathname.startsWith("/en/") ? "en" : "zh",
+    year = new Date().getFullYear(),
+} = Astro.props;
 
 const isEn = locale === "en";
 const licenseUrl = "https://creativecommons.org/licenses/by-nc-sa/4.0/";
@@ -36,12 +38,18 @@ const licenseUrl = "https://creativecommons.org/licenses/by-nc-sa/4.0/";
         {
             isEn ? (
                 <>
-                    Licensed under <a href={licenseUrl} rel="license noopener noreferrer">CC BY-NC-SA 4.0</a>
+                    Licensed under{" "}
+                    <a href={licenseUrl} rel="license noopener noreferrer">
+                        CC BY-NC-SA 4.0
+                    </a>
                     , attribution required.
                 </>
             ) : (
                 <>
-                    本文采用 <a href={licenseUrl} rel="license noopener noreferrer">CC BY-NC-SA 4.0</a>
+                    本文采用{" "}
+                    <a href={licenseUrl} rel="license noopener noreferrer">
+                        CC BY-NC-SA 4.0
+                    </a>
                     许可协议，转载请注明出处。
                 </>
             )

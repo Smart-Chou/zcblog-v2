@@ -84,7 +84,10 @@ test.describe("routes", () => {
             "data-talks-status",
             "data-talks-total",
         ]);
-        const talksEn = await read(TALKS.en, TALKS.shell, ["data-talks-status", "data-talks-total"]);
+        const talksEn = await read(TALKS.en, TALKS.shell, [
+            "data-talks-status",
+            "data-talks-total",
+        ]);
         expect(talksZh["data-talks-total"]).toBe(talksEn["data-talks-total"]);
         expect(talksZh["data-talks-status"]).toBe("ok");
 
@@ -312,7 +315,10 @@ test("Tab 顺序 + 焦点环 ≥2px 且 = --color-ring-focus（两页）", async
                             !node.hasAttribute("disabled") &&
                             (node as HTMLElement).tabIndex >= 0,
                     )
-                    .map((node) => `${node.tagName.toLowerCase()}.${String(node.className).slice(0, 40)}`),
+                    .map(
+                        (node) =>
+                            `${node.tagName.toLowerCase()}.${String(node.className).slice(0, 40)}`,
+                    ),
             page_.shell,
         );
         const minFocusables = page_.key === "talks" ? 5 : 1;
@@ -346,19 +352,21 @@ test("Tab 顺序 + 焦点环 ≥2px 且 = --color-ring-focus（两页）", async
             }
             entered = true;
             visited.push(probe.text);
-            if (!probe.hasRing) problems.push(`${page_.key}: ${probe.tag} "${probe.text}" 无 ≥2px 焦点环`);
+            if (!probe.hasRing)
+                problems.push(`${page_.key}: ${probe.tag} "${probe.text}" 无 ≥2px 焦点环`);
             else if (probe.color !== ringToken)
-                problems.push(`${page_.key}: ${probe.tag} "${probe.text}" 焦点环 ${probe.color} ≠ ${ringToken}`);
+                problems.push(
+                    `${page_.key}: ${probe.tag} "${probe.text}" 焦点环 ${probe.color} ≠ ${ringToken}`,
+                );
         }
 
         console.log(
             `[kbd] ${page_.key}: 壳内可聚焦 ${focusables.length} 个，逐个 Tab 检查 ${visited.length} 个`,
         );
         expect(entered, `${page_.key}: Tab 必须能进入页面主体`).toBe(true);
-        expect(
-            visited.length,
-            `${page_.key}: 至少走到正文内链`,
-        ).toBeGreaterThanOrEqual(page_.key === "talks" ? 3 : 1);
+        expect(visited.length, `${page_.key}: 至少走到正文内链`).toBeGreaterThanOrEqual(
+            page_.key === "talks" ? 3 : 1,
+        );
         expect(problems, `${page_.key}: 焦点环`).toEqual([]);
     }
 });
@@ -538,8 +546,9 @@ test("赞赏契约：收款方式 = 注入数，每张码图有 src+alt，页面
         }
     }
 
-    const emptySrc = await page.evaluate(() =>
-        [...document.querySelectorAll("img")].filter((img) => !img.getAttribute("src")).length,
+    const emptySrc = await page.evaluate(
+        () =>
+            [...document.querySelectorAll("img")].filter((img) => !img.getAttribute("src")).length,
     );
     expect(emptySrc, "整页不允许出现空 src 的 <img>").toBe(0);
 
@@ -600,9 +609,7 @@ for (const state of ["empty", "error"] as const) {
 
         for (const route of ["talks", "en/talks"]) {
             const html = readBuilt(outDir, route);
-            expect(html, `${route}: 状态必须是 ${state}`).toContain(
-                `data-talks-status="${state}"`,
-            );
+            expect(html, `${route}: 状态必须是 ${state}`).toContain(`data-talks-status="${state}"`);
             expect(html, `${route}: 一条随笔都不许渲染`).not.toContain('class="essay-card"');
             expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="talks-title"/);
         }

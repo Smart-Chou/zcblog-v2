@@ -35,7 +35,9 @@ const heading = isEn ? "Related posts" : "相关文章";
                     <a href={toArticleUrl(post.id)} class="related-posts-link">
                         <span class="related-posts-post-title">{post.data.title}</span>
                         <span class="related-posts-meta">
-                            <span class="related-posts-date">{formatDateI18n(post.data.pubDate)}</span>
+                            <span class="related-posts-date">
+                                {formatDateI18n(post.data.pubDate)}
+                            </span>
                             {post.data.tags?.length > 0 && (
                                 <span class="related-posts-tags">
                                     {post.data.tags.slice(0, 3).map((tag: string) => (

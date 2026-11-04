@@ -36,8 +36,7 @@ const feed = normalizeCollection(games, gamesMeta, gameSpec, {
 
 // 组内排序：有年份的按年份倒序（新玩过的在上面），没年份的按标题。
 const items = [...feed.items].sort(
-    (a, b) =>
-        (b.year ?? "").localeCompare(a.year ?? "") || a.title.zh.localeCompare(b.title.zh),
+    (a, b) => (b.year ?? "").localeCompare(a.year ?? "") || a.title.zh.localeCompare(b.title.zh),
 );
 
 const groups = GAME_STATUS_ORDER.map((status) => ({
@@ -154,9 +153,15 @@ const hoursLabel = `${totalHours} ${copy.hoursOne}`;
             {
                 feed.status === "ok" &&
                     groups.map((group) => (
-                        <section class="entities-section" aria-labelledby={`game-state-${group.status}`}>
+                        <section
+                            class="entities-section"
+                            aria-labelledby={`game-state-${group.status}`}
+                        >
                             <div class="entities-section__head">
-                                <h2 class="entities-section__title" id={`game-state-${group.status}`}>
+                                <h2
+                                    class="entities-section__title"
+                                    id={`game-state-${group.status}`}
+                                >
                                     {group.label}
                                 </h2>
                                 <p class="entities-section__meta">
@@ -193,7 +198,10 @@ const hoursLabel = `${totalHours} ${copy.hoursOne}`;
 
             {
                 feed.status === "empty" && (
-                    <div class="entities-state entities-state--empty" data-games-empty={feed.issue?.code ?? "unknown"}>
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-games-empty={feed.issue?.code ?? "unknown"}
+                    >
                         <span class="entities-state__icon" aria-hidden="true">
                             <Icon name="tabler:device-gamepad-2" size="lg" />
                         </span>

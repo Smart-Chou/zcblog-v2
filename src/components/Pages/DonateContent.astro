@@ -196,7 +196,10 @@ const methodLabel = isEn
 
             {
                 resolved.status === "error" && (
-                    <div class="donations-state" data-donate-error={resolved.issue?.code ?? "unknown"}>
+                    <div
+                        class="donations-state"
+                        data-donate-error={resolved.issue?.code ?? "unknown"}
+                    >
                         <Alert
                             tone="warning"
                             title={isEn ? "Donation records could not be read" : "赞赏记录读取失败"}

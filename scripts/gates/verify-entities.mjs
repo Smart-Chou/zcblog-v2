@@ -119,7 +119,11 @@ async function loadContract() {
     mkdirSync(TMP_DIR, { recursive: true });
 
     const typesSource = readFileSync(path.join(repoRoot, TYPES_REL), "utf8");
-    writeFileSync(path.join(TMP_DIR, "entities.mjs"), transpile(typesSource, "entities.ts"), "utf8");
+    writeFileSync(
+        path.join(TMP_DIR, "entities.mjs"),
+        transpile(typesSource, "entities.ts"),
+        "utf8",
+    );
 
     const modules = new Map();
     try {
@@ -172,7 +176,9 @@ function checkEntity(entity, contract, module) {
 
     // E2 schema
     if (collection.status === "error") {
-        problems.push(`归一化失败（${collection.issue?.code}）：${collection.issue?.detail ?? "未知"}`);
+        problems.push(
+            `归一化失败（${collection.issue?.code}）：${collection.issue?.detail ?? "未知"}`,
+        );
     }
     if (collection.dropped > 0) {
         problems.push(`dropped=${collection.dropped}；坏条目必须修数据，不许靠运行时丢弃`);
@@ -210,7 +216,9 @@ function checkEntity(entity, contract, module) {
             warnings.push(`${entity.kind}[${spec.keyOf(item)}] 没有 updated 日期`);
             continue;
         }
-        const age = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${updated}T00:00:00Z`)) / 86400000);
+        const age = Math.floor(
+            (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${updated}T00:00:00Z`)) / 86400000,
+        );
         if (age > FRESHNESS_DAYS) staleEntries.push(`${spec.keyOf(item)} ${updated}（${age} 天）`);
     }
     if (collection.stale) {
@@ -239,13 +247,22 @@ function checkEmptyBuild(contract) {
         const spec = contract[entity.specExport];
         if (!spec) continue;
         try {
-            const empty = contract.normalizeCollection([], { updated: today }, spec, { now: today });
-            if (empty.status !== "empty") problems.push(`${entity.kind}: [] 的期望状态是 empty，实得 ${empty.status}`);
-            if (empty.total !== 0) problems.push(`${entity.kind}: [] 的 total 应为 0，实得 ${empty.total}`);
+            const empty = contract.normalizeCollection([], { updated: today }, spec, {
+                now: today,
+            });
+            if (empty.status !== "empty")
+                problems.push(`${entity.kind}: [] 的期望状态是 empty，实得 ${empty.status}`);
+            if (empty.total !== 0)
+                problems.push(`${entity.kind}: [] 的 total 应为 0，实得 ${empty.total}`);
             const missing = contract.normalizeCollection(undefined, null, spec, { now: today });
-            if (missing.status !== "error") problems.push(`${entity.kind}: undefined 的期望状态是 error，实得 ${missing.status}`);
+            if (missing.status !== "error")
+                problems.push(
+                    `${entity.kind}: undefined 的期望状态是 error，实得 ${missing.status}`,
+                );
         } catch (error) {
-            problems.push(`${entity.kind}: 空数据归一化抛异常（${error.message}）——空数据必须能构建`);
+            problems.push(
+                `${entity.kind}: 空数据归一化抛异常（${error.message}）——空数据必须能构建`,
+            );
         }
     }
     return {
@@ -278,7 +295,9 @@ function checkNegative(contract) {
             continue;
         }
         if (typeof spec.sample !== "function" || !Array.isArray(spec.requiredFields)) {
-            problems.push(`${entity.kind}: ${entity.specExport} 缺 sample() 或 requiredFields（E8 无法生成负向样例）`);
+            problems.push(
+                `${entity.kind}: ${entity.specExport} 缺 sample() 或 requiredFields（E8 无法生成负向样例）`,
+            );
             continue;
         }
 
@@ -297,7 +316,9 @@ function checkNegative(contract) {
             delete fixture[field];
             generated += 1;
             if (spec.validate(fixture).length === 0)
-                problems.push(`${entity.kind}: 删掉必填字段 ${field} 后仍通过校验（requiredFields 与 validate 脱节）`);
+                problems.push(
+                    `${entity.kind}: 删掉必填字段 ${field} 后仍通过校验（requiredFields 与 validate 脱节）`,
+                );
         }
 
         for (const field of Object.keys(sample)) {
@@ -315,7 +336,8 @@ function checkNegative(contract) {
         }
         for (const [name, fixture] of spec.negatives()) {
             generated += 1;
-            if (spec.validate(fixture).length === 0) problems.push(`${entity.kind}: 放过「${name}」`);
+            if (spec.validate(fixture).length === 0)
+                problems.push(`${entity.kind}: 放过「${name}」`);
         }
     }
 
@@ -324,7 +346,8 @@ function checkNegative(contract) {
     const validMeta = { updated: today, owner: "someone" };
     const metaProblems = contract.validateMeta(validMeta);
     if (metaProblems.length > 0) problems.push(`validateMeta 误杀合法 meta —— ${metaProblems[0]}`);
-    if (!metaRequired.includes("owner")) problems.push("META_REQUIRED_FIELDS 必须包含 owner（14 §7 规则 4）");
+    if (!metaRequired.includes("owner"))
+        problems.push("META_REQUIRED_FIELDS 必须包含 owner（14 §7 规则 4）");
     for (const field of metaRequired) {
         const fixture = { ...validMeta };
         delete fixture[field];
@@ -337,12 +360,19 @@ function checkNegative(contract) {
     for (const entity of ENTITIES) {
         const spec = contract[entity.specExport];
         if (!spec || typeof spec.sample !== "function") continue;
-        const stale = contract.normalizeCollection([spec.sample()], { updated: "2020-01-01", owner: "someone" }, spec, {
-            now: today,
-        });
+        const stale = contract.normalizeCollection(
+            [spec.sample()],
+            { updated: "2020-01-01", owner: "someone" },
+            spec,
+            {
+                now: today,
+            },
+        );
         if (!stale.stale) problems.push(`${entity.kind}: 2020-01-01 的数据没有被判 stale`);
         if (stale.status !== "ok")
-            problems.push(`${entity.kind}: stale 数据的状态应为 ok（warning 不 fail），实得 ${stale.status}`);
+            problems.push(
+                `${entity.kind}: stale 数据的状态应为 ok（warning 不 fail），实得 ${stale.status}`,
+            );
     }
 
     if (contract.ENTITY_FRESHNESS_DAYS !== FRESHNESS_DAYS) {
@@ -399,22 +429,26 @@ async function main() {
     const passed = results.filter((r) => r.ok).length;
     const failed = results.length - passed;
     console.log("");
-    console.log(`  结果：${passed}/${results.length} PASS · ${failed} FAIL · ${warnings.length} WARN`);
+    console.log(
+        `  结果：${passed}/${results.length} PASS · ${failed} FAIL · ${warnings.length} WARN`,
+    );
     console.log("  warning 不阻断构建（14 §7 规则 3）；FAIL 才是数据要修。");
 
     const summary = {
         today,
         contractVersion: contract.ENTITY_CONTRACT_VERSION,
         freshnessDays: FRESHNESS_DAYS,
-        entities: results.filter((r) => r.kind).map((r) => ({
-            kind: r.kind,
-            total: r.total,
-            dropped: r.dropped,
-            updated: r.updated ?? null,
-            ageDays: r.ageDays ?? null,
-            stale: Boolean(r.stale),
-            ok: r.ok,
-        })),
+        entities: results
+            .filter((r) => r.kind)
+            .map((r) => ({
+                kind: r.kind,
+                total: r.total,
+                dropped: r.dropped,
+                updated: r.updated ?? null,
+                ageDays: r.ageDays ?? null,
+                stale: Boolean(r.stale),
+                ok: r.ok,
+            })),
         warnings,
         passed,
         failed,

@@ -54,7 +54,9 @@ const ordinal = String(index).padStart(2, "0");
                 {
                     span && (
                         <>
-                            <span class="device-card__sep" aria-hidden="true">·</span>
+                            <span class="device-card__sep" aria-hidden="true">
+                                ·
+                            </span>
                             <span class="device-card__span">{span}</span>
                         </>
                     )
@@ -68,11 +70,7 @@ const ordinal = String(index).padStart(2, "0");
     </header>
 
     <ul class="device-card__specs" aria-label={specsLabel}>
-        {
-            device.specs.map((spec) => (
-                <li class="device-card__spec">{spec}</li>
-            ))
-        }
+        {device.specs.map((spec) => <li class="device-card__spec">{spec}</li>)}
     </ul>
 
     <p class="device-card__note">{note}</p>
@@ -81,7 +79,12 @@ const ordinal = String(index).padStart(2, "0");
         links.length > 0 && (
             <footer class="device-card__links" aria-label={linksLabel}>
                 {links.map((link) => (
-                    <a class="device-card__link" href={link.href} target="_blank" rel="noopener noreferrer">
+                    <a
+                        class="device-card__link"
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
                         {link.label}
                         <Icon name="tabler:arrow-up-right" size="xs" />
                     </a>

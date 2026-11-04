@@ -21,8 +21,7 @@ interface Props {
 
 const { posts, locale: localeProp } = Astro.props;
 
-const locale: Locale =
-    localeProp ?? (Astro.url.pathname.startsWith("/en") ? "en" : defaultLocale);
+const locale: Locale = localeProp ?? (Astro.url.pathname.startsWith("/en") ? "en" : defaultLocale);
 
 function imageUrl(image: PostEntry["data"]["image"]): string {
     if (!image || !image.url) return "";
