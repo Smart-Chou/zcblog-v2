@@ -1,0 +1,42 @@
+---
+/**
+ * /design/components/notice/ — Notice 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/notice.json
+ *
+ * 示例区是真实实例（配置 `notice.enable: true`，`path` 为空 → 每个页面都挂）。
+ * 组件自带一段脚本：首帧后把 `display` 打开，并把高度写到 `<html>` 的
+ * `notice-height` 上。点「知道了」会写 localStorage，之后再打开本页不再出现。
+ *
+ * 只挂一次：组件用写死的 `id="global-notice"`，挂两次就是重复 id（axe 会判 serious）。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import Notice from "~/components/UI/Notice.astro";
+
+const doc = byComponentSlug("notice");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="真实实例：文案取自 src/config/feature.ts 的 notice 配置，按钮是「知道了」这一档（confirm=true）"
+    >
+        <Notice />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="脚本时序：首帧前 display: none（关掉 JS 就不出现）→ 存储无 key 时打开 → 关闭时写存储并把 notice-height 置 0"
+    >
+        <p>
+            点一次「知道了」再刷新本页，公告条不会再出现——那是 localStorage
+            命中，不是组件坏了。想让它回来，清掉
+            <code>notice-ai-writing</code> 这个键。
+        </p>
+        <p>
+            字体、圆角、hover 反馈都在组件里；底色与边框声明指向 tokens.json 里不存在的旧键 （见第 6
+            节的 token 白名单），所以实际底色是透明的，白字落在画布上。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

@@ -1,0 +1,40 @@
+---
+/**
+ * /design/components/walinecomment/ — WalineComment 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/walinecomment.json
+ *
+ * 示例区是真实实例（`waline.enable: true`）。**点一次「展开评论」会真的去请求
+ * waline.marxchou.com 并把评论实例初始化在本页路径上**——这不是截图，是生产代码。
+ * 只挂一次：组件用写死的 #comment-wrapper / #waline / #waline-toggle 三个 id。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import WalineComment from "~/components/UI/WalineComment.astro";
+
+const doc = byComponentSlug("walinecomment");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="折叠态（默认）：一个「展开评论」按钮 + 一个 display:none 的空容器；此时 0 请求、0 评论 DOM"
+    >
+        <WalineComment />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="展开态（会真的连服务器）：先注入两份 waline CSS，再 import @waline/client，最后 init()"
+    >
+        <p>
+            点上面的按钮试试：样式与客户端都是**首次点击时**才下载的，网络面板里会看到
+            <code>waline.css</code>、<code>waline-meta.css</code> 与客户端 chunk 一起出现。
+        </p>
+        <p>
+            本页路径是 <code>/design/components/walinecomment/</code>，所以评论会挂在这个路径上；
+            组件模板没有输出 <code>data-waline-path</code>，这里的 <code>path</code> 是
+            <code>undefined</code>（见数据文件里的实现事实）。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

@@ -1,0 +1,168 @@
+{
+    "slug": "friendcard",
+    "kind": "ui",
+    "name": "FriendCard",
+    "cn": "友链卡片",
+    "layer": "ui",
+    "spec": "src/components/UI/FriendCard.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/FriendCard.astro",
+    "styleSource": ["src/styles/pages/home.css", "src/styles/home.css"],
+    "purpose": "友链列表的一行：头像 + 站名 + 最近更新时间。样式不在组件里——同一份标记被友链页（`.friends-list`，已 token 化）与首页友链块（`.home-page`，旧键）两套 CSS 各画一遍。",
+    "notFor": [
+        "需要简介与标签的友链条目 → 友链页用的是带描述的布局，不是这一行。",
+        "可反复排序 / 筛选的动态列表：组件不做任何状态，一行一条，由页面决定顺序。",
+        "站内链接卡片（相关文章）：`target=\"_blank\"` + `rel=\"nofollow\"` 是为外链写的。",
+        "头像加载失败的兜底：组件没有 `onerror`，也没有占位底色，坏链会显示浏览器的破图图标。",
+        "独立于两种宿主上下文复用：样式都挂在 `.friends-list` / `.home-page` 祖先上，脱离这两个容器就是裸文本。"
+    ],
+    "props": [
+        {
+            "name": "name",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "站点/作者名",
+            "notes": "只用于头像的 `alt`。视觉上不显示——可见文本是 `title`，所以 `alt` 在这条链接里其实念了一遍「看不见的名字」。"
+        },
+        {
+            "name": "avatar",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "本地资源路径或远程 URL",
+            "notes": "先过 `getLocalImage()` 查本地映射，命中则用构建后的资源地址，否则原样输出。固定 48×48。"
+        },
+        {
+            "name": "title",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "站点标题",
+            "notes": "链接文本，也是唯一可见的站名；过长时靠宿主 CSS 的 `text-overflow: ellipsis` 截断。"
+        },
+        {
+            "name": "url",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "http(s) 地址",
+            "notes": "为空时 `href` 退化为 `#`（仍是可聚焦链接）。新标签页打开，`rel=\"noopener nofollow\"`。"
+        },
+        {
+            "name": "updated",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "已格式化的相对时间",
+            "notes": "原样输出。元素的 `title` 属性写的是**构建时刻**（`new Date().toISOString()`），不是这条友链的更新时间——悬停看到的提示与可见文本无关。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "五段结构固定。要加描述或标签，得换一个组件而不是往这里塞插槽。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "同一条标记在两种上下文里长得完全不同：`.friends-list` 下是「头像 + 站名 + 时间」的横排一行（`space-3` 间距）；`.home-page` 下是胶囊（`0.5rem 1.2rem 0.5rem 0.5rem` 内边距 + 50% 圆角头像 + 32px 头像）",
+            "aria": "`<a>` 承载站名，`<img alt=\"name\">`，时间是普通 `<div>`"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停在链接上",
+            "visual": "`.friends-list` 下链接色 `color-fg-default` → `color-fg-link`；`.home-page` 下整块 `translateY(-2px)` + 边框变 `color-accent`（旧键，缺失 → 不变色）",
+            "aria": "无变化"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "Tab 到链接",
+            "visual": "没有自定义焦点环，走浏览器默认 outline",
+            "aria": "无变化"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：没有禁用态；`url` 为空时链接仍然可聚焦，只是跳到 `#`",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用：友链没有选中态",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div class=\"fri-item\">` 里是「图片 + 容器（链接 + 时间）」。整行不是链接，只有站名是——点击头像不跳转，这与常见的友链卡片习惯不同。",
+        "keyboard": "每行一个可聚焦目标（站名链接）。Tab 顺序 = DOM 顺序，没有内部焦点管理。",
+        "aria": "头像 `alt=\"{name}\"`，与链接文本 `{title}` 通常是同一个名字 → 读屏会连念两遍。更合适的做法是 `alt=\"\"`（链接文本已经承担了语义）。链接没有 `aria-label` 说明「新标签页打开」。",
+        "contrast": [
+            {
+                "pair": "站名链接（`.friends-list`：`color-fg-default`）/ 画布",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（正文链接）"
+            },
+            {
+                "pair": "更新时间（`.friends-list`：`color-fg-muted`）/ 画布",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "站名（`.home-page`：`color-text` 缺失 → 继承）/ 胶囊底 `color-bg`（缺失 → 透明 → 画布）",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（正文链接）"
+            }
+        ],
+        "focusRing": "没有自定义焦点环（G4 未接）。",
+        "target": "`.friends-list` 下链接的命中区是文本高度（`padding-block: space-1` + `text-sm`）≈ 22px；`.home-page` 下 `.fri-title a` 显式 `min-height: 24px`。两者都在 WCAG 2.2 的 24px 临界线上。",
+        "reducedMotion": "组件没有过渡；`.home-page .fri-item` 的 `translateY(-2px)` 与三组 transition 在 `home.css` 里，**没有** `prefers-reduced-motion` 分支。",
+        "notes": [
+            "实测口径：两套宿主 CSS 各自声明了颜色，分别计算（`.friends-list` 用 v2 语义键，`.home-page` 用旧键），2 位小数。文档页不加载这两份 CSS，所以示例区看到的是「裸排版」——这正是组件真实的耦合面：它的视觉完全寄生在宿主页面上。",
+            "**一份标记、两套皮肤**：同一个组件在友链页是 token 化的（`color-fg-default` / `color-fg-muted` / `space-*` / `radius-pill`），在首页友链块里还是旧键（`color-text` / `color-bg` / `color-border` / `color-accent` / `radius-full` / `shadow-sm`）加裸数值。这是 M2-10b 里最典型的「样式与组件分离」债务。",
+            "**`title` 属性写错了语义**：`<div class=\"fri-updated\" title={new Date().toISOString()}>` 里的时间是构建时刻，不是这条友链的更新时间；读者悬停看到的是一个与「更新于」无关的时刻。",
+            "`img` 显式写了 `width=\"48\" height=\"48\"` 防 CLS，但 `.home-page` 的 CSS 又把它改成 32×32 —— 属性与 CSS 不一致，属性只影响布局预留、不影响最终尺寸。",
+            "第 6 条起 `content-visibility: auto` + `contain-intrinsic-size: auto 64px`：长列表的渲染优化，副作用是屏幕外的行高度按 64px 估——实际行高不是 64 时，滚动条会在滚过时跳。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色 / 度量：组件文件自己 0 个 token（只有一条 `content-visibility` 规则）。视觉全部来自两套宿主 CSS：`.friends-list` 那份用的是 v2 键（`color-fg-default` / `color-fg-muted` / `space-*` / `radius-pill`），`.home-page` 那份用的是旧键（`color-text` / `color-bg` / `color-border` / `color-accent` / `radius-full` / `shadow-sm`），后者在 tokens.json 里全部不存在。"
+    },
+    "sizes": {
+        "title": "尺寸（两套宿主 CSS）",
+        "columns": ["部位", "`.friends-list`", "`.home-page`", "备注"],
+        "rows": [
+            [
+                "头像",
+                "`space-8`（32×32）",
+                "32×32（字面量）",
+                "组件属性写的是 48×48，与两套 CSS 都不一致"
+            ],
+            [
+                "行内边距",
+                "`padding-block: space-2`",
+                "`0.5rem 1.2rem 0.5rem 0.5rem`",
+                "胶囊形态只在首页"
+            ],
+            ["行间距", "`space-3`", "0.6rem", "两套节奏不同"],
+            [
+                "站名截断",
+                "`text-overflow: ellipsis`",
+                "`max-width: 200px` + 省略号",
+                "首页额外限宽"
+            ],
+            ["屏幕外占位", "—", "`contain-intrinsic-size: auto 64px`", "第 6 条起生效"]
+        ]
+    },
+    "forbidden": [
+        "在组件里补视觉样式：那会让友链页与首页的两套皮肤多出第三套，冲突只会更乱。",
+        "把 `title` 属性当更新时间提示：它写的是构建时刻。",
+        "给头像 `alt` 加描述性文字：链接文本已经是可读名称，会重复朗读。",
+        "省略 `width` / `height` 属性：长列表的头像会在加载时推动布局。",
+        "在 `.home-page` 之外依赖胶囊形态：那套规则挂在祖先类名上，换个容器就没了。"
+    ],
+    "related": ["friendpill", "card"]
+}

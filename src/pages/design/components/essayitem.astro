@@ -1,0 +1,59 @@
+---
+/**
+ * /design/components/essayitem/ — EssayItem 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/essayitem.json
+ *
+ * 入参是适配器归一化后的 `TalkEntry`：时间已解析、标签已剔除、图片已过滤。
+ * 示例里 `images` 传空数组——`astro:assets` 的 `<Image>` 只接受构建期能解析的本地资源，
+ * 文档页不引入内容仓的图片（那会让文档页依赖文章资产）。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import EssayItem from "~/components/UI/EssayItem.astro";
+import type { TalkEntry } from "~/data/adapters/talks";
+
+const doc = byComponentSlug("essayitem");
+
+const entry: TalkEntry = {
+    id: "demo-essay-1",
+    time: "2026-10-31T09:12:00+08:00",
+    ts: Date.parse("2026-10-31T09:12:00+08:00"),
+    text: "把文档站的第七个章节写完的时候，才发现最难的不是写，而是让「实现事实」和「契约」在同一页上不打架。\n\n今天先到这里。",
+    tags: ["四处逛逛/深圳", "设计系统"],
+    images: [],
+    url: "https://memos.marxchou.com/",
+};
+
+const withoutSource: TalkEntry = {
+    id: "demo-essay-2",
+    time: "2026-09-18",
+    ts: null,
+    text: "没有原文链接、时间也不可解析的一条：原文入口整块不渲染，时间按字面显示（不猜格式）。",
+    tags: [],
+    images: [],
+};
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="完整形态：头像 + 作者 + 时间 + 两个话题标签 + 正文（保留换行）+ 右上角原文入口"
+    >
+        <EssayItem item={entry} author="MarxChou" avatar="/logo.webp" />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="缺数据的形态：无 url（不渲染原文入口）、ts=null（时间原样输出）、无 tags（标签列表整块不渲染）"
+    >
+        <EssayItem item={withoutSource} author="MarxChou" avatar="/logo.webp" />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="英文形态：locale=en 时时间走 en-US 月份缩写，原文入口与配图的 alt 也换英文"
+    >
+        <EssayItem item={entry} author="MarxChou" avatar="/logo.webp" locale="en" />
+    </DemoFrame>
+</ComponentDoc>

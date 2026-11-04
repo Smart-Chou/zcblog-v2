@@ -1,0 +1,356 @@
+---
+/**
+ * /design/guides/deploy/ — 教程 3（M2-10b）
+ *
+ * 两条线必须分开说：本仓（zcblog-v2）只是预览环境，生产仍是 Smart-Chou/zcblog 的
+ * GitHub Pages。步骤顺序与 .github/workflows/deploy.yml 逐条对齐（2026-11 状态）。
+ */
+import "../../../styles/tokens/tokens.css";
+
+const PREVIEW = [
+    "本仓的定位在 `deploy.yml` 顶部就写着：**不再直接发生产**，用途是 Cloudflare Pages 预览。",
+    "预览走 wrangler：`pnpm preview:deploy`（内部命令 `wrangler pages deploy dist --project-name=zcblog-v2 --branch=${BRANCH:-local}`）。每次部署会拿到一个 `<id>.zcblog-v2.pages.dev` 子域，`main` 分支另有稳定子域。",
+    "构建时设 `PREVIEW_BUILD=1` 可以跳过只有生产站点需要的步骤；本地预验证用 `corepack pnpm exec astro build` + `corepack pnpm preview`。",
+];
+
+const PIPELINE = [
+    ["1", "Checkout 本仓", "普通 checkout（v5）"],
+    [
+        "2",
+        "Checkout 内容仓",
+        "私有仓 `Smart-Chou/zcblog-articles` → `_articles`，用 `ARTICLES_PAT`",
+    ],
+    [
+        "3",
+        "复制文章与图片",
+        "`*.md` / `*.mdx` → `src/content/article/`；`assets/*` → `src/assets/`",
+    ],
+    ["4", "归一化 frontmatter", "`node scripts/normalize-frontmatter.mjs src/content/article`"],
+    [
+        "5",
+        "算期望篇数",
+        "按内容数与 `draft: true` 数写 `EXPECT_CONTENT` / `EXPECT_ARTICLES` 到环境变量",
+    ],
+    ["6", "系统依赖", "`libvips-dev`（sharp 需要）"],
+    ["7", "装依赖", "pnpm + `--frozen-lockfile`"],
+    [
+        "8",
+        "源码门禁三道",
+        "`check-tokens.mjs` → `verify-surface-tokens.mjs` → `verify-entities.mjs`",
+    ],
+    ["9", "构建", "带全部数据源环境变量（Bangumi / 豆瓣 / Umami / Blinko / ENCRYPTION_PASSWORD）"],
+    [
+        "10",
+        "构建产物门禁",
+        "`scripts/verify-build.mjs`（A1/A11/A13 + pagefind）+ 内容检查两条 Python 脚本",
+    ],
+    ["11", "性能预算", "`perf-budget.py dist`（A6）"],
+    ["12", "prettier", "`pnpm run lint`（`prettier --check .`）"],
+    ["13", "发布", "仅在 `refs/heads/main`：`upload-pages-artifact` → `deploy-pages`"],
+    ["14", "收尾", "IndexNow 提交（失败不影响部署）→ Cloudflare 缓存 purge（无凭据则跳过）"],
+];
+
+const FAILURES = [
+    [
+        "`verify-build.mjs` 红",
+        "构建产物与期望篇数不符（草稿数、分页数、A11 断言）——先看它打印的期望值与环境变量是否一致",
+    ],
+    [
+        "`perf-budget.py` 红",
+        "有两个口径：本机跑经常因为网络抖动误报；可信基线在机房跑（见 perf-budget.py 头注释）",
+    ],
+    ["`prettier --check` 红", "本地 `pnpm format` 修完再提交；CI 不自动格式化"],
+    ["`verify-entities` 红", "实体数据契约（E1–E8）不成立——通常是内容仓里某条数据缺字段"],
+    ["purge 失败（HTTP 非 200）", "不阻断部署：HTML 的 edge TTL 是 300 秒，最坏 5 分钟后自动过期"],
+];
+
+const RULES = [
+    "不要从本仓直接推生产：生产的代码是 `Smart-Chou/zcblog` 主仓，本仓改动要合过去才生效。",
+    "不要改 DNS 或 Cloudflare 代理开关来「让预览看起来像生产」：缓存规则与橙云是生产配置的一部分。",
+    "不要把 `ARTICLES_PAT` / `CF_PURGE_TOKEN` 写进仓库或日志：前者是私有仓读权限，后者能清整站缓存。",
+    "不要跳过 `normalize-frontmatter`：v1 的布尔键（mermaid: true 之类）会让内容模型直接失配。",
+    "不要在 CI 里加联网抓取的宽松重试：`fetch:all` 已经 `|| true`，真正的校验在 `fetch:verify`。",
+];
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>部署 · 文档站教程</title>
+    </head>
+    <body>
+        <header class="guide-head">
+            <p class="guide-kicker">Design system · guide 3 / 3</p>
+            <h1 class="guide-title">部署</h1>
+            <p class="guide-lead">
+                两条线：本仓是 Cloudflare Pages 预览，生产是
+                <code>Smart-Chou/zcblog</code> 的 GitHub Pages。搞混这两条线，是这套流程里最贵的错误。
+            </p>
+            <nav class="guide-nav" aria-label="教程导航">
+                <a href="/design/">← 文档站首页</a>
+                <a href="/design/guides/writing-content/">← 上一篇：写内容</a>
+            </nav>
+        </header>
+
+        <main class="guide-main">
+            <section class="guide-section" id="preview">
+                <h2 class="guide-h2">1 · 预览（本仓）</h2>
+                <ul class="guide-list">
+                    {PREVIEW.map((item) => <li>{item}</li>)}
+                </ul>
+                <pre
+                    class="guide-code"><code>{"# 本地验证\ncorepack pnpm exec astro build\ncorepack pnpm preview\n\n# 推到 Cloudflare Pages 预览\nPREVIEW_BUILD=1 corepack pnpm exec astro build\ncorepack pnpm preview:deploy"}</code></pre>
+            </section>
+
+            <section class="guide-section" id="pipeline">
+                <h2 class="guide-h2">2 · 生产流水线（deploy.yml 的 14 步）</h2>
+                <p class="guide-p">
+                    触发方式是
+                    `workflow_dispatch`（手动）。下表按文件里的顺序列出，任何一步失败都会中断，
+                    只有第 14 步的 IndexNow / purge 是「失败不影响部署」。
+                </p>
+                <table class="guide-table">
+                    <caption class="visually-hidden">生产部署流水线步骤</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">步骤</th>
+                            <th scope="col">做了什么</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            PIPELINE.map(([index, step, detail]) => (
+                                <tr>
+                                    <td>{index}</td>
+                                    <th scope="row">{step}</th>
+                                    <td>{detail}</td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="guide-section" id="failures">
+                <h2 class="guide-h2">3 · 红了先看哪一行</h2>
+                <table class="guide-table">
+                    <caption class="visually-hidden">常见失败与处置</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">红灯</th>
+                            <th scope="col">含义 / 处置</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            FAILURES.map(([item, detail]) => (
+                                <tr>
+                                    <th scope="row">
+                                        <code>{item}</code>
+                                    </th>
+                                    <td>{detail}</td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="guide-section" id="rules">
+                <h2 class="guide-h2">4 · 不要做的事</h2>
+                <ul class="guide-list">
+                    {RULES.map((item) => <li>{item}</li>)}
+                </ul>
+            </section>
+
+            <section class="guide-section" id="rollback">
+                <h2 class="guide-h2">5 · 回滚</h2>
+                <ul class="guide-list">
+                    <li>
+                        预览：重新部署上一个 commit（Cloudflare Pages
+                        每次部署都有独立子域，可直接指回去）。
+                    </li>
+                    <li>
+                        生产：回收 GitHub Pages 的 artifact 没有现成按钮，实际做法是 revert 主仓那个
+                        commit 再跑一次 workflow。
+                    </li>
+                    <li>
+                        缓存：purge 只在部署成功且 `refs/heads/main` 时执行；手动回滚后要再 purge
+                        一次，否则 HTML 最多旧 5 分钟。
+                    </li>
+                </ul>
+            </section>
+        </main>
+
+        <footer class="guide-foot">
+            <p class="guide-hint">
+                <a href="/design/guides/getting-started/">从零开始</a> ·
+                <a href="/design/guides/writing-content/">写内容</a> ·
+                <a href="/design/">文档站首页</a>
+            </p>
+        </footer>
+    </body>
+</html>
+
+<style>
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        background-color: var(--color-bg-canvas);
+        color: var(--color-fg-default);
+    }
+
+    body {
+        margin: 0 auto;
+        max-inline-size: var(--layout-content);
+        padding: var(--space-8) var(--space-6);
+        font-family: var(--font-sans);
+        line-height: var(--leading-normal);
+        overflow-wrap: break-word;
+    }
+
+    .guide-head {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+        padding-block-end: var(--space-6);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .guide-kicker {
+        margin: 0;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .guide-title {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-3xl);
+        line-height: var(--leading-tight);
+    }
+
+    .guide-lead {
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        font-size: var(--text-base);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+        font-size: var(--text-sm);
+    }
+
+    .guide-nav a,
+    .guide-foot a {
+        color: var(--color-fg-link);
+    }
+
+    .guide-main {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-10);
+        padding-block: var(--space-8);
+    }
+
+    .guide-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        padding-block-end: var(--space-6);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .guide-h2 {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        line-height: var(--leading-snug);
+    }
+
+    .guide-p {
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-code {
+        margin: 0;
+        padding: var(--space-4);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-sunken);
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        padding-inline-start: var(--space-6);
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        font-size: var(--text-sm);
+    }
+
+    .guide-table th,
+    .guide-table td {
+        padding: var(--space-2) var(--space-3);
+        border-block-end: 1px solid var(--color-border-subtle);
+        text-align: start;
+        vertical-align: top;
+    }
+
+    .guide-table thead th {
+        color: var(--color-fg-muted);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .guide-hint {
+        margin: 0;
+        color: var(--color-fg-muted);
+        font-size: var(--text-sm);
+    }
+
+    .guide-foot {
+        padding-block-start: var(--space-6);
+        border-block-start: 1px solid var(--color-border-subtle);
+    }
+
+    .visually-hidden {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
+</style>

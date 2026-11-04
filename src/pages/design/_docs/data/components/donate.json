@@ -1,0 +1,125 @@
+{
+    "slug": "donate",
+    "kind": "ui",
+    "name": "Donate",
+    "cn": "赞赏",
+    "layer": "ui",
+    "spec": "src/components/UI/Donate.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/Donate.astro",
+    "styleSource": "src/styles/article.css",
+    "purpose": "文章底部的赞赏入口：一个按钮 + 一个原生 `<dialog>`，里面放微信 / 支付宝的收款码和「全部赞赏者」入口。收款码是图片，不随主题变——所以弹窗内容只用一种配色。",
+    "notFor": [
+        "站点级的「支持本站」区块（首页 / 关于页）→ 那是一段静态内容，不需要模态框。",
+        "替代赞助页 `/donate/`：这里只放两张码，名单与说明在独立页面。",
+        "需要表单输入的捐赠（金额选择、留言）→ 组件只有二维码，没有金额字段。",
+        "合规场景下必须留下记录的收款：弹窗不产生任何订单或回调。",
+        "把赞赏按钮做成主 CTA：它在正文之后，视觉权重低于分享与评论。"
+    ],
+    "props": [
+        {
+            "name": "locale",
+            "type": "`string`",
+            "default": "`\"zh\"`",
+            "values": "`zh` / `en`",
+            "notes": "决定按钮与弹窗文案的语言包，也决定「全部赞赏者」链接指向 `/donate/` 还是 `/en/donate/`。二维码本身来自 `src/config/feature.ts` 的 `donate` 配置，与 locale 无关。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "按钮、弹窗、收款码、名单入口全部内置。要加内容只能改组件或配置。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "120×40 的实心按钮（`#d31f2a` 底 + `#fff` 字，8px 圆角），图标取 `mingcute:hand-heart-line`；样式在 `article.css` 的 `.donate .reward .reward-btn`",
+            "aria": "原生 `<button>`，可读名称是「赞赏」文案 + 图标（图标不带 label）"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停在按钮上",
+            "visual": "组件只声明了 `transition: box-shadow 0.5s`，但没有任何 `:hover` 规则——悬停无视觉反馈",
+            "aria": "无变化"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "Tab 到按钮 / 弹窗内的关闭按钮与链接",
+            "visual": "没有自定义焦点环，走浏览器默认 outline",
+            "aria": "无变化"
+        },
+        {
+            "state": "selected",
+            "trigger": "点击按钮 → `dialog.showModal()`",
+            "visual": "弹窗居中，`max-width: 430px`，16px 圆角；头部是标题 + 关闭按钮，内容区是感谢语 + 两张收款码 + 「全部赞赏者名单」卡片；`::backdrop` 取 `color-surface-translucent`（键缺失 → 透明底）",
+            "aria": "原生 `<dialog>`：`showModal()` 提供焦点陷阱、Esc 关闭与 `aria-modal`；关闭后焦点回到触发按钮"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`donate.enable` 为假（本仓库为真）",
+            "visual": "—",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "一个 `<div class=\"donate\">` 包着按钮和原生 `<dialog>`。弹窗标题是 `<div class=\"header-title\">` 而不是 `<h2>`，也没有 `aria-labelledby` —— 对话框的可访问名称因此是空的。",
+        "keyboard": "按钮 Enter / Space 打开；弹窗内 Tab 在关闭按钮、二维码、「全部赞赏者」链接之间循环（原生 dialog 的焦点陷阱）；Esc 关闭；点遮罩关闭。",
+        "aria": "关闭按钮的 `aria-label` 写死英文 `Close`，中文页面里读屏会念英文。弹窗没有 `aria-labelledby` / `aria-describedby`，收款码的 `alt` 来自词条（微信 / 支付宝），信息完整。",
+        "contrast": [
+            {
+                "pair": "赞赏按钮文字 `#fff` / 按钮底 `#d31f2a`",
+                "light": "5.25",
+                "dark": "5.25",
+                "threshold": "≥ 4.5（按钮文字）"
+            },
+            {
+                "pair": "感谢语（声明 `color-accent` 缺失 → 继承正文色）/ 弹窗底 `color-bg`（缺失 → 透明 → 页面底）",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "「全部赞赏者名单」链接（`color-accent` 缺失 → 继承）/ 页面底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（正文链接）"
+            }
+        ],
+        "focusRing": "没有自定义焦点环（G4 未接）：按钮、关闭按钮、名单链接全部走浏览器默认 outline。",
+        "target": "按钮 120×40 —— 高度 40 低于 44 的舒适值但满足 WCAG 2.2 的 24 最低值；关闭按钮 `padding: 8px` + `1rem` 字形，命中区约 32×32。",
+        "reducedMotion": "弹窗打开时 `animation: fade-up 0.5s`（article.css），**没有** `prefers-reduced-motion` 分支——减少动效的读者同样会看到这段上浮。列为债。",
+        "notes": [
+            "实测口径：声明值取自 `article.css` 的 `.donate` 规则，经 tokens.json 解析后按 WCAG 公式计算，2 位小数。**文档页不加载 article.css**，浏览器里看到的是无样式按钮（浏览器默认灰），与生产页面不同源。",
+            "按钮底色 `#d31f2a` 是为了压过原 `#ff3842` 的 3.56:1 才改的（注释写在规则旁），`#fff` 字在它上面达标——这是本组件里唯一一处「为对比度改过」的颜色。",
+            "弹窗里两处 `var(color-accent)`（感谢语、名单链接）与 `var(color-bg)` / `var(color-border)` / `var(color-code-bg)` / `var(shadow-sm)` 都是旧键，tokens.json 里没有——弹窗底色因此退回透明，圆角与阴影只剩字面量那部分。",
+            "脚本里有三处收尾逻辑专门对付 SPA 换页：`swup:visit:start` / `astro:before-swap` / 点击弹窗内链接——因为 `<dialog>` 是 top layer，元素被换掉时 `toggle` 事件不会派发，滚动锁会残留。",
+            "二维码图片用 `format=\"avif\"` + `quality={80}` + `width={200}` 构建期转码；换码只需要改 `src/assets/qr/` 里的文件，不改组件。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色 / 度量：组件文件里 0 个 token（样式全在 `article.css`）。那份 CSS 引用的 `color-bg`、`color-border`、`color-accent`、`color-code-bg`、`color-surface-translucent`、`shadow-sm`、`space`、`content-width`、`radius`、`radius-full` 在 tokens.json 里都不存在；真正生效的只有写死的 `#d31f2a` / `#fff` / 尺寸字面量。"
+    },
+    "sizes": {
+        "title": "尺寸（article.css 声明值）",
+        "columns": ["部位", "尺寸", "说明", "来源"],
+        "rows": [
+            ["赞赏按钮", "120px × 40px", "≤450px 时 width 100% / height 36px", "article.css"],
+            ["按钮圆角", "8px", "与 `radius-sm`（6px）不同", "article.css"],
+            ["弹窗宽度", "max-width 430px / calc(100% - 40px)", "圆角 16px", "article.css"],
+            ["弹窗头部", "height 64px / padding 20px", "标题条 + 右上关闭", "article.css"],
+            ["收款码", "width 200（构建期转 avif）", "两列网格，间距 1rem", "组件 + article.css"]
+        ]
+    },
+    "forbidden": [
+        "把二维码当普通 `<img>` 手写：组件走 `astro:assets`，构建期才会转 avif 并裁到 200 宽。",
+        "在弹窗里放需要滚动的长文：`modal-content` 的 `max-height` 是 `calc(80vh - 46px)`，超出会内部滚动，移动端体验很差。",
+        "去掉 SPA 换页时的关闭逻辑：`<dialog>` 在 top layer，换页后会残留并锁住滚动。",
+        "给弹窗加 `aria-modal=\"true\"`：原生 `showModal()` 已经处理，重复声明反而可能与焦点陷阱冲突。",
+        "把关闭按钮的 `aria-label` 改成图标内文字：它现在是英文 `Close`，应该跟 locale 走。"
+    ],
+    "related": ["qrcard", "donatorslist"]
+}

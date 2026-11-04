@@ -3,20 +3,23 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 /**
- * a11y + 结构门禁 for the 12 legacy UI docs pages — M2-10a.
+ * a11y + 结构门禁 for the 23 legacy UI docs pages — M2-10a（12 页）+ M2-10b（11 页）。
  *
  * 与 `design-atom-docs.a11y.spec.ts` 同一套判据，但**示例区例外**：
  *
  *   1. 7 个必填 section 都在（purpose/props/slots/states/a11y/tokens/example）
- *   2. 没有空表（`<tr>` < 2 视为空）
+ *   2. 没有空表（`<tr>` < 2 视为空），且每页 5 张表（props/slots/states/对比度/尺寸）
  *   3. 示例区至少有一个画框（真实组件实例）
  *   4. 文档版式 0 运行时 JS：没有 hydration island；内联 `<script>` 只允许来自被展示的组件
- *      （12 个里只有 TypewriterText 自带脚本）
+ *      （23 个里有 6 个自带脚本：TypewriterText / Notice / Watermark / WalineComment /
+ *      Search / Hitokoto / Donate 中实际产出脚本的那些，见 COMPONENTS_WITH_SCRIPT）
  *   5. light + dark 两个主题各跑一次 axe：
  *      · **`#example` 之外**（文档版式本身）＝ 0 serious/critical，且 0 条 color-contrast incomplete
  *      · **`#example` 之内**（旧组件实物）＝ 允许 color-contrast 违规（本组组件的对比度债就写在这里，
  *        文档正文的对比度表已逐条记账），但结构/标签/ARIA 类违规照样不许有
  *   6. 390px 宽度下页面没有横向溢出（宽表自己滚动）
+ *
+ * 另有 `/design/` 首页与 3 篇教程的结构 + axe 断言（同一份 spec，避免再开一条用例文件）。
  *
  * 每页的 axe 报告落 `test-results/axe-component-docs/<slug>-<theme>.json`，示例区的债也在里面。
  */
@@ -34,10 +37,35 @@ const DOCS = [
     "friendpill",
     "donatorslist",
     "author",
+    "notice",
+    "watermark",
+    "walinecomment",
+    "search",
+    "heatmap",
+    "donate",
+    "essayitem",
+    "friendcard",
+    "hitokoto",
+    "servicecard",
+    "emptystate",
 ] as const;
 
-/** 自带 `<script>` 的组件（其余页面必须 0 内联脚本）。 */
-const COMPONENTS_WITH_SCRIPT = new Set<string>(["typewritertext"]);
+/**
+ * 自带 `<script>` 的组件（其余页面必须 0 内联脚本）。
+ *
+ * 值是「该页最多允许几段内联脚本」：Astro 会把组件脚本内联成一段 module，
+ * Search 另有一段 `is:inline` 的分词补丁，所以它单独给 2。
+ * Watermark 在 `enable: false` 时 frontmatter 直接 return，脚本可能不产出 —— 允许 0–1。
+ */
+const COMPONENTS_WITH_SCRIPT = new Map<string, number>([
+    ["typewritertext", 1],
+    ["notice", 1],
+    ["watermark", 1],
+    ["walinecomment", 1],
+    ["search", 2],
+    ["hitokoto", 1],
+    ["donate", 1],
+]);
 
 /**
  * 示例区例外登记表（对应 DESIGN.md §6.2 的「只许登记后违规，不许默默违规」）。
@@ -169,19 +197,25 @@ test.describe("legacy UI docs · structure", () => {
                 "至少 4 张表（props/slots/states/contrast）",
             ).toBeGreaterThanOrEqual(4);
             expect(structure.emptyTables, "空表数量").toBe(0);
+            expect(
+                structure.tableCount,
+                "每页 5 张表（props/slots/states/对比度/尺寸）",
+            ).toBeGreaterThanOrEqual(5);
             expect(structure.exampleFrames, "示例画框数量").toBeGreaterThan(0);
             expect(structure.islands, "文档页没有 hydration island").toBe(0);
-            expect(structure.indexLinks, "页脚索引列出全部 12 个文档").toBe(DOCS.length);
+            expect(structure.indexLinks, "页脚索引列出全部 23 个文档").toBe(DOCS.length);
             for (const heading of structure.headings) {
                 expect(heading, "每个 section 都有 h2").not.toBe("");
             }
 
-            if (COMPONENTS_WITH_SCRIPT.has(slug)) {
-                // 组件自带的脚本：必须是 TypewriterText 的那一段，且只有一段。
-                expect(
-                    structure.inlineScripts.length,
-                    "typewritertext 只有组件自带的一段脚本",
-                ).toBeLessThanOrEqual(1);
+            const allowedScripts = COMPONENTS_WITH_SCRIPT.get(slug) ?? 0;
+            expect(
+                structure.inlineScripts.length,
+                allowedScripts > 0
+                    ? `${slug} 的内联脚本不超过组件自带的 ${allowedScripts} 段`
+                    : `${slug} 文档页没有内联脚本`,
+            ).toBeLessThanOrEqual(allowedScripts);
+            if (slug === "typewritertext") {
                 for (const script of structure.inlineScripts) {
                     // Astro 会压缩内联脚本（类名被改成单字母），所以断言标记而不是类名：
                     // `__typewriterInstance` 是组件脚本独有的接管标记。
@@ -189,8 +223,13 @@ test.describe("legacy UI docs · structure", () => {
                         "__typewriterInstance",
                     );
                 }
-            } else {
-                expect(structure.inlineScripts, `${slug} 文档页没有内联脚本`).toEqual([]);
+            }
+            if (slug === "search") {
+                // is:inline 的分词补丁是这一段独有的：覆写 Intl.Segmenter
+                expect(
+                    structure.inlineScripts.some((script) => script.includes("Intl.Segmenter")),
+                    "Search 必须带上 CJK 分词补丁",
+                ).toBe(true);
             }
         });
     }
@@ -294,7 +333,7 @@ test.describe("legacy UI docs · 390px", () => {
 test.describe("legacy UI docs · 互链", () => {
     test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 
-    test("12 页的页脚索引 + prev/next + 返回链接全部指向已存在页面", async ({ page, request }) => {
+    test("23 页的页脚索引 + prev/next + 返回链接全部指向已存在页面", async ({ page, request }) => {
         const seen = new Set<string>();
         for (const slug of DOCS) {
             await page.goto(`/design/components/${slug}/`, { waitUntil: "load" });
@@ -311,7 +350,154 @@ test.describe("legacy UI docs · 互链", () => {
                 expect(response.status(), `GET ${href}（来自 ${slug}）`).toBe(200);
             }
         }
-        // 12 个同级文档 + 1 个「← atom 文档」返回链接。
+        // 23 个同级文档 + 1 个「← atom 文档」返回链接。
         expect(seen.size, "去重后的导航目标数").toBe(DOCS.length + 1);
     });
+});
+
+/* ───────────────────── /design/ 首页与 3 篇教程（M2-10b） ───────────────────── */
+
+const DOC_ENTRIES = [
+    { path: "/design/", name: "文档站首页" },
+    { path: "/design/guides/getting-started/", name: "教程 · 从零开始" },
+    { path: "/design/guides/writing-content/", name: "教程 · 写内容" },
+    { path: "/design/guides/deploy/", name: "教程 · 部署" },
+] as const;
+
+test.describe("design docs · 首页与教程结构", () => {
+    test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+
+    for (const entry of DOC_ENTRIES) {
+        test(`${entry.name} · 结构 + 无 hydration island`, async ({ page }) => {
+            const response = await page.goto(entry.path, { waitUntil: "load" });
+            expect(response?.status(), `GET ${entry.path}`).toBe(200);
+
+            const structure = await page.evaluate(() => ({
+                h1: document.querySelectorAll("h1").length,
+                islands: document.querySelectorAll("astro-island").length,
+                tables: document.querySelectorAll("table").length,
+                emptyTables: [...document.querySelectorAll("table")].filter(
+                    (table) => table.rows.length < 2,
+                ).length,
+                links: document.querySelectorAll("a[href]").length,
+                broken: [...document.querySelectorAll("a[href]")]
+                    .map((anchor) => anchor.getAttribute("href") ?? "")
+                    .filter((href) => href === "" || href === "#").length,
+            }));
+
+            expect(structure.h1, "每页一个 h1").toBe(1);
+            expect(structure.islands, "文档页没有 hydration island").toBe(0);
+            expect(structure.emptyTables, "空表数量").toBe(0);
+            expect(structure.links, "页面上有内链").toBeGreaterThan(0);
+            expect(structure.broken, "没有空 href").toBe(0);
+        });
+    }
+
+    test("首页索引覆盖 35 份组件文档 + 3 篇教程，且每条内链都 200", async ({ page, request }) => {
+        await page.goto("/design/", { waitUntil: "load" });
+        const counts = await page.evaluate(() => ({
+            rows: document.querySelectorAll("tbody tr[data-kind]").length,
+            cards: document.querySelectorAll('li[data-kind="guide"]').length,
+            hrefs: [...document.querySelectorAll('a[href^="/design/"]')].map(
+                (anchor) => anchor.getAttribute("href") ?? "",
+            ),
+        }));
+        // 12 atom + 23 legacy UI = 35 行；3 张教程卡
+        expect(counts.rows, "索引行数（35 份组件文档）").toBe(35);
+        expect(counts.cards, "教程卡数量").toBe(3);
+
+        const unique = [...new Set(counts.hrefs)].filter((href) => href !== "/design/");
+        for (const href of unique) {
+            const response = await request.get(href, { maxRedirects: 0 });
+            expect(response.status(), `GET ${href}（来自 /design/ 首页）`).toBe(200);
+        }
+    });
+
+    test("首页筛选按钮是 aria-pressed 的开关，点一下能把行藏起来", async ({ page }) => {
+        await page.goto("/design/", { waitUntil: "load" });
+        const buttons = page.locator(".filter__btn");
+        expect(await buttons.count()).toBe(4);
+
+        await page.locator('.filter__btn[data-filter="ui"]').click();
+        await expect(page.locator('.filter__btn[data-filter="ui"]')).toHaveAttribute(
+            "aria-pressed",
+            "true",
+        );
+        const visible = await page.evaluate(
+            () =>
+                [...document.querySelectorAll("[data-kind]")].filter(
+                    (row) => !(row as HTMLElement).hidden,
+                ).length,
+        );
+        // 23 个 legacy UI 条目（表格行）可见，atom 行与教程卡被隐藏
+        expect(visible).toBe(23);
+        await expect(page.locator("#filter-status")).toContainText("23");
+    });
+});
+
+test.describe("design docs · 首页与教程 axe (WCAG 2.x A/AA)", () => {
+    test.use({
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 1,
+        reducedMotion: "reduce",
+    });
+
+    for (const entry of DOC_ENTRIES) {
+        test(`${entry.name} · axe light + dark`, async ({ page }) => {
+            mkdirSync(AXE_DIR, { recursive: true });
+            for (const theme of THEMES) {
+                const response = await page.goto(entry.path, { waitUntil: "load" });
+                expect(response?.status(), `GET ${entry.path}`).toBe(200);
+                await page.evaluate((value) => {
+                    document.documentElement.setAttribute("data-theme", value);
+                }, theme);
+                await page.evaluate(async () => {
+                    await document.fonts.ready;
+                });
+
+                const result = await runAxe(page, { exclude: [] });
+                writeFileSync(
+                    path.join(AXE_DIR, `page-${entry.path.replace(/\//g, "_")}-${theme}.json`),
+                    JSON.stringify(result, null, 2),
+                );
+                const serious = result.violations.filter(
+                    (violation) =>
+                        violation.impact === "serious" || violation.impact === "critical",
+                );
+                const contrast = result.incomplete.filter(
+                    (violation) => violation.id === "color-contrast",
+                );
+                console.log(
+                    `[axe] ${entry.path} ${theme}: violations=${result.violations.length} serious=${serious.length} contrast-incomplete=${contrast.length}`,
+                );
+                expect(
+                    serious.map((violation) => `${violation.id} (${violation.nodes.length})`),
+                    `serious/critical axe violations at ${entry.path} ${theme}`,
+                ).toEqual([]);
+                expect(
+                    contrast.map((violation) => `contrast incomplete × ${violation.nodes.length}`),
+                    `axe could not determine contrast at ${entry.path} ${theme}`,
+                ).toEqual([]);
+            }
+        });
+    }
+});
+
+test.describe("design docs · 首页与教程 390px", () => {
+    test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+
+    for (const entry of DOC_ENTRIES) {
+        test(`${entry.name} · 无横向溢出`, async ({ page }) => {
+            const response = await page.goto(entry.path, { waitUntil: "load" });
+            expect(response?.status(), `GET ${entry.path}`).toBe(200);
+            const overflow = await page.evaluate(() => ({
+                scrollWidth: document.documentElement.scrollWidth,
+                innerWidth: window.innerWidth,
+            }));
+            expect(
+                overflow.scrollWidth,
+                `documentElement.scrollWidth=${overflow.scrollWidth} innerWidth=${overflow.innerWidth}`,
+            ).toBeLessThanOrEqual(overflow.innerWidth + 1);
+        });
+    }
 });

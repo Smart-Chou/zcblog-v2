@@ -1,0 +1,40 @@
+---
+/**
+ * /design/components/hitokoto/ — Hitokoto 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/hitokoto.json
+ *
+ * **这一页在构建期会真的请求一次 v1.hitokoto.cn**（组件 frontmatter 里的
+ * `await fetch()`）。取不到时组件静默返回 null，示例区就是空的——这本身是文档要写的
+ * 一条事实：一言不是稳定内容。
+ *
+ * 页面打开满 60 秒会换一条（组件自带定时器 + 淡出淡入）。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import Hitokoto from "~/components/UI/Hitokoto.astro";
+
+const doc = byComponentSlug("hitokoto");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="真实实例：构建期取到的文案（每次构建都可能不同）；等 60 秒会自己换一条"
+    >
+        <Hitokoto />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="取不到时的形态：整块不渲染——没有占位、没有骨架、没有兜底文案"
+    >
+        <p>
+            组件在 frontmatter 里就 <code>return</code> 了，所以「接口挂了」在页面上表现为 「这里什么都没有」，而不是一个空的引号框。这一块里你现在看到的只有这段说明。
+        </p>
+        <p>
+            出处的颜色是写死的中间灰（见第 5 节的实测值）：注释里记着它曾靠
+            <code>opacity 0.55</code> 调灰、把对比压到 3.41，后来改成直接给色。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

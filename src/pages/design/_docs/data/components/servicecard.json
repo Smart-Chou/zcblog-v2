@@ -1,0 +1,139 @@
+{
+    "slug": "servicecard",
+    "kind": "ui",
+    "name": "ServiceCard",
+    "cn": "服务卡片",
+    "layer": "ui",
+    "spec": "src/components/UI/ServiceCard.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/ServiceCard.astro",
+    "purpose": "服务/委托列表里的一张卡：左上图标、右上两枚 Badge（交付方式 + 计费方式）、下方标题与描述。整张卡是静态展示，不带链接——入口由宿主页面决定。",
+    "notFor": [
+        "可点击的服务卡（跳到详情页）→ 组件不输出 `<a>`，要在外面包一层并处理焦点与命中区。",
+        "价格表 / 套餐对比：它只显示一个价格标签，没有表格语义。",
+        "带 CTA 的营销卡：没有按钮区，也没有强调色块。",
+        "服务条目超过 6 个的长列表：卡片没有折叠或密度变体。",
+        "需要按语言切换的服务内容：入参是已经选好语言的数据对象。"
+    ],
+    "props": [
+        {
+            "name": "service",
+            "type": "`ServiceItem`",
+            "default": "—（必填）",
+            "values": "`{ id, title, icon, description, deliveryMode, deliveryLabel, pricing, priceLabel }`",
+            "notes": "`icon` 是 iconify 名称，经 `DynamicIcon` 渲染；`pricing === \"fixed\"` 时第二枚 Badge 取 `success`，否则取 `note`。`deliveryMode` 只进数据、当前模板不展示。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "三段结构固定（图标 + 双 Badge / 标题 / 描述）。要加「了解更多」之类的尾巴，请换组件。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "白卡：`color-bg-surface` 底 + 1px `color-border` 边 + `radius-xl` 圆角 + `shadow-sm`；图标框 48×48 取 `color-surface-secondary`，图标 24×24 取 `color-accent`",
+            "aria": "`<div>` 容器 + `<h3>` 标题 + `<p>` 描述；两枚 Badge 是 `<span>`"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停在卡片上",
+            "visual": "`translateY(-4px)` + `shadow-lg` + 边框变 `color-accent`，过渡 `duration-slow` + `ease-out`",
+            "aria": "无变化（卡片不可点击，却给了可点击的反馈）"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：卡内没有可聚焦元素",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：没有禁用态；下架的服务应从数据里移除",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用：没有选中态",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div class=\"service-card\">` 包 `h3` 与 `p`：标题层级正确（服务列表里每项一个三级标题），描述是同级段落。图标是装饰（`DynamicIcon` 默认 `aria-hidden`）。",
+        "keyboard": "完全不可达：卡片与其中元素都不可聚焦。若宿主页面把整卡包成链接，命中区与焦点环要另外处理。",
+        "aria": "没有 ARIA。两张 Badge 的可读文本就是「代搭建」「¥500 起」，读屏会按顺序念出来——文案本身可读，但没有把「交付方式 / 价格」的语义说出来（纯视觉分区）。",
+        "contrast": [
+            {
+                "pair": "标题（声明 `color-text-heading` 缺失 → 继承正文色）/ 卡片底 `color-bg-surface`",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5（标题）"
+            },
+            {
+                "pair": "描述（声明 `color-text-muted` 缺失 → 继承正文色）/ 卡片底",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "交付 Badge 文字（`color-text-muted` 缺失 → 继承）/ 徽标底 `color-surface-secondary`（缺失 → 透明 → 卡片底）",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5（小字）"
+            },
+            {
+                "pair": "价格 Badge（`fixed`：`color-accent` 字 / `color-selection` 底，两键均缺失 → 继承字 / 透明底）",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5（小字）"
+            }
+        ],
+        "focusRing": "不适用（没有可聚焦元素）。若宿主把卡片包成链接，必须自己补 `outline`——卡片自身没有。",
+        "target": "不适用（卡片不可点击）。若宿主包成链接，命中区就是整卡，远大于 24×24。",
+        "reducedMotion": "**没有** reduced-motion 分支：`translateY(-4px)` 的上浮对减少动效的读者同样生效。列为债。",
+        "notes": [
+            "实测口径：四条声明全部落在 tokens.json 缺失的旧键上（`color-text-heading` / `color-text-muted` / `color-surface-secondary` / `color-selection` / `color-accent`），声明失效后颜色继承文档正文色、徽标底退回透明——所以四行读数完全相同（light 9.39 / dark 9.69），这个「四行同值」本身就是声明集体失效的指纹。按 WCAG 公式计算，2 位小数。",
+            "**22 个 token 引用里 14 个解析不到**：`space-md` / `space-sm` / `space-xl` / `space-xs` 四个间距键全缺（卡片内边距实际为 0），`shadow-sm` / `shadow-lg` / `ease-out` / `radius-full` 也不存在。整张卡的留白与层次在生产页面上都没有生效。",
+            "**样式里还留着一段没人用的旧徽标规则**（`.badge` / `.badge-delivery` / `.badge-pricefixed` / `.badge-pricenegotiable`）：模板早就改用 `<Badge>` 组件了，这四段是死代码（`radius-full` 也缺）。",
+            "**悬停反馈与不可点击矛盾**：卡片上浮 4px + 阴影加深 + 边框变色，是「可以点」的视觉承诺，但整卡没有任何链接。读者会点空。",
+            "`<h3>` 的语义依赖宿主页面：服务区必须是某个 `<h2>` 区块的子项，否则标题层级会跳。"
+        ]
+    },
+    "tokens": {
+        "color": ["--color-bg-surface"],
+        "metric": [
+            "--duration-slow",
+            "--leading-relaxed",
+            "--radius-lg",
+            "--radius-xl",
+            "--text-sm",
+            "--text-xl",
+            "--text-xs"
+        ],
+        "none": "颜色 7 个引用里只有 `color-bg-surface` 解析成功；`color-border` / `color-accent` / `color-surface-secondary` / `color-selection` / `color-text-heading` / `color-text-muted` 在 tokens.json 里都不存在（现键是 `color-border-default`、`color-accent-solid`、`color-bg-subtle` 一类）。度量 15 个里 7 个解析成功，缺的是 `space-md` / `space-sm` / `space-xl` / `space-xs` / `radius-full` / `shadow-sm` / `shadow-lg` / `ease-out`。"
+    },
+    "sizes": {
+        "title": "尺寸（组件内声明值）",
+        "columns": ["部位", "尺寸", "是否生效", "来源"],
+        "rows": [
+            ["卡片内边距", "`space-xl`", "否（键不存在 → 0）", "`.service-card`"],
+            ["卡片圆角", "`radius-xl`", "是", "`.service-card`"],
+            ["图标框", "48×48", "是（字面量）", "`.card-icon`"],
+            ["图标", "24×24", "是（字面量）", "`.card-icon svg`"],
+            ["悬停位移", "-4px", "是（但无 reduced-motion 分支）", "`.service-card:hover`"],
+            ["旧徽标内边距", "4px 10px", "否（规则未被模板使用）", "`.badge`"]
+        ]
+    },
+    "forbidden": [
+        "把整卡包成 `<a>` 而不处理焦点环：卡片自己没有任何 `:focus-visible` 规则。",
+        "在页面里用 `class` 覆盖卡片间距（§6.1 N3）：间距本来就因为缺键没生效，再覆盖只会更难查。",
+        "新增第三个 Badge：右上角是「交付 + 价格」两枚的固定位置，第三枚会换行。",
+        "依赖悬停反馈表达可点击性：卡片不可点击。",
+        "删掉那段死掉的 `.badge` 规则之外还顺手改视觉：它属于另一套旧样式，改它不影响当前渲染。"
+    ],
+    "related": ["badge", "card"]
+}

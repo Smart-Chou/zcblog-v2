@@ -1,0 +1,111 @@
+{
+    "slug": "watermark",
+    "kind": "ui",
+    "name": "Watermark",
+    "cn": "水印",
+    "layer": "ui",
+    "spec": "src/components/UI/Watermark.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/Watermark.astro",
+    "purpose": "全站淡色水印层：把一句配置文本用 canvas 画成一张可平铺的位图，铺成 `position: fixed` 的整页覆盖层。用途是内容归属声明与截图溯源，不是装饰。",
+    "notFor": [
+        "需要被读屏读到的信息：水印画在 canvas 上，DOM 里没有文本节点，读屏完全看不见它。",
+        "可点击的水印（点击回到来源）→ 这一层是 `pointer-events: none`，任何交互都该做在页面元素上。",
+        "按页面差异化水印（例如每篇文章写不同署名）→ 配置是全站单值，组件没有 props。",
+        "需要打印或导出的水印 → 固定定位层在打印样式里没有专门分支，不要指望它出现在 PDF 里。",
+        "把水印当防盗手段：它只是提高复制成本，`globalAlpha` 0.06 的位图被裁掉很容易。"
+    ],
+    "props": [
+        {
+            "name": "（无 props）",
+            "type": "—",
+            "default": "—",
+            "values": "—",
+            "notes": "七个参数全部来自 `src/config/feature.ts` 的 `watermark`：`enable` / `content` / `fontSize` / `opacity` / `rotate` / `color` / `gapX` / `gapY`。`enable` 为假或 `content` 为空时组件返回 `null`——本仓库当前就是这一档（`enable: false`）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "水印文本只来自配置。组件不渲染任何可见的 HTML，只输出一个 `hidden` 的配置 `<span>` 给脚本读取。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "`watermark.enable` 为真且 `content` 非空",
+            "visual": "脚本在页面加载后追加 `#watermark-overlay`：`position: fixed`、`inset: 0`、`z-index: 9999`、`pointer-events: none`，背景是 canvas 生成的 data URL 平铺",
+            "aria": "没有 `role`、没有 `aria-*`，也没有文本——对辅助技术不存在"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：覆盖层 `pointer-events: none`，指针事件穿透到页面",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：层内没有任何可聚焦元素",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`enable` 为假或 `content` 为空（本仓库现状）",
+            "visual": "组件返回 `null`，DOM 里连配置 `<span>` 都没有，画面上什么都不发生",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用：水印没有选中态，也不该响应选择",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "渲染期只输出一个 `hidden` 的 `<span id=\"watermark-config\">`；真正的视觉是脚本创建的 `<div id=\"watermark-overlay\">`。两者都没有语义角色。",
+        "keyboard": "完全不可达：没有可聚焦元素，也不注册任何键盘监听。",
+        "aria": "不需要 ARIA——但这也意味着水印里的文字（例如「禁止转载」）对读屏用户不存在。若这句话是权利声明，必须同时在正文里写一遍。",
+        "contrast": [
+            {
+                "pair": "水印字 `#000000`（`globalAlpha` 0.06）/ 画布底色",
+                "light": "1.14",
+                "dark": "1.01",
+                "threshold": "装饰纹理 · 无 WCAG 门槛"
+            }
+        ],
+        "focusRing": "不适用（层内没有可聚焦元素）。",
+        "target": "不适用（`pointer-events: none`，没有命中区）。",
+        "reducedMotion": "不适用：没有过渡与动画，水印是一次性绘制。",
+        "notes": [
+            "实测口径：水印层是 canvas 位图，浏览器不暴露任何可计算的文本节点，所以比值只能按「`#000000` 以 0.06 的不透明度合成到画布底色」计算，2 位小数。两个主题各算一次。",
+            "**层级事实**：`z-index: 9999` 高于 tokens.json 的 `z-modal`（见 §3.7），也就是水印会盖在对话框上层。因为 `pointer-events: none`，操作不受影响，但视觉上淡纹会横穿模态内容。",
+            "**性能事实**：每页加载都会新建一个 canvas、`measureText` 一次、`toDataURL()` 一次，再把整屏平铺的位图交给合成器——大屏下这是每帧都要参与合成的全屏图层。",
+            "水印文本用的是 `system-ui, -apple-system, sans-serif`，不跟站点 `font-sans` 走；`fontSize` 是数字（16），脚本拼成 `${fontSize}px` 使用。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色：0 个 token（水印色来自配置的字面量 `#000000`）。度量：0 个 token——字号、间距、旋转角全是配置里的裸数字，脚本自己拼单位。这是全站唯一一个完全不经过 tokens.json 的组件。"
+    },
+    "sizes": {
+        "title": "尺寸（配置默认值 → 实际画布）",
+        "columns": ["参数", "默认值", "实际效果", "位置"],
+        "rows": [
+            ["fontSize", "16", "canvas 字号的像素值", "脚本 `ctx.font`"],
+            ["opacity", "0.06", "`ctx.globalAlpha`", "脚本绘制期"],
+            ["rotate", "-20", "逆时针 20°", "脚本 `ctx.rotate`"],
+            ["gapX / gapY", "200 / 150", "平铺瓦片 = 文本宽 + 200 × 字号 + 150", "canvas 尺寸"],
+            ["color", "`#000000`", "`ctx.fillStyle`", "脚本绘制期"]
+        ]
+    },
+    "forbidden": [
+        "把水印当唯一的版权声明（读屏与搜索引擎都看不到）。",
+        "在页面里再叠一层水印：两个 `z-index: 9999` 的固定层会互相压盖，且每次都新建 canvas。",
+        "给覆盖层加 `pointer-events: auto`——那会把整页点击吞掉。",
+        "用写死中文的配置文案冒充多语言支持：组件不读 locale。",
+        "在 `content` 里放长句：每块瓦片按文本宽度加 `gapX`，太长会让瓦片宽到只剩一条。"
+    ],
+    "related": []
+}

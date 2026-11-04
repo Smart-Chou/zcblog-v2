@@ -1,0 +1,62 @@
+---
+/**
+ * /design/components/servicecard/ — ServiceCard 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/servicecard.json
+ *
+ * 示例用两份真实 `ServiceItem` 形状的常量（不是从 config 里 import 的服务列表：
+ * 那会把文档页绑在 /service/ 页面的数据上）。pricing 一 fixed 一 negotiable，
+ * 用来展示第二枚 Badge 的 variant 分支。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import ServiceCard from "~/components/UI/ServiceCard.astro";
+import type { ServiceItem } from "~/config/services";
+
+const doc = byComponentSlug("servicecard");
+
+const fixed: ServiceItem = {
+    id: "demo-fixed",
+    title: "博客搭建",
+    icon: "tabler:brand-blogger",
+    description:
+        "从零搭一个个人博客：Astro / Hugo / Hexo 任选，含主题定制、评论、RSS 与 SEO。你只需要提供内容。",
+    deliveryMode: "hands-on",
+    deliveryLabel: "代搭建",
+    pricing: "fixed",
+    priceLabel: "¥500 起",
+};
+
+const negotiable: ServiceItem = {
+    id: "demo-negotiable",
+    title: "性能与可访问性体检",
+    icon: "tabler:gauge",
+    description:
+        "Lighthouse + axe 双轨体检，产出一份可执行的整改清单，附一次线上复测。价格按站点规模议。",
+    deliveryMode: "consult",
+    deliveryLabel: "远程交付",
+    pricing: "negotiable",
+    priceLabel: "私聊议价",
+};
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="grid"
+        caption="两种计费分支：pricing=fixed → 第二枚 Badge 取 success；negotiable → 取 note"
+    >
+        <ServiceCard service={fixed} />
+        <ServiceCard service={negotiable} />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="悬停：整卡上浮 4 像素 + 阴影加深 + 边框变色——但卡片没有任何链接，这个反馈是「可点击的错觉」"
+    >
+        <ServiceCard service={fixed} />
+        <p>
+            文档页加载了组件自带的样式，所以这一块和生产页面基本同形（差别只在
+            <code>space-*</code>、<code>shadow-sm</code>、<code>ease-out</code> 这些键缺失： 内边距与阴影并没有真的生效）。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

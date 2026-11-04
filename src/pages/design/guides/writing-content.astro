@@ -1,0 +1,424 @@
+---
+/**
+ * /design/guides/writing-content/ — 教程 2（M2-10b）
+ *
+ * 内容链路：内容仓 → normalize-frontmatter → (remark/rehype 插件) → 页面。
+ * 语法条目全部对照 src/remark-plugin/*.ts 的插件头注释，不写「可能支持」的东西。
+ */
+import "../../../styles/tokens/tokens.css";
+
+const FRONTMATTER = [
+    ["title", "必填", "非空即可；60 字是质量规范（SERP 截断），由 lint 提醒，不炸构建"],
+    ["description", "必填", "1–200 字；超 200 直接构建失败"],
+    ["pubDate", "必填", "可被 `z.coerce.date()` 解析的日期"],
+    ["tags", "可选", "最多 6 个；默认空数组"],
+    ["summary", "可选", "导语，渲染在正文开头与列表卡；上限 300"],
+    ["upDate", "可选", "更新日期"],
+    ["lang", "可选", "`zh` / `en`，默认 zh；英文版文件是 `<slug>-en.md`（不能用 `.en.md`）"],
+    [
+        "image",
+        "可选",
+        "`{ url, alt }`；`url` 允许空串与相对路径（V1 保留的 22 处相对图靠构建断言兜底）",
+    ],
+    [
+        "features",
+        "可选",
+        "`mermaid` / `mathjax` / `katex` / `plantuml` / `chart` / `markmap`，默认空 = 全关",
+    ],
+    ["draft", "可选", "`true` 不进构建产物（CI 按 draft 数算期望篇数）"],
+    ["sticky", "可选", "置顶权重，默认 0"],
+    ["waline", "可选", "默认 true；单篇关评论"],
+    [
+        "toc / donate / author",
+        "可选",
+        "默认全 true；**不要删**，页面用真值判断，undefined 会让 86 篇文章同时失去目录/赞赏/作者卡",
+    ],
+];
+
+const SYNTAX = [
+    {
+        name: "提示块（aside）",
+        syntax: [
+            [":::note", "提示 / 备注"],
+            [":::tip", "技巧"],
+            [":::warning", "警告"],
+            [":::danger", "危险"],
+            [":::info", "信息"],
+            [":::important", "重要"],
+        ],
+        note: "变体来自 remark-asides；用 `:::变体[自定义标签]` 可以换标题。",
+        code: ":::warning[注意]\n这段话会渲染成一个带图标的提示块。\n:::",
+    },
+    {
+        name: "图片网格",
+        syntax: [],
+        note: "按图片数量自动排 1–4 列；每张图必须写 alt。",
+        code: ":::grid\n![图一](/assets/a.png)\n![图二](/assets/b.png)\n:::",
+    },
+    {
+        name: "标签页",
+        syntax: [],
+        note: "每个 `@tab:` 起一个页签；页签标题就是冒号后的内容。",
+        code: ":::tabs\n@tab:pnpm\npnpm install\n\n@tab:npm\nnpm install\n:::",
+    },
+    {
+        name: "对齐",
+        syntax: [],
+        note: "`:::center` 与 `:::right` 两个容器，只影响块内内容的对齐。",
+        code: ":::center\n居中的一段话。\n:::",
+    },
+    {
+        name: "GitHub 卡片",
+        syntax: [],
+        note: "参数是 `owner/repo`，构建期不请求 GitHub API（只渲染一张静态卡片）。",
+        code: ":::github[Smart-Chou/zcblog]\n:::",
+    },
+    {
+        name: "加密块",
+        syntax: [],
+        note: '密码优先级：显式 `{password="x"}` > 环境变量 `ENCRYPTION_PASSWORD`；两者都没有时**构建报错**。提示文案写在中括号里。',
+        code: ":::encrypted[我的生日]\n只有知道密码的人能读到这段话。\n:::",
+    },
+    {
+        name: "嵌入文件",
+        syntax: [],
+        note: "支持行范围：`:::include[./src/foo.ts#L1-L10]`。路径相对当前 Markdown 文件。",
+        code: ":::include[./snippets/hello.md]\n:::",
+    },
+];
+
+const INLINE = [
+    "`||文本||` → 剧透（hover / 聚焦才显示）",
+    "`^上标^` → `<sup>`，`~下标~` → `<sub>`，`==高亮==` → `<mark>`",
+    "CJK 与英文之间的空格由 pangu 自动补（不要在源文件里手打）",
+];
+
+const CODEBLOCKS = [
+    ["```mermaid", '渲染成可交互流程图（需要 `features: ["mermaid"]`）'],
+    ["```chart:*", '图表容器（Chart.js 语法，需要 `features: ["chart"]`）'],
+    ["```markmap", '思维导图（需要 `features: ["markmap"]`）'],
+    ["```plantuml", "构建期从 PlantUML 服务器取 SVG，5 秒超时降级为代码块"],
+    ["```reveal", "分段显示（逐条出现）"],
+    ["```youtube / ```bilibili", "视频嵌入，参数是视频 id"],
+];
+
+const PITFALLS = [
+    "把英文版写成 `<slug>.en.md`：Astro 内容层会吞掉句点，只认 `<slug>-en.md`。",
+    "在 Markdown 里手写 `**加粗**` 之外的 HTML 标签：`rehype` 链会按白名单处理，能过但不可维护。",
+    "给 `:::encrypted` 块只写提示不写密码，也没配 `ENCRYPTION_PASSWORD` → 构建期直接报错（有意的）。",
+    "新增相对路径封面图：V1 的 22 处相对图是「已冻结」的例外，新增会被 `check-relative-assets.py` 判红。",
+    "在正文里引用 `src/assets/` 的绝对路径：图片经 `astro:assets` 处理，路径写法与 public/ 不同。",
+];
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>写内容 · 文档站教程</title>
+    </head>
+    <body>
+        <header class="guide-head">
+            <p class="guide-kicker">Design system · guide 2 / 3</p>
+            <h1 class="guide-title">写内容</h1>
+            <p class="guide-lead">
+                一篇文章从 Markdown 到页面的全链路：它在哪个仓库、frontmatter 有哪些字段、
+                能用哪些容器指令、哪些写法会被门禁拦住。
+            </p>
+            <nav class="guide-nav" aria-label="教程导航">
+                <a href="/design/">← 文档站首页</a>
+                <a href="/design/guides/getting-started/">← 上一篇：从零开始</a>
+                <a href="/design/guides/deploy/">下一篇：部署 →</a>
+            </nav>
+        </header>
+
+        <main class="guide-main">
+            <section class="guide-section" id="where">
+                <h2 class="guide-h2">1 · 文章放在哪</h2>
+                <p class="guide-p">
+                    文章在私有仓 <code>Smart-Chou/zcblog-articles</code>，构建时被复制到
+                    <code>src/content/article/</code>（该目录在 .gitignore 里，本仓不存文章）。
+                    文件名即 slug：<code>my-post.md</code> → <code>/article/my-post/</code>；
+                    英文版是 <code>my-post-en.md</code> + <code>lang: en</code> →
+                    <code>/en/article/my-post/</code>。
+                </p>
+                <pre
+                    class="guide-code"><code>{"# 复制进本仓后先归一化（v1 布尔键 → v2 features）\nnode scripts/normalize-frontmatter.mjs src/content/article"}</code></pre>
+            </section>
+
+            <section class="guide-section" id="frontmatter">
+                <h2 class="guide-h2">2 · frontmatter 字段</h2>
+                <p class="guide-p">
+                    契约在 <code>src/content.config.ts</code
+                    >（严格模式：多写一个未知键会构建失败）。 下表是全部允许的键。
+                </p>
+                <table class="guide-table">
+                    <caption class="visually-hidden">文章 frontmatter 字段</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">字段</th>
+                            <th scope="col">必需</th>
+                            <th scope="col">说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            FRONTMATTER.map(([name, required, notes]) => (
+                                <tr>
+                                    <th scope="row">
+                                        <code>{name}</code>
+                                    </th>
+                                    <td>{required}</td>
+                                    <td>{notes}</td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="guide-section" id="containers">
+                <h2 class="guide-h2">3 · 容器指令（`:::`）</h2>
+                <p class="guide-p">
+                    所有富内容都走同一套容器语法，由 <code>src/remark-plugin/</code> 里的插件处理。 下面每一项的语法都取自插件头注释。
+                </p>
+                {
+                    SYNTAX.map((item) => (
+                        <article class="guide-item">
+                            <h3 class="guide-h3">{item.name}</h3>
+                            <p class="guide-p">{item.note}</p>
+                            <pre class="guide-code">
+                                <code>{item.code}</code>
+                            </pre>
+                        </article>
+                    ))
+                }
+            </section>
+
+            <section class="guide-section" id="inline">
+                <h2 class="guide-h2">4 · 行内语法</h2>
+                <ul class="guide-list">
+                    {INLINE.map((item) => <li>{item}</li>)}
+                </ul>
+            </section>
+
+            <section class="guide-section" id="code">
+                <h2 class="guide-h2">5 · 特殊代码块</h2>
+                <table class="guide-table">
+                    <caption class="visually-hidden">特殊代码块</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">语言标记</th>
+                            <th scope="col">渲染结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            CODEBLOCKS.map(([lang, result]) => (
+                                <tr>
+                                    <th scope="row">
+                                        <code>{lang}</code>
+                                    </th>
+                                    <td>{result}</td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
+                <p class="guide-p">普通代码块会自动加折叠（行数多时默认收起），不需要手写 meta。</p>
+            </section>
+
+            <section class="guide-section" id="pitfalls">
+                <h2 class="guide-h2">6 · 常见坑</h2>
+                <ul class="guide-list">
+                    {PITFALLS.map((item) => <li>{item}</li>)}
+                </ul>
+            </section>
+        </main>
+
+        <footer class="guide-foot">
+            <p class="guide-hint">
+                <a href="/design/guides/getting-started/">← 从零开始</a> ·
+                <a href="/design/guides/deploy/">部署 →</a>
+            </p>
+        </footer>
+    </body>
+</html>
+
+<style>
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        background-color: var(--color-bg-canvas);
+        color: var(--color-fg-default);
+    }
+
+    body {
+        margin: 0 auto;
+        max-inline-size: var(--layout-content);
+        padding: var(--space-8) var(--space-6);
+        font-family: var(--font-sans);
+        line-height: var(--leading-normal);
+        overflow-wrap: break-word;
+    }
+
+    .guide-head {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+        padding-block-end: var(--space-6);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .guide-kicker {
+        margin: 0;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .guide-title {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-3xl);
+        line-height: var(--leading-tight);
+    }
+
+    .guide-lead {
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        font-size: var(--text-base);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+        font-size: var(--text-sm);
+    }
+
+    .guide-nav a,
+    .guide-foot a {
+        color: var(--color-fg-link);
+    }
+
+    .guide-main {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-10);
+        padding-block: var(--space-8);
+    }
+
+    .guide-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        padding-block-end: var(--space-6);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .guide-h2 {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        line-height: var(--leading-snug);
+    }
+
+    .guide-h3 {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-size: var(--text-base);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .guide-item {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-4);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-surface);
+    }
+
+    .guide-p {
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-code {
+        margin: 0;
+        padding: var(--space-4);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-sunken);
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        padding-inline-start: var(--space-6);
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+
+    .guide-table {
+        inline-size: 100%;
+        border-collapse: collapse;
+        font-size: var(--text-sm);
+    }
+
+    .guide-table th,
+    .guide-table td {
+        padding: var(--space-2) var(--space-3);
+        border-block-end: 1px solid var(--color-border-subtle);
+        text-align: start;
+        vertical-align: top;
+    }
+
+    .guide-table thead th {
+        color: var(--color-fg-muted);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .guide-hint {
+        margin: 0;
+        color: var(--color-fg-muted);
+        font-size: var(--text-sm);
+    }
+
+    .guide-foot {
+        padding-block-start: var(--space-6);
+        border-block-start: 1px solid var(--color-border-subtle);
+    }
+
+    .visually-hidden {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
+</style>

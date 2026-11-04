@@ -1,0 +1,79 @@
+---
+/**
+ * /design/components/watermark/ — Watermark 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/watermark.json
+ *
+ * 本仓库的 `watermark.enable` 是 false，所以真实实例渲染出来是**空的**（frontmatter
+ * 直接 return）。示例区因此分两块：一块是真实实例（证明「什么都不输出」），一块是
+ * 按同一组参数画的静态复现（SVG，不是组件输出，仅用于说明纹样长什么样）。
+ *
+ * 静态复现只用 currentColor + opacity，不写字面色值——与文档层「0 字面视觉值」同口径。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import Watermark from "~/components/UI/Watermark.astro";
+
+const doc = byComponentSlug("watermark");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="真实实例：watermark.enable=false → 组件返回 null，DOM 里连配置 span 都没有（示例区此处为空是正确结果）"
+    >
+        <Watermark />
+        <p>
+            把 <code>watermark.enable</code> 改成 <code>true</code> 并填一句
+            <code>content</code>，它才会在 <code>body</code> 末尾追加一层
+            <code>position: fixed</code> 的整页覆盖（<code>z-index: 9999</code>，<code
+                >pointer-events: none</code
+            >）。
+        </p>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="静态复现（不是组件输出）：同一组参数下的平铺纹样——纯黑、不透明度 0.06、旋转 -20°、瓦片间距 200×150"
+    >
+        <div class="wm-preview">
+            <svg viewBox="0 0 420 260" role="img" aria-label="水印纹样示意：浅色斜排文字平铺">
+                <defs>
+                    <pattern
+                        id="watermark-pattern-demo"
+                        width="200"
+                        height="150"
+                        patternUnits="userSpaceOnUse"
+                        patternTransform="rotate(-20)"
+                    >
+                        <text x="0" y="80" fill="currentColor" opacity="0.06" font-size="16">
+                            MIFSH · 禁止转载
+                        </text>
+                    </pattern>
+                </defs>
+                <rect width="420" height="260" fill="url(#watermark-pattern-demo)"></rect>
+            </svg>
+        </div>
+        <p>
+            真实实现把这层纹样画进 canvas 再转成 data URL 平铺；矢量版与位图版的差别只在
+            「文字随窗口缩放会不会糊」，位置与角度一致。
+        </p>
+    </DemoFrame>
+</ComponentDoc>
+
+<style>
+    .wm-preview {
+        max-inline-size: 100%;
+        overflow: hidden;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-canvas);
+        color: var(--color-fg-heading);
+    }
+
+    .wm-preview svg {
+        display: block;
+        width: 100%;
+        block-size: auto;
+    }
+</style>

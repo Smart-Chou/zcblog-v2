@@ -1,0 +1,79 @@
+---
+/**
+ * /design/components/heatmap/ — Heatmap 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/heatmap.json
+ *
+ * 组件只输出容器 + data-posts 载荷，绘制在页面层脚本（`registerHeatmap()`）。
+ * 文档页不加载那段页面脚本，所以真实实例是一个**有高度、有样式、没有格子**的空容器。
+ * 第二块示例是静态剖面：手写同一套类名（`.heatmap-day` / `.color-github-N`），
+ * 样式来自组件自己 import 的 heatmap.css —— 所以它看起来和生产页面一致，但不是脚本产物。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import Heatmap from "~/components/UI/Heatmap.astro";
+
+const doc = byComponentSlug("heatmap");
+
+const postsData = [
+    { date: "2026-10-02", title: "把设计 token 从 132 个键收敛到 4 个层级", wordCount: 2100 },
+    { date: "2026-10-14", title: "文档站的七道闸门", wordCount: 1450 },
+    { date: "2026-10-21", title: "热力图的 CLS 是怎么修掉的", wordCount: 820 },
+    { date: "2026-10-28", title: "一次 e2e 的失败复盘", wordCount: 260 },
+];
+
+/** 静态剖面用的格子：按固定模式取色阶，保证每次构建一致（不是随机数据）。 */
+const LEVELS = [
+    "color-empty",
+    "color-empty",
+    "color-github-1",
+    "color-github-2",
+    "color-github-3",
+    "color-github-4",
+];
+const cells = Array.from(
+    { length: 7 * 20 },
+    (_, index) => LEVELS[(index * 5 + Math.floor(index / 7)) % LEVELS.length],
+);
+const legend = [
+    "color-empty",
+    "color-github-1",
+    "color-github-2",
+    "color-github-3",
+    "color-github-4",
+];
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="真实实例：只有容器与 data-posts。min-height 144 像素 把高度先占住，所以它不会塌陷、也不会在填充时跳"
+    >
+        <Heatmap postsData={postsData} />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="静态剖面（手写标记 + 组件自带样式）：格子、星期列、「Less/More」图例都是页面脚本生成的那套结构"
+    >
+        <div class="heatmap-wrapper">
+            <div class="heatmap-y-labels">
+                <span>Sun</span><span></span><span>Tue</span><span></span><span>Thu</span><span
+                ></span>
+                <span>Sat</span>
+            </div>
+            <div class="heatmap-grid">
+                {cells.map((level) => <div class={`heatmap-day ${level}`} />)}
+            </div>
+        </div>
+        <div class="heatmap-legend">
+            <span>Less</span>
+            {legend.map((level) => <span class={`heatmap-legend-item ${level}`} />)}
+            <span>More</span>
+        </div>
+        <p>
+            生产页面上这 140 个格子是可悬停的：<code>mouseenter</code> 会在鼠标上方插入一个 tooltip （日期
+            / 字数 / 标题）。它没有键盘等价入口，也没有 ARIA——见第 5 节。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

@@ -1,0 +1,47 @@
+---
+/**
+ * /design/components/emptystate/ — EmptyState 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/emptystate.json
+ *
+ * 两支渲染分支：`icon` 插槽存在时渲染图标框（80×80，opacity 0.3），否则退回 `emoji`
+ * （4rem，opacity 0.6）。示例里的图标用一个内联 SVG（调用方负责 aria-hidden）。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import EmptyState from "~/components/UI/EmptyState.astro";
+
+const doc = byComponentSlug("emptystate");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame layout="stack" caption="最小形态：只有 title，标题渲染成 <h2>（层级写死为二级）">
+        <EmptyState title="这里还没有内容" />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="带 emoji 的形态：emoji 是文本节点，读屏会念出它的名字">
+        <EmptyState
+            title="没有找到相关文章"
+            message="换个关键词，或者从标签页进去看看。"
+            emoji="🗒️"
+        />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="带 icon 插槽的形态：插槽优先于 emoji；图标是装饰，调用方自己加 aria-hidden"
+    >
+        <EmptyState title="评论还没打开" message="这条内容还没有人留言，你可以是第一个。">
+            <svg
+                slot="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                aria-hidden="true"
+            >
+                <path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"></path>
+            </svg>
+        </EmptyState>
+    </DemoFrame>
+</ComponentDoc>

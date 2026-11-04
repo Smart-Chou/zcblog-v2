@@ -1,0 +1,40 @@
+---
+/**
+ * /design/components/search/ — Search 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/search.json
+ *
+ * 示例区是真实实例。首屏只输出一个占位按钮（tabindex=-1 + aria-hidden），
+ * pagefind 的组件 UI 在悬停 / ⌘K / 点按时才按需加载。
+ *
+ * 只挂一次：`document.querySelector("pagefind-modal")` 取第一个，两个实例里第二个永远打不开。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import Search from "~/components/UI/Search.astro";
+
+const doc = byComponentSlug("search");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="折叠态（默认）：占位按钮 + 两个尚未升级的自定义元素；此时 pagefind 的 JS/CSS 都还没下载"
+    >
+        <Search />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="交互：悬停（抢跑下载）/ ⌘K 或 Ctrl+K / 点一下，三条路径都会拉起模态框"
+    >
+        <p>
+            键盘入口在脚本加载完成前只有 <code>⌘K</code>：占位按钮被显式设成
+            <code>tabindex="-1"</code> 且 <code>aria-hidden="true"</code>，Tab 是到不了的。
+        </p>
+        <p>
+            本页没有 <code>/pagefind/</code> 索引（那要跑 <code>pnpm pagefind</code>），
+            所以模态框里的查询会返回空——组件行为是真实的，索引数据不在这里。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

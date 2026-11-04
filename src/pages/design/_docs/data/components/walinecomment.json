@@ -1,0 +1,127 @@
+{
+    "slug": "walinecomment",
+    "kind": "ui",
+    "name": "WalineComment",
+    "cn": "评论",
+    "layer": "ui",
+    "spec": "src/components/UI/WalineComment.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/WalineComment.astro",
+    "styleSource": "src/styles/article.css",
+    "purpose": "文章页底部的评论区外壳：默认只渲染一个「展开评论」按钮，读者点了才下载 Waline 客户端、注入样式、初始化实例。折叠态是 0 请求、0 评论 DOM——评论对多数读者是可选内容，不该进首屏预算。",
+    "notFor": [
+        "非文章页的讨论区（例如 /friends/ 的留言板另有页面级入口），本组件靠写死的 `#comment-wrapper` id 定位，一页只能有一个。",
+        "需要即时可见的评论数：折叠态没有请求，页面拿不到计数（计数由 `~/utils/waline-pageview` 单独上报）。",
+        "站内评论区以外的社交互动（点赞 / 收藏）→ 走 waline 的 reaction 配置，不在这里加按钮。",
+        "把评论当内容主干：折叠态意味着搜索引擎与读屏默认都看不到评论。",
+        "自建评论后端的替换：组件绑死 `@waline/client`，换后端要重写这一层。"
+    ],
+    "props": [
+        {
+            "name": "locale",
+            "type": "`string`",
+            "default": "`\"zh\"`",
+            "values": "`zh` / `en`",
+            "notes": "只影响按钮文案与 Waline 的语言包选择。`en` 时按钮是 Show Comments / Hide Comments，其余值一律落回中文包。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "评论区的内容由 Waline 客户端在 `#waline` 里自行渲染。组件不接收外部标记——要塞别的东西请放在组件外面。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "`waline.enable` 为真",
+            "visual": "一个虚线描边的「展开评论」按钮（样式在 `article.css` 的 `#waline-toggle`），下方 `#waline` 是 `display: none` 的空容器",
+            "aria": "原生 `<button type=\"button\">`，没有 `aria-expanded` / `aria-controls`"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停在按钮上",
+            "visual": "组件没有写 hover 分支，只有 `article.css` 的静态描边；悬停无反馈",
+            "aria": "无变化"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "Tab 到按钮",
+            "visual": "没有自定义焦点环，走浏览器默认 outline",
+            "aria": "无变化"
+        },
+        {
+            "state": "selected",
+            "trigger": "点击按钮（第一次）",
+            "visual": "`#waline` 加 `.visible` 显示出来，按钮加 `.active`（字重加粗、描边 1.5 倍）并把文案换成「收起评论」；此时才 `import(\"@waline/client\")` 并注入两份 CSS",
+            "aria": "按钮文案变化，但没有 `aria-expanded` 通告展开状态"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`waline.enable` 为假",
+            "visual": "整块不渲染（连按钮都没有）",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div id=\"comment-wrapper\">` 包一个按钮和一个空容器。评论本身由 Waline 客户端在容器里渲染（第三方标记），语义质量取决于 Waline 版本。",
+        "keyboard": "按钮本身可 Tab、可 Enter / Space 触发。展开后焦点不会自动进入评论框——读者要自己再 Tab 一段。",
+        "aria": "按钮没有 `aria-expanded`、没有 `aria-controls=\"waline\"`，展开/收起对读屏是不可感知的（只有按钮文案变化算线索）。这是本组件最该补的一处。",
+        "contrast": [
+            {
+                "pair": "展开按钮文字（声明 `color-accent` 在 tokens.json 缺失 → 实际继承正文色）/ 按钮底 `color-bg-surface`",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5（按钮文字）"
+            },
+            {
+                "pair": "展开按钮的虚线描边（`color-accent` 缺失 → 退回 `currentColor`）与按钮底",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 3（控件边界）"
+            }
+        ],
+        "focusRing": "没有自定义焦点环（G4 未接）：`#waline-toggle` 只有浏览器默认 outline。",
+        "target": "折叠态按钮 `min-width: 180px`、`padding: 0.5rem 1rem`（来自 article.css），命中区远超 44×44。展开后评论区的头像 / 表情按钮命中区由 Waline 决定，不在本组件控制范围。",
+        "reducedMotion": "组件没有动画。Waline 客户端自带的动画不受控制（第三方 CSS）。",
+        "notes": [
+            "实测口径：声明值取自 `article.css` 的 `#waline-toggle` 规则，经 tokens.json 解析后按 WCAG 公式计算，2 位小数。**文档页不加载 article.css**，所以浏览器里看到的是浏览器默认按钮（灰底黑字），与这里算的生产值不同源——这是环境差异，不是组件行为。",
+            "按钮文字声明的是 `color-accent`，而 tokens.json 没有这个键（现键是 `color-accent-solid`）→ 该声明失效，文字退回继承色。描边 `1px var(color-accent)` 同理，`border-style: dashed` 保留但颜色是 `currentColor`。",
+            "初始化路径上有一个隐性契约：`waline.path` 来自 `#waline` 的 `dataset.walinePath`，而组件模板里并没有输出这个属性——它由文章页在挂载前补写。脱离文章页使用时 `path` 是 `undefined`，评论会落到默认路径。",
+            "写死的 id（`#comment-wrapper` / `#waline` / `#waline-toggle`）意味着**一页只能有一个实例**；两次挂载时第二次的脚本会操作第一个实例。"
+        ]
+    },
+    "tokens": {
+        "color": ["--color-bg-surface"],
+        "metric": ["--text-xs"],
+        "none": "颜色只有 `color-bg-surface` 一个真 token；按钮文字 / 描边用的 `color-accent` 在 tokens.json 里不存在，`space` 这个裸间距键同样不存在（`#waline` 的左右内边距实际是 0）。字号用 `text-xs`，其余字号、`content-width`、`radius`、`radius-full`、`shadow-*`、`ease-out`、`duration-normal` 都来自旧命名空间或字面量。"
+    },
+    "sizes": {
+        "title": "尺寸（article.css 声明值）",
+        "columns": ["部位", "尺寸", "说明", "来源"],
+        "rows": [
+            [
+                "切换按钮",
+                "min-width 180px / padding 0.5rem 1rem",
+                "移动端不收缩，靠 `min-width` 撑住",
+                "article.css `#waline-toggle`"
+            ],
+            ["按钮圆角", "5px", "与 `radius-sm`（6px）不是同一个值", "article.css"],
+            [
+                "评论区",
+                "min-height 38rem",
+                "`content-visibility: auto` 时用 `contain-intrinsic-size: auto 38rem` 占位",
+                "article.css `#waline`"
+            ],
+            ["移动端按钮", "width 100% / height 36px", "≤ 450px 断点", "article.css 媒体查询"]
+        ]
+    },
+    "forbidden": [
+        "在同一页放两个 WalineComment：写死的 id 会让第二个实例的脚本操作第一个容器。",
+        "把评论当默认展开：那会让每个访客付一次 Waline 客户端 + 两份 CSS 的下载。",
+        "在组件外面另写一个 `#waline-toggle`：脚本用 id 取元素，取到的可能不是你写的那一个。",
+        "给按钮补 `aria-expanded` 之前先改文案逻辑——两者会打架（文案已表达状态）。",
+        "在文章页之外复用而不补 `data-waline-path`：评论会全部落到同一个默认路径。"
+    ],
+    "related": ["donate"]
+}

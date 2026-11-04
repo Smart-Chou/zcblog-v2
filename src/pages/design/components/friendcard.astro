@@ -1,0 +1,69 @@
+---
+/**
+ * /design/components/friendcard/ — FriendCard 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/friendcard.json
+ *
+ * 组件自己没有视觉样式（只有一条 content-visibility 规则），两套皮肤分别挂在
+ * `.friends-list`（友链页，已 token 化）与 `.home-page`（首页友链块，旧键）上。
+ * 文档页不加载这两份页面 CSS，所以示例区看到的是「裸排版」——这本身就是事实：
+ * 这个组件的视觉完全寄生在宿主页面上。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import FriendCard from "~/components/UI/FriendCard.astro";
+
+const doc = byComponentSlug("friendcard");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="真实实例（无宿主 CSS）：头像 48×48 + 站名链接 + 更新时间；没有 `.friends-list` / `.home-page` 祖先，所以是裸排版"
+    >
+        <FriendCard
+            name="MarxChou"
+            avatar="/logo.webp"
+            title="MIFSH · 一个写代码的人的博客"
+            url="https://marxchou.com/"
+            updated="3 天前"
+        />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="同一份标记放进 `.friends-list` 容器：文档页没有加载 pages/home.css，所以这里仍是裸排版；生产页面上这一层给的是「头像 + 站名 + 时间」的标准一行"
+    >
+        <div class="friends-list">
+            <FriendCard
+                name="MarxChou"
+                avatar="/logo.webp"
+                title="MIFSH · 一个写代码的人的博客"
+                url="https://marxchou.com/"
+                updated="3 天前"
+            />
+            <FriendCard
+                name="Another"
+                avatar="/logo.webp"
+                title="另一个很长的友链站名，用来观察宿主 CSS 的省略号行为"
+                url="https://example.com/"
+                updated="2 周前"
+            />
+        </div>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="同一份标记放进 `.home-page` 容器：home.css 同样没加载；生产页面上这里是胶囊形态、32×32 头像、站名限宽 200"
+    >
+        <div class="home-page">
+            <FriendCard
+                name="MarxChou"
+                avatar="/logo.webp"
+                title="MIFSH"
+                url="https://marxchou.com/"
+                updated="3 天前"
+            />
+        </div>
+    </DemoFrame>
+</ComponentDoc>

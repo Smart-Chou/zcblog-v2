@@ -1,0 +1,184 @@
+{
+    "slug": "essayitem",
+    "kind": "ui",
+    "name": "EssayItem",
+    "cn": "随笔卡片",
+    "layer": "ui",
+    "spec": "src/components/UI/EssayItem.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/EssayItem.astro",
+    "purpose": "随笔页的单条卡片：头像 + 作者 + 时间 + 话题标签 + 正文 + 可选的配图网格 + 原文入口。它只负责「把一条已归一化的 TalkEntry 画出来」，数据源、排序、状态判定都在页面层。",
+    "notFor": [
+        "文章列表项：随笔卡片没有标题、没有摘要，视觉重量按「一条短动态」设计。",
+        "需要交互的卡片（点赞、展开全文、图片灯箱自带动效）→ 组件内只有原文外链一个可点目标。",
+        "直接喂原始 API 响应：入参是 `TalkEntry`（时间已解析、标签已剔除、图片已过滤），原始数据要先过 adapter。",
+        "同一条内容的多语言并列展示：`locale` 只影响时间格式与 alt 文案，不切换正文。",
+        "把作者头像当内容图：它是装饰（`alt=\"\"`），有语义的图在 `item.images` 里。"
+    ],
+    "props": [
+        {
+            "name": "item",
+            "type": "`TalkEntry`",
+            "default": "—（必填）",
+            "values": "`{ id, time, ts, text, tags, images, url? }`",
+            "notes": "`ts` 为 `null` 时时间原样显示（不猜）；`url` 存在才渲染原文入口；`images` 为空则不渲染图片网格。"
+        },
+        {
+            "name": "author",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "站点注入",
+            "notes": "组件不写死任何人名：作者名由页面从站点配置传入，也用于图片的 `alt` 前缀。"
+        },
+        {
+            "name": "avatar",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "站点注入的图片 URL",
+            "notes": "头像 `alt=\"\"`（装饰），固定 40×40、`border-radius` 取 `radius-pill`。"
+        },
+        {
+            "name": "locale",
+            "type": "`Locale`",
+            "default": "`\"zh\"`",
+            "values": "`zh` / `en`",
+            "notes": "决定 `Intl.DateTimeFormat` 的语言与月份缩写，也决定原文入口的 `aria-label` 与配图 `alt` 的语言。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "卡片是纯数据驱动的六段结构，插槽会导致「有的卡片有、有的没有」，破坏列表节奏。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`color-bg-surface` 底 + `color-border-subtle` 1px 边 + `radius-lg` + `shadow-1`；头部横排头像与元信息，正文 `white-space: pre-wrap` 保留换行",
+            "aria": "`<article>` 承载一条内容；标签是 `role=\"list\"` 的 `<ul>`；时间用 `<time datetime>`"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停在原文入口图标上（仅 `hover: hover`）",
+            "visual": "图标色 `color-fg-muted` → `color-fg-link`，边框 `color-border-subtle` → `color-border-accent`，过渡 `duration-fast`",
+            "aria": "无变化"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "Tab 到原文入口",
+            "visual": "`outline: 2px solid color-ring-focus` + `outline-offset: 2px`（本组里少数几个真接上 G4 的焦点环）",
+            "aria": "无变化"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：卡片没有禁用态。缺数据时宁可少渲染一段（无 `url` / 无 `images`），也不做置灰。",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用：卡片本身不可选中，选中态属于宿主列表（`aria-current` 由页面负责）",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<article>` + `<header>` + `<ul role=\"list\">` + `<time>` + 正文 `<p>`。结构是本组里最完整的一个：内容块有容器、时间有机器可读值、标签是列表。",
+        "keyboard": "只有一个可聚焦目标（原文入口，存在时）。Tab 一次即过，没有内部焦点管理。",
+        "aria": "原文入口是 `target=\"_blank\"` + `rel=\"noopener noreferrer\"`，可读名称由 `aria-label`（「在原文站点打开这条随笔」）承担，比「一个箭头图标」清楚。头像 `alt=\"\"` 正确（紧邻作者名，不重复朗读）。`role=\"list\"` 在 `<ul>` 上是冗余声明，无副作用。",
+        "contrast": [
+            {
+                "pair": "作者名 `color-fg-heading` / 卡片底 `color-bg-surface`",
+                "light": "17.09",
+                "dark": "14.57",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "时间 `color-fg-muted` / 卡片底",
+                "light": "4.87",
+                "dark": "4.71",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "正文 `color-fg-default` / 卡片底",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "标签文字 `color-fg-default` / 标签底 `color-bg-muted`",
+                "light": "8.05",
+                "dark": "8.94",
+                "threshold": "≥ 4.5（正文）"
+            }
+        ],
+        "focusRing": "原文入口接上了 G4：`outline: 2px solid color-ring-focus` + 2px 偏移。全组 23 个 legacy UI 里能做到这一点的只有它和 QrCard / FriendPill。",
+        "target": "原文入口 32×32（`space-8`）——低于 44 的舒适值，高于 WCAG 2.2 的 24 最低值。头像与标签不是交互目标。",
+        "reducedMotion": "有：`@media (prefers-reduced-motion: reduce)` 把原文入口的 transition 关掉。这是本组里唯一写了 reduced-motion 分支的组件。",
+        "notes": [
+            "实测口径：四组色对全部来自 tokens.json 的语义键，按 WCAG 公式计算（light / dark 各一套值），2 位小数；文档页与生产页面同源（样式全在组件内），浏览器实测与这里一致。",
+            "**全组唯一全 token 化的组件**：32 个 token 引用全部能在 tokens.json 解析（颜色 10、度量 22），没有一处字面色值或裸尺寸。M2-10b 的 23 行计数表里它是 0 债的那一行。",
+            "配图用 `astro:assets` 的 `<Image>`，固定 320×320 + `aspect-ratio: 1`；`data-count` 控制列数：1 张单列、2 张两列、3–4 张三列（≤640px 回到两列）。",
+            "`item.text` 用 `set:text` 而非 `set:html`：正文里的尖括号按字面显示，不解析标记——这是本组件不做 XSS 防御就安全的原因。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-muted",
+            "--color-bg-surface",
+            "--color-border-accent",
+            "--color-border-subtle",
+            "--color-fg-default",
+            "--color-fg-heading",
+            "--color-fg-link",
+            "--color-fg-muted",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--duration-fast",
+            "--ease-standard",
+            "--font-mono",
+            "--font-sans",
+            "--font-weight-semibold",
+            "--leading-none",
+            "--leading-normal",
+            "--leading-tight",
+            "--radius-lg",
+            "--radius-pill",
+            "--radius-sm",
+            "--shadow-1",
+            "--space-1",
+            "--space-10",
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-5",
+            "--space-8",
+            "--text-base",
+            "--text-sm",
+            "--text-xs",
+            "--tracking-wide"
+        ],
+        "none": "没有缺口：颜色 9 个、度量 23 个，全部解析成功。这是 23 个 legacy UI 组件里唯一一份「白名单 = 全集」的组件。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测，全部走 token）",
+        "columns": ["部位", "尺寸", "来源", "备注"],
+        "rows": [
+            ["头像", "40×40（`space-10`）", "token", "`radius-pill`，`object-fit: cover`"],
+            ["原文入口", "32×32（`space-8`）", "token", "1px 边框 + `radius-pill`"],
+            ["卡片内边距", "`space-5`（≤640px 降为 `space-4`）", "token", "圆角 `radius-lg`"],
+            ["图片网格", "最大 36rem", "字面量", "1 列 / 2 列 / 3 列随 `data-count` 变化"],
+            ["配图像素", "320×320", "组件传参", "`aspect-ratio: 1` + `object-fit: cover`"]
+        ]
+    },
+    "forbidden": [
+        "把正文改成 `set:html`：那会让随笔正文里的 HTML 直接执行。",
+        "给头像补作者名的 `alt`：紧邻的 `.essay-card__author` 已经念了，重复朗读是噪声。",
+        "在 `item.images` 里塞远程 http 图片：`astro:assets` 只处理构建期能解析的本地资源。",
+        "把 `role=\"list\"` 删掉又不改标记：Safari 会给 `list-style: none` 的 `<ul>` 去掉列表语义，这行是给它的补丁。",
+        "在卡片内加第二个可聚焦元素（点赞、展开）：卡片会从「一次 Tab 过」变成「两次」，列表越长代价越大。"
+    ],
+    "related": ["card", "friendcard"]
+}

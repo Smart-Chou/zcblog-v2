@@ -1,0 +1,118 @@
+{
+    "slug": "hitokoto",
+    "kind": "ui",
+    "name": "Hitokoto",
+    "cn": "一言",
+    "layer": "ui",
+    "spec": "src/components/UI/Hitokoto.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/Hitokoto.astro",
+    "purpose": "首页作者区块下方的一句「一言」：构建期从 hitokoto.cn 取一条（文学/诗词/哲学三类），渲染成带引号与出处的引文；页面打开后每 60 秒换一条。它是页面的情绪留白，不是内容主体。",
+    "notFor": [
+        "必须稳定呈现的内容：文本来自第三方 API，构建期取不到就整块不渲染。",
+        "需要引用出处的正式引用：出处是 API 给的自由文本，格式不保证（可能只有作者、可能只有书名）。",
+        "长段落：一句话的设计，超过两行会破坏首页节奏。",
+        "离线/内网构建：`await fetch()` 在 frontmatter 里，取不到时静默跳过，页面会少一块但不报错。",
+        "需要可复现的快照测试：每次构建的文案都可能不同。"
+    ],
+    "props": [
+        {
+            "name": "（无 props）",
+            "type": "—",
+            "default": "—",
+            "values": "—",
+            "notes": "接口写死在组件里：`https://v1.hitokoto.cn/?c=d&c=i&c=k`（c=d 文学 / c=i 诗词 / c=k 哲学）。没有入参可以换分类、换语言、换条数。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "文案完全来自接口，插槽会让「构建期取到的」和「页面传入的」两套内容并存。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "构建期取到文案",
+            "visual": "居中一段引文：`blockquote` 前后用 `::before` / `::after` 拼中文引号，下面一行出处「—— 作者《书名》」，字号 0.9em、颜色 `#6b6762`",
+            "aria": "`<blockquote>` + `<p>`；引号是 CSS 生成内容，不出现在可访问文本里"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：没有交互元素",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：不可聚焦",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "页面打开满 60 秒（以及之后每 60 秒）",
+            "visual": "文本先 `opacity: 0`，320ms 后换成新文案再淡回；`transition: opacity 0.3s`",
+            "aria": "没有 `aria-live`，换文案对读屏是静默的（既不会被打断，也不会被通知）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "构建期接口失败 / 返回空文案 / 组件被移出页面",
+            "visual": "整块不渲染（frontmatter 里 `if (!hitokoto) return;`），不会留一个空盒子",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div class=\"hitokoto\">` + `<blockquote>` + `<p>`。语义正确：引文用 blockquote，出处紧跟其后。但 blockquote 没有 `cite` 属性，出处也没有 `footer` 包裹。",
+        "keyboard": "完全不可达：没有可聚焦元素，也没有快捷键。",
+        "aria": "没有任何 ARIA。引号靠 CSS `content` 生成——读屏软件默认不朗读伪元素内容，所以这条引文在辅助技术里是「没有引号的引文」（可接受，但不完整）。",
+        "contrast": [
+            {
+                "pair": "引文正文（声明 `color-text` 缺失 → 继承正文色，且 `opacity: 0.85`）/ 画布",
+                "light": "5.90",
+                "dark": "7.89",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "出处 `#6b6762` / 画布",
+                "light": "5.35",
+                "dark": "3.31",
+                "threshold": "≥ 4.5（正文）"
+            }
+        ],
+        "focusRing": "不适用（没有可聚焦元素）。",
+        "target": "不适用（不是交互控件）。",
+        "reducedMotion": "**没有** reduced-motion 分支：每 60 秒的淡出/淡入与 `transition: opacity 0.3s` 对减少动效的读者同样生效。列为债。",
+        "notes": [
+            "实测口径：引文正文的 `color` 声明指向 `color-text`，该键在 tokens.json 里不存在 → 声明失效、颜色继承自文档正文，再乘 0.85 的不透明度合成到画布；出处是写死的 `#6b6762`。两者都按 WCAG 公式计算，2 位小数。",
+            "**出处的颜色是 `#6b6762`**：注释里写着「A8：opacity 0.55 把实际对比度压到 3.41:1；改为直接给色（5.3:1），不再靠透明度」——这是一次按对比度修过的债，但它仍然不跟主题：暗色画布上这个中间灰会掉到 3:1 附近。",
+            "**每 60 秒替换一次正文**：这是一个会自己变化的文本块。它没有 `aria-live`（不打断读屏，正确），但也意味着读屏用户错过就错过了；另外定时器在 SPA 换页时靠 `onPageReady` 清理，否则每换一页多一个 `setInterval`。",
+            "**构建期依赖第三方接口**：`await fetch()` 在组件 frontmatter 里，取不到时静默跳过。文档页也会真的去请求一次——如果在无网环境构建，这一块会是空的。",
+            "CSS 注释里保留了 2026-10-02 的间距修复：原本 `-8rem` 上边距与 Author 的 8rem 配对，Author 重构后改成 `2rem auto 0`，否则与作者区重叠 96px。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色：0 个 token。引文色走 `color-text`（tokens.json 无此键，声明失效后继承），出处是字面量 `#6b6762`。度量：0 个 token——`640px`、`2rem`、`1.5rem`、`1rem`、`1.05em`、`1.8`、`0.03em`、`0.75em`、`0.9em` 全是字面量。"
+    },
+    "sizes": {
+        "title": "尺寸（组件内声明值）",
+        "columns": ["部位", "尺寸", "说明", "来源"],
+        "rows": [
+            ["整块宽度", "max-width 640px", "居中，上下 `2rem auto 0`", "`.hitokoto`"],
+            ["整块内边距", "1.5rem 1rem", "字面量，不走 `space-*`", "`.hitokoto`"],
+            ["引文字号", "1.05em", "随正文等比，行高 1.8", "`.hitokoto-text`"],
+            ["字距", "0.03em", "只为中文排版留白", "`.hitokoto-text`"],
+            ["出处", "0.9em / 上边距 0.75em", "颜色 `#6b6762`", "`.hitokoto-source`"]
+        ]
+    },
+    "forbidden": [
+        "把一言放进正文主干：它是构建期随机内容，不能承载信息。",
+        "给容器加 `aria-live=\"polite\"`：每 60 秒打断一次读屏。",
+        "把 60 秒定时器改到更短：每次都是一个新的外网请求，且会打断正在阅读的人。",
+        "在 frontmatter 里做重试或兜底文案：兜底文案等于在文档里编造一条「一言」。",
+        "把出处当可点击链接：组件不提供 `cite` 或跳转地址。"
+    ],
+    "related": []
+}

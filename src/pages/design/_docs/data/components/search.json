@@ -1,0 +1,128 @@
+{
+    "slug": "search",
+    "kind": "ui",
+    "name": "Search",
+    "cn": "站内搜索",
+    "layer": "ui",
+    "spec": "src/components/UI/Search.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/Search.astro",
+    "styleSource": ["src/styles/pagefind-props.css", "src/styles/search-global.css"],
+    "purpose": "站内搜索的入口与模态框：按钮常驻、Pagefind 组件按需加载。首屏只输出一个静态占位按钮（复用 pagefind 自己的类名），悬停 / ⌘K / 点按时才去下载 38.3KB gz 的组件 UI 与索引查询代码。",
+    "notFor": [
+        "服务端搜索（跨站、按标签聚合、拼写纠正）：Pagefind 是静态索引，只能搜已构建进索引的页面。",
+        "页面内的列表过滤（同页若干条记录）→ 用 `input` 做前端过滤，不要拉起整个搜索模态框。",
+        "需要登录态的搜索（私有内容）：索引是构建期产物，构建进来的内容对所有人可见。",
+        "把搜索框当导航用：它是模态入口，不承担「跳转到某个固定页」的职责。",
+        "需要自定义排序 / 权重调参：组件不暴露任何 Pagefind 选项，`max-sub-results` 之外全部写死。"
+    ],
+    "props": [
+        {
+            "name": "locale",
+            "type": "`string`",
+            "default": "`\"zh\"`",
+            "values": "`zh` / `en`",
+            "notes": "只用于占位文案（`common.searchPlaceholder`）与页脚提示（`common.search`）。搜索语言由 Pagefind 在查询期按页面语言判断，与本 prop 无关。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "触发器内部的占位按钮是组件自己写的静态标记（复用 pagefind 类名），不接受外部替换。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "首屏（pagefind 组件 JS 未加载）",
+            "visual": "`<pagefind-modal-trigger>` 是空元素（0×0），里面那个 `tabindex=\"-1\"` + `aria-hidden=\"true\"` 的占位按钮承担「看得见」；样式来自 pagefind 的 CSS（按需加载，未加载时是浏览器默认按钮）",
+            "aria": "占位按钮显式 `aria-hidden=\"true\"` 且 `tabindex=\"-1\"` —— 升级前键盘与读屏都拿不到这个入口"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针进入触发器（`pointerenter`，触摸设备排除）",
+            "visual": "无视觉变化；副作用是开始下载 pagefind 组件 UI 与 CSS（热身）",
+            "aria": "无变化"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "Tab 到真实按钮（pagefind 升级之后）",
+            "visual": "焦点环取 `pf-outline-focus` → `color-accent`（tokens.json 无此键 → 该变量失效，退回浏览器默认 outline）",
+            "aria": "升级后由 pagefind 自己的按钮承担可访问名称与快捷键提示"
+        },
+        {
+            "state": "selected",
+            "trigger": "点击 / `mod+k` / 触摸 `pointerdown`",
+            "visual": "打开 `<pagefind-modal>`；模态框里是 `input` + 结果列表 + 页脚提示（↑↓ / Tab · Enter · Esc）",
+            "aria": "`<pagefind-modal>` 内部使用原生 `<dialog>` + `showModal()`（焦点陷阱与前缀 `aria-modal` 由 pagefind 提供）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`search.enable` 为假（本仓库为真，此分支未在当前构建里出现）",
+            "visual": "—",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "两个自定义元素：`<pagefind-modal-trigger>`（触发器）与 `<pagefind-modal>`（模态）。未升级时它们是未知元素（相当于 `inline` 的通用容器），升级后内部由 Pagefind 生成按钮与 `<dialog>`。",
+        "keyboard": "升级后：Tab 到按钮、Enter 打开、Esc 关闭、↑↓ 在结果间移动。升级前那段占位按钮**不可聚焦**（`tabindex=\"-1\"` + `aria-hidden=\"true\"`），此时唯一入口是 `mod+k` 全局快捷键——只用键盘、且脚本还没加载完的读者会找不到搜索。",
+        "aria": "占位按钮明确 `aria-hidden=\"true\"`（避免读屏念两遍）；模态框的可访问名称、`role=\"dialog\"`、焦点陷阱都由 Pagefind 提供。组件自己不声明 `aria-label`。",
+        "contrast": [
+            {
+                "pair": "搜索框文字 / 搜索框底（search-global.css 的 `search-text` 与 `search-modal-bg`）",
+                "light": "16.32",
+                "dark": "12.89",
+                "threshold": "≥ 4.5（输入文字）"
+            },
+            {
+                "pair": "次级文字（结果摘要 / 计数）/ 搜索框底",
+                "light": "4.76",
+                "dark": "6.46",
+                "threshold": "≥ 4.5（正文）"
+            }
+        ],
+        "focusRing": "组件不写焦点环：取 pagefind 的 `pf-outline-focus`，而它映射到的 `color-accent` 在 tokens.json 里不存在——变量链断在这里，实际退回浏览器默认 outline。",
+        "target": "占位按钮的命中区由 pagefind CSS 的 `pf-input-height`（38px）决定，勉强高于 WCAG 2.2 的 24px；升级后真实按钮尺寸一致。触摸场景靠 `pointerdown` 提前接管，避免「点两次」。",
+        "reducedMotion": "组件没有动画；模态框的进出场由 pagefind 的 CSS 决定，本仓库不覆盖。",
+        "notes": [
+            "实测口径：颜色取自 `search-global.css` 的声明值（light / dark 两套变量），按 WCAG 公式计算，2 位小数。文档页不加载 pagefind 的 CSS，浏览器里看到的是回退按钮，与这里的声明值不同源。",
+            "**主题链路已断**：`pagefind-props.css` 把 `pf-*` 映射到 `color-text` / `color-text-muted` / `color-border` / `color-accent` / `color-selection` / `color-surface-secondary` / `font-body` / `shadow-*`，这些键在 tokens.json 里全部不存在（现键是 `color-fg-default`、`color-fg-muted`、`color-border-default`、`color-accent-solid` 等）。变量在 computed-value 阶段失效，pagefind 的组件视觉于是退回各自 CSS 的兜底值，不跟站点主题走。",
+            "`is:inline` 的那段脚本会覆写 `Intl.Segmenter`（只对 `granularity: \"word\"` 且语言属于 zh/ja/ko/th 的调用生效），目的是对齐 Pagefind 构建期（Rust）与查询期（浏览器）的中文分词差异。它是全局副作用：同页其它依赖 `Intl.Segmenter` 的代码会拿到同一份打过补丁的实现。",
+            "`astro:after-swap` 里重建 modal 的代码依赖 `(oldModal as any).instance?.componentsByType`——pagefind 的内部结构，升级小版本就可能失效（失效表现是换页后搜索框消失）。",
+            "`placeholder` 只进触发器属性，真正的输入框在 modal 内部、由 pagefind 用 `common.searchPlaceholder` 那份文案渲染；两处文案来源不同，改词条要同时改。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色 / 度量：本组件自己的样式里 0 个 token（它把主题交给 pagefind 的 `pf-*` 变量，映射表在 `pagefind-props.css`）。那张映射表引用的 11 个 `color-*` / `font-body` / `shadow-*` 键在 tokens.json 里都不存在，所以这条链路实际是断的——详见「可访问性 · 补充」。"
+    },
+    "sizes": {
+        "title": "尺寸（pagefind 变量映射）",
+        "columns": ["部位", "尺寸", "说明", "来源"],
+        "rows": [
+            ["搜索框高度", "38px", "`pf-input-height`", "pagefind-props.css"],
+            ["搜索框最大宽", "480px", "`pf-searchbox-max-width`", "pagefind-props.css"],
+            [
+                "模态框",
+                "max-width 40rem",
+                "`pf-modal-max-width`，顶部 `10dvh`",
+                "pagefind-props.css"
+            ],
+            [
+                "结果缩略图",
+                "64px × 48px",
+                "`pf-image-width` / `pf-image-height`",
+                "pagefind-props.css"
+            ]
+        ]
+    },
+    "forbidden": [
+        "在首屏无条件加载 `pagefind-component-ui.js`：38.3KB gz 比整站首屏 JS 还大，等于每个访客为「没点过的搜索」付费。",
+        "去掉占位按钮：pagefind 是按需加载的，没有占位时首屏就是「搜索框不见了」。",
+        "在同一个页面里放两个 `<pagefind-modal>`：`document.querySelector` 取第一个，第二个永远不会被打开。",
+        "给占位按钮加 `tabindex=\"0\"`：它 `aria-hidden`，聚焦到它就等于聚焦到一个读屏看不见的控件。",
+        "把 `Intl.Segmenter` 的补丁当成长期方案：Pagefind 对齐分词之后这段必须删掉，否则是额外的全局副作用。"
+    ],
+    "related": ["notice"]
+}

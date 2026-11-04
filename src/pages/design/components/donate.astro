@@ -1,0 +1,40 @@
+---
+/**
+ * /design/components/donate/ — Donate 文档页（M2-10b）
+ * 数据：src/pages/design/_docs/data/components/donate.json
+ *
+ * 示例区是真实实例：按钮 + 一个原生 `<dialog>`（关着）。点按钮会真的
+ * `showModal()` 并显示两张收款码（构建期从 src/assets/qr/ 转 avif）。
+ *
+ * 样式全在 src/styles/article.css，文档页不加载那份 CSS——所以这里看到的是
+ * 「裸按钮」，这正是组件与页面样式分离的证据（见数据文件里的实测口径）。
+ */
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
+import Donate from "~/components/UI/Donate.astro";
+
+const doc = byComponentSlug("donate");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="折叠态（默认）：一个按钮 + 一个关着的 dialog；按钮无样式是环境差异（article.css 未加载），不是组件缺样式"
+    >
+        <Donate />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="点按钮后的弹窗：原生 dialog + 焦点陷阱 + Esc 关闭；内容区是感谢语、微信/支付宝收款码、全部赞赏者入口"
+    >
+        <p>
+            弹窗里的两张码来自 <code>src/assets/qr/</code>，构建期转成 avif 并裁到 200 宽。
+            关闭按钮的可读名称写死英文 <code>Close</code>——中文页面里读屏会念英文（见第 5 节）。
+        </p>
+        <p>
+            这里没有样式，是因为 <code>article.css</code> 只在文章页加载：同一个组件在文章页是 实心红按钮，在本页是浏览器默认按钮。这条差距本身就是文档要写下来的事实。
+        </p>
+    </DemoFrame>
+</ComponentDoc>

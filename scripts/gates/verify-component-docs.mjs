@@ -3,14 +3,14 @@
  * verify-component-docs.mjs — legacy UI 组件文档门禁（M2-10a）
  *
  * 判定 `blog2.0/docs/19-m2-plan.md` §3 M2-10 的文档条款在本卡范围内的那一半：
- * 12 个 legacy UI 组件（`src/components/UI/*.astro`）各一份七章节文档。M2-10b 会把
- * LEGACY_SLUGS 扩到 23 个，判据不改。
+ * 23 个 legacy UI 组件（`src/components/UI/*.astro`）各一份七章节文档（M2-10a 12 个 +
+ * M2-10b 11 个，判据不改）。
  *
  *   D0  registry 可解析：components.ts 的 import / COMPONENT_DOCS 顺序 / data 文件三者一致
- *   D1  12 份文档数据都在 `_docs/data/components/<slug>.json`
+ *   D1  23 份文档数据都在 `_docs/data/components/<slug>.json`
  *   D2  七项字段齐全且非空（用途/何时不用、Props、Slots、States、a11y、token 白名单、示例），
  *       且 `layer` 必须是 `ui`
- *   D3  12 个文档页都在 `src/pages/design/components/<slug>.astro`，都用 <ComponentDoc>、
+ *   D3  23 个文档页都在 `src/pages/design/components/<slug>.astro`，都用 <ComponentDoc>、
  *       至少一个 <DemoFrame>、经 byComponentSlug("<slug>") 读数据，并 import 真实组件文件
  *   D4  token 名全部能在 tokens.json 解析（数据 + 页面 + 版式 + registry）
  *   D5  文档层不许自造视觉值：页面/版式里 hex / rgb() / hsl() = 0；**数据 JSON 里出现的
@@ -47,7 +47,8 @@ const TOKENS_REL = "src/styles/tokens/tokens.json";
 const INVENTORY_REL = "docs/component-inventory.json";
 
 /**
- * 本卡覆盖的 12 个（M2-10a）。顺序 = 文档页 prev/next 顺序 = registry 顺序。
+ * 本卡覆盖的 23 个（M2-10a 的 12 个 + M2-10b 的 11 个）。
+ * 顺序 = 文档页 prev/next 顺序 = registry 顺序。
  * slug 规则见 `_docs/index.ts` 的 `legacyUiSlug()`：与 atom 同名才加 `ui-` 前缀。
  */
 const LEGACY_SLUGS = [
@@ -63,6 +64,33 @@ const LEGACY_SLUGS = [
     "friendpill",
     "donatorslist",
     "author",
+    "notice",
+    "watermark",
+    "walinecomment",
+    "search",
+    "heatmap",
+    "donate",
+    "essayitem",
+    "friendcard",
+    "hitokoto",
+    "servicecard",
+    "emptystate",
+];
+
+/** M1-6 的 12 份 atom 文档页（dist 侧一起数，合计 35 份）。 */
+const ATOM_PAGES = [
+    "button",
+    "link",
+    "tag",
+    "input",
+    "card",
+    "icon",
+    "avatar",
+    "divider",
+    "breadcrumb",
+    "pagination",
+    "alert",
+    "skeleton",
 ];
 
 const SECTION_IDS = ["purpose", "props", "slots", "states", "a11y", "tokens", "example"];
@@ -351,13 +379,24 @@ const normalizeLiteral = (text) =>
 for (const { slug, file, data } of docs) {
     const sourceFile = path.join(repoRoot, data.source ?? "");
     const sourceText = existsSync(sourceFile) ? readFileSync(sourceFile, "utf8") : "";
-    // 有的组件把样式放在页面 CSS 里（Archive 在 archives.css、Author 在 article.css）。
-    // 这类组件的 `styleSource` 指到那份文件，字面值可以在两处任一处命中。
-    const styleFile = nonEmpty(data.styleSource) ? path.join(repoRoot, data.styleSource) : null;
-    const styleText = styleFile && existsSync(styleFile) ? readFileSync(styleFile, "utf8") : "";
-    if (styleFile && !styleText) {
-        inventedProblems.push(`${slug}: data.styleSource 指向的文件不存在 ${data.styleSource}`);
-    }
+    // 有的组件把样式放在页面 CSS 里（Archive 在 archives.css、Author 在 article.css、
+    // FriendCard 在 home.css + pages/home.css）。`styleSource` 可以是单个路径或路径数组，
+    // 字面值在任意一处命中即算「来自实现」。
+    const styleSources = Array.isArray(data.styleSource)
+        ? data.styleSource
+        : nonEmpty(data.styleSource)
+          ? [data.styleSource]
+          : [];
+    const styleText = styleSources
+        .map((styleRel) => {
+            const styleFile = path.join(repoRoot, styleRel);
+            if (!existsSync(styleFile)) {
+                inventedProblems.push(`${slug}: data.styleSource 指向的文件不存在 ${styleRel}`);
+                return "";
+            }
+            return readFileSync(styleFile, "utf8");
+        })
+        .join("\n");
     const haystack = `${sourceText}\n${styleText}`;
     const text = readFileSync(file, "utf8");
     if (!sourceText) {
@@ -514,17 +553,42 @@ if (wantDist && existsSync(distDir)) {
         const tables = html.match(/<table\b[\s\S]*?<\/table>/g) ?? [];
         const empty = tables.filter((table) => (table.match(/<tr\b/g) ?? []).length < 2).length;
         if (empty > 0) distProblems.push(`${slug}: 有 ${empty} 个空表`);
+        // 每页 5 张表：Props / Slots / States / 对比度 / 附录 A 尺寸（M2-10 的验收口径）
+        if (tables.length < 5) {
+            distProblems.push(
+                `${slug}: 只有 ${tables.length} 张表（应 5：props/slots/states/对比度/尺寸）`,
+            );
+        }
         const example = html.slice(html.indexOf('id="example"'));
         if (!example.includes('class="frame')) distProblems.push(`${slug}: 示例区没有画框`);
         distRows.push(
             `${slug}(sections=${SECTION_IDS.length - missing.length}/7, tables=${tables.length})`,
         );
     }
+
+    // 35 份 = 23 份 legacy UI + 12 份 M1-6 atom（atom 页不归本卡写，但要在总数里对得上）
+    const missingAtoms = [];
+    for (const slug of ATOM_PAGES) {
+        const htmlFile = path.join(distDir, "design/atoms", slug, "index.html");
+        if (!existsSync(htmlFile)) {
+            missingAtoms.push(`design/atoms/${slug}`);
+            continue;
+        }
+        const html = readFileSync(htmlFile, "utf8");
+        const missing = SECTION_IDS.filter((id) => !html.includes(`id="${id}"`));
+        const tables = (html.match(/<table\b[\s\S]*?<\/table>/g) ?? []).length;
+        if (missing.length > 0) missingAtoms.push(`design/atoms/${slug} 缺 ${missing.join(",")}`);
+        if (tables < 5) missingAtoms.push(`design/atoms/${slug} 只有 ${tables} 张表`);
+    }
+    if (missingAtoms.length > 0) {
+        distProblems.push(`atom 文档页不齐或不完整：${missingAtoms.join(" · ")}`);
+    }
+    const totalDocs = LEGACY_SLUGS.length + ATOM_PAGES.length - missingAtoms.length;
     add(
         "D8",
-        "构建产物：7 个 section + 无空表 + 有示例画框",
+        `构建产物：${LEGACY_SLUGS.length + ATOM_PAGES.length} 份文档 · 7 个 section · 5 张表 · 有示例画框`,
         distProblems.length === 0,
-        distRows.join(" "),
+        `${totalDocs}/${LEGACY_SLUGS.length + ATOM_PAGES.length} 份（${LEGACY_SLUGS.length} UI + ${ATOM_PAGES.length} atom）· ${distRows.join(" ")}`,
         distProblems,
     );
 } else {

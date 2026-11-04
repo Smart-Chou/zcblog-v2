@@ -1,0 +1,142 @@
+{
+    "slug": "heatmap",
+    "kind": "ui",
+    "name": "Heatmap",
+    "cn": "热力图",
+    "layer": "ui",
+    "spec": "src/components/UI/Heatmap.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/Heatmap.astro",
+    "styleSource": "src/styles/heatmap.css",
+    "purpose": "归档页顶部的写作热力图：按「一天有多少字」把过去一年（移动端半年）染成 5 档颜色，让读者一眼看出作者哪段时间在写。组件只输出一个容器 + 数据载荷，绘制在页面层脚本里。",
+    "notFor": [
+        "需要精确读数的场景（「3 月 12 日写了多少字」）：格子只有 hover 才有 tooltip，键盘与读屏都拿不到数字。",
+        "任意时间序列图表（阅读量、构建时长）→ 用真正的图表组件，热力图的语义是「日历 × 强度」。",
+        "数据量大且需要下钻的看板：这里是静态渲染，没有缩放、筛选、导出。",
+        "同一页放两张热力图：容器 id 写死 `heatmap-container`，页面脚本只会填第一个。",
+        "深色主题下的关键信息：五档颜色是写死的绿阶，不随主题变化（见「可访问性」）。"
+    ],
+    "props": [
+        {
+            "name": "postsData",
+            "type": "`PostData[]`",
+            "default": "—（必填）",
+            "values": "`{ date: string; title: string; wordCount: number }[]`",
+            "notes": "整体序列化成 `data-posts` 属性传给页面层脚本，组件本身不读它做任何判断。`date` 只认 `YYYY-MM-DD`（脚本用 `toISOString().split(\"T\")[0]` 对齐）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "内容是脚本生成的，slot 无处可放。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "页面加载后由 `registerHeatmap()` 填充",
+            "visual": "月份行 + 星期列 + 53 列（移动端约 27 列）的方格网格 + 「Less/More」图例；空格 `color-empty`，有文章的格子按字数落 1–4 档",
+            "aria": "没有 `role`、没有 `aria-label`、没有 `table` 语义——整块对读屏是一串空 `<div>`"
+        },
+        {
+            "state": "hover",
+            "trigger": "`mouseenter` 有数据的格子",
+            "visual": "格子加 1px outline（`heatmap-hover-outline`），并在鼠标位置上方弹出 tooltip：日期 / 字数 / 标题",
+            "aria": "tooltip 是 `document.body` 里临时插入的 `<div>`，没有任何 live region 或 `aria-describedby`"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：格子是 `<div>`，不可聚焦，键盘用户拿不到任何一格的数据",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`postsData` 为空数组或页面没注册脚本",
+            "visual": "容器保留 `min-height`（桌面 144px / ≤768px 130px）占位，里面什么都不填——不会塌陷，也不会闪一下",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用：格子没有选中/点击行为，点击不跳转",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "渲染期是一个 `<div id=\"heatmap-container\" data-posts=\"…\">`；数据完全靠 `data-posts` 这一个属性跨层传递。语义上既不是表格也不是图形——脚本生成的全是通用 `<div>` 和 `<span>`。",
+        "keyboard": "完全不可达：格子没有 `tabindex`，也没有等价的可聚焦入口。键盘用户只能知道「这里有一块热力图」，读不到任何一天的数据。",
+        "aria": "没有任何 ARIA。要让数据可读，需要给每格 `role=\"img\"` + `aria-label=\"2026-03-12 · 1200 字 · 标题\"`，或整体改成 `<table>` 语义（53×7 的语义表格）。这是本组件最大的 a11y 债。",
+        "contrast": [
+            {
+                "pair": "空格 `#d6d8db` / 画布",
+                "light": "1.36",
+                "dark": "13.01",
+                "threshold": "≥ 3（图形对象边界）"
+            },
+            {
+                "pair": "1 档 `#9ad99b` / 画布",
+                "light": "1.57",
+                "dark": "11.30",
+                "threshold": "≥ 3（强度可辨）"
+            },
+            {
+                "pair": "2 档 `#68be67` / 画布",
+                "light": "2.19",
+                "dark": "8.09",
+                "threshold": "≥ 3（强度可辨）"
+            },
+            {
+                "pair": "3 档 `#3f7f46` / 画布",
+                "light": "4.62",
+                "dark": "3.84",
+                "threshold": "≥ 3（强度可辨）"
+            },
+            {
+                "pair": "4 档 `#2f6336` / 画布",
+                "light": "6.76",
+                "dark": "2.62",
+                "threshold": "≥ 3（强度可辨）"
+            }
+        ],
+        "focusRing": "不适用（没有可聚焦元素）。",
+        "target": "格子 11×11（≤768px 为 9×9）——远低于 24×24 的最低指针目标。因为不是交互控件（点击无动作），WCAG 2.2 的 2.5.8 可以豁免；但悬停 tooltip 依赖精细指针，触摸设备上等于拿不到数据。",
+        "reducedMotion": "不适用：没有过渡动画（hover 只改 outline）。",
+        "notes": [
+            "实测口径：五档颜色都是 `heatmap.css` 里写死的 hex，直接与画布底色按 WCAG 公式计算，2 位小数；因为不随主题变化，dark 列等于「同一组绿压在暗底上」的读数。",
+            "**深浅主题共用一组硬编码绿阶**：`heatmap-empty` / `level-1..4` 是 `:root` 上的自定义属性，没有 `html[data-theme=\"dark\"]` 覆盖。浅色下 1–2 档只有 1.36 / 1.57 / 2.19（低于 3:1，几乎看不出强度差），暗色下反过来是 3–4 档掉到 3.84 / 2.62 —— 同一组绿阶在两个主题里各有一半落在不可辨区。",
+            "**CLS 已经踩过坑并把修复写进注释**：之前用 `content-visibility: auto` + `contain-intrinsic-size` 撑高度，元素进入渲染分支后真实高度是 0，造成两次跳动（0.097 + 0.070）；现在改成 `min-height: 144px`（≤768px 为 130px）显式占位。改 `heatmap-cell-size` 时必须同步改这两个高度值。",
+            "tooltip 的背景取 `color-title`、字色取 `color-bg`——两个键在 tokens.json 里都不存在，所以 tooltip 实际是透明的（字色继承）。在浅色画布上几乎读不出来。",
+            "文档页只渲染容器与数据载荷：绘制在页面层（`registerHeatmap()` 监听 `astro:page-load`），不在组件内。示例区因此是一个空容器 + 一份手写的静态剖面。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色：0 个站点 token。热力图自带 6 个组件级自定义属性（`heatmap-empty` / `level-1..4` / `hover-outline`），值是写死的 hex；引用到的 `color-text`、`color-title`、`color-bg` 三个键在 tokens.json 里都不存在。度量：0 个 token——`heatmap-cell-size` / `heatmap-gap` / `heatmap-radius` 也是组件自定义属性（11px / 2px / 3px）。"
+    },
+    "sizes": {
+        "title": "尺寸（heatmap.css 声明值）",
+        "columns": ["部位", "尺寸", "说明", "来源"],
+        "rows": [
+            ["格子", "11px × 11px", "≤768px 降为 9px", "`heatmap-cell-size`"],
+            ["格子间隙", "2px", "行列同值", "`heatmap-gap`"],
+            ["格子圆角", "3px", "legacy，与 `radius-sm`（6px）不同", "`heatmap-radius`"],
+            ["容器高度", "min-height 144px", "≤768px 降为 130px（防 CLS）", "`.heatmap-container`"],
+            [
+                "tooltip",
+                "0.5rem / 0.75rem 内边距 + 6px 圆角",
+                "跟随鼠标，固定定位",
+                "`.heatmap-tooltip`"
+            ]
+        ]
+    },
+    "forbidden": [
+        "把热力图当唯一的写作量证据：它对键盘与读屏不可见，正文里要有文字版说明。",
+        "在同一页放两张：容器 id 写死，脚本只会填第一个。",
+        "用 `content-visibility: auto` 撑高度（会让高度先塌后跳，见注释里的 CLS 记录）。",
+        "改 `heatmap-cell-size` 而不同步 `min-height`：容器会再次塌陷一次。",
+        "把 tooltip 内容塞进 `innerHTML` 而不转义：文章标题里的 `<` 会被当标签解析。"
+    ],
+    "related": ["archive"]
+}

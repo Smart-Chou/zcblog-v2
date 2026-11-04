@@ -1,0 +1,127 @@
+{
+    "slug": "notice",
+    "kind": "ui",
+    "name": "Notice",
+    "cn": "公告条",
+    "layer": "ui",
+    "spec": "src/components/UI/Notice.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/Notice.astro",
+    "purpose": "全站顶部的粘性公告条：一条「本站须知」性质的声明，带一个可以记一辈子（localStorage）或一辈子内（sessionStorage）不再打扰的关闭动作。它读的是配置，不是 props——站点级声明不该由每个页面各写一遍。",
+    "notFor": [
+        "页面内的临时提示（表单校验、操作结果）→ 用 `Alert`（atom），公告条是站点级的、粘在顶部的。",
+        "需要用户做选择才能继续的打断 → 那是 `<dialog>` 的活，公告条不抢焦点、不锁滚动。",
+        "多语言之外的营销文案轮播：公告条一次只读一条 `notice.content`，没有队列。",
+        "需要区分频次的提示（每次访问都弹 / 只弹一次）→ 本组件只有 `showOnce` 两档，不做频次策略。",
+        "读者必须看到的合规信息：关闭后永久不再出现，合规信息要用页面永久区块承载。"
+    ],
+    "props": [
+        {
+            "name": "（无 props）",
+            "type": "—",
+            "default": "—",
+            "values": "—",
+            "notes": "全部行为来自 `src/config/feature.ts` 的 `notice` 对象：`enable` / `title` / `content` / `path` / `key` / `showOnce` / `confirm` / `confirmText`。组件在 `enable` 为假或 `path` 不匹配当前路径时整块返回 `null`。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "（无 slot）",
+            "required": "否",
+            "notes": "标题与正文来自 i18n 词条（`notice.title` / `notice.content` / `notice.confirmText`），不接受外部内容；要换文案改配置与词条。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "存储里没有对应 key，脚本在首帧后把 `display` 打开",
+            "visual": "底色取旧键 `color-accent`（tokens.json 无此键 → 声明失效，实际透明），字色是写死的 `#fff`；`color-border` 同样缺失，边框退回 `currentColor`",
+            "aria": "容器 `role=\"status\"` + `aria-live=\"polite\"`"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停在关闭 / 确认按钮上（仅 `hover: hover` 设备）",
+            "visual": "关闭按钮 `opacity` 0.7 → 1；确认按钮底色 `rgba(255, 255, 255, 0.2)` → `rgba(255, 255, 255, 0.3)`",
+            "aria": "无变化"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "Tab 到关闭 / 确认按钮",
+            "visual": "没有自定义焦点环，走浏览器默认 outline",
+            "aria": "原生 `<button>`，无需补 ARIA"
+        },
+        {
+            "state": "dismissed",
+            "trigger": "点关闭图标或「知道了」",
+            "visual": "`display: none`，同时把 `notice-height` 置 0（页面其余粘性元素靠它让位）",
+            "aria": "下一次访问由存储命中直接返回，不渲染可见状态"
+        },
+        {
+            "state": "disabled",
+            "trigger": "`notice.enable` 为 false，或配置了 `notice.path` 而当前路径不匹配",
+            "visual": "整块不渲染（连存储判断都不发生）",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<aside>` 作为页面级补充内容；内部是一个标题（可选 `<strong>`）+ 正文 + 一个动作按钮。语义上不是 `alert`——它不打断读屏。",
+        "keyboard": "Tab 可达的只有那一个按钮（关闭图标或「知道了」，二选一渲染）。没有快捷键，也没有 Esc 关闭——公告条不是对话框，不接管键盘。",
+        "aria": "`role=\"status\"` + `aria-live=\"polite\"`：出现时不打断当前朗读。关闭图标按钮带 `aria-label=\"关闭公告\"`（写死中文，不跟 locale 走）。确认按钮的可读名称就是文案「知道了」。",
+        "contrast": [
+            {
+                "pair": "正文 `#fff` / 公告条底色（旧键 color-accent 失效后的实际底色）",
+                "light": "1.05",
+                "dark": "18.58",
+                "threshold": "≥ 4.5（正文）"
+            },
+            {
+                "pair": "关闭按钮图标 `#fff`（opacity 0.7）/ 实际底色",
+                "light": "1.03",
+                "dark": "9.39",
+                "threshold": "≥ 3（图标）"
+            },
+            {
+                "pair": "确认按钮文字 `#fff` / `rgba(255, 255, 255, 0.2)` 叠实际底色",
+                "light": "1.04",
+                "dark": "10.02",
+                "threshold": "≥ 4.5（按钮文字）"
+            }
+        ],
+        "focusRing": "没有自定义焦点环（旧键 `color-ring-focus` 未被使用），Tab 到按钮时只有浏览器默认 outline。G4 未接。",
+        "target": "关闭按钮的命中区是 `var(space-2xs)` 内边距 + 16×16 图标；旧键缺失 → 实际命中区就是图标本身 16×16，低于 WCAG 2.2 的 24×24 最低值。",
+        "reducedMotion": "组件没有动画，只过渡 `opacity`；`prefers-reduced-motion` 不参与——严格说这条 transition 也该在减少动效时关掉，列为债。",
+        "notes": [
+            "实测口径：底色取浏览器计算值（`background-color` / `background` 的合成结果），字色取计算后的 `color`；半透明底先与页面底色合成再算比值，2 位小数。light 与 dark 各测一次。",
+            "本组件最大的事实是**颜色一个 token 都没接上**：`color-accent`、`color-border` 在 tokens.json 里不存在（现存键是 `color-accent-solid`），于是 `#fff` 的字落在了透明底上。light 主题下这条公告条基本不可读，这不是设计选择，是旧键失配。",
+            "`html[data-theme=\"dark\"]` 那一条规则把背景又写了一遍同样的旧键，所以深色主题同样失效——两套主题共用同一个坏值。",
+            "`notice-height` 由脚本写到 `<html>` 上，供顶部导航让位；文档页没有导航，所以这里只观察到值被写入，看不到布局效果。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": ["--radius-sm", "--duration-fast"],
+        "none": "颜色：0 个 token。背景与边框用的 `color-accent` / `color-border` 在 tokens.json 里不存在（`color-accent-solid` 才是现键），字色是字面量 `#fff` 与两档白色 alpha。度量上 `radius-sm` 与 `duration-fast` 是全组件唯二解析得到的键；`space-xs` / `space-sm` / `space-2xs` / `space` 四个旧间距键全部缺失，内边距实际是 0。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测）",
+        "columns": ["部位", "字号", "内边距", "其它"],
+        "rows": [
+            ["公告条本体", "0.9rem（字面量）", "0（space-xs 缺失）", "sticky top 0，z-index 101"],
+            ["关闭图标", "—", "0（space-2xs 缺失）", "SVG 16×16，stroke-width 2"],
+            [
+                "确认按钮",
+                "0.85rem（字面量）",
+                "0 / 0（space-2xs、space-sm 缺失）",
+                "圆角取 radius-sm"
+            ],
+            ["右侧留白", "—", "右侧 8px（写死）", "`padding-right: -8px` 是无效值，浏览器忽略"]
+        ]
+    },
+    "forbidden": [
+        "在页面里再写一条同样的公告条（站点级声明只应有一处，重复会让关闭状态各自为政）。",
+        "把公告条当 `Alert` 用：它不会随表单状态变化，也没有 tone。",
+        "把 `notice.key` 写死成空字符串——那会让存储 key 退化成内容哈希，改一个字就等于重新弹一次。",
+        "给公告条加自动消失的定时器：读者可能正在读，消失时机不可预测。",
+        "用公告条承载法律必需信息（它可以被永久关闭）。"
+    ],
+    "related": ["alert", "banner"]
+}

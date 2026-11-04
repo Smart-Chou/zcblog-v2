@@ -1,0 +1,132 @@
+{
+    "slug": "emptystate",
+    "kind": "ui",
+    "name": "EmptyState",
+    "cn": "空态",
+    "layer": "ui",
+    "spec": "src/components/UI/EmptyState.astro（以实现为准 · M2-10b）",
+    "source": "src/components/UI/EmptyState.astro",
+    "purpose": "列表/区块为空时的占位：一个图标（或 emoji）、一句标题、一段可选说明。它的职责是把「没有内容」说清楚，并让页面的留白看起来是设计过的、不是坏了。",
+    "notFor": [
+        "加载中的骨架 → 用 `Skeleton`（atom），空态是「确实没有」而不是「还没来」。",
+        "错误态（请求失败）→ 需要「重试」动作与不同的语气，空态没有操作入口。",
+        "需要 CTA 的空页面（「去写第一篇」）→ 组件没有按钮位，只能靠内联链接，视觉上不成立。",
+        "搜索结果为空：需要回显关键词，本组件的标题是静态字符串。",
+        "把空态当布局容器用（包住实际内容）：它的 `padding: 4rem 1rem` 会把内容推到页面中段。"
+    ],
+    "props": [
+        {
+            "name": "title",
+            "type": "`string`",
+            "default": "—（必填）",
+            "values": "一句话",
+            "notes": "渲染成 `<h2>`。标题层级由本组件写死为二级——放进已经有一级标题的区块里不会冲突，但放进 `h2` 区块内部就会跳级。"
+        },
+        {
+            "name": "message",
+            "type": "`string`",
+            "default": "—（可选）",
+            "values": "一段说明",
+            "notes": "存在时才渲染 `<p>`。文案里不解析 HTML（Astro 默认转义）。"
+        },
+        {
+            "name": "emoji",
+            "type": "`string`",
+            "default": "—（可选）",
+            "values": "单个 emoji",
+            "notes": "没有 `icon` 插槽时的图形占位：`font-size: 4rem` + `opacity: 0.6`。emoji 是文本，读屏会念出它的名字（例如「空心菜」），这通常是噪声。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "icon",
+            "required": "否",
+            "notes": "优先于 `emoji`：存在就渲染 80×80 的图标框（`opacity: 0.3`），否则退回 emoji。插槽里的 `<svg>` 需要调用方自己 `aria-hidden=\"true\"`——组件不代劳。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "居中一段：图标 80×80（或 4rem emoji）+ `<h2>` 1.25rem + 可选说明段；整块 `padding: 4rem 1rem`",
+            "aria": "`<div>` 容器 + `<h2>` + `<p>`；图形部分取决于插槽内容或 emoji 文本"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：没有交互元素",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：不可聚焦",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：空态不是一个可禁用控件",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "普通 `<div>` + `<h2>` + `<p>`。没有 `role=\"status\"`：空态是列表的静态结果，不是异步变化——加 live region 反而会在换页时打断读屏。",
+        "keyboard": "完全不可达：没有可聚焦元素（除非调用方在插槽里放了链接）。",
+        "aria": "没有 ARIA。两处可改进：① `emoji` 渲染的文本应包一层 `aria-hidden=\"true\"`（emoji 名称通常无意义）；② `icon` 插槽的装饰图标同样应由调用方隐藏。",
+        "contrast": [
+            {
+                "pair": "标题 `<h2>`（声明 `color-title` 缺失 → 继承正文色，字号抬到 1.25rem）/ 画布",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（标题）"
+            },
+            {
+                "pair": "说明段（声明 `color-text` 缺失 → 继承正文色，再乘 `opacity: 0.7`）/ 画布",
+                "light": "3.99",
+                "dark": "5.70",
+                "threshold": "≥ 4.5（正文）"
+            }
+        ],
+        "focusRing": "不适用（没有可聚焦元素）。",
+        "target": "不适用（不是交互控件）。若调用方在插槽里放链接，命中区需自行保证。",
+        "reducedMotion": "不适用：组件没有过渡与动画。",
+        "notes": [
+            "实测口径：两处颜色声明都指向 tokens.json 里不存在的键（`color-title` / `color-text`），声明失效后继承正文色；说明段再乘 0.7 的不透明度合成到画布。按 WCAG 公式计算，2 位小数，light / dark 各一次。",
+            "**`opacity: 0.7` 是这里唯一的「调灰」手段**：它不与主题联动——浅色画布上被压到 3.99（低于 4.5），暗色画布上却是 5.70——因为深色主题的继承色本来就是浅字，乘 0.7 之后仍然偏亮。同一条 `opacity` 在两个主题里一个不够、一个够。",
+            "**全部尺寸都是字面量**：`4rem 1rem`、`80px`、`1.5rem`、`4rem`、`1.25rem`、`0.5rem`——这是 23 个 legacy UI 里唯一一个 0 token、0 变量、纯字面量的组件。",
+            "`<h2>` 是写死的层级：它假设自己出现在页面主标题（`h1`）之下、且在没有任何 `h2` 的区块里。放进 `h2` 区块（例如「友链」区块内部）会产生 `h1 → h2 → h2` 的平级，读屏目录里两段并列。",
+            "`showSlot = Astro.slots.has(\"icon\")` 在构建期决定分支：`icon` 插槽一旦传入（哪怕是空内容），emoji 分支就永远不会渲染。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "颜色 / 度量：0 个 token。两处颜色声明（`color-title` / `color-text`）在 tokens.json 里都不存在，所有尺寸（4rem / 1rem / 80px / 1.5rem / 1.25rem / 0.5rem）都是字面量。这是全组最彻底的一处「零 token」实现。"
+    },
+    "sizes": {
+        "title": "尺寸（组件内声明值）",
+        "columns": ["部位", "尺寸", "说明", "来源"],
+        "rows": [
+            ["整块内边距", "4rem 1rem", "上下 64、左右 16（按 16 像素根字号）", "`.empty-state`"],
+            ["图标框", "80×80", "`opacity: 0.3`，居中，下边距 1.5rem", "`.empty-icon`"],
+            ["emoji", "4rem", "`opacity: 0.6`，下边距 1rem", "`.empty-emoji`"],
+            ["标题", "1.25rem", "下边距 0.5rem", "`.empty-state h2`"],
+            ["说明段透明度", "0.7", "不随主题变化", "`.empty-state p`"]
+        ]
+    },
+    "forbidden": [
+        "在加载态用空态占位：读者会以为「真的没有内容」，然后内容出现时页面跳动。",
+        "把 emoji 当唯一图形语义（例如用 🔍 表示「没搜到」）：读屏念的是 emoji 名称。",
+        "在空态里塞按钮：组件没有操作位，按钮会破坏居中文案的对齐。",
+        "依赖 `color-title` / `color-text` 会生效：这两个键已不在 tokens.json 里，标题与说明现在是继承色。",
+        "把空态放进已经使用 `h2` 的区块：标题层级会平级。"
+    ],
+    "related": ["skeleton", "alert"]
+}
