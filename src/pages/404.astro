@@ -1,14 +1,69 @@
 ---
+/**
+ * P-04 · 404（M2-4）
+ *
+ * 版式决策（卡内二选一）：**终端版**（marx_s_blog_404_1 的母题），不取编辑版大数字。
+ * 理由：站点定位是 100% 静态 / 零运行时，终端卡的叙事与技术身份一致；静态 DOM 最小、
+ * 零位图依赖（编辑版的推荐卡要配图），天然不产 CLS；深色终端块在双主题下都成立。
+ *
+ * 英文化：Astro 静态站只有一个 dist/404.html（走 noEnAlternate），所以不新建
+ * src/pages/en/404.astro（那会是一条永远没人访问的路由）；文案按 locale 分支。
+ *
+ * 数据：只用 getAllArticles + articleUrl 读取「最近 3 篇」做恢复信标，不新增数据源。
+ */
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import notFound from "~/assets/404.svg";
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/404.css";
 import { site } from "~/config";
-import { t, getLocale } from "~/utils/i18n";
+import { t, getLocale, type Locale } from "~/utils/i18n";
+import { getAllArticles } from "~/utils/article-stats";
+import { filterByLang, articleUrl } from "~/utils/article-url";
+import { sortByPubDate } from "~/utils";
 
-const loc = getLocale(Astro.currentLocale || "zh");
+const loc: Locale = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const recent = sortByPubDate(filterByLang(await getAllArticles(), loc))
+    .slice(0, 3)
+    .map((post) => ({
+        title: post.data.title,
+        url: articleUrl(post),
+        date: new Date(post.data.pubDate),
+    }));
+
+const fmt = (date: Date) =>
+    date.toLocaleDateString(isEn ? "en-US" : "zh-CN", { month: "2-digit", day: "2-digit" });
+
+const paths = {
+    home: isEn ? "/en/" : "/",
+    archives: isEn ? "/en/archives/" : "/archives/",
+    tags: isEn ? "/en/tags/" : "/tags/",
+    posts: isEn ? "/en/blog/1/" : "/blog/1/",
+};
+
+const terminalLines = isEn
+    ? [
+          "$ ping marxchou.com",
+          "  HTTP/2 404  ·  route not found",
+          "$ traceroute --to=this-path",
+          "  1  edge       ok",
+          "  2  static     no match",
+          '$ grep -r "lost" ./dist',
+          "  0 results  ·  this page was never built",
+      ]
+    : [
+          "$ ping marxchou.com",
+          "  HTTP/2 404  ·  路由未命中",
+          "$ traceroute --to=this-path",
+          "  1  edge       正常",
+          "  2  static     没有这一页",
+          '$ grep -r "迷路" ./dist',
+          "  0 条结果  ·  这条路从未被构建",
+      ];
 ---
 
 <BaseLayout
-    noEnAlternate
+    locale={loc}
     title={t(loc, "common.404.title")}
     description={`${site.title} - ${t(loc, "common.404.message")}`}
     image={Astro.site + site.coverImage}
@@ -16,33 +71,71 @@ const loc = getLocale(Astro.currentLocale || "zh");
     keywords="404"
     publishedTime={new Date()}
     modifiedTime={new Date()}
+    noindex={true}
+    noEnAlternate
 >
-    <div>
-        <h1 class="not-found-title text-center space-bottom">404</h1>
-        <div class="not-found-container">
-            <p class="description">
-                🍌 {t(loc, "common.404.heading")}
-                <a href="/" class="active">{t(loc, "common.404.backHome")} ↩</a>
-            </p>
-            <img
-                src={notFound.src}
-                alt="404 Not Found"
-                class="not-found-bg--loaded"
-                width="600"
-                loading="lazy"
-            />
+    <div class="not-found">
+        <p class="nf-kicker">
+            <span class="nf-kicker__dot" aria-hidden="true"></span>
+            {isEn ? "HTTP 404 · SIGNAL LOST" : "HTTP 404 · 信号丢失"}
+        </p>
+
+        <p class="nf-code" aria-hidden="true">404</p>
+        <h1 class="nf-title">{t(loc, "common.404.title")}</h1>
+        <p class="nf-lede">{t(loc, "common.404.heading")}</p>
+
+        <div class="nf-terminal">
+            <div class="nf-terminal__bar">
+                <span class="nf-terminal__dots" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+                <span class="nf-terminal__name">marx-kernel — debug.sh</span>
+                <span class="nf-terminal__status">{isEn ? "PROBE ACTIVE" : "探测中"}</span>
+            </div>
+            <pre class="nf-terminal__body"><code>{terminalLines.join("\n")}</code></pre>
         </div>
+
+        <div class="nf-actions">
+            <a class="nf-button nf-button--primary" href={paths.home}>
+                {isEn ? "Back to home" : "返回首页"}
+            </a>
+            <a class="nf-button nf-button--secondary" href={paths.archives}>
+                {isEn ? "Browse archives" : "浏览归档"}
+            </a>
+        </div>
+
+        <p class="nf-hint">
+            {isEn ? "or jump to " : "或者直接去 "}
+            <a href={paths.tags}>{isEn ? "the tag graph" : "标签图谱"}</a>
+            <span aria-hidden="true"> · </span>
+            <a href={paths.posts}>{isEn ? "all posts" : "全部文章"}</a>
+        </p>
+
+        {
+            recent.length > 0 && (
+                <section class="nf-beacons" aria-labelledby="nf-beacons-title">
+                    <div class="nf-beacons__head">
+                        <h2 id="nf-beacons-title" class="nf-beacons__title">
+                            {isEn ? "Recovery beacons" : "迷途寻路"}
+                        </h2>
+                        <span class="nf-beacons__meta">
+                            {isEn ? `${recent.length} channels` : `${recent.length} 个航标`}
+                        </span>
+                    </div>
+                    <ul class="nf-beacons__list">
+                        {recent.map((post) => (
+                            <li class="nf-beacons__item">
+                                <a class="nf-beacons__link" href={post.url}>
+                                    <time class="nf-beacons__date" datetime={post.date.toISOString()}>
+                                        {fmt(post.date)}
+                                    </time>
+                                    <span class="nf-beacons__name">{post.title}</span>
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )
+        }
     </div>
 </BaseLayout>
-
-<style>
-    .not-found-container {
-        text-align: center;
-        max-width: var(--content-width);
-        margin: 0 auto;
-    }
-
-    .not-found-container .description {
-        opacity: 0.8;
-    }
-</style>

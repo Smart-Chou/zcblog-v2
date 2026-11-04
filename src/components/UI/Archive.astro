@@ -9,47 +9,16 @@ interface Props {
 const { title, url, publishedTime } = Astro.props;
 
 // 验证和格式化日期
-const formattedDate = publishedTime
-    ? new Date(publishedTime).toLocaleDateString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-      })
+const parsed = publishedTime ? new Date(publishedTime) : null;
+const valid = parsed !== null && !Number.isNaN(parsed.getTime());
+const formattedDate = valid
+    ? parsed.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" })
     : "Invalid date";
+const isoDate = valid ? parsed.toISOString().slice(0, 10) : undefined;
 ---
 
 <p class="archive-meta">
-    <span class="archive-date">{formattedDate}</span>
+    <time class="archive-date" datetime={isoDate}>{formattedDate}</time>
     <a class="archive-title" href={url} rel="noopener noreferrer">{title}</a>
 </p>
 
-<style>
-    .archive-meta {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .archive-date {
-        display: flex;
-        margin-left: 1rem;
-        min-width: 3rem;
-        color: var(--color-text-muted);
-        justify-content: flex-end;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .archive-title {
-        margin-left: 0.5rem;
-        text-decoration: none;
-        transition: color var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .archive-title:hover {
-            text-decoration: underline;
-            text-decoration-color: var(--color-accent);
-            text-decoration-thickness: 1px;
-            text-underline-offset: 0.2em;
-        }
-    }
-</style>

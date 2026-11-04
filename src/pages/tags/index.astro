@@ -1,4 +1,10 @@
 ---
+/**
+ * P-03 标签索引（中文）
+ * M2-4：样式在 src/styles/pages/tags.css（标签详情页共用）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/tags.css";
 import { getLocale } from "~/utils/i18n";
 import TagsIndexContent from "~/components/Pages/TagsIndexContent.astro";
 const locale = getLocale(Astro.currentLocale || "zh");

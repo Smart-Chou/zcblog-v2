@@ -1,10 +1,19 @@
 ---
+/**
+ * P-03 · 标签索引（M2-4）
+ *
+ * 版式：marx_s_blog_archives_tags_2 的「权重排序标签图谱」——单列网格、
+ * 高频 12 个用大号胶囊、长尾用小号胶囊，计数留在胶囊内部。
+ * - 只做渲染层：标签统计仍走 utils/article-stats（normalizeTag 口径未改）。
+ * - 样式在 src/styles/pages/tags.css。**本组件不写 `<style>`**：Astro 会给
+ *   每个元素加 data-astro-cid-*，272 个标签会把 HTML 撑出列表页预算（≤105KB）。
+ * - 390 宽不溢出：胶囊 flex-wrap + max-inline-size:100%。
+ */
 import { getAllTags, getAllArticles, normalizeTag } from "~/utils/article-stats";
 import { filterByLang } from "~/utils/article-url";
-import SectionPage from "~/components/Layout/SectionPage.astro";
-import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
-import Badge from "~/components/UI/Badge.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
 import Author from "~/components/UI/Author.astro";
+import Link from "~/components/UI/atom/Link.astro";
 import { site } from "~/config";
 import { t, getLocale, type Locale } from "~/utils/i18n";
 
@@ -14,30 +23,32 @@ interface Props {
 
 const { locale = "zh" } = Astro.props;
 const loc: Locale = getLocale(locale);
+const isEn = loc === "en";
 
 // 仅统计当前语言文章的标签（双语完整化，2026-10）
 const allPosts = filterByLang(await getAllArticles(), loc);
 
 const allTags = getAllTags(allPosts);
-const tagCounts = allTags.reduce(
-    (acc, tag) => {
-        const key = normalizeTag(tag);
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-    },
-    {} as Record<string, number>,
-);
+const tagCounts = allTags.reduce<Record<string, number>>((acc, tag) => {
+    const key = normalizeTag(tag);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+}, {});
 
 const sortedTags = Object.entries(tagCounts)
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
-const tagPrefix = loc === "en" ? "/en/tags" : "/tags";
+const tagPrefix = isEn ? "/en/tags" : "/tags";
+const allPostsHref = isEn ? "/en/blog/1/" : "/blog/1/";
+
+/** 权重视觉分级：前 12 高、前 48 中、其余长尾（纯展示，不改排序）。 */
+const weightOf = (index: number) => (index < 12 ? 3 : index < 48 ? 2 : 1);
 ---
 
-<SectionPage
-    title={t(loc, "tags.title")}
-    subtitle={t(loc, "tags.subtitle")}
+<BaseLayout
+    locale={loc}
+    title={`${t(loc, "tags.title")} - ${site.title}`}
     description={`${t(loc, "tags.description")} - ${site.title}`}
     image={`${Astro.site + site.coverImage}`}
     imageAlt={t(loc, "tags.title")}
@@ -46,91 +57,41 @@ const tagPrefix = loc === "en" ? "/en/tags" : "/tags";
     modifiedTime={new Date()}
     noindex={true}
 >
-    <DynamicIcon name="tabler:tags" slot="icon" />
+    <div class="tags-hub">
+        <header class="tags-hero">
+            <p class="tags-kicker">{isEn ? "TAXONOMY · TAG GRAPH" : "标签 · 图谱"}</p>
+            <h1 class="tags-title">{t(loc, "tags.title")}</h1>
+            <p class="tags-lede">{t(loc, "tags.subtitle")}</p>
+            <p class="tags-meta">
+                <span>{isEn ? `${sortedTags.length} tags` : `${sortedTags.length} 个标签`}</span>
+                <span>{isEn ? `${allPosts.length} posts` : `${allPosts.length} 篇文章`}</span>
+            </p>
+        </header>
 
-    <div class="tag-cloud">
-        {
-            sortedTags.map(({ name, count }) => (
-                <span class="tag-item">
-                    <a href={`${tagPrefix}/${name}/`}>{name}</a>
-                    <Badge size="sm">{count}</Badge>
-                </span>
-            ))
-        }
+        <section class="tags-graph" aria-labelledby="tags-graph-title">
+            <div class="tags-section-header">
+                <h2 id="tags-graph-title" class="tags-section-title">
+                    {isEn ? "Weighted tag graph" : "高频热度图谱"}
+                </h2>
+                <Link href={allPostsHref} variant="standalone" class="tags-section-link">
+                    {isEn ? "All posts" : "全部文章"} →
+                </Link>
+            </div>
+
+            <ul class="tag-cloud" data-count={sortedTags.length}>
+                {
+                    sortedTags.map(({ name, count }, index) => (
+                        <li class="tag-cloud__item" data-weight={weightOf(index)}>
+                            <a class="tag-cloud__link" href={`${tagPrefix}/${name}/`}>
+                                {name}
+                                <span class="tag-cloud__count">{count}</span>
+                            </a>
+                        </li>
+                    ))
+                }
+            </ul>
+        </section>
+
+        <Author />
     </div>
-    <Author />
-</SectionPage>
-
-<style>
-    .tag-cloud {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .tag-item {
-        margin: 0.25em;
-        border-radius: 2em;
-        padding: 0.5em 1em;
-        font-size: 1em;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5em;
-        background-color: var(--color-bg);
-        border: 1px solid var(--color-border);
-    }
-
-    .tag-item a {
-        text-decoration: none;
-    }
-
-    @media (hover: hover) {
-        .tag-item a:hover {
-            text-decoration: underline;
-        }
-    }
-
-    .tag-count {
-        font-size: 0.75em;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 1.8em;
-        height: 1.8em;
-        border-radius: 50%;
-        font-weight: 600;
-        color: white;
-    }
-
-    .tag-count[data-level="1"] {
-        background: #93c5fd;
-    }
-    .tag-count[data-level="2"] {
-        background: #60a5fa;
-    }
-    .tag-count[data-level="3"] {
-        background: #3b82f6;
-    }
-    .tag-count[data-level="4"] {
-        background: #1d4ed8;
-    }
-    .tag-count[data-level="5"] {
-        background: #1e40af;
-    }
-
-    html[data-theme="dark"] .tag-count[data-level="1"] {
-        background: #1e3a5f;
-    }
-    html[data-theme="dark"] .tag-count[data-level="2"] {
-        background: #1d4ed8;
-    }
-    html[data-theme="dark"] .tag-count[data-level="3"] {
-        background: #2563eb;
-    }
-    html[data-theme="dark"] .tag-count[data-level="4"] {
-        background: #3b82f6;
-    }
-    html[data-theme="dark"] .tag-count[data-level="5"] {
-        background: #60a5fa;
-    }
-</style>
+</BaseLayout>

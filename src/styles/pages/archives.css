@@ -1,0 +1,451 @@
+/* ============================================================
+   P-03 · 归档（M2-4）
+   ------------------------------------------------------------
+   版式：marx_s_blog_archives_tags_1 —— KPI 行 + 创作热力图 + 8/4 双栏时间轴。
+   约束：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl()。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 全部规则收在 `.archives` 作用域内，不与共享样式互相污染。
+   - 热力图高度占位在 src/styles/heatmap.css（min-height 144/130，D-0093），
+     本文件只调外壳 padding，不改热力图内部结构。
+   ============================================================ */
+
+/* 默认 .content 是文章正文宽度（860）；归档要 1200 的双栏。不改 BaseLayout。
+   `.main` 在 flex 列里带 margin-inline:auto（auto 外边距会吃掉 stretch），
+   宽度因此是 fit-content —— 页面卡必须显式撑满，否则 1440 下只有 849。 */
+.main:has(> .content > .archives) {
+    width: 100%;
+}
+
+.main > .content:has(> .archives) {
+    max-width: var(--layout-content);
+}
+
+.archives {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    padding-block: var(--space-6) var(--space-16);
+}
+
+/* 列向 flex 的子项默认 min-width:auto，热力图的 max-content 会把整页撑宽 */
+.archives > * {
+    min-inline-size: 0;
+}
+
+/* ── 页头 ─────────────────────────────────────────────────── */
+
+.archives-hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.archives-kicker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.archives-kicker::before {
+    content: "";
+    inline-size: var(--space-8);
+    block-size: 1px;
+    background-color: var(--color-accent-solid);
+}
+
+.archives-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: var(--font-weight-semibold);
+    font-size: clamp(var(--text-3xl), 4.5vw, var(--text-4xl));
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.archives-lede {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+/* ── KPI 行 ───────────────────────────────────────────────── */
+
+.archives-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.archives-kpi__label {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.archives-kpi__value {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-3xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-none);
+    color: var(--color-fg-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.archives-kpi__note {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+}
+
+/* ── 热力图卡 ─────────────────────────────────────────────── */
+
+.archives-heatmap__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-6) var(--space-4);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.archives-heatmap__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: none;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+}
+
+/* 热力图网格在窄视口会顶到卡片边缘：padding 收紧到 8，并按需横向滚动兜底。 */
+.archives-heatmap__body {
+    padding: var(--space-6);
+    overflow-x: auto;
+}
+
+/* Card atom 与热力图都不许把列向 flex 撑宽（min-width:auto 的经典坑） */
+.archives-heatmap .card__body,
+.archives-heatmap .card__content {
+    min-inline-size: 0;
+}
+
+/* 热力图是固定格子尺寸：容器按内容宽居中，图例才会贴着网格右缘（否则飘到卡片最右）。
+   窄视口仍由外层 overflow-x: auto 兜底。 */
+.archives-heatmap__body .heatmap-container {
+    inline-size: max-content;
+    max-inline-size: 100%;
+    margin-inline: auto;
+}
+
+/* ── 区块标题（与首页 section-header 同一套语言） ─────────── */
+
+.archives-section-header {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-block-end: var(--space-6);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.archives-section-header::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-end: -1px;
+    inline-size: var(--space-10);
+    block-size: 2px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+}
+
+.archives-section-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.archives-section-note {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
+}
+
+.archives-section-meta {
+    flex: none;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+}
+
+/* ── 8/4 主栅格 ───────────────────────────────────────────── */
+
+.archives-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-10);
+    align-items: start;
+}
+
+.archives-timeline,
+.archives-side {
+    min-inline-size: 0;
+}
+
+.archives-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+/* ── 时间轴 ───────────────────────────────────────────────── */
+
+.archives-years {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.archives-year {
+    position: relative;
+    padding-inline-start: var(--space-6);
+    border-inline-start: 1px solid var(--color-border-subtle);
+}
+
+/* 年节点：8px 圆点压在 1px 时间线上（left -4px 让圆心落在线上） */
+.archives-year::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(var(--space-1) * -1);
+    inset-block-start: var(--space-3);
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+}
+
+.archives-year__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin-block-end: var(--space-4);
+}
+
+.archives-year__label {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-none);
+    color: var(--color-fg-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.archives-year__count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.archives-year__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+/* Archive.astro 的行（组件不再带 scoped 样式，规则集中在这里） */
+.archives .archive-meta {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .archives .archive-meta:hover {
+        background-color: var(--color-bg-hover);
+    }
+}
+
+.archives .archive-date {
+    flex: none;
+    display: inline;
+    inline-size: var(--space-10);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-align: end;
+    color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.archives .archive-title {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    margin: 0;
+    font-size: var(--text-base);
+    color: var(--color-fg-default);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .archives .archive-title:hover {
+        color: var(--color-fg-link);
+        text-decoration: underline;
+        text-underline-offset: var(--space-1);
+    }
+}
+
+/* ── 侧栏 ─────────────────────────────────────────────────── */
+
+.archives-panel__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.archives-panel__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.archives-panel__link {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+}
+
+.archives-taglist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.archives-taglist__item {
+    max-inline-size: 100%;
+}
+
+.archives-taglist__count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    /* Tag atom 的底色是 --color-bg-muted：muted 字在它上面只有 ~3.6:1，用 default 才够 AA */
+    color: var(--color-fg-default);
+    font-variant-numeric: tabular-nums;
+}
+
+.archives-links {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* ── 焦点环：global.css 的 :focus-visible 用旧 --color-accent，
+   本卡交付范围内收口到 --color-ring-focus（M2-3 同款修复）。 ── */
+
+.archives a[href]:focus-visible,
+.archives button:focus-visible,
+.archives summary:focus-visible,
+.archives [tabindex]:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ── 断点 ─────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+    .archives-columns {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-8);
+    }
+
+    .archives-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .archives-heatmap__body {
+        padding-inline: var(--space-2);
+    }
+}
+
+@media (max-width: 768px) {
+    .archives {
+        padding-block: var(--space-4) var(--space-12);
+        gap: var(--space-8);
+    }
+
+    .archives-heatmap__head {
+        padding: var(--space-4) var(--space-4) var(--space-3);
+    }
+}
+
+@media (max-width: 450px) {
+    .archives-kpis {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-3);
+    }
+
+    .archives-heatmap__head {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .archives .archive-meta {
+        gap: var(--space-2);
+        padding-inline: var(--space-1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .archives .archive-meta,
+    .archives .archive-title {
+        transition: none;
+    }
+}

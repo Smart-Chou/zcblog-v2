@@ -1,4 +1,10 @@
 ---
+/**
+ * P-03 归档（中文）
+ * M2-4：样式在 src/styles/pages/archives.css，视觉值全部来自 tokens.css。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/archives.css";
 import { getLocale } from "~/utils/i18n";
 import ArchivesContent from "~/components/Pages/ArchivesContent.astro";
 const locale = getLocale(Astro.currentLocale || "zh");

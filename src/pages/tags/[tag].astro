@@ -1,4 +1,10 @@
 ---
+/**
+ * P-03 标签详情（中文）
+ * M2-4：样式在 src/styles/pages/tags.css。分页 URL 规则不动（G2 契约）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/tags.css";
 import { getLocale } from "~/utils/i18n";
 import TagPostsContent from "~/components/Pages/TagPostsContent.astro";
 import { makeTagPostsGetStaticPaths } from "~/utils/tag-paths";

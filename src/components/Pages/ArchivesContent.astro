@@ -1,11 +1,24 @@
 ---
-import { getAllArticles } from "~/utils/article-stats";
+/**
+ * P-03 · 归档页（M2-4）
+ *
+ * 版式：marx_s_blog_archives_tags_1 的「KPI 行 + 创作热力图 + 8/4 双栏时间轴」。
+ * - 只做渲染层：文章集合、字数、标签统计仍走 utils/article-stats + article-url，
+ *   热力图数据源与分页规则未改（M2-4 文件边界）。
+ * - 样式在 src/styles/pages/archives.css：0 颜色字面量，尺寸全部 token。
+ * - CLS：热力图的最小高度由 src/styles/heatmap.css 的 min-height 占位（D-0093），
+ *   本组件不改该结构（容器仍只带 data-posts，3 个子节点由脚本填入）。
+ */
+import { getAllArticles, getAllTags, normalizeTag } from "~/utils/article-stats";
 import { filterByLang, articleUrl } from "~/utils/article-url";
-import SectionPage from "~/components/Layout/SectionPage.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
 import Archive from "~/components/UI/Archive.astro";
 import Author from "~/components/UI/Author.astro";
 import Heatmap from "~/components/UI/Heatmap.astro";
-import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+import Card from "~/components/UI/atom/Card.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Link from "~/components/UI/atom/Link.astro";
+import Tag from "~/components/UI/atom/Tag.astro";
 import { site } from "~/config";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { sortByPubDate, formatDateToYYYYMMDD } from "~/utils";
@@ -18,6 +31,7 @@ interface Props {
 
 const { locale = "zh" } = Astro.props;
 const loc: Locale = getLocale(locale);
+const isEn = loc === "en";
 
 interface PostWithMeta extends CollectionEntry<"article"> {
     wordCount: number;
@@ -27,48 +41,97 @@ interface PostWithMeta extends CollectionEntry<"article"> {
     slug: string;
 }
 
-interface PostsByYear {
-    [year: number]: PostWithMeta[];
-}
-
 // 仅统计/展示当前语言的文章（双语完整化，2026-10）
 const allPosts = filterByLang(await getAllArticles(), loc);
 
 const postsWithMeta = sortByPubDate(allPosts.map((post) => enrichPost(post))) as PostWithMeta[];
 const latestModified = postsWithMeta[0]?.modifiedTime || new Date();
 
-const postsByYear = postsWithMeta.reduce<PostsByYear>((acc, post) => {
+const postsByYear = postsWithMeta.reduce<Record<number, PostWithMeta[]>>((acc, post) => {
     const year = new Date(post.data.pubDate).getFullYear();
-    if (!acc[year]) {
-        acc[year] = [];
-    }
+    if (!acc[year]) acc[year] = [];
     acc[year].push(post);
     return acc;
 }, {});
 
+const years = Object.keys(postsByYear)
+    .map((year) => Number(year))
+    .sort((a, b) => b - a);
+
 const totalPosts = postsWithMeta.length;
 const totalWords = postsWithMeta.reduce((sum, post) => sum + post.wordCount, 0);
-const totalWordsInThousands = (totalWords / 1000).toFixed(1) + "k";
+const totalWordsInThousands = `${(totalWords / 1000).toFixed(1)}k`;
 
 const startYear =
     postsWithMeta.length > 0
         ? Math.min(...postsWithMeta.map((post) => new Date(post.data.pubDate).getFullYear()))
-        : new Date().getFullYear();
+        : Number(site.startYear) || new Date().getFullYear();
+const endYear = postsWithMeta.length > 0 ? Math.max(...years) : new Date().getFullYear();
+
+const tagCounts = getAllTags(allPosts).reduce<Record<string, number>>((acc, tag) => {
+    const key = normalizeTag(tag);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+}, {});
+const totalTags = Object.keys(tagCounts).length;
+const topTags = Object.entries(tagCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 8);
+
+const tagPrefix = isEn ? "/en/tags" : "/tags";
+const allPostsHref = isEn ? "/en/blog/1/" : "/blog/1/";
+const tagsHref = isEn ? "/en/tags/" : "/tags/";
+const rssHref = isEn ? "/en/rss.xml" : "/rss.xml";
 
 const postsData = postsWithMeta.map((post) => ({
     date: post.data.pubDate ? formatDateToYYYYMMDD(new Date(post.data.pubDate)) : "",
     title: post.data.title || "",
     wordCount: post.wordCount,
 }));
+
+const subtitle = t(loc, "archives.subtitle", {
+    startYear: String(startYear),
+    totalPosts: String(totalPosts),
+    totalWords: totalWordsInThousands,
+});
+
+const kpis = [
+    {
+        key: "posts",
+        label: "ARTICLES",
+        value: String(totalPosts),
+        note: isEn ? "published posts" : "篇文章",
+    },
+    {
+        key: "tags",
+        label: "TAGS",
+        value: String(totalTags),
+        note: isEn ? "topics covered" : "个主题标签",
+    },
+    {
+        key: "words",
+        label: "WORDS",
+        value: totalWordsInThousands,
+        note: isEn ? "words in total" : "累计字数",
+    },
+    {
+        key: "span",
+        label: "SPAN",
+        value: `${startYear}–${endYear}`,
+        note: isEn ? "years writing" : "持续写作",
+    },
+];
+
+const timelineTitle = isEn ? "Timeline" : "编年时间轴";
+const heatmapTitle = isEn ? "Publishing rhythm" : "创作节奏热力图";
+const knowledgeTitle = isEn ? "Knowledge map" : "知识域";
+const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
 ---
 
-<SectionPage
-    title={t(loc, "archives.title")}
-    subtitle={t(loc, "archives.subtitle", {
-        startYear: String(startYear),
-        totalPosts: String(totalPosts),
-        totalWords: totalWordsInThousands,
-    })}
+<BaseLayout
+    locale={loc}
+    title={`${t(loc, "archives.title")} - ${site.title}`}
     description={`${t(loc, "archives.description")} - ${site.title}`}
     image={`${Astro.site + site.coverImage}`}
     imageAlt={t(loc, "archives.description")}
@@ -76,32 +139,140 @@ const postsData = postsWithMeta.map((post) => ({
     publishedTime={latestModified}
     modifiedTime={latestModified}
 >
-    <DynamicIcon name="tabler:archive" slot="icon" />
-    <section class="stats-section">
-        <Heatmap postsData={postsData} />
-    </section>
-    <div>
-        {
-            Object.keys(postsByYear)
-                .map((year) => Number(year))
-                .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-                .map((year) => (
-                    <section data-key={year}>
-                        <h2>{year}</h2>
-                        {sortByPubDate(postsByYear[year]).map((post) => (
-                            <Archive
-                                key={post.slug}
-                                url={articleUrl(post)}
-                                title={post.data.title}
-                                publishedTime={post.data.pubDate}
-                            />
-                        ))}
-                    </section>
+    <div class="archives">
+        <header class="archives-hero">
+            <p class="archives-kicker">{isEn ? "ARCHIVES · TIMELINE" : "归档 · 时间轴"}</p>
+            <h1 class="archives-title">{t(loc, "archives.title")}</h1>
+            <p class="archives-lede">{subtitle}</p>
+        </header>
+
+        <section class="archives-kpis" aria-label={isEn ? "Site statistics" : "站点统计"}>
+            {
+                kpis.map((kpi) => (
+                    <Card padding="md" as="div" class="archives-kpi">
+                        <p class="archives-kpi__label">{kpi.label}</p>
+                        <p class="archives-kpi__value">{kpi.value}</p>
+                        <p class="archives-kpi__note">{kpi.note}</p>
+                    </Card>
                 ))
-        }
+            }
+        </section>
+
+        <Card padding="none" as="section" class="archives-heatmap" labelledby="heatmap-title">
+            <div class="archives-heatmap__head">
+                <div>
+                    <h2 id="heatmap-title" class="archives-section-title">{heatmapTitle}</h2>
+                    <p class="archives-section-note">
+                        {isEn
+                            ? "Daily word count of the last 12 months — hover a cell for the post."
+                            : "近 12 个月的发文密度，悬停格子看当天文章。"}
+                    </p>
+                </div>
+                <p class="archives-heatmap__meta">
+                    <Icon name="tabler:flame" size="sm" />
+                    <span>{isEn ? "52 weeks" : "近 52 周"}</span>
+                </p>
+            </div>
+            <div class="archives-heatmap__body">
+                <Heatmap postsData={postsData} />
+            </div>
+        </Card>
+
+        <div class="archives-columns">
+            <section class="archives-timeline" aria-labelledby="timeline-title">
+                <div class="archives-section-header">
+                    <h2 id="timeline-title" class="archives-section-title">{timelineTitle}</h2>
+                    <p class="archives-section-meta">
+                        {isEn ? `${totalPosts} posts` : `共 ${totalPosts} 篇`}
+                    </p>
+                </div>
+                <ol class="archives-years">
+                    {
+                        years.map((year) => (
+                            <li class="archives-year" data-year={year}>
+                                <div class="archives-year__head">
+                                    <h3 class="archives-year__label">{year}</h3>
+                                    <span class="archives-year__count">
+                                        {isEn
+                                            ? `${postsByYear[year].length} posts`
+                                            : `${postsByYear[year].length} 篇`}
+                                    </span>
+                                </div>
+                                <div class="archives-year__list">
+                                    {sortByPubDate(postsByYear[year]).map((post) => (
+                                        <Archive
+                                            key={post.slug}
+                                            url={articleUrl(post)}
+                                            title={post.data.title}
+                                            publishedTime={post.data.pubDate}
+                                        />
+                                    ))}
+                                </div>
+                            </li>
+                        ))
+                    }
+                </ol>
+            </section>
+
+            <aside class="archives-side" aria-label={isEn ? "Archive sidebars" : "归档侧栏"}>
+                <Card padding="md" as="section" class="archives-panel" labelledby="archives-tags-title">
+                    <div class="archives-panel__head">
+                        <h2 id="archives-tags-title" class="archives-panel__title">{knowledgeTitle}</h2>
+                        <Link href={tagsHref} variant="standalone" class="archives-panel__link">
+                            {isEn ? "All" : "全部"}
+                        </Link>
+                    </div>
+                    <ul class="archives-taglist">
+                        {
+                            topTags.map((tag) => (
+                                <li class="archives-taglist__item">
+                                    <Tag href={`${tagPrefix}/${tag.name}/`} size="sm">
+                                        {tag.name}
+                                        <span class="archives-taglist__count" aria-hidden="true">
+                                            {tag.count}
+                                        </span>
+                                        <span class="sr-only">
+                                            {isEn ? `${tag.count} posts` : `${tag.count} 篇文章`}
+                                        </span>
+                                    </Tag>
+                                </li>
+                            ))
+                        }
+                    </ul>
+                </Card>
+
+                <Card padding="md" as="section" class="archives-panel" labelledby="archives-links-title">
+                    <div class="archives-panel__head">
+                        <h2 id="archives-links-title" class="archives-panel__title">{shortcutsTitle}</h2>
+                    </div>
+                    <ul class="archives-links">
+                        <li>
+                            <Link href={allPostsHref} variant="standalone">
+                                <Icon name="tabler:archive" size="sm" />
+                                {isEn ? "All posts" : "全部文章"}
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href={tagsHref} variant="standalone">
+                                <Icon name="tabler:tags" size="sm" />
+                                {isEn ? "Tag graph" : "标签图谱"}
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href={rssHref} variant="standalone" external>
+                                <Icon name="tabler:rss" size="sm" />
+                                {isEn ? "RSS feed" : "RSS 订阅"}
+                            </Link>
+                        </li>
+                    </ul>
+                </Card>
+            </aside>
+        </div>
+
+        <Author />
     </div>
-    <Author />
-</SectionPage>
+</BaseLayout>
+
 <script>
     import { registerHeatmap } from "~/scripts/heatmap";
     registerHeatmap();

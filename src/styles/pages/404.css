@@ -1,0 +1,333 @@
+/* ============================================================
+   P-04 · 404（M2-4）
+   ------------------------------------------------------------
+   版式：终端版（marx_s_blog_404_1 的母题）——状态徽章 + 404 大字 +
+   macOS 终端卡（静态命令行输出）+ 双按钮 + 最近文章航标。
+   零位图、零运行时：全部排版与 token 色，天然不产 CLS。
+   约束：0 hex / rgb() / hsl()；px 仅 1px / 2px 与断点。
+   ============================================================ */
+
+.main:has(> .content > .not-found) {
+    width: 100%;
+}
+
+.main > .content:has(> .not-found) {
+    max-width: var(--layout-article);
+}
+
+.not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-5);
+    padding-block: var(--space-8) var(--space-16);
+    text-align: center;
+}
+
+/* ── 状态徽章 ─────────────────────────────────────────────── */
+
+.nf-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.nf-kicker__dot {
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-status-danger-solid);
+}
+
+/* ── 404 大字 + 标题 ──────────────────────────────────────── */
+
+.nf-code {
+    margin: var(--space-2) 0 0;
+    font-family: var(--font-mono);
+    font-size: clamp(var(--text-4xl), 12vw, var(--text-display));
+    font-weight: var(--font-weight-bold);
+    line-height: var(--leading-none);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-accent-solid);
+    font-variant-numeric: tabular-nums;
+}
+
+.nf-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: var(--font-weight-semibold);
+    font-size: clamp(var(--text-2xl), 4vw, var(--text-3xl));
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.nf-lede {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+/* ── 终端卡 ───────────────────────────────────────────────── */
+
+.nf-terminal {
+    inline-size: 100%;
+    margin-block-start: var(--space-2);
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-inverse);
+    box-shadow: var(--shadow-3);
+    text-align: start;
+}
+
+.nf-terminal__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border-block-end: 1px solid
+        color-mix(in oklab, var(--color-fg-inverse) 18%, transparent);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-inverse);
+}
+
+.nf-terminal__dots {
+    display: inline-flex;
+    gap: var(--space-1);
+    flex: none;
+}
+
+.nf-terminal__dots span {
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+}
+
+.nf-terminal__dots span:nth-child(1) {
+    background-color: var(--color-status-danger-solid);
+}
+
+.nf-terminal__dots span:nth-child(2) {
+    background-color: var(--color-status-warning-solid);
+}
+
+.nf-terminal__dots span:nth-child(3) {
+    background-color: var(--color-status-success-solid);
+}
+
+.nf-terminal__name {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.nf-terminal__status {
+    flex: none;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+}
+
+.nf-terminal__body {
+    margin: 0;
+    padding: var(--space-4);
+    overflow-x: auto;
+    /* 全局 pre 自带 --color-code-bg（浅色芯片底）：这里必须清掉，否则浅底浅字 */
+    background-color: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-inverse);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.nf-terminal__body code {
+    font: inherit;
+    color: inherit;
+    background: none;
+    padding: 0;
+    border: 0;
+}
+
+/* ── 操作区 ───────────────────────────────────────────────── */
+
+.nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    inline-size: 100%;
+}
+
+.nf-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--space-12);
+    padding-inline: var(--space-6);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    transition:
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+.nf-button--primary {
+    background-color: var(--color-accent-solid);
+    color: var(--color-fg-on-accent);
+}
+
+.nf-button--secondary {
+    border-color: var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-default);
+}
+
+@media (hover: hover) {
+    .nf-button--primary:hover {
+        background-color: var(--color-accent-solid-hover);
+    }
+
+    .nf-button--secondary:hover {
+        background-color: var(--color-bg-hover);
+    }
+}
+
+.nf-hint {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+}
+
+/* ── 最近文章航标 ─────────────────────────────────────────── */
+
+.nf-beacons {
+    inline-size: 100%;
+    margin-block-start: var(--space-6);
+    text-align: start;
+}
+
+.nf-beacons__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-block-end: var(--space-4);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.nf-beacons__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.nf-beacons__meta {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+}
+
+.nf-beacons__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nf-beacons__link {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-2);
+    border-radius: var(--radius-md);
+    color: var(--color-fg-default);
+    font-size: var(--text-base);
+    text-decoration: none;
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .nf-beacons__link:hover {
+        background-color: var(--color-bg-hover);
+        color: var(--color-fg-link);
+    }
+}
+
+.nf-beacons__date {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.nf-beacons__name {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+}
+
+/* ── 焦点环：收口到 --color-ring-focus ────────────────────── */
+
+.not-found a[href]:focus-visible,
+.not-found button:focus-visible,
+.not-found [tabindex]:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ── 断点 ─────────────────────────────────────────────────── */
+
+@media (max-width: 450px) {
+    .not-found {
+        padding-block: var(--space-4) var(--space-12);
+        gap: var(--space-4);
+    }
+
+    .nf-actions {
+        flex-direction: column;
+    }
+
+    .nf-button {
+        inline-size: 100%;
+    }
+
+    .nf-terminal__bar {
+        padding-inline: var(--space-3);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nf-button,
+    .nf-beacons__link {
+        transition: none;
+    }
+}

@@ -1,7 +1,16 @@
 ---
+/**
+ * P-03 · 标签详情（M2-4）
+ *
+ * 版式与归档/标签索引同一套页头（kicker + serif 标题 + lede + 计数）。
+ * - 只做渲染层：标签页路由与分页 URL 规则不动（G2 契约，见 utils/tag-paths）。
+ * - 样式在 src/styles/pages/tags.css；文章卡片仍用 TagsPostCard（.post-card 契约）。
+ */
 import type { CollectionEntry } from "astro:content";
-import SectionPage from "~/components/Layout/SectionPage.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
 import TagsPostCard from "~/components/Article/TagsPostCard.astro";
+import EmptyState from "~/components/UI/EmptyState.astro";
+import Link from "~/components/UI/atom/Link.astro";
 import { site } from "~/config";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { t, getLocale, type Locale } from "~/utils/i18n";
@@ -13,16 +22,21 @@ interface Props {
 
 const { locale = "zh", articles } = Astro.props;
 const loc: Locale = getLocale(locale);
+const isEn = loc === "en";
 
 const tag = (Astro.params.tag as string) || "";
 
 const postsWithMeta = articles.map((post: CollectionEntry<"article">) => enrichPost(post));
 const latestModified = postsWithMeta[0]?.modifiedTime || new Date();
+const tagsHref = isEn ? "/en/tags/" : "/tags/";
+const countLabel = isEn
+    ? `${postsWithMeta.length} ${postsWithMeta.length === 1 ? "post" : "posts"} tagged “${tag}”`
+    : `${postsWithMeta.length} 篇文章标签为 “${tag}”`;
 ---
 
-<SectionPage
-    title={`# ${tag}`}
-    subtitle={t(loc, "tags.taggedCount", { count: String(postsWithMeta.length), tag })}
+<BaseLayout
+    locale={loc}
+    title={`# ${tag} - ${site.title}`}
     description={`${tag} - ${site.description}`}
     image={`${Astro.site + site.coverImage}`}
     imageAlt={tag}
@@ -30,31 +44,43 @@ const latestModified = postsWithMeta[0]?.modifiedTime || new Date();
     publishedTime={new Date()}
     modifiedTime={latestModified}
     noindex={true}
-    empty={postsWithMeta.length === 0}
-    emptyTitle={t(loc, "tags.emptyTitle")}
-    emptyMessage={t(loc, "tags.emptyMessage", { tag })}
 >
-    <div class="posts">
+    <div class="tag-detail">
+        <header class="tag-detail__hero">
+            <p class="tags-kicker">{isEn ? "TAGS · INDEX" : "标签 · 索引"}</p>
+            <h1 class="tag-detail__title">
+                <span class="tag-detail__hash" aria-hidden="true">#</span>
+                {tag}
+            </h1>
+            <p class="tag-detail__lede">{countLabel}</p>
+            <Link href={tagsHref} variant="standalone" class="tag-detail__back">
+                ← {isEn ? "All tags" : "全部标签"}
+            </Link>
+        </header>
+
         {
-            postsWithMeta.map((post) => (
-                <TagsPostCard
-                    title={post.data.title}
-                    description={post.data.description || post.excerpt}
-                    tags={post.data.tags || []}
-                    postUrl={`${loc === "en" ? "/en/article" : "/article"}/${loc === "en" ? (post.slug || post.id).replace(/-en$/, "") : post.slug || post.id}/`}
-                    publishedTime={post.data.pubDate}
-                    modifiedTime={post.modifiedTime}
-                    wordCount={post.wordCount}
-                    readTime={post.readTime}
-                    currentSlug={post.slug}
+            postsWithMeta.length > 0 ? (
+                <div class="posts tag-detail__posts">
+                    {postsWithMeta.map((post) => (
+                        <TagsPostCard
+                            title={post.data.title}
+                            description={post.data.description || post.excerpt}
+                            tags={post.data.tags || []}
+                            postUrl={`${isEn ? "/en/article" : "/article"}/${isEn ? (post.slug || post.id).replace(/-en$/, "") : post.slug || post.id}/`}
+                            publishedTime={post.data.pubDate}
+                            modifiedTime={post.modifiedTime}
+                            wordCount={post.wordCount}
+                            readTime={post.readTime}
+                            currentSlug={post.slug}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <EmptyState
+                    title={t(loc, "tags.emptyTitle")}
+                    message={t(loc, "tags.emptyMessage", { tag })}
                 />
-            ))
+            )
         }
     </div>
-</SectionPage>
-
-<style>
-    .posts {
-        gap: 1.5rem;
-    }
-</style>
+</BaseLayout>
