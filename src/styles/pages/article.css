@@ -1,0 +1,900 @@
+/* ============================================================
+   P-02 · 文章详情（M2-3 / P-02）
+   ------------------------------------------------------------
+   版式来源：Stitch `mobile_article_detail` + `toc`（编辑式长阅读）。
+   结构与既有行为的契约（不许动）：
+   - `.post-title-text`      文章页 h1（e2e/article.spec）
+   - `.reading-progress`     D-0089 进度条，~/scripts/reading-progress 按它取元素
+   - `.waline-pageview-count[data-path]`  D-0090 浏览量回填
+   - `.post-nav`             Toc.astro 的滚动定位依赖它算文章底部
+   - `.share-bar[data-post-share]` / `.share-wechat-wrap` / `.share-pop`
+                             ~/scripts/share 的全部钩子
+   - `.toc` / `.toc-content` / `.toc-list(-item)` / `.toc-link`
+                             D-0082 构建期目录 + tocbot 接管
+   约定：
+   - 只消费 tokens/tokens.css 的语义 token；本文件 0 hex / 0 rgb() / 0 hsl()。
+   - px 只用 0 / 1px / 2px 与 @media 断点；其余走 --space-* / --radius-*。
+   - 全部规则收在 `.post*` / `.toc.post-toc` 作用域内，不改共享样式表。
+   ============================================================ */
+
+/* ── 页面外壳 ─────────────────────────────────────────────── */
+
+/* 前缀 `.content >` 压过 components.css 里列表卡用的 `.post`（flex + gap 3.5rem） */
+.content > .post {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    padding-bottom: var(--space-12);
+}
+
+/* 页头：面包屑 → 朱红短横 → 标题 → 元信息，居中；与首页 masthead 同一套节奏 */
+.post-masthead {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: var(--layout-article);
+    margin-inline: auto;
+    padding-block: var(--space-4) var(--space-8);
+    text-align: center;
+}
+
+/* ── 面包屑 ──────────────────────────────────────────────── */
+
+.post-crumbs {
+    max-width: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    line-height: var(--leading-snug);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.post-crumbs__list {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-width: 0;
+}
+
+.post-crumbs__item {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.post-crumbs__item:not(:last-child)::after {
+    content: "/";
+    margin-inline-start: var(--space-2);
+    color: var(--color-fg-subtle);
+}
+
+.post-crumbs__link {
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .post-crumbs__link:hover {
+        color: var(--color-fg-link);
+    }
+}
+
+.post-crumbs__link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+/* 当前页标题很长：单行省略，避免三行面包屑压住标题 */
+.post-crumbs__current {
+    overflow: hidden;
+    max-width: 22em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-transform: none;
+    letter-spacing: var(--tracking-normal);
+    color: var(--color-fg-subtle);
+}
+
+/* ── 标题 ─────────────────────────────────────────────────── */
+
+.post-title-text {
+    margin: var(--space-5) 0 0;
+    font-family: var(--font-serif);
+    font-weight: var(--font-weight-semibold);
+    font-size: clamp(var(--text-3xl), 4.6vw, var(--text-4xl));
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+/* 标题上方的朱红短横（首页 hero 同款装饰） */
+.post-title-text::before {
+    content: "";
+    display: block;
+    inline-size: var(--space-8);
+    block-size: var(--space-1);
+    margin: 0 auto var(--space-5);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+}
+
+/* ── 元信息 ───────────────────────────────────────────────── */
+
+.post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-5);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-default);
+}
+
+.post-meta__item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-1);
+}
+
+.post-meta__item + .post-meta__item::before {
+    content: "·";
+    margin-inline-end: var(--space-3);
+    color: var(--color-fg-subtle);
+}
+
+.post-meta__key {
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.post-meta time {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 纸面 ─────────────────────────────────────────────────── */
+
+.post-sheet {
+    box-sizing: border-box;
+    width: 100%;
+    padding: var(--space-8);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-1);
+}
+
+/* ── 封面 ─────────────────────────────────────────────────── */
+
+.post-cover {
+    margin: 0 0 var(--space-8);
+    overflow: hidden;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-sunken);
+}
+
+.post-cover img {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+}
+
+/* ── 导语（frontmatter.summary） ───────────────────────────── */
+
+.post-lede {
+    max-width: var(--layout-article);
+    margin: 0 auto var(--space-8);
+    padding-inline-start: var(--space-4);
+    border-inline-start: 2px solid var(--color-border-accent);
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-muted);
+    text-wrap: pretty;
+}
+
+/* ── 正文 ─────────────────────────────────────────────────── */
+
+/* 阅读栏宽 = --layout-article（780）；旧 .article-content 的 860 收窄 */
+.post-sheet .article-content {
+    max-width: var(--layout-article);
+    margin-inline: auto;
+    font-size: var(--text-lg);
+}
+
+.post-sheet .post-content p {
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.post-sheet .post-content img {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-subtle);
+}
+
+/* 过期警告（天数由 MarkdownLayout 计算） */
+.post-stale {
+    max-width: var(--layout-article);
+    margin: 0 auto var(--space-6);
+}
+
+/* ── 页脚：标签 + 版权 ─────────────────────────────────────── */
+
+/* 页脚两列在窄屏堆叠；前缀 `.post-sheet` 是为了压过共享 article.css 的
+   `.post-footer` / `.post-card-tags-lists`（那张表在 BaseLayout 里，晚于本文件加载） */
+.post-sheet .post-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-6);
+    max-width: var(--layout-article);
+    margin: var(--space-10) auto 0;
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.post-sheet .post-footer__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    min-width: 0;
+    max-width: 100%;
+}
+
+.post-sheet .post-footer__license {
+    min-width: max-content;
+}
+
+/* 版权：协议徽章 + 一句话 + 年份 */
+.post-license {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+
+.post-license__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .post-license__badge:hover {
+        color: var(--color-fg-link);
+        border-color: var(--color-border-accent);
+    }
+}
+
+.post-license__badge:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+.post-license__note {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
+}
+
+.post-license__note a {
+    color: var(--color-fg-link);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+}
+
+.post-license__copy {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--color-fg-subtle);
+}
+
+/* ── 分享条 ───────────────────────────────────────────────── */
+
+.post-sheet .share-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    max-width: var(--layout-article);
+    margin: var(--space-6) auto 0;
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-sunken);
+}
+
+.post-sheet .share-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    /* 12px 小字放在 --color-bg-sunken 上：--color-fg-muted 只有 4.4:1（light）/ 4.24:1（dark），
+       过不了 WCAG AA，这里改正文色（axe: .share-label） */
+    color: var(--color-fg-default);
+}
+
+.post-sheet .share-icons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.post-sheet .share-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-9);
+    block-size: var(--space-9);
+    padding: 0;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
+}
+
+.post-sheet .share-icon svg {
+    display: block;
+    inline-size: var(--text-lg);
+    block-size: var(--text-lg);
+}
+
+@media (hover: hover) {
+    .post-sheet .share-icon:hover {
+        color: var(--color-fg-link);
+        border-color: var(--color-border-accent);
+        background-color: var(--color-bg-surface);
+    }
+}
+
+.post-sheet .share-icon:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* 系统分享按钮：桌面隐藏，share.ts 在支持的移动端加 .share-visible
+   （必须在这里重新声明，否则上面 .post-sheet .share-icon 的 display 会把
+   legacy 的 .share-icon--native{display:none} 压掉） */
+.post-sheet .share-icon--native {
+    display: none;
+}
+
+.post-sheet .share-icon--native.share-visible {
+    display: inline-flex;
+}
+
+/* 微信二维码弹层（行为见 ~/scripts/share：只加/删 .open） */
+.post-sheet .share-card {
+    inline-size: 14rem;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-3);
+}
+
+.post-sheet .share-qr-title {
+    margin: var(--space-2) 0 var(--space-1);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-default);
+}
+
+.post-sheet .share-qr-help,
+.post-sheet .share-in-wechat {
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
+}
+
+.post-sheet .share-copied-chip {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-on-accent);
+    background-color: var(--color-accent-solid);
+}
+
+/* ── 上一篇 / 下一篇 ───────────────────────────────────────── */
+
+/* 上一篇 / 下一篇：两列卡；前缀 `.post-sheet` 压过共享 article.css 的浮动版
+   `.post-nav` / `.post-nav-link.prev|next`（那张表晚于本文件加载） */
+.post-sheet .post-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    max-width: var(--layout-article);
+    margin: var(--space-8) auto 0;
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--color-border-subtle);
+    overflow: visible;
+}
+
+.post-sheet .post-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--color-fg-default);
+    text-decoration: none;
+    transition:
+        border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
+}
+
+.post-sheet .post-nav-link.prev {
+    grid-column: 1;
+    float: none;
+}
+
+.post-sheet .post-nav-link.next {
+    grid-column: 2;
+    align-items: flex-end;
+    text-align: end;
+    float: none;
+}
+
+@media (hover: hover) {
+    .post-sheet .post-nav-link:hover {
+        border-color: var(--color-border-accent);
+        background-color: var(--color-bg-sunken);
+    }
+}
+
+.post-sheet .post-nav-link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+.post-sheet .post-nav-link__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+/* 箭头用 CSS 生成：DOM 里不留「只有符号」的文本节点（axe 会对它报 color-contrast incomplete） */
+.post-sheet .post-nav-link__eyebrow::before {
+    content: "←";
+}
+
+.post-sheet .post-nav-link.next .post-nav-link__eyebrow::before {
+    content: none;
+}
+
+.post-sheet .post-nav-link.next .post-nav-link__eyebrow::after {
+    content: "→";
+}
+
+.post-sheet .post-nav-link__title {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+}
+
+/* ── 相关文章 ─────────────────────────────────────────────── */
+
+/* 相关文章：三列 Card；前缀 `.post-sheet` 压过共享 article.css 里的
+   `.related-posts*` 旧规则（同一批类名，那张表晚于本文件加载） */
+.post-sheet .related-posts {
+    max-width: var(--layout-article);
+    margin: var(--space-10) auto 0;
+    padding-block-start: var(--space-8);
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.post-sheet .related-posts-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0 0 var(--space-5);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-heading);
+}
+
+.post-sheet .related-posts-title::before {
+    content: "";
+    flex: none;
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+}
+
+.post-sheet .related-posts-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.post-sheet .related-posts-item {
+    position: relative;
+    height: 100%;
+}
+
+/* 整张卡片可点：伪元素铺满 Card 的 padding 区 */
+.post-sheet .related-posts-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    color: inherit;
+    text-decoration: none;
+}
+
+.post-sheet .related-posts-link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+.post-sheet .related-posts-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+}
+
+.post-sheet .related-posts-post-title {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+    text-wrap: pretty;
+}
+
+.post-sheet .related-posts-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-muted);
+}
+
+.post-sheet .related-posts-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+.post-sheet .related-posts-tag {
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    /* 芯片在卡片 surface 上，12px muted 只有 4.28:1（dark）→ 用正文色 */
+    color: var(--color-fg-default);
+}
+
+/* ── 目录（D-0082：构建期结构 + tocbot 增强） ─────────────── */
+
+/* toc.css 的定位（left/top/display）保留，这里只换外观。
+   选择器前缀 .toc.post-toc 的权重高于 toc.css 的 .toc-* 链，改版不依赖打包顺序。 */
+.toc.post-toc {
+    box-sizing: border-box;
+    inline-size: var(--layout-toc);
+    padding: var(--space-3) var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-2);
+}
+
+.toc.post-toc .post-toc__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin: 0 var(--space-2) var(--space-3);
+    padding-block-end: var(--space-2);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.toc.post-toc .post-toc__title {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.toc.post-toc .post-toc__count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-subtle);
+}
+
+.toc.post-toc .toc-content {
+    /* 收在 48vh 以内：目录底边要留在 #back-to-top（bottom:40px）上方，
+       否则 axe 判「背景被其它元素遮挡」→ color-contrast incomplete */
+    max-block-size: min(48vh, 26rem);
+    margin: 0;
+    padding-inline-end: var(--space-1);
+}
+
+.toc.post-toc .toc-list-item {
+    margin-block-end: var(--space-1);
+    opacity: 1;
+}
+
+/* 一级项：左侧细竖条 + 文本；激活时竖条变朱红 */
+.toc.post-toc .toc-content > .toc-list > .toc-list-item > .toc-link {
+    display: flex;
+    align-items: center;
+    min-block-size: var(--space-6);
+    padding: var(--space-1) var(--space-2);
+    border-inline-start: 2px solid transparent;
+    border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
+    /* 不透明底色：目录是可滚动容器，边缘条目会被裁掉一部分，
+       背景色只能从元素自己身上取（否则 axe 判「背景被其它元素遮挡」→ color-contrast incomplete） */
+    background-color: var(--color-bg-surface);
+    text-decoration: none;
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
+}
+
+.toc.post-toc .toc-content > .toc-list > .toc-list-item > .toc-link::before {
+    content: none;
+}
+
+@media (hover: hover) {
+    .toc.post-toc .toc-content > .toc-list > .toc-list-item > .toc-link:hover {
+        color: var(--color-fg-default);
+        background-color: var(--color-bg-sunken);
+    }
+}
+
+.toc.post-toc .toc-content > .toc-list > .toc-list-item > .toc-link.is-active-link {
+    border-inline-start-color: var(--color-accent-solid);
+    color: var(--color-fg-link);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* 二级项：缩进 + 更弱的字色 */
+.toc.post-toc .toc-content > .toc-list > .toc-list-item > .toc-list > .toc-list-item > .toc-link {
+    display: flex;
+    align-items: center;
+    min-block-size: var(--space-6);
+    padding: var(--space-1) var(--space-2) var(--space-1) var(--space-5);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-subtle);
+    background-color: var(--color-bg-surface);
+    text-decoration: none;
+    border-inline-start: 2px solid transparent;
+}
+
+@media (hover: hover) {
+    .toc.post-toc
+        .toc-content
+        > .toc-list
+        > .toc-list-item
+        > .toc-list
+        > .toc-list-item
+        > .toc-link:hover {
+        color: var(--color-fg-default);
+    }
+}
+
+.toc.post-toc
+    .toc-content
+    > .toc-list
+    > .toc-list-item
+    > .toc-list
+    > .toc-list-item
+    > .toc-link.is-active-link {
+    border-inline-start-color: var(--color-accent-solid);
+    color: var(--color-fg-link);
+}
+
+/* 键盘可达：目录链接的焦点环（tocbot 用 a[href] 生成，浏览器默认环在新版被去掉） */
+.toc.post-toc .toc-link:focus-visible,
+/* 焦点环收口：global.css 的 `:focus-visible` 用旧 --color-accent（晚于本文件加载），
+   `.post` / `.toc` 内的元素一律改用 --color-ring-focus（§3.0-5 的判据） */
+.post a[href]:focus-visible,
+.post button:focus-visible,
+.post summary:focus-visible,
+.post [tabindex]:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+/* 正文里的原生控件（expressive-code 的复制按钮、tabs、折叠 summary）也要有统一焦点环 */
+.post-sheet .article-content :is(button, summary, a[href]):focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+/* 阅读进度（D-0089；节流策略在 JS 里，别在这里动）
+   `.content` 前缀压过共享 article.css 的同名 `.reading-progress`（晚于本文件加载） */
+.content .reading-progress {
+    height: 2px;
+    background: var(--color-accent-solid);
+}
+
+/* ── 响应式 ───────────────────────────────────────────────── */
+
+@media (width <= 1024px) {
+    .post-sheet {
+        padding: var(--space-6);
+    }
+
+    .post-sheet .related-posts-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (width <= 768px) {
+    .content > .post {
+        padding-bottom: var(--space-8);
+    }
+
+    .post-masthead {
+        padding-block: var(--space-2) var(--space-6);
+    }
+
+    .post-meta {
+        row-gap: var(--space-1);
+    }
+
+    /* 移动端：面包屑单行可横向滚动，不把标题往下压 */
+    .post-crumbs__list {
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .post-sheet {
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+        box-shadow: none;
+    }
+
+    .post-cover {
+        margin-bottom: var(--space-6);
+    }
+
+    .post-lede {
+        padding-inline-start: var(--space-3);
+        font-size: var(--text-base);
+    }
+
+    .post-sheet .article-content {
+        font-size: var(--text-base);
+    }
+
+    .post-sheet .post-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-top: var(--space-8);
+    }
+
+    .post-sheet .post-footer__license {
+        min-width: 0;
+    }
+
+    .post-sheet .share-bar {
+        padding: var(--space-3);
+    }
+
+    .post-sheet .post-nav {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-3);
+    }
+
+    .post-sheet .post-nav-link.next {
+        grid-column: 1;
+        align-items: flex-start;
+        text-align: start;
+    }
+
+    .post-sheet .related-posts-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .post-sheet .related-posts {
+        margin-top: var(--space-8);
+        padding-block-start: var(--space-6);
+    }
+}
+
+@media (width <= 450px) {
+    .post-title-text {
+        font-size: var(--text-2xl);
+    }
+
+    .post-meta {
+        justify-content: flex-start;
+        text-align: start;
+    }
+
+    .post-meta__item + .post-meta__item::before {
+        content: none;
+    }
+
+    .post-meta__item {
+        gap: var(--space-2);
+    }
+
+    .post-crumbs__current {
+        max-width: 12em;
+    }
+}
+
+/* ── 减弱动画（§3.0-6）：只关动效，不隐藏内容 ─────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .post-crumbs__link,
+    .post-license__badge,
+    .post-sheet .share-icon,
+    .post-sheet .post-nav-link,
+    .toc.post-toc .toc-content .toc-link {
+        transition: none;
+    }
+}

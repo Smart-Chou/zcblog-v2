@@ -129,64 +129,74 @@ const firstTag = currentTags[0] || "";
     locale={isEn ? "en" : "zh"}
 >
     <div class="reading-progress"></div>
-    <div class="post-title">
-        <h1 class="post-title-text">
-            {frontmatter.title}
-        </h1>
-        <PostMeta
-            publishedTime={publishedTime}
-            modifiedTime={modifiedTime}
-            wordCount={wordCount}
-            readTime={readTime}
-            currentSlug={slug}
-        />
-    </div>
-    <div class="post-card content-box">
-        <div class="post-header">
-            <PostCardImage
-                imagePath={imageUrl}
-                altText={imageAlt}
-                transformWidth={1200}
-                loading="eager"
-            />
-        </div>
-        <Breadcrumb title={frontmatter.title} firstTag={firstTag} isEn={isEn} />
-        {
-            daysSinceUpdate >= 180 && (
-                <div class="remark-aside remark-aside--danger">
-                    <p>
-                        🌶 <strong>过期警告：</strong> 本页面距今已有
-                        {daysSinceUpdate}
-                        天未更新，年久失修，内容可能有所偏颇，还请仔细甄别！
-                    </p>
-                </div>
-            )
-        }
-        <div
-            id="post-content"
-            class="post-content"
-            data-pagefind-body
-            data-pagefind-meta={`title:${frontmatter.title}`}
-            data-fancybox-off={frontmatter.fancybox === false ? "" : undefined}
-        >
-            <h2 id="post-content-title" class="toc-ignore sr-only" data-pagefind-ignore>
+    <article class="post">
+        <header class="post-masthead">
+            <Breadcrumb title={frontmatter.title} firstTag={firstTag} isEn={isEn} />
+            <h1 class="post-title-text">
                 {frontmatter.title}
-            </h2>
-            <div class="article-content">
-                <slot />
+            </h1>
+            <PostMeta
+                publishedTime={publishedTime}
+                modifiedTime={modifiedTime}
+                wordCount={wordCount}
+                readTime={readTime}
+                currentSlug={slug}
+                variant="article"
+            />
+        </header>
+        <div class="post-sheet">
+            <figure class="post-cover">
+                <PostCardImage
+                    imagePath={imageUrl}
+                    altText={imageAlt}
+                    transformWidth={1200}
+                    loading="eager"
+                />
+            </figure>
+            {
+                daysSinceUpdate >= 180 && (
+                    <aside class="post-stale remark-aside remark-aside--danger">
+                        <p>
+                            🌶 <strong>过期警告：</strong> 本页面距今已有
+                            {daysSinceUpdate}
+                            天未更新，年久失修，内容可能有所偏颇，还请仔细甄别！
+                        </p>
+                    </aside>
+                )
+            }
+            {
+                frontmatter.summary && (
+                    <p class="post-lede" data-pagefind-ignore>
+                        {frontmatter.summary}
+                    </p>
+                )
+            }
+            <div
+                id="post-content"
+                class="post-content"
+                data-pagefind-body
+                data-pagefind-meta={`title:${frontmatter.title}`}
+                data-fancybox-off={frontmatter.fancybox === false ? "" : undefined}
+            >
+                <h2 id="post-content-title" class="toc-ignore sr-only" data-pagefind-ignore>
+                    {frontmatter.title}
+                </h2>
+                <div class="article-content">
+                    <slot />
+                </div>
             </div>
+            <PostFooter tags={frontmatter.tags} />
+            <PostShare
+                title={frontmatter.title}
+                description={frontmatter.description}
+                image={ogImage}
+                slug={slug}
+                locale={isEn ? "en" : "zh"}
+            />
+            <PostNavigation slug={slug} />
+            <RelatedPosts relatedPosts={relatedPosts} />
         </div>
-        <PostFooter tags={frontmatter.tags} />
-        <PostShare
-            title={frontmatter.title}
-            description={frontmatter.description}
-            image={ogImage}
-            slug={slug}
-            locale={isEn ? "en" : "zh"}
-        />
-        <PostNavigation slug={slug} />
-        <RelatedPosts relatedPosts={relatedPosts} />
-    </div>
+    </article>
     {frontmatter.toc && <Toc headings={headings} />}
     {postView.backtotop && <BackToTop />}
     {frontmatter.donate && donate.enable && <Donate locale={locale} />}

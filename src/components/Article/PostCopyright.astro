@@ -1,9 +1,51 @@
 ---
+/**
+ * 版权声明（M2-3 / P-02）
+ *
+ * 从「一个 CC 图标 + 协议号」扩成一行可读的许可说明：协议徽章 + 一句话 + 年份。
+ * `.post-tags-link` 保留在徽章链接上（e2e/article.spec 的标签计数与旧样式都按它走）。
+ */
 import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+import { site } from "~/config";
+
+interface Props {
+    /** 页面语言：决定那句许可说明用中文还是英文 */
+    locale?: string;
+    /** 版权年份；默认构建年份（文章页整站同年份，随构建滚动） */
+    year?: number;
+}
+
+const { locale = Astro.url.pathname.startsWith("/en/") ? "en" : "zh", year = new Date().getFullYear() } =
+    Astro.props;
+
+const isEn = locale === "en";
+const licenseUrl = "https://creativecommons.org/licenses/by-nc-sa/4.0/";
 ---
 
-<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="post-tags-link">
-    <DynamicIcon name="tabler:creative-commons" />
-    &nbsp;
-    <span>BY-NC-SA 4.0</span>
-</a>
+<footer class="post-license">
+    <a
+        href={licenseUrl}
+        class="post-license__badge post-tags-link"
+        target="_blank"
+        rel="license noopener noreferrer"
+    >
+        <DynamicIcon name="tabler:creative-commons" />
+        <span>BY-NC-SA 4.0</span>
+    </a>
+    <p class="post-license__note">
+        {
+            isEn ? (
+                <>
+                    Licensed under <a href={licenseUrl} rel="license noopener noreferrer">CC BY-NC-SA 4.0</a>
+                    , attribution required.
+                </>
+            ) : (
+                <>
+                    本文采用 <a href={licenseUrl} rel="license noopener noreferrer">CC BY-NC-SA 4.0</a>
+                    许可协议，转载请注明出处。
+                </>
+            )
+        }
+        <span class="post-license__copy">© {year} {site.title}</span>
+    </p>
+</footer>

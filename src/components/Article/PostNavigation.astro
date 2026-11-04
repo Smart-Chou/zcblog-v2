@@ -1,4 +1,11 @@
 ---
+/**
+ * 上一篇 / 下一篇（M2-3 / P-02）
+ *
+ * 结构契约：`.post-nav` 必须存在 —— Toc.astro 的滚动定位用
+ * `document.querySelector(".post-nav")` 算文章底部，缺了它目录会直接不初始化。
+ * 链接类名 `.post-nav-link.prev/.next` 保留（旧样式/浮动布局的回退点）。
+ */
 import { getAdjacentPosts } from "~/utils/adjacent-posts";
 import { getAllArticles } from "~/utils/article-stats";
 
@@ -24,19 +31,21 @@ const nextPost = nextSlug ? (allPosts.find((p) => p.id === nextSlug) ?? null) : 
 
 {
     (prevPost || nextPost) && (
-        <nav class="post-nav">
+        <nav class="post-nav" aria-label={isEn ? "Adjacent posts" : "相邻文章"}>
             {prevPost && (
-                <a href={toArticleUrl(prevPost.id)} class="post-nav-link prev">
-                    ◀ {prevPost.data.title}
+                <a href={toArticleUrl(prevPost.id)} class="post-nav-link prev" rel="prev">
+                    <span class="post-nav-link__eyebrow">{isEn ? "Previous" : "上一篇"}</span>
+                    <span class="post-nav-link__title">{prevPost.data.title}</span>
                 </a>
             )}
             {nextPost && (
-                <a href={toArticleUrl(nextPost.id)} class="post-nav-link next">
-                    {nextPost.data.title} ▶
+                <a href={toArticleUrl(nextPost.id)} class="post-nav-link next" rel="next">
+                    <span class="post-nav-link__eyebrow">{isEn ? "Next" : "下一篇"}</span>
+                    <span class="post-nav-link__title">{nextPost.data.title}</span>
                 </a>
             )}
         </nav>
     )
 }
 
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
+<!-- 样式已移到 src/styles/pages/article.css（M2-3：文章页自己的页面级样式表） -->

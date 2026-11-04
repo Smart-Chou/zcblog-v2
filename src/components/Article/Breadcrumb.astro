@@ -1,4 +1,11 @@
 ---
+/**
+ * 文章面包屑（M2-3 / P-02）
+ *
+ * 移到标题上方（Stitch `toc` / `mobile_article_detail` 的位次），类名换到
+ * `post-crumbs*` 作用域，与旧 `article.css` 的 `.breadcrumb*` 规则互不干扰。
+ * 末项是当前页（aria-current="page"），窄屏用省略号截断而不是换行三行。
+ */
 import { normalizeTag } from "~/utils/article-stats";
 
 interface Props {
@@ -9,35 +16,30 @@ interface Props {
 
 const { title, firstTag, isEn = false } = Astro.props;
 
-const homeLabel = isEn ? "BLog" : "博客";
+const homeLabel = isEn ? "Blog" : "博客";
 const homeUrl = isEn ? "/en/blog/1/" : "/blog/1/";
 const normalizedTag = firstTag ? normalizeTag(firstTag) : "";
-const tagLabel = normalizedTag;
 const tagUrl = normalizedTag ? `${isEn ? "/en" : ""}/tags/${normalizedTag}/` : "";
 ---
 
-<nav class="breadcrumb" aria-label="Breadcrumb">
-    <ol class="breadcrumb-list">
-        <li class="breadcrumb-item">
-            <a href={homeUrl} class="breadcrumb-link">{homeLabel}</a>
+<nav class="post-crumbs" aria-label={isEn ? "Breadcrumb" : "面包屑"}>
+    <ol class="post-crumbs__list">
+        <li class="post-crumbs__item">
+            <a href={homeUrl} class="post-crumbs__link">{homeLabel}</a>
         </li>
         {
-            tagLabel && (
-                <li class="breadcrumb-item">
-                    <span class="breadcrumb-sep" aria-hidden="true">
-                        /
-                    </span>
-                    <a href={tagUrl} class="breadcrumb-link">
-                        {tagLabel}
+            normalizedTag && (
+                <li class="post-crumbs__item">
+                    <a href={tagUrl} class="post-crumbs__link">
+                        {normalizedTag}
                     </a>
                 </li>
             )
         }
-        <li class="breadcrumb-item breadcrumb-item-current">
-            <span class="breadcrumb-sep" aria-hidden="true">/</span>
-            <span class="breadcrumb-current" aria-current="page">{title}</span>
+        <li class="post-crumbs__item">
+            <span class="post-crumbs__current" aria-current="page">
+                {title}
+            </span>
         </li>
     </ol>
 </nav>
-
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->

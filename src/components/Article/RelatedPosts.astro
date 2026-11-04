@@ -1,6 +1,13 @@
 ---
+/**
+ * 相关文章（M2-3 / P-02）
+ *
+ * 三张 Card atom（M1）横排；每张卡片整块可点 —— `<a>` 铺满 `.card__content`，
+ * hover/focus 由 Card 的 interactive 变体给（焦点环 = --color-ring-focus）。
+ */
 import type { CollectionEntry } from "astro:content";
 import { formatDateI18n } from "~/utils/date-utils";
+import Card from "~/components/UI/atom/Card.astro";
 
 interface Props {
     relatedPosts: CollectionEntry<"article">[];
@@ -12,25 +19,23 @@ if (relatedPosts.length === 0) {
     // 无相关文章时不渲染任何内容
     return;
 }
+
+const isEn = Astro.url.pathname.startsWith("/en/");
+const articlePrefix = isEn ? "/en/article" : "/article";
+const toArticleUrl = (id: string) => `${articlePrefix}/${isEn ? id.replace(/-en$/, "") : id}/`;
+const heading = isEn ? "Related posts" : "相关文章";
 ---
 
-<div class="related-posts">
-    <h2 class="related-posts-title">相关文章</h2>
+<section class="related-posts" aria-labelledby="related-posts-title">
+    <h2 class="related-posts-title" id="related-posts-title">{heading}</h2>
     <ul class="related-posts-list">
         {
             relatedPosts.map((post) => (
-                <li class="related-posts-item">
-                    <a
-                        href={`${Astro.url.pathname.startsWith("/en/") ? "/en" : ""}/article/${
-                            Astro.url.pathname.startsWith("/en/")
-                                ? post.id.replace(/-en$/, "")
-                                : post.id
-                        }/`}
-                        class="related-posts-link"
-                    >
+                <Card as="li" variant="interactive" padding="md" class="related-posts-item">
+                    <a href={toArticleUrl(post.id)} class="related-posts-link">
                         <span class="related-posts-post-title">{post.data.title}</span>
                         <span class="related-posts-meta">
-                            {formatDateI18n(post.data.pubDate)}
+                            <span class="related-posts-date">{formatDateI18n(post.data.pubDate)}</span>
                             {post.data.tags?.length > 0 && (
                                 <span class="related-posts-tags">
                                     {post.data.tags.slice(0, 3).map((tag: string) => (
@@ -40,10 +45,10 @@ if (relatedPosts.length === 0) {
                             )}
                         </span>
                     </a>
-                </li>
+                </Card>
             ))
         }
     </ul>
-</div>
+</section>
 
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
+<!-- 样式已移到 src/styles/pages/article.css（M2-3：文章页自己的页面级样式表） -->

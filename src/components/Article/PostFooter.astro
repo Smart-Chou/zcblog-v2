@@ -1,6 +1,12 @@
 ---
+/**
+ * 文章页脚：标签 + 版权（M2-3 / P-02）
+ *
+ * 标签改用 M1 的 Tag atom（与首页/归档同一套 chip 语言）；`.post-tags-link`
+ * 类保留在链接上 —— e2e/article.spec 的「文章页标签存在」按它计数。
+ */
 import { normalizeTag } from "~/utils/article-stats";
-import PostTag from "~/components/Article/PostTag.astro";
+import Tag from "~/components/UI/atom/Tag.astro";
 import PostCopyright from "~/components/Article/PostCopyright.astro";
 
 interface Props {
@@ -8,20 +14,31 @@ interface Props {
 }
 
 const { tags } = Astro.props;
+const isEn = Astro.url.pathname.startsWith("/en/");
+const tagPrefix = isEn ? "/en" : "";
 ---
 
 <div class="post-footer">
-    <div class="post-tags post-card-tags post-card-tags-lists">
+    <div class="post-footer__tags post-tags post-card-tags post-card-tags-lists">
         {
             tags?.map((tag: string) => {
                 const normalized = normalizeTag(tag);
-                return <PostTag tag={normalized} url={`/tags/${normalized}/`} />;
+                return (
+                    <Tag
+                        href={`${tagPrefix}/tags/${normalized}/`}
+                        tone="neutral"
+                        size="sm"
+                        class="post-tags-link"
+                    >
+                        {normalized}
+                    </Tag>
+                );
             })
         }
     </div>
-    <div class="post-tags post-card-tags post-card-tags-copyright">
+    <div class="post-footer__license post-tags post-card-tags post-card-tags-copyright">
         <PostCopyright />
     </div>
 </div>
 
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
+<!-- 样式已移到 src/styles/pages/article.css（M2-3：文章页自己的页面级样式表） -->

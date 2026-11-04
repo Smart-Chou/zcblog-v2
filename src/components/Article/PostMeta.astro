@@ -1,4 +1,14 @@
 ---
+/**
+ * 文章元信息（M2-3 / P-02）
+ *
+ * 两种版式，互不污染：
+ * - variant="card"（默认，列表卡）：保持 M2 前的原始标记与文案，博客/标签列表页零变化。
+ * - variant="article"（文章页）：新的编辑式排版，样式在 src/styles/pages/article.css。
+ *
+ * 行为：浏览量占位仍是 `.waline-pageview-count[data-path]` —— D-0090 的
+ *   `~/scripts/pageview` 构建后按这个选择器回填，改类名会静默失效。
+ */
 import { formatDateToYYYYMMDD } from "~/utils";
 import { waline } from "~/config";
 
@@ -8,9 +18,12 @@ interface Props {
     wordCount: number;
     readTime: string;
     currentSlug: string;
+    /** 版式：列表卡（默认）或文章页页头 */
+    variant?: "card" | "article";
 }
 
-const { publishedTime, modifiedTime, wordCount, readTime, currentSlug } = Astro.props;
+const { publishedTime, modifiedTime, wordCount, readTime, currentSlug, variant = "card" } =
+    Astro.props;
 
 // 浏览计数路径：跟随当前语言前缀；英文页去掉 -en 后缀（中文页不裁剪）
 const isEnPage = Astro.url.pathname.startsWith("/en");
@@ -29,31 +42,68 @@ const safeModified: Date | null = (() => {
 const showUpdated =
     safeModified &&
     Math.abs(safeModified.getTime() - publishedTime.getTime()) / (1000 * 60 * 60 * 24) > 1;
+
+// reading-time 包只输出英文（"8 min read"）；中文页在展示层换掉单位，不动 utils。
+const readLabel = isEnPage ? readTime : readTime.replace(/min read/i, "分钟");
+const isArticle = variant === "article";
 ---
 
-<div class="post-meta post-card-meta">
-    Posted {formatDateToYYYYMMDD(publishedTime)}.<slot name="after-posted" />
-    {
-        showUpdated && safeModified && (
-            <span>&nbsp;Updated {formatDateToYYYYMMDD(safeModified)}.</span>
-        )
-    }
-    <span class="meta-break"></span>
-    <span class="word-count">{wordCount} words.</span>&nbsp;
-    <span class="read-time">{readTime}.</span>
-    {
-        waline.enable && (
-            <>
-                &nbsp;
-                {/* 占位符用 —：真实数字要等 Waline /article 接口回填（SPA 进入时约 1–3s），
-                    写 0 会让人以为「这篇没人看过」 */}
-                <span class="waline-pageview-count" data-path={viewPath}>
-                    —
+{
+    isArticle ? (
+        <div class="post-meta">
+            <span class="post-meta__item">
+                <span class="post-meta__key">{isEnPage ? "Published" : "发布于"}</span>
+                <time datetime={publishedTime.toISOString()}>
+                    {formatDateToYYYYMMDD(publishedTime)}
+                </time>
+            </span>
+            {showUpdated && safeModified && (
+                <span class="post-meta__item">
+                    <span class="post-meta__key">{isEnPage ? "Updated" : "更新于"}</span>
+                    <time datetime={safeModified.toISOString()}>
+                        {formatDateToYYYYMMDD(safeModified)}
+                    </time>
                 </span>
-                <span> views.</span>
-            </>
-        )
-    }
-</div>
+            )}
+            <span class="post-meta__item">
+                <span class="post-meta__key">{isEnPage ? "Words" : "字数"}</span>
+                <span>{wordCount.toLocaleString(isEnPage ? "en-US" : "zh-CN")}</span>
+            </span>
+            <span class="post-meta__item">
+                <span class="post-meta__key">{isEnPage ? "Reading" : "阅读"}</span>
+                <span>{readLabel}</span>
+            </span>
+            {waline.enable && (
+                <span class="post-meta__item">
+                    <span class="post-meta__key">{isEnPage ? "Views" : "浏览"}</span>
+                    {/* 占位符用 —：真实数字要等 Waline /article 接口回填（SPA 进入时约 1–3s），
+                        写 0 会让人以为「这篇没人看过」（D-0090） */}
+                    <span class="waline-pageview-count" data-path={viewPath}>
+                        —
+                    </span>
+                </span>
+            )}
+        </div>
+    ) : (
+        <div class="post-meta post-card-meta">
+            Posted {formatDateToYYYYMMDD(publishedTime)}.<slot name="after-posted" />
+            {showUpdated && safeModified && (
+                <span>&nbsp;Updated {formatDateToYYYYMMDD(safeModified)}.</span>
+            )}
+            <span class="meta-break" />
+            <span class="word-count">{wordCount} words.</span>&nbsp;
+            <span class="read-time">{readTime}.</span>
+            {waline.enable && (
+                <>
+                    &nbsp;
+                    <span class="waline-pageview-count" data-path={viewPath}>
+                        —
+                    </span>
+                    <span> views.</span>
+                </>
+            )}
+        </div>
+    )
+}
 
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
+<!-- 样式已移到 src/styles/pages/article.css（M2-3：文章页自己的页面级样式表） -->

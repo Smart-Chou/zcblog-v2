@@ -3,6 +3,8 @@ import { getCollection, render } from "astro:content";
 import MarkdownLayout from "~/layouts/MarkdownLayout.astro";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { articleSlug } from "~/utils/article-url";
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/article.css";
 
 export async function getStaticPaths() {
     try {

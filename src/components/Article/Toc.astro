@@ -26,9 +26,17 @@ for (const h of headings) {
         nodes.push({ slug: h.slug, text: h.text, children: [] });
     }
 }
+
+// M2-3：目录框的标题与计数在构建期就有（不再依赖 tocbot 生成）
+const isEn = Astro.url.pathname.startsWith("/en/");
+const tocLabel = isEn ? "Contents" : "目录";
 ---
 
-<div class="toc">
+<nav class="toc post-toc" aria-label={tocLabel}>
+    <div class="post-toc__head">
+        <span class="post-toc__title">{tocLabel}</span>
+        {nodes.length > 0 && <span class="post-toc__count" aria-hidden="true">{nodes.length}</span>}
+    </div>
     <div class="toc-content">
         {
             nodes.length > 0 && (
@@ -57,7 +65,7 @@ for (const h of headings) {
             )
         }
     </div>
-</div>
+</nav>
 
 <script>
     import { onPageReady } from "~/utils/page-lifecycle";
