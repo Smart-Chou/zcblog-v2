@@ -6,7 +6,7 @@
 
 ## 1. 结论
 
-- **出口九项：7 PASS / 1 FAIL（已知存量）/ 1 FAIL（本卡新发现，须修复卡）** —— 逐项证据见 §7。
+- **出口九项：7 PASS / 2 FAIL** —— 逐项证据见 §7。7 个 PASS 里 P6 是「dist 层 PASS + lab 层缺口已记录」（条件 PASS）；2 个 FAIL 分别是 M2-11b 遗留的 inventory known-red 与本卡新发现的 axe 存量。
   - 9 项里唯一的实现缺口是 **axe**：暗色全站扫描仍有 serious（含 critical）违规，来自 **8 条规则 / 661 findings / 833 节点**（critical 只在 3 个页面），集中在共享 Header 搜索框、文章页分享浮层、列表分页、番剧页 tab、法务页内联链接五处。它们是**存量**（不是本次审计引入），但按验收口径「所有公开页面 serious/critical = 0」**判 FAIL**，修完才能算 M2-full 收口。
   - `verify-component-inventory` 的 I7b（`albumscontent` 0 引用）是父卡 M2-11b 已记的 known-red，本卡不重复计入新发现。
 - **V-01 暗色逐页：结构层 PASS** —— 586 个构建页面逐一在 dark 下打开：`data-theme=dark` + `html.dark` 100% 生效、有效底色亮度最高 0.010（两档：`#1c1917` 0.010 / `#121316` 0.007）、1440 宽横向溢出 0 页。
@@ -167,7 +167,7 @@ AUDIT_THEME=light AUDIT_DATA_DIR=/tmp/m2light npx playwright test e2e/export-aud
 | 5 | **P9** 原子库 / 组件清单 | `verify-atoms` **18/18 PASS**；`verify-component-inventory` **FAIL 1/8** —— I7b `albumscontent` 0 引用（`src/components/Pages/AlbumsContent.astro`），**M2-11b 已记 known-red**，属 `src/components/**`，不在本卡文件边界 | **FAIL（存量）** |
 | 6 | **V-01** 暗色逐页 | §4：586/586 主题生效 + 暗色面 + 无溢出；§6：axe serious 661 findings / 833 节点（8 规则，critical 3 页） | **结构 PASS / a11y FAIL** |
 | 7 | **P-09** 移动 | §5：4 页 × 2 主题 × 3 视口 = 24 组合，390/768/1440 **0 溢出** | **PASS** |
-| 8 | **P-01–P-08 + O-01** 页面级验收 | 各卡验收记录（M2-2 首页 15、M2-3 文章、M2-4 归档/标签/404、M2-5 Overlay ≥20、M2-6a/6b 友链/随笔/赞助、M2-9 `/culture/`）+ 本卡复跑页面 e2e 套件（结果见 §8 末行） | 见 §8 |
+| 8 | **P-01–P-08 + O-01** 页面级验收 | 各卡验收记录（M2-2 首页 15 条、M2-3 文章、M2-4 归档/标签/404、M2-5 Overlay ≥20、M2-6a/6b 友链·随笔·赞助、M2-9 `/culture/`）；本卡复跑 `pages-*` + `overlays/interactions/navigation/search/i18n/article/smoke/theme` 共 **352 条**，跑到第 **234/352** 时 **0 failed**，但进程在报告落盘时仍在跑（未跑完，不计入判据） | **PASS（依据各卡记录）** |
 | 9 | 格式 / 类型 / 一致性 | `prettier --check .` **exit 0**；`astro check` **0 errors / 0 warnings / 6 hints**；`verify-entities` **9/9**；CI 唯一红 = inventory I7b（第 5 项同一处） | **PASS** |
 
 **合计：6 PASS · 1 PASS（dist 层，lab 层缺口已记录）· 1 FAIL（known-red，非本卡引入）· 1 FAIL（axe，须修复卡）。**
@@ -193,14 +193,18 @@ AUDIT_THEME=light AUDIT_DATA_DIR=/tmp/m2light npx playwright test e2e/export-aud
 CI 现状（HEAD `d2014df`）：`Perf` **success**（run 41899620771）、`CI` **failure**（run 41899620700）——
 红的唯一一步是 `Inventory / doc drift gates (R-40)`，即上面同一个 I7b known-red；Lint / TypeScript / unit / atom gates / visual 全绿。
 
+| 补充 | 命令 | 结果 |
+|---|---|---|
+| 页面 e2e 复跑 | `npx playwright test e2e/pages-*.spec.ts e2e/overlays.spec.ts e2e/interactions.spec.ts e2e/navigation.spec.ts e2e/search.spec.ts e2e/i18n.spec.ts e2e/article.spec.ts e2e/smoke.spec.ts e2e/theme.spec.ts` | 352 条用例，跑到 **234/352 时 0 failed**，未跑完（报告落盘时进程仍在跑，不作为 PASS 判据；完整日志 `/tmp/m2-e2e-pages.log`） |
+
 ## 9. 发现的问题 → 后续卡
 
-按「改法不同」分成两张，都在 `src/**`（本卡边界外），均已在看板建卡并挂在本卡下：
+按「改法不同」分成两张，都在 `src/**`（本卡边界外），均已在看板建卡并挂在本卡下（`initial_status=blocked`，遵守「不自动派发后续卡」）：
 
 | 卡 | 范围 | 证据 |
 |---|---|---|
-| **M2-13a · 暗色对比度修复**（blog-fe） | ① 搜索触发器占位文字 `#767676 on #1e1e2e` 3.61 → 提亮到 ≥4.5（546 页，共享 Header，一处 token 修全站）；② 一言出处 `#6b6762 on #1c1917` 3.12（92 页）；③ 番剧/豆瓣页状态徽章与计数（4 页）；④ 文档站 `.build-time`（40 页）；⑤ expressive-code 行号、remark-aside 内链、`/redirect/` 提示、`/500.html` 主按钮；⑥ 法务三页内联链接加下划线（`link-in-text-block`）。验收：`AUDIT_BASELINE=0 npx playwright test e2e/export-audit.spec.ts` 里 `color-contrast`/`link-in-text-block` 清零 | §6.1 前 5 行 + §6.3 |
-| **M2-13b · ARIA 语义与可访问名修复**（blog-fe） | ① `.share-pop` 的 `aria-hidden` 容器内可聚焦按钮（85 篇）：`inert`/`hidden` 或移出 Tab 序；② 分页禁用态 `aria-label` 挂到有 role 的元素（19 页）；③ 番剧页 tab 补 `role=tablist/tab`（critical，2 页）；④ 任务列表 checkbox 补 label（critical，1 篇 8 节点）；⑤ 正文图片链接补可访问名（2 篇 8 节点）；⑥ `.footer-stats` 的 `aria-label` 改 `role=group` 或 `aria-labelledby`（incomplete→消失）；⑦ 社交图标命中区 ≥24px（1 页 9 节点） | §6.1 后 5 行 + §6.2 |
+| **`t_0ed1c793` · M2-13a 暗色对比度修复**（blog-fe） | ① 搜索触发器占位文字 `#767676 on #1e1e2e` 3.61 → 提亮到 ≥4.5（546 页，共享 Header，一处 token 修全站）；② 一言出处 `#6b6762 on #1c1917` 3.12（92 页）；③ 番剧/豆瓣页状态徽章与计数（4 页）；④ 文档站 `.build-time`（40 页）；⑤ expressive-code 行号、remark-aside 内链、`/redirect/` 提示、`/500.html` 主按钮；⑥ 法务三页内联链接加下划线（`link-in-text-block`）。验收：`AUDIT_BASELINE=0 npx playwright test e2e/export-audit.spec.ts` 里 `color-contrast`/`link-in-text-block` 清零 | §6.1 前 5 行 + §6.3 |
+| **`t_79c616b4` · M2-13b ARIA 语义与可访问名修复**（blog-fe） | ① `.share-pop` 的 `aria-hidden` 容器内可聚焦按钮（85 篇）：`inert`/`hidden` 或移出 Tab 序；② 分页禁用态 `aria-label` 挂到有 role 的元素（19 页）；③ 番剧页 tab 补 `role=tablist/tab`（critical，2 页）；④ 任务列表 checkbox 补 label（critical，1 篇 8 节点）；⑤ 正文图片链接补可访问名（2 篇 8 节点）；⑥ `.footer-stats` 的 `aria-label` 改 `role=group` 或 `aria-labelledby`（incomplete→消失）；⑦ 社交图标命中区 ≥24px（1 页 9 节点） | §6.1 后 5 行 + §6.2 |
 
 两张卡都要求同一条验收命令（`AUDIT_BASELINE=0` 严格模式全站绿），修完把 `audit-data/axe-known.json` 相应条目删掉——**基线只许变短**。
 
