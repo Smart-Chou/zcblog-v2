@@ -175,6 +175,22 @@ AUDIT_THEME=light AUDIT_DATA_DIR=/tmp/m2light npx playwright test e2e/export-aud
 
 `axe-known.json` 16 → **7 条**（只保留 M2-13b 的 ARIA/target-size 条目），基线只减不增。因此**严格零容忍全量跑（`AUDIT_BASELINE=0`）仍会在 M2-13b 的 ARIA 项上红**——这是排期事实，不是本卡未完成项：本卡交付形态是「基线含 7 条 ARIA + color/link 已清零」，全量 611 passed 即由这 7 条基线兜住。
 
+### 6.5 已修复：M2-13b ARIA / 可访问名 / 命中区收口（2026-11-05 复测，586 页 × dark，严格零容忍）
+
+报告：`docs/_reviews/M2-13b/report.md`；原始数据：`docs/_reviews/M2-13b/audit-data/{axe,dark-pages,mobile}.jsonl`（同一支 spec、同一分母 586 页）。
+
+| 规则 | 修前（§6.1） | 修后 | 落点 |
+|---|---|---|---|
+| `aria-hidden-focus` `.share-pop` | 85 页 / 85 节点 serious | **0** | 关闭态 `visibility:hidden`（`src/styles/article.css`） |
+| `aria-prohibited-attr` `.disabled` | 19 页 / 19 节点 serious | **0** | 分页 nav `<a>` 补 `role="link"` |
+| `link-name` `.img-link` | 2 页 / 8 节点 serious | **0** | 灯箱包裹链接补 `aria-label`（`src/utils/fancybox.ts`） |
+| `aria-allowed-attr`（番剧 tab） | 2 页 / 10 节点 **critical** | **0** | `tablist` / `tab` / `aria-controls` / `tabpanel`（番剧 + 豆瓣同型一起修） |
+| `label`（任务列表） | 1 页 / 8 节点 **critical** | **0** | 新增 rehype 插件 `rehype-task-list-a11y` |
+| `target-size`（社交图标） | 1 页 / 9 节点 serious | **0** | 文档示例区 `.author-links a` 兜 24×24（`DemoFrame`） |
+| `aria-prohibited-attr` `.footer-stats`（incomplete） | 546 页 / 546 节点 | **0**（`.footer-stats` 补 `role="group"`） | `src/components/Layout/Footer.astro` |
+
+**复测结论**：严格模式 `AUDIT_BASELINE=0` 全量 **611 passed / 0 failed**（14.7 分钟），**violations 0 条规则 / 0 页 / 0 节点**；incomplete 只剩 `color-contrast`（551 页，性质同 §6.2）与 `aria-required-children`（1 页，`/design/components/donatorslist/`）。暗色结构层无回归（586/586 主题生效、底色 ≤0.010、1440 溢出 0），P-09 24 组合 0 溢出。`axe-known.json` **7 → 0 条**（三处 `audit-data` 同步清空），基线清空后默认跑法即严格模式。代价：灯箱文案进公共 chunk，JS p95 各页型 +0.1KB，列表页 JS 余量归零（其后的卡片再加公共 chunk 会立刻超支），详见报告 §4。
+
 ## 7. 出口九项（逐项 PASS/FAIL + 证据）
 
 > 计划里没有写死的「九项」清单：`19-m2-plan.md` §4 只有 14 行出口映射，M1 的九项是 M1 自己的口径（`16-m1-brief.md` §5）。本卡按 §4 归并成 9 项，每项都能回溯到 §4 的行，归并规则写在「判据」列。

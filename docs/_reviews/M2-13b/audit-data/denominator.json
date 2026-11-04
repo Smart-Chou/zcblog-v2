@@ -1,8 +1,5 @@
 {
-  "pages": 586,
-  "redirectStubs": [
-    "/blog/",
-    "/en/blog/"
-  ],
-  "theme": "dark"
+    "pages": 586,
+    "redirectStubs": ["/blog/", "/en/blog/"],
+    "theme": "dark"
 }
