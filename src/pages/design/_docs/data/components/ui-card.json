@@ -1,0 +1,181 @@
+{
+    "slug": "ui-card",
+    "kind": "ui",
+    "name": "Card",
+    "cn": "封面卡",
+    "layer": "ui",
+    "spec": "src/components/UI/Card.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/Card.astro",
+    "purpose": "封面比例固定的媒体卡：整张卡是一个链接，图片按 `aspectRatio` 裁切，角标与标题叠在图上。番剧 / 豆瓣 / 书架这类「图 + 一句话」的列表都用它。",
+    "notFor": [
+        "正文卡片（有标题、摘要、元信息三层）→ 用布局容器自己拼，别把文字塞进封面卡。",
+        "卡内还要第二个链接（作者、标签）→ 嵌套 `<a>` 非法，且读屏会把整张卡念成一条链接。",
+        "无图占位就够的内容 → 用 `EmptyState`；本组件的占位是 emoji 方块，只适合「图还没到」。",
+        "需要点击展开详情（无跳转地址）→ 用 `<button>` 包内容，别用 `href=\"#\"`。"
+    ],
+    "props": [
+        {
+            "name": "href",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "整张卡唯一的跳转目标。"
+        },
+        {
+            "name": "image",
+            "type": "`ImageMetadata | string`",
+            "default": "—",
+            "values": "构建期图片对象 / URL 字符串",
+            "notes": "传 `ImageMetadata` 时走 `astro:assets` 的 `<Image>`（自动尺寸）；传字符串时是裸 `<img>`。"
+        },
+        {
+            "name": "dataSrc",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "懒加载占位：写在 `data-src` 上，由调用方的滚动脚本换进 `src`。与 `image` 二选一。"
+        },
+        {
+            "name": "alt",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "封面图的可读名称。**不能留空**——空 `alt` 会让整张卡变成「无名链接」。"
+        },
+        {
+            "name": "aspectRatio",
+            "type": "`string`",
+            "default": "`\"2/3\"`",
+            "values": "任意 CSS ratio",
+            "notes": "写在 `style` 的 `aspect-ratio` 上；默认 2/3 是海报比例。"
+        },
+        {
+            "name": "placeholderEmoji",
+            "type": "`string`",
+            "default": "`\"📷\"`",
+            "values": "任意字符",
+            "notes": "只有既没有 `image` 也没有 `dataSrc` 时才渲染。emoji 是非 BMP 字符，axe 的对比度检查会跳过它（incomplete），所以别指望门禁替你看这块。"
+        },
+        {
+            "name": "target / rel",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "外链场景由调用方传（CardGrid 固定传 `_blank` + `noreferrer`）。"
+        },
+        {
+            "name": "class",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        },
+        {
+            "name": "data-tags",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "透传到根 `<a>`，供页面的筛选脚本读取（`...rest` 展开）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "badges",
+            "required": "否",
+            "notes": "叠在封面左上角的角标（CardGrid 用它放评分）。内容压在图上，对比度由调用方保证。"
+        },
+        {
+            "name": "overlay",
+            "required": "否",
+            "notes": "叠在封面底部的标题条（黑色渐变 + 白字）。不放内容时不渲染可见文字。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`--color-bg-surface` 底 + `--radius-xl` 圆角 + `shadow-sm`（旧键缺失 → 实测无阴影）",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`",
+            "visual": "整卡 `translateY(-4px)`，封面图 `scale(1.05)`，阴影换成 `shadow-xl`（同样缺失）",
+            "aria": "无"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用：没有按下态",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "没有自定义焦点环 → 浏览器默认轮廓（§5.4 要求 G4 环）",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：链接没有禁用态",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "—",
+            "visual": "图片懒加载（`loading=\"lazy\"` + `decoding=\"async\"`），组件不含骨架占位",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<a>` 包住整个视觉卡片，内部是 `div.media-cover` + `img` + 两个具名 slot。链接名由 `img` 的 `alt` 与 overlay 文本拼出。",
+        "keyboard": "Enter 打开卡片；Tab 只停一次（整卡一个链接）。",
+        "aria": "不注入 ARIA。要求：`alt` 必填且描述「这是什么」，不要写「图片」；overlay 里的标题与 `alt` 不要重复同一句话（读屏会念两遍）。",
+        "contrast": [
+            {
+                "pair": "overlay 标题白字 / `rgba(0,0,0,.8)` 压白封面",
+                "light": "12.63",
+                "dark": "20.28",
+                "threshold": "≥ 4.5（按最坏底色算）"
+            },
+            {
+                "pair": "角标内容（由 slot 决定，例如 CardGrid 的评分）",
+                "light": "—",
+                "dark": "—",
+                "threshold": "调用方负责"
+            }
+        ],
+        "focusRing": "**没有接入 G4**（`:focus-visible` 缺失）。整卡是热区，键盘用户只能靠浏览器默认轮廓定位。",
+        "target": "整卡 ≥ 160px × 240px（2/3 比例），远超 24px。",
+        "reducedMotion": "**未处理**：`:hover` 的 `translateY` 与 `scale` 没有 `prefers-reduced-motion` 分支（债）。",
+        "notes": [
+            "overlay 的底色是 `linear-gradient(transparent, rgba(0,0,0,.8))`：渐变本身没有确定的背景色，所以 axe 在示例区可能报 color-contrast incomplete。文档按「最坏情况」（0.8 黑压白封面）给出 12.63 / 20.28。",
+            "没有图时 `cover-placeholder` 用 `color-surface-secondary` 的兜底值 `#f0f0f0`：这个旧键在 tokens.json 里不存在，dark 主题下会得到 1.54:1 的浅灰块压深底（债）。文档示例因此一律传真实图片，不走 emoji 占位。"
+        ]
+    },
+    "tokens": {
+        "color": ["--color-bg-surface"],
+        "metric": ["--radius-xl", "--duration-slow"],
+        "none": "其余颜色/度量仍在字面量上：`shadow-sm` / `shadow-xl` / `ease-out` / `color-surface-secondary` 四个旧键在 tokens.json 里都不存在；overlay 的白色与黑色渐变、占位底 `#f0f0f0` 是写死的。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测）",
+        "columns": ["项", "值", "来源"],
+        "rows": [
+            ["封面比例", "2/3（默认，可用 `aspectRatio` 覆盖）", "props 默认值"],
+            ["圆角", "`--radius-xl`", "token"],
+            ["overlay 内边距", "12px", "字面量（未 token 化）"],
+            ["占位字号", "3rem", "字面量"]
+        ]
+    },
+    "forbidden": [
+        "卡内再放一个 `<a>`（嵌套链接：HTML 非法，读屏会把整卡念成一条）。",
+        "`alt` 留空或写成「图片」「封面」。",
+        "用 `href=\"#\"` 假装可点（必须先有真实地址）。",
+        "在页面里用 `class` 覆盖封面比例以外的视觉（§6.1 N3）。",
+        "把正文段落塞进 overlay：那里只放一行标题。",
+        "依赖 emoji 占位露出发给用户（dark 主题下它是一块 1.54:1 的浅灰）。"
+    ],
+    "related": ["card", "cardgrid"]
+}

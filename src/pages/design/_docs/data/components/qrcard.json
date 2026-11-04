@@ -1,0 +1,216 @@
+{
+    "slug": "qrcard",
+    "kind": "ui",
+    "name": "QrCard",
+    "cn": "收款方式卡",
+    "layer": "ui",
+    "spec": "src/components/UI/QrCard.astro（以实现为准 · M2-10a / M2-6b）",
+    "source": "src/components/UI/QrCard.astro",
+    "purpose": "赞赏页的一种收款方式：二维码图（或没有码图时的图标占位）+ 平台名 + 账号 + 说明 + 可选的外链按钮。已经完整 token 化，是本组里最新的一版。",
+    "notFor": [
+        "可复制的账号文本块（不需要码图/图标）→ 用普通 `<p>` + `code`。",
+        "带表单的支付（需要输入金额）→ 本组件只展示，不发起支付。",
+        "页脚的小图标链接 → `FriendPill` 或 `Link`。",
+        "同一个平台的多个账号 → 每个账号一张卡，页面用 `<ul>` 串起来（组件输出的是 `<li>`）。"
+    ],
+    "props": [
+        {
+            "name": "image",
+            "type": "`ImageMetadata | null`",
+            "default": "—",
+            "values": "构建期图片对象",
+            "notes": "**没有图就不渲染 `<figure>/<img>`**：adapter 已丢过空串，组件这层再兜一次，保证产物里没有 `src=\"\"`。"
+        },
+        {
+            "name": "alt",
+            "type": "`string`",
+            "default": "回落 `platformName`",
+            "values": "—",
+            "notes": "二维码的可读名称，要描述用途（「微信赞赏码」），不要写「二维码」。"
+        },
+        {
+            "name": "platformName",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "卡片标题（也是链接按钮的缺省文案）。"
+        },
+        {
+            "name": "iconName",
+            "type": "`string`",
+            "default": "—",
+            "values": "已注册的 tabler 图标名",
+            "notes": "没有码图时渲染成占位框里的图标；有码图且给了 iconName 时，图标出现在标题左侧。"
+        },
+        {
+            "name": "href",
+            "type": "`string`",
+            "default": "—",
+            "values": "http(s)，页面已校验",
+            "notes": "有才渲染链接按钮（`target=\"_blank\"` + `rel=\"noopener noreferrer\"`）。"
+        },
+        {
+            "name": "actionLabel",
+            "type": "`string`",
+            "default": "回落 `platformName`",
+            "values": "—",
+            "notes": "链接按钮的可见文本，同时就是可访问名称。"
+        },
+        {
+            "name": "account",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "账号文本（等宽字体）；有才渲染。"
+        },
+        {
+            "name": "note",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "一句说明（例如「扫码后请备注」）；有才渲染，不留空 `<p>`。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：内容全部由 props 决定，避免调用方塞进不 token 化的标记。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`--color-bg-surface` 底 + `--color-border-subtle` 1px 边 + `--radius-lg`；码框内层 `--color-bg-sunken`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)` 且悬停链接按钮",
+            "visual": "按钮字色转 `--color-fg-link-hover` + 下划线（`text-underline-offset: --space-1`）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦链接按钮",
+            "visual": "**G4 焦点环**：2px `--color-ring-focus` + offset 2px（本组唯一接上的）",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用：按钮没有按下态",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：没有禁用态",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "—",
+            "visual": "图片 `loading=\"lazy\"` + `decoding=\"async\"`；没有骨架",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<li>` 根节点 + `div` 分区 + `<p>` 文本 + 可选 `<a>`。列表语义由调用方的 `<ul>` 提供。",
+        "keyboard": "只有链接按钮进 Tab；卡片本体不可聚焦。",
+        "aria": "不注入 ARIA。装饰性图标由 `Icon` 输出；没有码图时占位框标 `aria-hidden=\"true\"`，不会念出图标名。`alt` 要描述用途。",
+        "contrast": [
+            {
+                "pair": "平台名 `--color-fg-heading` / 卡片底 `--color-bg-surface`",
+                "light": "17.09",
+                "dark": "14.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "账号 `--color-fg-default` / 卡片底",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "说明 `--color-fg-muted` / 卡片底",
+                "light": "4.87",
+                "dark": "4.71",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "链接按钮 `--color-fg-link` / 卡片底",
+                "light": "6.04",
+                "dark": "4.72",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "占位图标 `--color-fg-muted` / 码框底 `--color-bg-sunken`",
+                "light": "4.41",
+                "dark": "4.24",
+                "threshold": "非文字图标 ≥ 3"
+            }
+        ],
+        "focusRing": "G4 已接入（`outline: 2px solid var(--color-ring-focus)` + `outline-offset: 2px`）。",
+        "target": "链接按钮只有文本高度（`--text-sm` × `--leading-snug` + `--space-1` 上边距），实测 < 44px；按 24px 门槛达标，按 44px 触摸目标不达标。",
+        "reducedMotion": "不适用：没有过渡动画（只有颜色与下划线的瞬时变化）。",
+        "notes": [
+            "「没有图就不渲染 `<img>`」是这张卡的核心契约：`image` 为 null/缺省时渲染 `qr-card__icon-alone`（虚线框 + 图标，`aria-hidden`）。这保证产物里永远没有 `src=\"\"`——空 `src` 会被浏览器当成当前页地址再请求一次。",
+            "「有才渲染」覆盖三处：`account`、`note`、`href`。所以 props 传空串不会留下空 `<p>` 或空链接。",
+            "本组 12 个组件里，只有它与 `FriendPill` / `DonatorsList` 做到了 0 颜色字面量、0 尺寸字面量（`verify-surface-tokens` 的 C1 对它们 0 命中）。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-surface",
+            "--color-border-subtle",
+            "--color-bg-sunken",
+            "--color-border-default",
+            "--color-fg-muted",
+            "--color-fg-heading",
+            "--color-fg-default",
+            "--color-fg-link",
+            "--color-fg-link-hover",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-5",
+            "--radius-sm",
+            "--radius-md",
+            "--radius-lg",
+            "--font-sans",
+            "--font-mono",
+            "--text-xs",
+            "--text-sm",
+            "--text-base",
+            "--font-weight-medium",
+            "--font-weight-semibold",
+            "--leading-snug"
+        ],
+        "none": "阴影：无（卡片靠 1px 描边分层，不用 shadow）。尺寸上唯一的例外是二维码图 `inline-size: 10rem` 与占位框 `10rem × 10rem`——它们不在 tokens.json 的度量轴上。"
+    },
+    "sizes": {
+        "title": "尺寸（token 化，除码框外）",
+        "columns": ["元素", "值", "来源"],
+        "rows": [
+            ["卡片内边距", "`--space-5`", "token"],
+            ["码框内边距", "`--space-3`", "token"],
+            ["二维码", "`inline-size: 10rem`，`aspect-ratio: 1`", "字面量（唯一例外）"],
+            ["占位框", "`10rem × 10rem`", "字面量"],
+            ["圆角", "卡片 `--radius-lg` / 码框 `--radius-md` / 图 `--radius-sm`", "token"]
+        ]
+    },
+    "forbidden": [
+        "传 `image={null}` 却指望有码可扫（占位框不是二维码）。",
+        "`alt` 写「二维码」「图片」或留空。",
+        "在没有 `<ul>` 的父级直接用（根节点是 `<li>`）。",
+        "在页面里用 `class` 覆盖颜色/圆角（§6.1 N3）。",
+        "把账号文本改成可点击的链接又不给 `actionLabel`（可访问名称会变成账号数字）。"
+    ],
+    "related": ["donatorslist", "friendpill"]
+}

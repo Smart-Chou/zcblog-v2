@@ -1,0 +1,171 @@
+{
+    "slug": "donatorslist",
+    "kind": "ui",
+    "name": "DonatorsList",
+    "cn": "赞赏者名单",
+    "layer": "ui",
+    "spec": "src/components/UI/DonatorsList.astro（以实现为准 · M2-10a / M2-6b）",
+    "source": "src/components/UI/DonatorsList.astro",
+    "purpose": "赞赏页的名单：每个赞赏者一张小卡（头像/图标、名字、金额、留言、日期）。只渲染 adapter 归一化后的 `Donator[]`，组件自己不判空、不判重。",
+    "notFor": [
+        "排行榜（要排序、要名次）→ 页面先排序再传，组件不排序。",
+        "未归一的数据（金额字符串、日期格式五花八门）→ 先过 `src/data/adapters/donate.ts`。",
+        "实时打赏流（要轮询/推送）→ 静态站点没有这条链路。",
+        "只有一个人 → 用一句 `<p>`，不必上网格。"
+    ],
+    "props": [
+        {
+            "name": "donators",
+            "type": "`Donator[]`",
+            "default": "—",
+            "values": "必填：`{ name, amount, message?, date?, avatar? }[]`",
+            "notes": "`name` 必填、`amount` 已校验为数字。空数组会渲染一个空 `<ul>`（不留空态——空态由页面给）。"
+        },
+        {
+            "name": "currency",
+            "type": "`string`",
+            "default": "`\"¥\"`",
+            "values": "任意符号",
+            "notes": "金额前缀；`amount` 是整数时不带小数，否则保留两位。"
+        },
+        {
+            "name": "locale",
+            "type": "`Locale`",
+            "default": "`\"zh\"`",
+            "values": "`zh` / `en`",
+            "notes": "只影响日期格式（`zh-CN` / `en-US` 的 `Intl.DateTimeFormat`）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：名单是数据驱动的，插槽会破坏「一条数据一张卡」的对应关系。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`--color-bg-surface` 底 + `--color-border-subtle` 1px 边 + `--radius-lg`；头像位 `--color-accent-subtle` 圆底",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：名单项不可交互（没有 hover 抬高、没有下划线）",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：没有可聚焦元素（留言是纯文本，不做链接）",
+            "aria": "—"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        },
+        {
+            "state": "empty",
+            "trigger": "`donators` 为空数组",
+            "visual": "渲染空 `<ul>`（0 高度）；空态文案由页面负责",
+            "aria": "无（没有 `aria-live`，也没有占位文案）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<ul role=\"list\">` + `<li>`（`role=\"list\"` 是显式的：某些浏览器在 `list-style: none` 下会丢掉列表语义）。每项里 `div` 分区，日期是 `<time datetime>`。",
+        "keyboard": "没有可聚焦元素；名单只读。",
+        "aria": "头像位标 `aria-hidden=\"true\"`（有头像时 `alt=\"\"`，没有头像时是图标）。金额不是 ARIA 的一部分，读屏按文本念「¥ 50」。",
+        "contrast": [
+            {
+                "pair": "名字 `--color-fg-heading` / 卡片底 `--color-bg-surface`",
+                "light": "17.09",
+                "dark": "14.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "金额 `--color-fg-link` / 卡片底",
+                "light": "6.04",
+                "dark": "4.72",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "留言 `--color-fg-default` / 卡片底",
+                "light": "9.39",
+                "dark": "9.69",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "日期 `--color-fg-muted` / 卡片底",
+                "light": "4.87",
+                "dark": "4.71",
+                "threshold": "≥ 4.5"
+            }
+        ],
+        "focusRing": "不适用（没有可聚焦元素）。",
+        "target": "不适用（只读名单）。",
+        "reducedMotion": "不适用：没有任何过渡或动画。",
+        "notes": [
+            "头像位的前景用 `--color-fg-default` 而不是 `--color-fg-link`：`--color-fg-link` 在暗色的 `--color-accent-subtle` 底上只有 3.52:1，图标会糊。",
+            "没有头像时渲染闭集图标 `tabler:user-circle`，**不是首字**：单字符文本会让 axe 的对比度检查降级成 incomplete，而且「张三」取两个字会与名字重复。",
+            "日期不做「hover 才显示」：hover 才可见的信息在触摸与键盘下等于不存在。金额为 0 表示「心意已收、未记账」，此时不渲染 `¥0.00`。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-surface",
+            "--color-border-subtle",
+            "--color-accent-subtle",
+            "--color-fg-heading",
+            "--color-fg-default",
+            "--color-fg-link",
+            "--color-fg-muted"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-11",
+            "--radius-lg",
+            "--radius-pill",
+            "--font-sans",
+            "--font-mono",
+            "--text-base",
+            "--text-sm",
+            "--text-xs",
+            "--font-weight-medium",
+            "--font-weight-semibold",
+            "--leading-snug",
+            "--tracking-wide"
+        ],
+        "none": "阴影：无（1px 描边分层）。唯一的字面量是网格 `minmax(17rem, 1fr)` 与头像 `<img>` 的 `width/height=44` 属性（图片固有尺寸，不是样式）。"
+    },
+    "sizes": {
+        "title": "尺寸（token 化，除网格列宽外）",
+        "columns": ["元素", "值", "来源"],
+        "rows": [
+            ["网格最小列宽", "17rem", "字面量（唯一例外）"],
+            ["卡片内边距", "`--space-4`", "token"],
+            ["头像位", "`--space-11`（44）× `--space-11`", "token"],
+            ["日期字号", "`--text-xs` + `--tracking-wide`", "token"]
+        ]
+    },
+    "forbidden": [
+        "把未归一的金额/日期直接传进来（组件只格式化，不校验）。",
+        "把留言做成链接或按钮（名单是只读的）。",
+        "用首字替代 `user-circle` 占位（对比度降级 + 与名字重复）。",
+        "在页面里用 `class` 覆盖颜色/圆角（§6.1 N3）。",
+        "依赖空数组渲染出空态文案（组件不写空态）。"
+    ],
+    "related": ["qrcard", "avatar"]
+}

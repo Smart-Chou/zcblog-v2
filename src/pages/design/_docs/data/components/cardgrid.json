@@ -1,0 +1,127 @@
+{
+    "slug": "cardgrid",
+    "kind": "ui",
+    "name": "CardGrid",
+    "cn": "封面卡网格",
+    "layer": "ui",
+    "spec": "src/components/UI/CardGrid.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/CardGrid.astro",
+    "purpose": "一排「海报卡」的容器：把 `MediaItem[]` 摊成自适应网格，每张卡用 `ui-card`，左上角叠评分角标、底部叠标题。番剧 / 豆瓣 / 歌单页的列表都用它。",
+    "notFor": [
+        "正文列表（标题 + 摘要）→ 用 `ui-card` 之外的行式布局。",
+        "少于 3 项 → 直接用一张 `ui-card`：网格的最小列宽会让单张卡缩成 160px。",
+        "需要分页的集合 → 网格只负责布局，分页由页面给（`Pagination`）。",
+        "需要排序/筛选交互 → 那是页面脚本的事，组件只渲染。"
+    ],
+    "props": [
+        {
+            "name": "items",
+            "type": "`MediaItem[]`",
+            "default": "—",
+            "values": "必填：`{ url, rating, ratingNum?, title, link? }[]`",
+            "notes": "`rating / 10` 保留一位小数做角标；`ratingNum` 有值时原样显示（用于「9.2」这类已归一的数据）。"
+        },
+        {
+            "name": "imageBaseUrl",
+            "type": "`string`",
+            "default": "`\"\"`",
+            "values": "路径前缀",
+            "notes": "拼在 `item.url` 前面再交给 `getLocalImage()` 查本地图；查不到就把拼好的字符串当 `<img src>` 用。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：每张卡的 `badges` / `overlay` 由组件内部填（评分、标题）。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`grid-template-columns: repeat(auto-fill, minmax(160px, 1fr))`，间距 1.25rem；卡片的视觉由 `ui-card` 负责",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "指针悬停某张卡",
+            "visual": "由 `ui-card` 的 hover 承担（整卡上浮 4px，封面放大 5%）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦某张卡",
+            "visual": "由 `ui-card` 承担：没有自定义焦点环 → 浏览器默认",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：容器没有禁用态"
+            ,"aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "封面图懒加载",
+            "visual": "图片 `loading=\"lazy\"`；没有骨架占位",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div>` 网格，每项一个 `ui-card`（整卡是 `<a>`）。**不是 `<ul>/<li>`**：一组卡片没有列表语义，读屏只按链接顺序念。",
+        "keyboard": "Tab 依次经过每张卡（一个链接一张卡），Enter 打开。",
+        "aria": "不注入 ARIA。每张卡的可访问名称 = 封面 `alt`（即 `item.title`）+ overlay 里的同名标题 → **同一句话会被念两遍**，这是当前实现的已知噪音。",
+        "contrast": [
+            {
+                "pair": "评分角标 `#ffd700` / 0.6 黑压白封面",
+                "light": "4.09",
+                "dark": "14.03",
+                "threshold": "债 · light 未达 4.5"
+            },
+            {
+                "pair": "标题白字 / 0.8 黑压白封面",
+                "light": "12.63",
+                "dark": "20.28",
+                "threshold": "≥ 4.5（按最坏底色算）"
+            }
+        ],
+        "focusRing": "**没有接入 G4**（继承 `ui-card` 的缺口）。",
+        "target": "每张卡 ≥ 160px 宽 × 2/3 比例高，远超 24px。",
+        "reducedMotion": "**未处理**：卡片的 hover 位移由 `ui-card` 承担，同样没有 reduced-motion 分支。",
+        "notes": [
+            "评分角标的底色是 `rgba(0,0,0,.6)`、字色 `#ffd700`：压在真实封面上时比值取决于图片。文档按「最坏情况」（0.6 黑压纯白封面）给出 4.09 / 14.03。",
+            "标题在两处同时出现（`alt` + overlay），读屏会把「葬送的芙莉莲」念两遍；要修就得把 overlay 标 `aria-hidden`（归 M2-10b）。",
+            "链接在网格里固定 `target=\"_blank\"` + `rel=\"noreferrer\"`：外站条目会在新标签页打开，不再是用户可以选的。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "0 个 token：网格 `160px` / `1.25rem`、角标 `2px 8px` + `4px` 圆角 + `0.8rem`、标题 `0.85rem` 与 `line-height: 1.3` 全是字面量；角标的黑色遮罩与金色字是写死的值。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测，均为字面量）",
+        "columns": ["元素", "值", "备注"],
+        "rows": [
+            ["网格最小列宽", "160px", "`auto-fill` 自适应"],
+            ["网格间距", "1.25rem", "未 token 化"],
+            ["评分角标", "`2px 8px` 内边距 · `4px` 圆角 · `0.8rem`", "压在封面左上"],
+            ["标题", "`0.85rem` · `line-height: 1.3` · 最多 2 行", "`-webkit-line-clamp: 2`"]
+        ]
+    },
+    "forbidden": [
+        "把 `items` 传成空数组（会渲染一个空网格，不留占位）。",
+        "在页面里用 `class` 覆盖列宽/间距（§6.1 N3）。",
+        "指望它自己分页或排序。",
+        "传没有 `title` 的条目（`alt` 会变成空串，整卡变成无名链接）。",
+        "在卡片里再塞第二个链接（`ui-card` 只有一个 `<a>`）。"
+    ],
+    "related": ["ui-card", "card"]
+}

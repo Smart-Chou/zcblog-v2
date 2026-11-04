@@ -1,0 +1,22 @@
+---
+/**
+ * /design/components/author/ — Author 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/author.json
+ *
+ * 组件不接 props，读的是 `~/config`（作者名、简介第 2 句、分类与社交链接）。所以这一页
+ * 的示例就是「生产配置的实物」；样式在 `src/styles/article.css` 的 `.author` 作用域里，
+ * 文档页没加载它 → 示例区是裸排版（头像无圆角、标题无字号）。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import Author from "~/components/UI/Author.astro";
+
+const doc = byComponentSlug("author");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame layout="stack" caption="唯一形态：头像 + 站点标题 + 一句简介 + 两排图标链接">
+        <Author />
+    </DemoFrame>
+</ComponentDoc>

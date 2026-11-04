@@ -1,0 +1,131 @@
+{
+    "slug": "ui-pagination",
+    "kind": "ui",
+    "name": "Pagination",
+    "cn": "页码条（旧版）",
+    "layer": "ui",
+    "spec": "src/components/UI/Pagination.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/Pagination.astro",
+    "purpose": "博客列表的页码条：上一页 / 页码窗口 / 下一页。窗口算法是「永远固定 5 格」，没有省略号；数据来自 Astro 的 `page` 对象。",
+    "notFor": [
+        "新写的可索引分页 → 用 `Pagination`（molecule，§5.6.10）：它有省略号、`pageLabel` 模板与 i18n 文案。本组件是它的前身。",
+        "无限滚动 / 「加载更多」→ 需要 JS 与请求，不属于分页导航。",
+        "只有两页 → 上一页 / 下一页两个 `Link` 就够。",
+        "同一页要两处分页（顶部 + 底部）→ 组件写死了 `id=\"pagination\"`，两个实例会产生重复 id。"
+    ],
+    "props": [
+        {
+            "name": "page",
+            "type": "`PageInfo`",
+            "default": "—",
+            "values": "必填：`{ url: { prev?, next? }, lastPage, currentPage }`",
+            "notes": "Astro `paginate()` 给的对象直接传进来即可。`lastPage ≤ 1` 时组件仍会渲染一个只有单页码的条（不像 molecule 版本会渲染为空）。"
+        },
+        {
+            "name": "blogPath",
+            "type": "`string`",
+            "default": "`\"/blog\"`",
+            "values": "以 `/` 开头的路径前缀",
+            "notes": "页码 href = `${blogPath}/${n}/`；第 1 页也拼成 `/blog/1/`，不是 `/blog/`（与 molecule 版本的差别）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：页码由窗口算法生成，页面不插入内容。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "36×36 圆角方块，描边取旧键 `color-border`（缺失 → 无描边），字色取旧键 `color-text-muted`（缺失 → 继承正文色）",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`，且不是 `.active` / `.disabled`",
+            "visual": "字色转 `color-accent`（缺失 → 无变化），描边转 `color-mix(accent 45%, border)`（同样失效）",
+            "aria": "无"
+        },
+        {
+            "state": "selected",
+            "trigger": "`currentPage` 那一项",
+            "visual": "加粗 + 意图是 accent 字 / accent 描边 / accent 8% 底（三个旧键缺失 → 实测只剩 `font-weight: 600`）",
+            "aria": "`aria-current=\"page\"`"
+        },
+        {
+            "state": "disabled",
+            "trigger": "第一页的「上一页」/ 最后一页的「下一页」",
+            "visual": "`pointer-events: none` + `opacity: .45`，字色取旧键 `color-text-dimmed`（缺失）",
+            "aria": "`aria-disabled=\"true\"`，且 `href` 为 undefined（不可点击）"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "没有自定义焦点环 → 浏览器默认（§5.4 要求 G4 环）",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用：没有按下态",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<nav aria-label> + <a>` 序列（注意：**不是** `<ol>/<li>`）。上一页 / 下一页是只有图标的 `<a>`，靠 `aria-label` 给名字。",
+        "keyboard": "所有非 disabled 的页码与箭头在 Tab 序列里；disabled 的箭头 `pointer-events: none` 但仍可聚焦（没有 `tabindex=\"-1\"`），这是一个已知噪音点。",
+        "aria": "`aria-current=\"page\"`（当前页）、`aria-disabled=\"true\"`（边界）。**硬编码英文**：`aria-label=\"Pagination Navigation\"` / `\"Previous\"` / `\"Next\"`，没有 props 可以覆盖 → 中文页面里读屏会念英文（债）。",
+        "contrast": [
+            {
+                "pair": "页码（继承正文色）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "当前页（意图 `color-accent`，实际继承正文色）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（颜色未生效的读数）"
+            },
+            {
+                "pair": "disabled 箭头（`opacity: .45` 叠加后）",
+                "light": "—",
+                "dark": "—",
+                "threshold": "1.4.3 豁免（不可用控件）"
+            }
+        ],
+        "focusRing": "**没有接入 G4**（`:focus-visible` 缺失）。",
+        "target": "方块固定 36×36（≥ 24px 达标，但小于 §5.6.10 要求的 `--space-10`/40 与箭头的 `--space-11`/44）。",
+        "reducedMotion": "不适用：组件只有颜色过渡，没有位移动画。",
+        "notes": [
+            "窗口算法（实测）：`lastPage < 6` → 全显示；`currentPage < 4` → 1..5；`currentPage + 3 > lastPage` → 末 5 页；其余 `currentPage ± 2`。**没有省略号**，所以第 4 页和第 40 页看起来一样长。",
+            "与 `Pagination`（molecule）的差别：本组件没有 `pageLabel` 模板（页码的可访问名称就是数字）、没有 `siblings`、第 1 页也拼 `/1/`、`lastPage ≤ 1` 不渲染空。两套实现并存属于 §4.2 的重复债务，收敛归 M2-10b。",
+            "`id=\"pagination\"` 与样式里的 `#pagination` 绑定 → 一个页面只能有一个实例；两个就会重复 id，且第二个复用第一份样式。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": ["--duration-fast"],
+        "none": "颜色：0 个 token（`color-border` / `color-text-muted` / `color-accent` / `color-text-dimmed` 全缺）。度量：36px 方块、8px 间距、0.9em 字号、`radius-full` 都是字面量或旧键；`ease-out` 也不在 tokens.json。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测，均为字面量）",
+        "columns": ["元素", "边长", "间距", "字号"],
+        "rows": [
+            ["页码方块", "36×36 px", "8px", "0.9em"],
+            ["上一页 / 下一页", "36×36 px", "8px", "图标（由 Icon 组件定）"]
+        ]
+    },
+    "forbidden": [
+        "同页放两个实例（`id=\"pagination\"` 重复）。",
+        "用本组件给新页面写分页——新代码用 molecule 版 `Pagination`。",
+        "把英文 `aria-label` 当成品（需要中文时必须换组件，不能只改 CSS）。",
+        "生成 `?page=` 查询串（静态站要可索引路径）。",
+        "在页面里用 `class` 覆盖 36px 方块尺寸。"
+    ],
+    "related": ["pagination", "link"]
+}

@@ -1,0 +1,46 @@
+---
+/**
+ * /design/components/donatorslist/ — DonatorsList 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/donatorslist.json
+ *
+ * 数据按 adapter 归一化后的形状给（`src/data/adapters/donate.ts` 的 `Donator`）：
+ * 日期是 `YYYY-MM-DD`，金额是数字，留言与头像可选。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import DonatorsList from "~/components/UI/DonatorsList.astro";
+
+const doc = byComponentSlug("donatorslist");
+
+const DONATORS = [
+    {
+        name: "一位不愿具名的读者",
+        amount: 50,
+        date: "2026-10-31",
+        message: "喜欢归档页那条时间线，继续写。",
+    },
+    { name: "K", amount: 0, date: "2026-10-20" },
+    {
+        name: "Long-name reader from the other side of the ocean",
+        amount: 128.5,
+        date: "2026-09-14",
+        message:
+            "Very long message to prove the card does not blow up the grid: the text keeps wrapping inside its own column.",
+    },
+];
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame layout="stack" caption="三条数据：金额为 0 时不渲染金额；留言与日期「有才渲染」">
+        <DonatorsList donators={DONATORS} />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="英文日期：locale=en 走 en-US 的 Intl 格式">
+        <DonatorsList donators={DONATORS.slice(0, 2)} locale="en" currency="$" />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="空名单：渲染空 ul（0 高度），空态文案由页面负责">
+        <DonatorsList donators={[]} />
+    </DemoFrame>
+</ComponentDoc>

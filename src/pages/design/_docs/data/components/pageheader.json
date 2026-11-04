@@ -1,0 +1,142 @@
+{
+    "slug": "pageheader",
+    "kind": "ui",
+    "name": "PageHeader",
+    "cn": "页面头",
+    "layer": "ui",
+    "spec": "src/components/UI/PageHeader.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/PageHeader.astro",
+    "purpose": "列表页/栏目页的头部：一个图标（可选）、`<h1>` 标题、一行副标题，以及可选的构建时间。`SectionPage` 布局把它接在内容区最上面。",
+    "notFor": [
+        "文章正文的标题 → 文章页有 `<h1>` + 元信息，不套页面头。",
+        "首屏 hero（大标语、打字机）→ 首页自己拼，`TypewriterText` 才是那里的组件。",
+        "面包屑 → `Breadcrumb`（molecule）。",
+        "标题不需要 `<h1>` 的区块 → 用 `<h2>` 自己写；本组件固定输出 `<h1>`，一页只能有一个."
+    ],
+    "props": [
+        {
+            "name": "title",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "渲染成 `<h1>`。一个页面只能出现一次（两处会得到两个 h1）。"
+        },
+        {
+            "name": "subtitle",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "一行说明，渲染成 `<p>`。声明为必填但实现不判空：传空串会留一个空的 `<p>`。"
+        },
+        {
+            "name": "buildTime",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "有才渲染的小灰字（构建时间）。它是给人看的字符串，不是 `<time>`。"
+        },
+        {
+            "name": "showIcon",
+            "type": "`boolean`",
+            "default": "`false`",
+            "values": "true / false",
+            "notes": "打开一个 64×64 的图标框。框里的内容来自 `icon` slot。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "icon",
+            "required": "否（只有 `showIcon` 为 true 时才有位置）",
+            "notes": "一个装饰性图标。注意：图标框的底色取旧键 `color-accent`（缺失 → 透明），字色写死白色，所以深色描边图标会看不见。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "标题字色取旧键 `color-title`（缺失 → 继承正文色）；副标题取旧键 `color-text`（同样缺失）；`buildTime` 是 `opacity: .6`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：没有交互",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：不可聚焦",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div>` 里 `<h1>` + `<p>` +（可选）`<p>`。标题层级由组件决定，页面不能改。",
+        "keyboard": "不可聚焦，无键盘交互。",
+        "aria": "不注入 ARIA。图标框是纯装饰：`icon` slot 里的图标应当 `aria-hidden=\"true\"`，否则读屏会在标题前念一遍图标名。",
+        "contrast": [
+            {
+                "pair": "标题（继承正文色）/ 画布底",
+                "light": "16.29",
+                "dark": "15.89",
+                "threshold": "≥ 4.5（继承读数）"
+            },
+            {
+                "pair": "副标题（继承正文色）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（继承读数）"
+            },
+            {
+                "pair": "构建时间（正文色 + `opacity: .6`）/ 画布底",
+                "light": "3.12",
+                "dark": "4.51",
+                "threshold": "债 · light 未达 4.5"
+            }
+        ],
+        "focusRing": "不适用（不可聚焦）。",
+        "target": "不适用（无交互）。",
+        "reducedMotion": "不适用：没有动画。",
+        "notes": [
+            "图标框的实际渲染：`background: var(--color-accent)` 里的旧键不存在 → 底色失效（透明）；`color: white` 是字面量 → 深色图标在纸底上不可见。示例区第二块就是这个状态，用来把债摆在台面上。",
+            "标题与副标题之所以「看起来正常」，同样是因为旧键失效后继承正文色——不是颜色达标，是没生效。",
+            "`buildTime` 的 3.63 / 4.73 是正文色乘 `opacity: .6` 后与画布底合成的读数（light 不达标）。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "0 个 token：`color-accent` / `color-title` / `color-text` 三个旧键都不存在，图标框 64px、圆角 12px、`margin-bottom: 2rem`、`font-size: 2rem` 全是字面量。`white` 与 `opacity: .6` 也是写死的。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测，均为字面量）",
+        "columns": ["元素", "值", "备注"],
+        "rows": [
+            ["图标框", "64×64 px · 圆角 12px", "底色失效 → 透明"],
+            ["图标", "32×32 px", "写死（`:global(svg)`）"],
+            ["标题", "2rem / 700", "未 token 化"],
+            ["副标题", "1rem", "未 token 化"],
+            ["构建时间", "0.8rem + opacity .6", "未 token 化"]
+        ]
+    },
+    "forbidden": [
+        "一个页面用两次（两个 `<h1>`）。",
+        "在 `icon` slot 放需要被读屏念出的信息（它应当是装饰）。",
+        "用 CSS 覆盖标题字号（§6.1 N3）——要换大小先改组件。",
+        "把 `buildTime` 当机器可读时间（它是字符串，没有 `<time datetime>`）。",
+        "依赖图标框的底色：它在当前实现里是透明的。"
+    ],
+    "related": ["breadcrumb", "typewritertext"]
+}

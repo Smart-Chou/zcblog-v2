@@ -1,0 +1,126 @@
+{
+    "slug": "author",
+    "kind": "ui",
+    "name": "Author",
+    "cn": "作者卡",
+    "layer": "ui",
+    "spec": "src/components/UI/Author.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/Author.astro",
+    "purpose": "文章页与关于页底部的作者区：圆形头像、站点标题、一句话简介，以及两排图标链接（分类入口 + 社交）。数据全部来自 `src/config`，不接受 props。",
+    "notFor": [
+        "需要传作者数据的场景（多作者、协作者）→ 本组件写死读 `~/config`，无法参数化。",
+        "侧栏/页脚的小作者署名 → 用一行 `<p>`。",
+        "社交链接需要可见文本（而不只是图标）→ 这里只有图标 + `aria-label`。",
+        "任何需要 i18n 的文案：简介取 `site.description` 的第 2 句，标题取 `author.type`，都不可覆盖。"
+    ],
+    "props": [
+        {
+            "name": "—",
+            "type": "`{}`",
+            "default": "—",
+            "values": "无 props",
+            "notes": "组件自己 import `author` / `categories` / `socialLinks` / `site`。这是「配置驱动」而不是「props 驱动」，也是它无法被复用的根因。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "头像 `border-radius: 100%`（90×90）；标题取旧键 `color-title`、简介取旧键 `color-text-muted`、链接取旧键 `color-accent`——三个都不存在 → 全部继承正文色",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)` 悬停任一图标链接",
+            "visual": "底色取旧键 `color-hover`（缺失 → 无底色）+ `translateY(-1px)`",
+            "aria": "无"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用：没有按下态",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦图标链接",
+            "visual": "没有自定义焦点环 → 浏览器默认（§5.4 要求 G4）",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：链接没有禁用态",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "头像加载",
+            "visual": "`<Image>` 走 `astro:assets`，`loading=\"eager\"` + `fetchpriority=\"high\"`（头像被当作 LCP 候选）",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<div>` + `<p>`（三个段落）+ 两排 `<p>` 里各若干 `<a>`。标题是 `<p class=\"author-site-title\">` 而不是 `<h2>`——在文章页里这是**跳级**：h1 之后直接没有 h2 就出现视觉标题。",
+        "keyboard": "每个图标链接各自进 Tab（分类 4 个 + 社交若干）；Enter 打开。",
+        "aria": "图标链接靠 `aria-label={title}` 给名字（图标本身没有文本）；头像 `alt=\"Author\"`（英文、且不描述具体是谁）。两处都是债：`alt` 应当有意义或留空。",
+        "contrast": [
+            {
+                "pair": "站点标题（旧键失效 → 继承正文色）/ 画布底",
+                "light": "16.29",
+                "dark": "15.89",
+                "threshold": "≥ 4.5（继承读数）"
+            },
+            {
+                "pair": "简介（旧键失效 → 继承正文色）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（继承读数）"
+            },
+            {
+                "pair": "图标链接（旧键失效 → 继承正文色）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "非文字图标 ≥ 3（继承读数）"
+            }
+        ],
+        "focusRing": "**没有接入 G4**（`:focus-visible` 缺失）。",
+        "target": "图标链接 `min-width/min-height: 34px`（≥ 24px 达标，< 44px 触摸建议值）。",
+        "reducedMotion": "**未处理**：hover 的 `translateY(-1px)` 没有 `prefers-reduced-motion` 分支（债）。",
+        "notes": [
+            "三个旧键（`color-title` / `color-text-muted` / `color-accent`）与 `font-heading` 在 tokens.json 里都不存在，所以这一块的颜色实际全是「继承正文」——看起来正常纯属巧合。",
+            "样式不在组件里：`Author.astro` 末尾只有一行注释「样式已移到 src/styles/article.css（D-0085）」。所以组件在文章页之外（例如本文档示例区）是裸排版：头像圆角有（`article.css` 里的规则带 `.author` 前缀，但文档页没加载它）→ 实测示例区无圆角。",
+            "`categories` / `socialLinks` 的 URL 若以 `/` 开头，组件会自动加 `/en` 前缀（按当前路径判断）——这是全站唯一一处「组件自己猜语言」的逻辑。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": ["--text-sm"],
+        "none": "颜色：0 个 token（`color-title` / `color-text-muted` / `color-accent` / `color-hover` / `font-heading` 全部缺失，实际全部继承）。度量：头像 90px、`margin-top: 2rem`、`1.6em` / `1.2em` 字号、`34px` 命中区、`9px` 圆角都是 `article.css` 里的字面量。"
+    },
+    "sizes": {
+        "title": "尺寸（全部来自 article.css，不在组件里）",
+        "columns": ["元素", "值", "出处"],
+        "rows": [
+            ["头像", "90×90 px · 圆形", "article.css（字面量）"],
+            ["站点标题", "`1.6em` / 字重 400", "article.css"],
+            ["简介", "`--text-sm` · `max-width: 36em`", "token + 字面量"],
+            ["图标链接", "`min-width/min-height: 34px` · 圆角 9px", "article.css"]
+        ]
+    },
+    "forbidden": [
+        "在文章页之外指望它有样式（样式在 `article.css` 的 `.author` 作用下，D-0085）。",
+        "传 props 定制（组件不接 props，改它就得改 `~/config`）。",
+        "把 `alt=\"Author\"` 当可访问名称的范本（英文且不含具体人名）。",
+        "在同一页放两个 Author（两排重复的社交链接）。",
+        "让这排图标链接承担唯一入口（它们没有可见文本，纯图标）。"
+    ],
+    "related": ["avatar", "friendpill"]
+}

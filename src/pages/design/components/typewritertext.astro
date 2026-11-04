@@ -1,0 +1,41 @@
+---
+/**
+ * /design/components/typewritertext/ — TypewriterText 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/typewritertext.json
+ *
+ * 这是 12 个组件里唯一带 `<script>` 的：示例区因此会有 1 段内联脚本（属于组件，不属于
+ * 文档版式）。首句随 HTML 到达，脚本只负责之后的循环（D-0087）。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import TypewriterText from "~/components/UI/TypewriterText.astro";
+
+const doc = byComponentSlug("typewritertext");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="多句轮播：首句在 HTML 里，脚本按 speed / pauseTime / deleteSpeed 轮换"
+    >
+        <p>
+            <TypewriterText
+                text={["写字、做东西、然后把过程写下来。", "先量再定，不许凭空写 0。", "把债写在卡上。"]}
+                speed={70}
+                deleteSpeed={35}
+                pauseTime={1600}
+            />
+        </p>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="单句：没有第二句可轮换，脚本不会删除重打">
+        <p>
+            <TypewriterText text="只有一句话的时候，打字机只负责把光标留在后面。" />
+        </p>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="空数组：组件什么都不渲染（示例区这一行是空的）">
+        <TypewriterText text={[]} />
+    </DemoFrame>
+</ComponentDoc>

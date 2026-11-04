@@ -1,0 +1,40 @@
+---
+/**
+ * /design/components/friendpill/ — FriendPill 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/friendpill.json
+ *
+ * 根节点是 `<li>`，示例必须包在列表里（这里用 `display: contents` 让网格/行布局不被 `<ul>`
+ * 打断，同时保住列表语义）。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import FriendPill from "~/components/UI/FriendPill.astro";
+
+const doc = byComponentSlug("friendpill");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame layout="stack" caption="带简介：副行取 description；头像缺省 → 首字母兜底（装饰，aria-hidden）">
+        <ul style="list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem;">
+            <FriendPill
+                name="MIFSH"
+                url="https://marxchou.com"
+                description="写字、做东西、然后把过程写下来。"
+            />
+            <FriendPill name="@astro" url="https://astro.build" description="静态站点框架。" />
+        </ul>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="没有简介：副行回落到去 www 的站点 host">
+        <ul style="list-style: none; margin: 0; padding: 0;">
+            <FriendPill name="Pagefind" url="https://pagefind.app/docs/" />
+        </ul>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="给了 avatar：渲染 img（alt 为空），首字母兜底不出现">
+        <ul style="list-style: none; margin: 0; padding: 0;">
+            <FriendPill name="本站" url="https://marxchou.com" avatar="/logo.webp" />
+        </ul>
+    </DemoFrame>
+</ComponentDoc>

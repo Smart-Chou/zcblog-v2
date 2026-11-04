@@ -18,14 +18,43 @@ import { rich } from "./rich";
 
 interface Props {
     doc: DocEntry;
+    /**
+     * 文档分区（M2-10a）。缺省 = atom 文档的现状（12 份 atom/molecule、/design/atoms/），
+     * 传进来则整份版式按 legacy UI 的目录与同级顺序渲染 —— 版式只有这一份，不复制。
+     */
+    section?: DocSection;
 }
 
-const { doc } = Astro.props as Props;
+interface DocSection {
+    /** 同级文档的 URL 前缀，例如 `/design/components/`。 */
+    base: string;
+    /** 同级文档（prev / next / 页脚索引都从这里取）。 */
+    peers: { slug: string; name: string }[];
+    /** 页头的返回链接。 */
+    backHref: string;
+    backLabel: string;
+    /** 页脚索引标题。 */
+    indexTitle: string;
+    /** 页脚索引下方的一句说明。 */
+    indexHint: string;
+}
+
+const ATOM_SECTION: DocSection = {
+    base: "/design/atoms/",
+    peers: DOCS.map((entry) => ({ slug: entry.slug, name: entry.name })),
+    backHref: "/design/atoms/",
+    backLabel: "← specimen 实验页",
+    indexTitle: "全部 12 份组件文档",
+    indexHint: "契约源是 `DESIGN.md §5.6`；本页只负责把契约与实现摆在一起，不改组件、不改 token。",
+};
+
+const { doc, section = ATOM_SECTION } = Astro.props as Props;
 const { a11y, tokens } = doc;
 
-const index = DOCS.findIndex((entry) => entry.slug === doc.slug);
-const prev = DOCS[(index - 1 + DOCS.length) % DOCS.length];
-const next = DOCS[(index + 1) % DOCS.length];
+const peers = section.peers;
+const index = peers.findIndex((entry) => entry.slug === doc.slug);
+const prev = peers[(index - 1 + peers.length) % peers.length];
+const next = peers[(index + 1) % peers.length];
 
 const SECTIONS = [
     { id: "purpose", label: "用途" },
@@ -58,11 +87,11 @@ const SECTIONS = [
                 实现：<code class="tok">{doc.source}</code>
             </p>
             <nav class="doc-nav" aria-label="文档导航">
-                <a class="doc-nav__link" href="/design/atoms/">← specimen 实验页</a>
-                <a class="doc-nav__link" href={`/design/atoms/${prev.slug}/`}>
+                <a class="doc-nav__link" href={section.backHref}>{section.backLabel}</a>
+                <a class="doc-nav__link" href={`${section.base}${prev.slug}/`}>
                     ← {prev.name}
                 </a>
-                <a class="doc-nav__link" href={`/design/atoms/${next.slug}/`}>{next.name} →</a>
+                <a class="doc-nav__link" href={`${section.base}${next.slug}/`}>{next.name} →</a>
             </nav>
             <nav class="doc-toc" aria-label="本页章节">
                 {
@@ -173,18 +202,20 @@ const SECTIONS = [
                         <p class="doc-lead" set:html={rich(tokens.none ?? "颜色：无")} />
                     )
                 }
-                <div class="doc-token-group">
-                    <h3 class="doc-h3">度量（{tokens.metric.length}）</h3>
-                    <ul class="doc-chips">
-                        {
-                            tokens.metric.map((token) => (
-                                <li>
-                                    <code class="tok">{token}</code>
-                                </li>
-                            ))
-                        }
-                    </ul>
-                </div>
+                {
+                    tokens.metric.length > 0 && (
+                        <div class="doc-token-group">
+                            <h3 class="doc-h3">度量（{tokens.metric.length}）</h3>
+                            <ul class="doc-chips">
+                                {tokens.metric.map((token) => (
+                                    <li>
+                                        <code class="tok">{token}</code>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )
+                }
                 {
                     tokens.other && tokens.other.length > 0 && (
                         <div class="doc-token-group">
@@ -243,14 +274,14 @@ const SECTIONS = [
         </main>
 
         <footer class="doc-foot">
-            <h2 class="doc-h2">全部 12 份组件文档</h2>
+            <h2 class="doc-h2">{section.indexTitle}</h2>
             <ul class="doc-index">
                 {
-                    DOCS.map((entry) => (
+                    peers.map((entry) => (
                         <li>
                             <a
                                 class="doc-index__link"
-                                href={`/design/atoms/${entry.slug}/`}
+                                href={`${section.base}${entry.slug}/`}
                                 aria-current={entry.slug === doc.slug ? "page" : undefined}
                             >
                                 {entry.name}
@@ -259,10 +290,7 @@ const SECTIONS = [
                     ))
                 }
             </ul>
-            <p class="doc-hint">
-                契约源是 <code class="tok">DESIGN.md §5.6</code>；本页只负责把契约与实现摆在一起，
-                不改组件、不改 token。
-            </p>
+            <p class="doc-hint" set:html={rich(section.indexHint)} />
         </footer>
     </body>
 </html>

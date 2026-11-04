@@ -1,0 +1,135 @@
+{
+    "slug": "typewritertext",
+    "kind": "ui",
+    "name": "TypewriterText",
+    "cn": "打字机文本",
+    "layer": "ui",
+    "spec": "src/components/UI/TypewriterText.astro（以实现为准 · M2-10a / D-0087）",
+    "source": "src/components/UI/TypewriterText.astro",
+    "purpose": "首页 slogan 的打字机效果：首句随 HTML 到达（LCP 由它承担），JS 只负责之后「停留 → 删除 → 下一句」的循环。光标是 CSS 的 `|`。",
+    "notFor": [
+        "正文段落或标题（会动的内容不该是要读的文字）。",
+        "必须被搜索引擎完整读到的文案 → 只有首句在 HTML 里，其余在 `data-text` 属性里。",
+        "会造成布局抖动的场景（宽度随字符数变化）→ 先把容器宽度锁死，否则每打一个字都要回流。",
+        "需要用户暂停/关闭的动效 → 组件没有开关，只有系统级 reduced-motion 时才该关（当前也没关）。"
+    ],
+    "props": [
+        {
+            "name": "text",
+            "type": "`string | string[]`",
+            "default": "—",
+            "values": "必填",
+            "notes": "数组 = 轮播的多句（首句 SSR，其余由脚本轮换）；字符串 = 单句（不循环、不删除）。空数组时组件**什么都不渲染**。"
+        },
+        {
+            "name": "speed",
+            "type": "`number`",
+            "default": "`100`",
+            "values": "毫秒/字",
+            "notes": "写字速度，写到 `data-speed` 上给脚本读。"
+        },
+        {
+            "name": "deleteSpeed",
+            "type": "`number`",
+            "default": "`50`",
+            "values": "毫秒/字",
+            "notes": "删除速度；只在多句时用得上。"
+        },
+        {
+            "name": "pauseTime",
+            "type": "`number`",
+            "default": "`2000`",
+            "values": "毫秒",
+            "notes": "一句写完后停留多久再删。首句也会先停这么久（不会从零重打，D-0087）。"
+        },
+        {
+            "name": "class",
+            "type": "`string`",
+            "default": "`\"\"`",
+            "values": "—",
+            "notes": "只允许布局类（页面用它定位，例如首页 hero 的宽度约束）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：文本只来自 `text`（拼进 `data-text` 与首屏文本）。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "继承正文色；`::after` 是 `|` 光标（`blink` 1s 无限）",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "脚本接管后",
+            "visual": "文字逐字变化；组件没有 `aria-busy`（见 a11y.aria）",
+            "aria": "—（不设 `aria-busy`）"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：没有指针交互",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：不可聚焦",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：没有禁用态。想「关掉动效」只能靠 `prefers-reduced-motion`（当前未实现）",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<span>` 行内元素 + `data-*` 属性驱动脚本。整句作为普通文本进入无障碍树。",
+        "keyboard": "不可聚焦，无键盘交互。",
+        "aria": "**没有 `aria-live`**：文字被脚本改写时读屏不会播报（对装饰性 slogan 是可接受的取舍，但必须知道）。也因此不需要 `aria-busy`。光标 `|` 是 CSS 生成内容，不进无障碍树——这是对的（别改成真实字符）。",
+        "contrast": [
+            {
+                "pair": "文本（继承正文色）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（继承读数）"
+            }
+        ],
+        "focusRing": "不适用（不可聚焦）。",
+        "target": "不适用（不是交互控件）。",
+        "reducedMotion": "**未处理**：`@keyframes blink` 与 JS 的 `setTimeout` 循环都不看 `prefers-reduced-motion`。首页样式里虽然写了「按页关闭光标动画」的注释，但那是 `.home` 作用域，组件拿不到；系统级关闭动效时这个组件仍在打字（债）。",
+        "notes": [
+            "LCP 事实（D-0087）：早期版本 `<span>` 是空的、全靠 JS 从零打字，导致首屏最大元素落到 64px 的 logo 上（实测 2.8–3.1s，耗时在 logo 的加载排队）。现在首句直接由构建期渲染进 HTML，脚本只做「停留 → 删除 → 下一句」。",
+            "脚本跑两次是设计好的兜底：`DOMContentLoaded` 后立刻一次、220ms 后一次，靠元素上的 `__typewriterInstance` 去重；冒烟测试要按这点写（不要断言 script 只执行一次）。",
+            "它是本组 12 个组件里唯一带 `<script>` 的：文档页因此会有 1 段内联脚本（不属于文档版式，属于被展示的组件）。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "0 个 token：组件只有光标（CSS 字符）与 `margin-left: 2px`、`1s` 动画，没有任何颜色或度量 token；文本颜色完全继承父级。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测）",
+        "columns": ["项", "值", "出处"],
+        "rows": [
+            ["光标", "`|` + 2px 左间距", "组件 CSS（字面量）"],
+            ["闪烁周期", "1s（0–50% 显示，51–100% 隐藏）", "组件 CSS"],
+            ["速度默认", "写 100ms / 删 50ms / 停 2000ms", "props 默认值"]
+        ]
+    },
+    "forbidden": [
+        "把正文/标题放进来（会动的内容不该是要读的文字）。",
+        "用 CSS 补一个真实字符的光标（会进无障碍树，被读屏念成「竖线」）。",
+        "指望首句以外的句子被爬虫读到（只有首句在 HTML 里）。",
+        "在布局宽度不固定的地方用（每打一个字都会回流）。",
+        "空数组传进来：组件渲染空，但页面会缺一块可见内容。"
+    ],
+    "related": ["skeleton", "pageheader"]
+}

@@ -1,0 +1,184 @@
+{
+    "slug": "friendpill",
+    "kind": "ui",
+    "name": "FriendPill",
+    "cn": "友链卡",
+    "layer": "ui",
+    "spec": "src/components/UI/FriendPill.astro（以实现为准 · M2-10a / P-05）",
+    "source": "src/components/UI/FriendPill.astro",
+    "purpose": "友链页的一张站点卡：整卡是一个外链（`<a>`），名字是链接文本，副行是一句话简介（缺省显示站点 host），头像纯装饰、没有头像时用首字母兜底。",
+    "notFor": [
+        "站内页面之间的导航卡 → 用 `ui-card` 或 `Link`（本组件固定 `target=\"_blank\"` + `nofollow`）。",
+        "带操作按钮的卡片（关注、复制链接）→ 整卡已经是 `<a>`，不能再嵌交互元素。",
+        "需要展示多个链接的站点 → 一张卡一个站点。",
+        "头像必须可读的场景（例如团队页要念出人名）→ 这里的头像是 `alt=\"\"` 的装饰。"
+    ],
+    "props": [
+        {
+            "name": "name",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "链接文本，也是整卡的可访问名称。允许带 `@` 前缀（首字母兜底会先剥掉）。"
+        },
+        {
+            "name": "url",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填，绝对地址",
+            "notes": "同时用来算副行的 host：解析失败时副行原样显示 `url`。"
+        },
+        {
+            "name": "avatar",
+            "type": "`string`",
+            "default": "—",
+            "values": "图片 URL",
+            "notes": "给了才渲染 `<img>`（`alt=\"\"`、`referrerpolicy=\"no-referrer\"`）；不给就渲染首字母。"
+        },
+        {
+            "name": "description",
+            "type": "`string`",
+            "default": "回落站点 host",
+            "values": "—",
+            "notes": "副行文案。缺省时用 `new URL(url).hostname` 去掉 `www.` 后的值。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：名字/副行/头像全部由 props 决定，保证每张卡的结构一致。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`--color-bg-raised` 底 + `--color-border-subtle` 1px 边 + `--radius-lg`；首字母兜底是 `--color-bg-muted` 圆 + `--color-fg-muted` 字",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`",
+            "visual": "描边转 `--color-border-strong`、底色转 `--color-bg-surface`、加 `--shadow-2`；箭头转 `--color-fg-link` 并向右上位移",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "**G4 焦点环**：2px `--color-ring-focus` + offset 2px",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用：没有按下态（外链点击即离开）",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：链接没有禁用态",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "头像加载",
+            "visual": "头像 `loading=\"lazy\"`；加载失败时由圆形底色兜底（没有 `onerror`，0 字节 JS）",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<li>` 根 + 整卡 `<a target=\"_blank\" rel=\"noopener noreferrer nofollow\">`。列表语义由友链页的 `<ul>` 提供。",
+        "keyboard": "Enter 打开新标签页；Tab 只停一次（整卡一个链接）。",
+        "aria": "不注入 ARIA。头像与首字母都是装饰（`alt=\"\"` / `aria-hidden=\"true\"`），避免把站点名念两遍。外链的「新窗口」由浏览器提示，组件不补 `aria-label`。",
+        "contrast": [
+            {
+                "pair": "站点名 `--color-fg-heading` / 卡片底 `--color-bg-raised`",
+                "light": "17.09",
+                "dark": "12.42",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "副行 `--color-fg-default` / 卡片底",
+                "light": "9.39",
+                "dark": "8.27",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "首字母 `--color-fg-muted` / 圆形底 `--color-bg-muted`",
+                "light": "4.18",
+                "dark": "4.34",
+                "threshold": "装饰字母（不进无障碍树）"
+            },
+            {
+                "pair": "hover 箭头 `--color-fg-link` / 卡片底",
+                "light": "6.04",
+                "dark": "4.02",
+                "threshold": "非文字图标 ≥ 3"
+            }
+        ],
+        "focusRing": "G4 已接入（`outline: 2px solid var(--color-ring-focus)` + `outline-offset: 2px`）。",
+        "target": "整卡 ≥ 48px 高（`--space-4` 内边距 + 48px 头像），远超 24px。",
+        "reducedMotion": "已处理：`prefers-reduced-motion: reduce` 下取消过渡与箭头的位移，只保留颜色变化。",
+        "notes": [
+            "副行用 `--color-fg-default` 而不是 `--color-fg-muted` 是有实测依据的：`--color-fg-muted` 在 `--color-bg-raised` 上暗色只有 4.01:1，小字（`--text-xs`）拿不到大字豁免 → 换默认前景色后是 8.27:1。",
+            "首字母兜底的 4.18 / 4.34 低于 4.5，但它是 `aria-hidden` 的装饰，且只在没有头像时出现——不作为文本对比度债处理。",
+            "副行 host 由 `new URL(url)` 现算：给了 `javascript:` 之类的非 http(s) 地址时解析可能成功但链接不可用，URL 校验属于 adapter（`src/data/adapters/friends.ts`）的责任。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-raised",
+            "--color-bg-surface",
+            "--color-bg-muted",
+            "--color-border-subtle",
+            "--color-border-strong",
+            "--color-fg-heading",
+            "--color-fg-default",
+            "--color-fg-muted",
+            "--color-fg-subtle",
+            "--color-fg-link",
+            "--color-ring-focus"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-3",
+            "--space-4",
+            "--space-12",
+            "--radius-lg",
+            "--radius-pill",
+            "--shadow-2",
+            "--font-serif",
+            "--font-mono",
+            "--text-lg",
+            "--text-sm",
+            "--text-xs",
+            "--font-weight-semibold",
+            "--leading-none",
+            "--leading-snug",
+            "--duration-fast",
+            "--ease-standard"
+        ],
+        "none": "阴影：`--shadow-2`（hover 抬升）。没有颜色字面量、没有尺寸字面量——`verify-surface-tokens` 的 C1 对它是 0 命中。"
+    },
+    "sizes": {
+        "title": "尺寸（token 化）",
+        "columns": ["元素", "值", "来源"],
+        "rows": [
+            ["卡片内边距", "`--space-4`", "token"],
+            ["头像圆形", "`--space-12`（48）", "token"],
+            ["名字字号", "`--text-sm`", "token"],
+            ["副行字号", "`--text-xs` + 省略号单行", "token"],
+            ["圆角", "`--radius-lg` / 头像 `--radius-pill`", "token"]
+        ]
+    },
+    "forbidden": [
+        "在卡内再放链接或按钮（整卡已是 `<a>`）。",
+        "给头像写有意义的 `alt`（站点名会念两遍）。",
+        "把副行改回 `--color-fg-muted`（暗色 4.01:1，小字不达标）。",
+        "在页面里用 `class` 覆盖颜色/圆角（§6.1 N3）。",
+        "用它做站内跳转（固定 `target=\"_blank\"` + `nofollow`）。"
+    ],
+    "related": ["link", "qrcard"]
+}

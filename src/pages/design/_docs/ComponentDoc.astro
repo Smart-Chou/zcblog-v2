@@ -1,0 +1,29 @@
+---
+/**
+ * ComponentDoc — legacy UI 组件文档页的薄壳（M2-10a）。
+ *
+ * 版式只有一份：`AtomDoc.astro`（七章节 + 附录 A/B）。这里不复制任何标记，只做两件事：
+ *   1. 把「同级文档」的目录换成 `/design/components/` 这一组（prev / next / 页脚索引）；
+ *   2. 给 legacy UI 页补一条「本组与 atom 不是同一套契约」的提示，避免把 `ui-button`
+ *      当成 §5.6.1 Button 的实现来读。
+ *
+ * 页面用法（12 个组件页都一样）：
+ *
+ *   <ComponentDoc doc={byComponentSlug("badge")}>
+ *       <DemoFrame caption="…">…真实组件实例…</DemoFrame>
+ *   </ComponentDoc>
+ */
+import AtomDoc from "./AtomDoc.astro";
+import type { DocEntry } from "./types";
+import { COMPONENT_SECTION } from "./components";
+
+interface Props {
+    doc: DocEntry;
+}
+
+const { doc } = Astro.props as Props;
+---
+
+<AtomDoc doc={doc} section={COMPONENT_SECTION}>
+    <slot />
+</AtomDoc>

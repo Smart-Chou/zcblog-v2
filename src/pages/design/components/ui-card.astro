@@ -1,0 +1,41 @@
+---
+/**
+ * /design/components/ui-card/ — Card 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/ui-card.json
+ *
+ * 示例一律传真实图片（public/logo.webp）：组件在既无 `image` 也无 `dataSrc` 时走 emoji 占位，
+ * 而那个占位块的兜底底色是旧键，暗色下只有 1.54:1 —— 文档不拿它当示例。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import Card from "~/components/UI/Card.astro";
+
+const doc = byComponentSlug("ui-card");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame layout="row" caption="最小用法：href + image + alt（整卡一个链接，Tab 只停一次）">
+        <Card href="/design/components/ui-card/" image="/logo.webp" alt="站点图标（当作封面演示）" />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="row"
+        caption="覆盖 aspectRatio（1/1）并填 overlay：底部标题条压在图上，白字取最坏底色实测 12.63:1"
+    >
+        <Card
+            href="/design/components/ui-card/"
+            image="/logo.webp"
+            alt="站点图标（当作封面演示）"
+            aspectRatio="1/1"
+        >
+            <div slot="overlay">overlay 槽：一行标题</div>
+        </Card>
+    </DemoFrame>
+
+    <DemoFrame layout="row" caption="badges 槽：角标叠在封面左上角，对比度由调用方负责">
+        <Card href="/design/components/ui-card/" image="/logo.webp" alt="站点图标（当作封面演示）">
+            <span slot="badges">角标</span>
+        </Card>
+    </DemoFrame>
+</ComponentDoc>

@@ -1,0 +1,47 @@
+---
+/**
+ * /design/components/qrcard/ — QrCard 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/qrcard.json
+ *
+ * 示例一律不传 image：组件在没图时渲染虚线占位框（`aria-hidden` 的图标），
+ * 这正是「没有图就不渲染 img」这条契约的可视证据。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import QrCard from "~/components/UI/QrCard.astro";
+
+const doc = byComponentSlug("qrcard");
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="grid"
+        caption="两种形态：只有图标占位（无码图）/ 带账号与说明（仍无码图 → 占位框）"
+    >
+        <ul style="list-style: none; margin: 0; padding: 0; display: contents;">
+            <QrCard platformName="微信" iconName="tabler:brand-wechat" account="marxchou" />
+            <QrCard
+                platformName="支付宝"
+                iconName="tabler:brand-alipay"
+                account="marxchou@example.com"
+                note="扫码后请备注你的站点，我好把友链挂上去。"
+            />
+        </ul>
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="带 href 时多一个外链按钮：target=_blank + rel=noopener noreferrer，焦点环走 G4"
+    >
+        <ul style="list-style: none; margin: 0; padding: 0;">
+            <QrCard
+                platformName="PayPal"
+                iconName="tabler:brand-paypal"
+                href="https://www.paypal.com/"
+                actionLabel="打开 PayPal"
+                note="这条没有码图，所以只有图标占位与一个跳转按钮。"
+            />
+        </ul>
+    </DemoFrame>
+</ComponentDoc>

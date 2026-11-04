@@ -1,0 +1,153 @@
+{
+    "slug": "archive",
+    "kind": "ui",
+    "name": "Archive",
+    "cn": "归档行",
+    "layer": "ui",
+    "spec": "src/components/UI/Archive.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/Archive.astro",
+    "purpose": "归档页的一行：左侧 `MM/DD` 日期（`<time datetime>`），右侧文章标题链接。组件本身只有六个标记，没有一行 CSS。",
+    "notFor": [
+        "文章列表卡（要摘要/封面）→ `ui-card` 或 `PostCardShell`。",
+        "时间线（要年份分组、连接线）→ `ArchivesContent` 的 `timeline` 形态。",
+        "非文章的时间（构建时间、更新时间）→ 直接写 `<time>`，不要套归档行。",
+        "离开 `.archives` 页面的地方：组件的样式全在页面 CSS 里，离开即裸文本。"
+    ],
+    "props": [
+        {
+            "name": "title",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "链接文本，就是文章标题。空字符串不报错，但会渲染一条无名的空链接。"
+        },
+        {
+            "name": "url",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "文章路径；组件固定加 `rel=\"noopener noreferrer\"`。"
+        },
+        {
+            "name": "publishedTime",
+            "type": "`Date | string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "解析失败时显示 `Invalid date` 且**不输出 `datetime`**（而不是塞一个坏值）。"
+        },
+        {
+            "name": "key",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "声明了但没解构使用（死 props，已登记为债）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "—",
+            "required": "—",
+            "notes": "无 slot：三块内容全部由 props 生成。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "组件 0 样式；`.archives .archive-meta` 在 `src/styles/pages/archives.css` 里给 flex 行、`--space-2/3` 内边距与 `--radius-md`",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)` 且指针在行上",
+            "visual": "行底 `--color-bg-hover`；标题转 `--color-fg-link` + 下划线（都在页面 CSS 里）",
+            "aria": "无"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦到标题链接",
+            "visual": "没有自定义焦点环 → 浏览器默认（页面 CSS 也没补 G4）",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：归档行没有禁用态",
+            "aria": "—"
+        },
+        {
+            "state": "invalid",
+            "trigger": "`publishedTime` 解析失败",
+            "visual": "日期位置显示 `Invalid date`，`datetime` 属性被省略",
+            "aria": "无（没有 `aria-invalid`：这不是表单控件）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<p>` 里放 `<time datetime>` + `<a>`。不是列表项——列表（`<ul>/<ol>`）由归档页自己给。",
+        "keyboard": "只有标题链接进 Tab；日期不可聚焦。",
+        "aria": "不注入 ARIA。`<time datetime>` 的机器可读值直接来自 `publishedTime`（ISO `YYYY-MM-DD`），人在屏上看到的是 `MM/DD`（`en-US` 写法，不随语言变）。",
+        "contrast": [
+            {
+                "pair": "日期（`--color-fg-muted`）/ 画布底",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "日期（`--color-fg-muted`）/ hover 行底 `--color-bg-hover`",
+                "light": "4.41",
+                "dark": "4.24",
+                "threshold": "债 · hover 时略低于 4.5"
+            },
+            {
+                "pair": "标题（`.archives` 下 `--color-fg-default`）/ 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "hover 标题 `--color-fg-link` / 画布底",
+                "light": "5.76",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            }
+        ],
+        "focusRing": "**没有接入 G4**：组件与页面 CSS 都没有 `:focus-visible` 规则。",
+        "target": "标题是整行的点击热区（`flex: 1 1 auto`），行高由 `--text-base` × `--leading-normal` 决定，实测 ≥ 40px。",
+        "reducedMotion": "不适用：只有颜色过渡（`--duration-fast`）。",
+        "notes": [
+            "样式与组件分离是本组件的核心事实：`Archive.astro` 里没有任何 `<style>`，行为与外观分别属于「组件」和「archives.css 的 `.archives` 作用域」。所以离开归档页（例如本文档的示例区）它就是一个没有任何样式的 `<p>`。",
+            "日期格式写死 `en-US` 的 `MM/DD`：中文页面里也是 `11/04`。要本地化必须改组件（归 M2-10b）——页面 CSS 只能改样式，改不了文案。",
+            "「日期对比度 4.41 / 4.24」是 `--color-fg-muted` 压 `--color-bg-canvas` 的实测值，低于 4.5：小字（`--text-xs`）没有 3:1 的大字豁免。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": [],
+        "none": "组件自身 0 个 token（无 `<style>`）。它消费的 `--color-fg-muted` / `--color-fg-default` / `--color-bg-hover` / `--color-fg-link` / `--space-*` / `--radius-md` 全部写在页面 CSS `src/styles/pages/archives.css` 的 `.archives` 作用域里——那些属于归档页，不是本组件的白名单。"
+    },
+    "sizes": {
+        "title": "尺寸（全部来自页面 CSS，不在组件里）",
+        "columns": ["元素", "值", "出处"],
+        "rows": [
+            ["日期列宽", "`--space-10` + 右对齐 + 等宽数字", "archives.css"],
+            ["日期字号", "`--text-xs`", "archives.css"],
+            ["标题字号", "`--text-base`", "archives.css"],
+            ["行内边距", "`--space-2` / `--space-3`", "archives.css"]
+        ]
+    },
+    "forbidden": [
+        "在归档页以外直接复用（离开 `.archives` 作用域就是裸文本）。",
+        "在组件里塞 `<style>` 把页面样式搬进来（两套样式会打架，且破坏「样式集中在页面 CSS」的现状）。",
+        "改日期格式靠 CSS（`content:` 会把值从无障碍树里挪走）。",
+        "忽略 `Invalid date` 分支：数据坏掉时应显示坏值，而不是悄悄渲染空日期。",
+        "把 `key` 当成真实 props 使用（它是死参数，M2-10b 会删）。"
+    ],
+    "related": ["link", "ui-card"]
+}

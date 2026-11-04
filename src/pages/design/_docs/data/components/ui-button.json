@@ -1,0 +1,151 @@
+{
+    "slug": "ui-button",
+    "kind": "ui",
+    "name": "Button",
+    "cn": "按钮式链接",
+    "layer": "ui",
+    "spec": "src/components/UI/Button.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/Button.astro",
+    "purpose": "页面上「看起来是按钮」的跳转入口（捐赠、订阅、外部链接）。唯一的实现是 `<a>` 加两种外观：实心 primary、描边 secondary。",
+    "notFor": [
+        "提交表单 / 触发 JS → 用原生 `<button type=\"button\">`：本组件永远是 `<a>`，回车与空格的行为按链接走。",
+        "页内锚点 / 分页 → `Link`（atom）或 Pagination：按钮式外观在中英混排下太重。",
+        "图标按钮（无可见文本）→ 用 `<a aria-label>` + Icon，别套 Button 的 padding。",
+        "危险操作（删除、退订）→ 本组件没有 danger 变体；先补契约再落地，不要用 primary 加红底。"
+    ],
+    "props": [
+        {
+            "name": "href",
+            "type": "`string`",
+            "default": "—",
+            "values": "必填",
+            "notes": "唯一必填项。外链要自己传 `target` / `rel`（组件不猜）。"
+        },
+        {
+            "name": "variant",
+            "type": "`\"primary\" | \"secondary\"`",
+            "default": "`\"primary\"`",
+            "values": "primary / secondary",
+            "notes": "shape 层面的变体，语义上只有「主/次」两档（§5.5 的 variant 词表）。"
+        },
+        {
+            "name": "target",
+            "type": "`string`",
+            "default": "—",
+            "values": "`_blank` 等",
+            "notes": "原样透传；配 `rel=\"noopener noreferrer\"` 由调用方负责。"
+        },
+        {
+            "name": "rel",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "原样透传。"
+        },
+        {
+            "name": "class",
+            "type": "`string`",
+            "default": "—",
+            "values": "—",
+            "notes": "**只允许布局类**（`class:list` 里的第三个位置）。颜色/尺寸覆盖按 §6.1 N3 判违规。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default（唯一 slot）",
+            "required": "是",
+            "notes": "可见文本就是可访问名称。不要只放图标——图标里没有文本，读屏会念空。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "primary：底色取 `btn-primary-bg`，缺省回落 `color-accent`（两个旧键都缺失 → 实际透明底 + 白字）；secondary：描边取 `btn-secondary-border`，同样缺失 → 无描边",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "`@media (hover: hover)`",
+            "visual": "`translateY(-2px)` + primary 加投影（投影是 rgba 字面量）；secondary 反色填充",
+            "aria": "无"
+        },
+        {
+            "state": "active",
+            "trigger": "—",
+            "visual": "不适用：组件没有按下态（§5.4 要求 1px 下沉 + 同色，未实现）",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦",
+            "visual": "没有自定义焦点环 → 浏览器默认（Chrome 的黑色 outline）。§5.4 要求 2px `--color-ring-focus` + offset 2px",
+            "aria": "无（原生）"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：链接没有禁用态。需要禁用就渲染成 `<span aria-disabled=\"true\">` 的另一种组件。",
+            "aria": "—"
+        },
+        {
+            "state": "loading",
+            "trigger": "—",
+            "visual": "不适用：组件不含异步动作",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<a href>`。看起来像按钮，语义是链接——所以只用于「跳转」。真正的动作（提交、开抽屉）必须用 `<button>`。",
+        "keyboard": "Enter 激活；空格**不会**激活（链接的默认行为），这是与原生按钮最容易被误用的差别。",
+        "aria": "不注入任何 ARIA。可访问名称 = slot 文本。外链需要 `rel=\"noopener noreferrer\"`（`target=\"_blank\"` 时）。",
+        "contrast": [
+            {
+                "pair": "契约值：`--color-fg-on-accent` / `--color-accent-solid`（实现未接上）",
+                "light": "4.66",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "实测 primary：字面量白字 / 失效底色（透明）压纸底",
+                "light": "1.05",
+                "dark": "18.58",
+                "threshold": "债 · light 未达 4.5"
+            },
+            {
+                "pair": "secondary hover 契约值：白字 / `--color-accent-solid`",
+                "light": "4.66",
+                "dark": "3.61",
+                "threshold": "≥ 4.5（dark 未达标）"
+            }
+        ],
+        "focusRing": "**没有接入 G4**：`:focus-visible` 缺失，走浏览器默认轮廓。这是本组 12 个组件里最常见的缺口，整改归 M2-10b。",
+        "target": "0.75rem × 1.5rem 内边距 + 1 行文本 → 实测高度 ≥ 44px；命中区等于整块按钮。",
+        "reducedMotion": "**未处理**：`translateY(-2px)` 在 `prefers-reduced-motion: reduce` 下仍然执行（债）。",
+        "notes": [
+            "上面「契约值」两行是 tokens.json 里真有的两个颜色（`--color-fg-on-accent` / `--color-accent-solid`）算出来的；实现里的 `btn-primary-bg` / `btn-primary-color` 等覆盖变量在 tokens.json 里都不存在，所以实际渲染是「白字 + 透明底」——light 主题下几乎看不见。",
+            "dark 主题的 18.58 不是因为好看，而是白字压深色画布的极端读数；它说明的是「颜色没生效」，不是「达标」。",
+            "结论：这个组件在 light 主题下不可直接用，M2-10b 必须先把 `btn-*` 覆盖变量换成 `--color-accent-solid` / `--color-fg-on-accent`。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": ["--duration-slow"],
+        "none": "颜色：0 个 token（`btn-primary-bg` / `btn-primary-color` / `btn-secondary-*` / `color-accent` 全部缺失）。度量：内边距 `0.75rem 1.5rem`、圆角 `0.5rem`、边框 `2px` 都是字面量；`ease-out` 也不在 tokens.json（只有 ease-standard / ease-emphasized / ease-linear）。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测，均为字面量 · 未 token 化）",
+        "columns": ["元素", "内边距", "圆角", "边框", "字重"],
+        "rows": [
+            ["primary / secondary", "0.75rem 1.5rem", "0.5rem", "2px transparent", "500（字面量）"]
+        ]
+    },
+    "forbidden": [
+        "把这个组件当 `<button>` 用（表单提交、`onclick` 动作）。",
+        "只放一个图标当子节点（可访问名称为空）。",
+        "在页面里用 `class` 覆盖底色/字色来「修」它的外观——先修组件（M2-10b）。",
+        "新增 `danger` / `ghost` 变体而不改契约（§5.5 的 variant 只有 primary/secondary/ghost/danger 四词，但落地要先改 DESIGN.md）。",
+        "`target=\"_blank\"` 却不带 `rel`。"
+    ],
+    "related": ["button", "link"]
+}

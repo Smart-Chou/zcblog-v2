@@ -1,0 +1,33 @@
+---
+/**
+ * /design/components/ui-pagination/ — Pagination（旧版）文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/ui-pagination.json
+ *
+ * 只渲染**一个**实例：组件把样式绑在 `id="pagination"` 上，两个实例会产生重复 id。
+ * 这一个实例同时展示三种状态——当前页（aria-current=page）、边界箭头（aria-disabled）、
+ * 普通页码；窄视口下纯数字页码会被隐藏，只留当前页与两个箭头。
+ *
+ * href 指回本页：真实可点，又不制造站内死链。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import Pagination from "~/components/UI/Pagination.astro";
+
+const doc = byComponentSlug("ui-pagination");
+
+const page = {
+    url: { prev: undefined, next: "/design/components/ui-pagination/" },
+    lastPage: 12,
+    currentPage: 1,
+};
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame
+        layout="stack"
+        caption="currentPage=1 / lastPage=12：左箭头 aria-disabled=true，窗口 1–5，当前页 aria-current=page"
+    >
+        <Pagination page={page} />
+    </DemoFrame>
+</ComponentDoc>

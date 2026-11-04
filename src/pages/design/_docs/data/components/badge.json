@@ -1,0 +1,139 @@
+{
+    "slug": "badge",
+    "kind": "ui",
+    "name": "Badge",
+    "cn": "徽标",
+    "layer": "ui",
+    "spec": "src/components/UI/Badge.astro（以实现为准 · M2-10a）",
+    "source": "src/components/UI/Badge.astro",
+    "purpose": "行内状态/分类标记：跟在标题、列表项或卡片后面，用一个读得完的短词说明「这条是什么」。视觉上是一枚 pill，不该抢主体的字重。",
+    "notFor": [
+        "可点击的导航或筛选 → `Tag`（atom）或 Button：徽标没有 `href`，不进 Tab 序列。",
+        "可删除的标签 → `Tag` 的 closable 形态。",
+        "承载唯一信息（例如「已下线」只写在徽标里）：徽标是视觉复制，正文必须能读到同一件事。",
+        "计数（评论数 / 阅读量）→ 用等宽数字进正文，不要塞进 pill。",
+        "表格里的状态列 → 那是 `Skeleton` / `Alert` 之外的数据表达，先确认列宽与对齐。"
+    ],
+    "props": [
+        {
+            "name": "variant",
+            "type": "`\"default\" | \"note\" | \"tip\" | \"danger\" | \"success\" | \"warning\"`",
+            "default": "`\"default\"`",
+            "values": "6 个语义色调",
+            "notes": "色义对应 §5.5 的 tone 词表（`default` 是中性）。`tip` 走一组写死的蓝，不受主题 token 控制。"
+        },
+        {
+            "name": "size",
+            "type": "`\"sm\" | \"md\" | \"lg\"`",
+            "default": "`\"md\"`",
+            "values": "sm / md / lg",
+            "notes": "只改字号与内边距；页面里不要用 `class` 覆盖尺寸（§6.1 N3）。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default（唯一 slot）",
+            "required": "是",
+            "notes": "纯文本，或「一个图标 + 文本」。插 `<a>` 会把徽标变成链接容器——那属于 `Tag`。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "`variant` 决定底色/字色；圆角靠旧键 `radius-full`（tokens.json 无此键 → 实测是直角）",
+            "aria": "—"
+        },
+        {
+            "state": "hover",
+            "trigger": "—",
+            "visual": "不适用：徽标没有指针交互",
+            "aria": "—"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "—",
+            "visual": "不适用：不可聚焦",
+            "aria": "—"
+        },
+        {
+            "state": "disabled",
+            "trigger": "—",
+            "visual": "不适用：徽标没有禁用态——不要用低透明度假装禁用",
+            "aria": "—"
+        },
+        {
+            "state": "selected",
+            "trigger": "—",
+            "visual": "不适用：用 `variant` 表达语义，不要用「选中」表达分类",
+            "aria": "—"
+        }
+    ],
+    "a11y": {
+        "semantics": "`<span>` 行内元素。视觉上是 pill，语义上仍是正文的一部分——读屏按顺序念出「文章标题 已更新」。",
+        "keyboard": "不可聚焦，键盘无操作；也没有 hover 态。",
+        "aria": "不加任何 ARIA：徽标不是 `role=\"status\"`（它不随请求变化），也不需要 `aria-label`。若徽标是唯一的状态来源，改在正文里写一句话。",
+        "contrast": [
+            {
+                "pair": "tip 变体：字 hsl(210,50%,75%) / 底 hsla(210,50%,30%,.2) 压纸底",
+                "light": "1.32",
+                "dark": "8.71",
+                "threshold": "债 · 未达 4.5"
+            },
+            {
+                "pair": "danger 变体：字 hsl(0,50%,70%) / 底 hsla(0,50%,30%,.2)",
+                "light": "1.73",
+                "dark": "6.65",
+                "threshold": "债 · 未达 4.5"
+            },
+            {
+                "pair": "success 变体：字 hsl(140,40%,65%) / 底 hsla(140,50%,30%,.2)",
+                "light": "1.40",
+                "dark": "8.10",
+                "threshold": "债 · 未达 4.5"
+            },
+            {
+                "pair": "warning 变体：字 hsl(40,60%,70%) / 底 hsla(40,60%,30%,.2)",
+                "light": "1.24",
+                "dark": "9.20",
+                "threshold": "债 · 未达 4.5"
+            },
+            {
+                "pair": "default / note：旧键全缺 → 实际继承正文色 / 画布底",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5（继承读数）"
+            }
+        ],
+        "focusRing": "不适用（不可聚焦）。",
+        "target": "不适用（不是交互控件）。",
+        "reducedMotion": "不适用：组件没有过渡与动画。",
+        "notes": [
+            "实测口径：半透明底先与页面底色合成再算比值（light 底取 `--color-bg-canvas` 的纸底，dark 取同键的暗值），色值由 `tokens.json` 的 palette 与组件里的 hsla 字面量解出，2 位小数。",
+            "四个彩色变体在 light 主题全部低于 4.5（1.24–1.73），dark 主题反而达标——这正是「写死色值、不跟主题」的后果。收敛方向是 §3.4.5 的 `--color-status-*` 三件套（bg / fg / border），归 M2-10b。",
+            "`default` / `note` 两个变体之所以「能过」，是因为它们的旧键（`bg-elevated` / `text-muted` / `accent`）在 tokens.json 里不存在，颜色声明整体失效、退回继承正文色——不是设计达标，是没生效。"
+        ]
+    },
+    "tokens": {
+        "color": [],
+        "metric": ["--font-weight-medium", "--text-xs", "--text-sm"],
+        "none": "颜色：0 个 token。组件里用的 `bg-elevated` / `text-muted` / `accent` 三个旧键在 tokens.json 里都不存在，四个彩色变体是 hsla 字面量（已按 §6.2 记为债，收敛归 M2-10b）。度量上 `text-body-sm` 与 `radius-full` 同样缺失。"
+    },
+    "sizes": {
+        "title": "尺寸（实现实测，均为字面量）",
+        "columns": ["尺寸", "字号", "内边距", "圆角"],
+        "rows": [
+            ["sm", "`--text-xs`（12）", "2px 7px", "旧键 `radius-full` 缺失 → 直角"],
+            ["md", "`--text-sm`（14）", "3px 10px", "同上"],
+            ["lg", "旧键 `text-body-sm` 缺失 → 继承 16", "5px 14px", "同上"]
+        ]
+    },
+    "forbidden": [
+        "在页面里用 `class` 覆盖尺寸或颜色（§6.1 N3）。",
+        "用徽标替代正文里的状态说明——颜色不是第二通道。",
+        "给徽标加 `href` / `onclick`：那属于 `Tag` 或 Button。",
+        "新增第 7 个 `variant`：色调闭集由 §5.5 的 tone 词表决定。",
+        "把徽标做成唯一的可访问名称（例如图标按钮里只留 Badge）。"
+    ],
+    "related": ["tag", "skeleton"]
+}

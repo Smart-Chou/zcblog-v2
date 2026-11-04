@@ -1,0 +1,49 @@
+---
+/**
+ * /design/components/cardgrid/ — CardGrid 文档页（M2-10a）
+ * 数据：src/pages/design/_docs/data/components/cardgrid.json
+ *
+ * 条目用的是站内真实图片（public/logo.webp）与站内真实路由：`getLocalImage()` 查不到本地图时
+ * 会把字符串直接当 `src` 用，所以这里不给不存在的路径——那会渲染成坏图。
+ */
+import ComponentDoc from "../../_docs/ComponentDoc.astro";
+import DemoFrame from "../../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../../_docs/components";
+import CardGrid from "~/components/UI/CardGrid.astro";
+
+const doc = byComponentSlug("cardgrid");
+
+const ITEMS = [
+    { url: "/logo.webp", rating: 92, title: "评分来自 ratingNum 的高位条目", link: "/design/components/cardgrid/" },
+    { url: "/logo.webp", rating: 87, title: "评分按 rating/10 保留一位小数", link: "/design/components/cardgrid/" },
+    { url: "/logo.webp", rating: 78, title: "第三张卡：网格自适应列数", link: "/design/components/cardgrid/" },
+    { url: "/logo.webp", rating: 64, title: "第四张卡：窄屏会掉到两列", link: "/design/components/cardgrid/" },
+];
+---
+
+<ComponentDoc doc={doc}>
+    <DemoFrame layout="stack" caption="四条数据：rating/10 保留一位小数做角标，标题叠在封面底部">
+        <CardGrid items={ITEMS} />
+    </DemoFrame>
+
+    <DemoFrame
+        layout="stack"
+        caption="ratingNum 优先：给 ratingNum 时原样显示，不再除 10（用于已归一的数据）"
+    >
+        <CardGrid
+            items={[
+                {
+                    url: "/logo.webp",
+                    rating: 9.2,
+                    ratingNum: 9.2,
+                    title: "ratingNum=9.2 原样显示",
+                    link: "/design/components/cardgrid/",
+                },
+            ]}
+        />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="空数据：渲染一个空网格，不留占位（空态由页面负责）">
+        <CardGrid items={[]} />
+    </DemoFrame>
+</ComponentDoc>
