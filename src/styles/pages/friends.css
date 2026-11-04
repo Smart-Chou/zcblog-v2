@@ -100,7 +100,9 @@
     font-size: var(--text-xs);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
-    color: var(--color-fg-muted);
+    /* 12px 小字压在 --color-bg-muted 上：--color-fg-muted 实测 4.17（light）/ 4.34（dark），
+       都差 0.16~0.33 不到 4.5:1 → 这里用默认前景色，层级由字号/字重承担。 */
+    color: var(--color-fg-default);
     white-space: nowrap;
 }
 
@@ -162,12 +164,6 @@
     color: var(--color-fg-heading);
 }
 
-/* 没有 head 包裹的区块标题（注意事项）自己带一条分隔线 */
-.friends-section > .friends-section__title {
-    padding-block-end: var(--space-3);
-    border-block-end: 1px solid var(--color-border-subtle);
-}
-
 .friends-section__meta {
     flex: 1 1 auto;
     margin: 0;
@@ -226,14 +222,15 @@
     max-inline-size: var(--measure-prose);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
-    color: var(--color-fg-muted);
+    /* --color-fg-muted 在 sunken 底上是 4.41（light）/ 4.24（dark）→ 差一点点，用默认前景色 */
+    color: var(--color-fg-default);
 }
 
 .friends-state__hint {
     margin: 0;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    color: var(--color-fg-subtle);
+    color: var(--color-fg-default);
     overflow-wrap: anywhere;
 }
 
@@ -331,7 +328,8 @@
     font-size: var(--text-xs);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
-    color: var(--color-fg-muted);
+    /* 同 .friends-count：--color-fg-muted 在 --color-bg-muted 上不达 4.5:1 */
+    color: var(--color-fg-default);
 }
 
 .friends-field__value {
@@ -402,37 +400,29 @@
 .friends-steps {
     display: flex;
     flex-direction: column;
-    gap: var(--space-6);
+    gap: var(--space-5);
     margin: 0;
-    padding: 0;
-    list-style: none;
+    padding-inline-start: var(--space-6);
+    list-style: decimal;
 }
 
 .friends-step {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--space-3);
+    min-inline-size: 0;
+    padding-inline-start: var(--space-1);
 }
 
-.friends-step__num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: var(--space-8);
-    block-size: var(--space-8);
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-pill);
-    background-color: var(--color-bg-muted);
+/* 序号走原生 list marker：DOM 里没有 1~2 个字符的文本节点，
+   axe 的 color-contrast 就不会把它判成 "text too short → incomplete"，
+   而 <ol> 的语义仍然完整（屏幕阅读器会读「列表 3 项」）。 */
+.friends-step::marker {
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--color-fg-muted);
 }
 
-.friends-step:first-child .friends-step__num {
-    border-color: var(--color-border-accent);
-    background-color: var(--color-accent-subtle);
-    color: var(--color-fg-heading);
+.friends-step:first-child::marker {
+    color: var(--color-accent-solid);
 }
 
 .friends-step__body {
@@ -474,12 +464,10 @@
     font-size: var(--text-xs);
     line-height: var(--leading-relaxed);
     color: var(--color-fg-default);
-}
-
-.friends-template__code code {
-    font: inherit;
-    color: inherit;
-    white-space: pre;
+    /* 390 宽下最后一行（头像链接）比容器长：宁可折行也不要被裁掉半个 URL。
+       复制的内容是 data-copy 里的原串，折行只影响观感。 */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .friends-copy--template {

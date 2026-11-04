@@ -168,7 +168,8 @@ const caption = description ?? host;
         font-family: var(--font-mono);
         font-size: var(--text-xs);
         line-height: var(--leading-snug);
-        color: var(--color-fg-muted);
+        /* 暗色下 --color-fg-muted 在卡片底（bg-raised）只有 4.01:1 → 小字用默认前景色 */
+        color: var(--color-fg-default);
         text-overflow: ellipsis;
         white-space: nowrap;
     }

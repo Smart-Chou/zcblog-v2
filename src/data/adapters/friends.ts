@@ -30,11 +30,7 @@ export type FriendsStatus = "ok" | "empty" | "error";
 
 /** 机器可读的状态原因（页面按 code 选文案，不直接展示英文/堆栈）。 */
 export type FriendsIssueCode =
-    | "slot-disabled"
-    | "source-missing"
-    | "source-empty"
-    | "source-not-array"
-    | "no-valid-entries";
+    "slot-disabled" | "source-missing" | "source-empty" | "source-not-array" | "no-valid-entries";
 
 export interface FriendsFeed {
     status: FriendsStatus;
@@ -126,8 +122,7 @@ export function normalizeFriend(raw: unknown): FriendLink | null {
 }
 
 type ListRead =
-    | { list: unknown[]; code?: undefined }
-    | { list: null; code: FriendsIssueCode | null };
+    { list: unknown[]; code?: undefined } | { list: null; code: FriendsIssueCode | null };
 
 /** 拆包裹：数组直接用；对象按 default/items/friends/list 找一个数组。 */
 function readList(raw: unknown): ListRead {
@@ -196,7 +191,10 @@ export function loadFriends(raw: unknown, options: { minItems?: number } = {}): 
     }
 
     if (items.length === 0) {
-        return errorFeed("no-valid-entries", `${list.length} entr${list.length === 1 ? "y" : "ies"} rejected`);
+        return errorFeed(
+            "no-valid-entries",
+            `${list.length} entr${list.length === 1 ? "y" : "ies"} rejected`,
+        );
     }
     if (items.length < minItems) return emptyFeed("source-empty");
 
@@ -206,17 +204,17 @@ export function loadFriends(raw: unknown, options: { minItems?: number } = {}): 
 /** 构建期 fixture：CI/验收要预览空态与错误态，但不许改站点数据。 */
 export function staticFeed(state: "empty" | "error"): FriendsFeed {
     return state === "error"
-        ? errorFeed("no-valid-entries", "FRIENDS_STATE=error（构建期 fixture）")
+        ? errorFeed("no-valid-entries", "PUBLIC_FRIENDS_STATE=error（构建期 fixture）")
         : emptyFeed("source-empty");
 }
 
 /**
- * 构建期状态开关（验收/预览用）：`FRIENDS_STATE=empty|error`。
+ * 构建期状态开关（验收/预览用）：`PUBLIC_FRIENDS_STATE=empty|error`。
  * 只影响页面状态，不改数据文件，所以两种态都能在真实构建里被截图/跑 axe。
  */
 function previewState(): "empty" | "error" | null {
     const env = (import.meta as ImportMeta & { env?: Record<string, unknown> }).env;
-    const value = env?.FRIENDS_STATE;
+    const value = env?.PUBLIC_FRIENDS_STATE;
     return value === "empty" || value === "error" ? value : null;
 }
 

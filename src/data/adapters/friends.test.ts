@@ -51,7 +51,8 @@ function invariant(feed: FriendsFeed, label: string) {
     expect(feed.total, `${label}: total = items.length`).toBe(feed.items.length);
     expect(feed.dropped, `${label}: dropped 非负`).toBeGreaterThanOrEqual(0);
     expect(["ok", "empty", "error"], `${label}: status 闭集`).toContain(feed.status);
-    if (feed.status === "ok") expect(feed.items.length, `${label}: ok 必须有条目`).toBeGreaterThan(0);
+    if (feed.status === "ok")
+        expect(feed.items.length, `${label}: ok 必须有条目`).toBeGreaterThan(0);
     if (feed.status === "empty") expect(feed.items, `${label}: empty 必须无条目`).toEqual([]);
     if (feed.status === "error") {
         expect(feed.items, `${label}: error 必须无条目`).toEqual([]);

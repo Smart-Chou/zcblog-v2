@@ -5,7 +5,7 @@
  *
  * 数据注入：`src/data/<friendsPage.dataFile>`（默认 friends.json）→ friends adapter。
  * 槽位文件缺失 / 内容为空 → 空态；内容坏 → 错误态；两种都是页面状态，路由永远 200。
- * 构建期可用 `FRIENDS_STATE=empty|error` 预览另两态（验收/截图用，不改数据文件）。
+ * 构建期可用 `PUBLIC_FRIENDS_STATE=empty|error` 预览另两态（验收/截图用，不改数据文件）。
  */
 import "~/styles/tokens/tokens.css";
 import "~/styles/pages/friends.css";

@@ -84,9 +84,6 @@ const notes = [
 ];
 
 const countLabel = isEn ? `${resolved.total} friends` : `${resolved.total} 位友人`;
-const statusLabel = isEn
-    ? `Friends page, ${resolved.total} listed`
-    : `友链页，已收录 ${resolved.total} 位友人`;
 ---
 
 <BaseLayout
@@ -97,13 +94,18 @@ const statusLabel = isEn
     imageAlt={t(loc, "friends.title")}
     keywords={["Friends", "友链", "RSS"]}
 >
-    <article class="friends" data-friends-status={resolved.status} aria-labelledby="friends-title">
+    <article
+        class="friends"
+        data-friends-status={resolved.status}
+        data-friends-total={resolved.total}
+        aria-labelledby="friends-title"
+    >
         <header class="friends-hero">
             <p class="friends-kicker">{isEn ? "FRIENDS · RSS" : "友人 · RSS"}</p>
             <h1 class="friends-title" id="friends-title">{t(loc, "friends.title")}</h1>
             <p class="friends-lede">{t(loc, "friends.description")}</p>
             <div class="friends-hero__meta">
-                <span class="friends-count" aria-label={statusLabel}>
+                <span class="friends-count">
                     <Icon name="tabler:heart-handshake" size="xs" />
                     {countLabel}
                 </span>
@@ -247,15 +249,15 @@ const statusLabel = isEn
                         {
                             steps.map((step, index) => (
                                 <li class="friends-step">
-                                    <span class="friends-step__num" aria-hidden="true">
-                                        {index + 1}
-                                    </span>
                                     <div class="friends-step__body">
                                         <h3 class="friends-step__title">{step.title}</h3>
                                         <p class="friends-step__text">{step.text}</p>
                                         {index === 1 && (
                                             <div class="friends-template">
-                                                <pre class="friends-template__code"><code>{templateText}</code></pre>
+                                                <pre
+                                                    class="friends-template__code"
+                                                    set:text={templateText}
+                                                />
                                                 <button
                                                     class="friends-copy friends-copy--template"
                                                     type="button"
@@ -296,9 +298,14 @@ const statusLabel = isEn
         </section>
 
         <section class="friends-section" aria-labelledby="friends-notes-title">
-            <h2 class="friends-section__title" id="friends-notes-title">
-                {t(loc, "friends.notes.title")}
-            </h2>
+            <div class="friends-section__head">
+                <h2 class="friends-section__title" id="friends-notes-title">
+                    {t(loc, "friends.notes.title")}
+                </h2>
+                <p class="friends-section__meta">
+                    {isEn ? "Read before you apply" : "申请前请先读一遍"}
+                </p>
+            </div>
             <ul class="friends-notes" role="list">
                 {
                     notes.map((note) => (
