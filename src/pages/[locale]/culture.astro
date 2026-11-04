@@ -1,0 +1,17 @@
+---
+/**
+ * C-2 文化聚合（[locale] 模板路由，M2-11a）
+ *
+ * 与 `/en/culture/` 同一判据：**不复制 markup**，直接复用中文页组件。
+ * 语言由 `Astro.currentLocale` 从 `/ja/culture/` 推出（astro.config 的
+ * i18n.locales 里已经有这些语言），文案走 t() 的 fallback 链。
+ */
+import CulturePage from "~/pages/culture/index.astro";
+import { templateLocales } from "~/utils/i18n";
+
+export function getStaticPaths() {
+    return templateLocales().map((locale) => ({ params: { locale } }));
+}
+---
+
+<CulturePage />

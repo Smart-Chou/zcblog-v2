@@ -15,6 +15,7 @@ import Watermark from "~/components/UI/Watermark.astro";
 import Sidebar from "~/components/Layout/Sidebar.astro";
 import { config } from "~/config";
 import { sidebarConfig } from "~/config/ui";
+import { getLocale, htmlLangOf } from "~/utils/i18n";
 
 interface Props {
     title: string;
@@ -61,7 +62,12 @@ const {
 const isSplash = template === "splash";
 const isDoc = template === "doc";
 
-const lang = locale === "en" ? "en" : "zh-CN";
+/**
+ * `<html lang>` 只从 i18n 注册表取（M2-11a）：以前是 `locale === "en" ? "en" : "zh-CN"`，
+ * 新接的 ja/ko/fr/zh-TW 会被压成 zh-CN —— 屏幕阅读器和浏览器断字都拿错语言。
+ * 未知 locale 仍然回落到 zh-CN（getLocale 的默认行为），zh/en 输出逐字节不变。
+ */
+const lang = htmlLangOf(getLocale(locale));
 // 预览构建（PUBLIC_PREVIEW=1）才打包这段清理脚本，正式站不引入
 ---
 

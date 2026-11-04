@@ -15,7 +15,7 @@ import BaseLayout from "~/layouts/BaseLayout.astro";
 import Author from "~/components/UI/Author.astro";
 import Link from "~/components/UI/atom/Link.astro";
 import { site } from "~/config";
-import { t, getLocale, type Locale } from "~/utils/i18n";
+import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
 
 interface Props {
     locale?: string;
@@ -25,8 +25,8 @@ const { locale = "zh" } = Astro.props;
 const loc: Locale = getLocale(locale);
 const isEn = loc === "en";
 
-// 仅统计当前语言文章的标签（双语完整化，2026-10）
-const allPosts = filterByLang(await getAllArticles(), loc);
+// 仅统计当前语言文章的标签（双语完整化，2026-10；M2-11a：新语言回退 zh 文章）
+const allPosts = filterByLang(await getAllArticles(), contentLocaleOf(loc));
 
 const allTags = getAllTags(allPosts);
 const tagCounts = allTags.reduce<Record<string, number>>((acc, tag) => {

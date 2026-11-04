@@ -22,7 +22,7 @@ import Tag from "~/components/UI/atom/Tag.astro";
 import { site } from "~/config";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { sortByPubDate, formatDateToYYYYMMDD } from "~/utils";
-import { t, getLocale, type Locale } from "~/utils/i18n";
+import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
 import type { CollectionEntry } from "astro:content";
 
 interface Props {
@@ -41,8 +41,8 @@ interface PostWithMeta extends CollectionEntry<"article"> {
     slug: string;
 }
 
-// 仅统计/展示当前语言的文章（双语完整化，2026-10）
-const allPosts = filterByLang(await getAllArticles(), loc);
+// 仅统计/展示当前语言的文章（双语完整化，2026-10；M2-11a：新语言暂无正文 → 回退 zh 文章）
+const allPosts = filterByLang(await getAllArticles(), contentLocaleOf(loc));
 
 const postsWithMeta = sortByPubDate(allPosts.map((post) => enrichPost(post))) as PostWithMeta[];
 const latestModified = postsWithMeta[0]?.modifiedTime || new Date();

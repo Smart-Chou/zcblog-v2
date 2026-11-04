@@ -1,11 +1,37 @@
 ---
 import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
 import { getCollection } from "astro:content";
-import { getLocale, defaultLocale, locales } from "~/utils/i18n";
+import {
+    defaultLocale,
+    enabledLocales,
+    getLocale,
+    getLocalePath,
+    hasLocaleRoute,
+    hreflangOf,
+    localeLabelOf,
+    localeMeta,
+    stripLocalePrefix,
+    type Locale,
+} from "~/utils/i18n";
 import { articleLang, articleSlug } from "~/utils/article-url";
 
+/**
+ * 语言切换器（M2-11a）
+ *
+ * 三条判据：
+ * 1. **语言清单只有一个出处**：`enabledLocales()`（= registry ∩ 本次构建开关）。
+ *    默认构建仍然只有「中文 / EN」两项，`I18N_LOCALES=all` 才出现 6 项 ——
+ *    不会给没构建的语言留下死链。
+ * 2. **只送人去真的存在的页**：新语言目前只有 5 个模板路由，其余路径一律回
+ *    该语言首页（`hasLocaleRoute`），绝不拼出 `/ja/talks/` 这种 404。
+ * 3. **文章页走翻译对照**：有对照直达对照版，没有就落到该语言的博客列表
+ *    （中文没有对应文章时也不再硬跳一个 404 的文章 URL）。
+ */
 const currentLocale = getLocale(Astro.currentLocale || defaultLocale);
 const currentPath = Astro.url.pathname;
+const enabled = enabledLocales();
+/** 语言无关路径：`/ja/blog/1/` → `/blog/1/` */
+const basePath = stripLocalePrefix(currentPath);
 
 /** 文章页翻译对照查询（构建期一次；非文章页为 null） */
 const articleMatch = currentPath.match(/^\/(?:en\/)?article\/([^/]+)\/?$/);
@@ -18,69 +44,71 @@ if (articleUrlSlug) {
     articleHasEn = all.some((p) => articleLang(p) === "en" && articleSlug(p) === articleUrlSlug);
 }
 
-/**
- * 解析语言切换目标路径。
- * - 文章页：有翻译对照则直达对照版（zh ↔ /en/article/<slug>/）；
- * - 其余无英文版页面（相册详情 / 仅中文静态页 / 错误页）回退到最近的英文页面（2026-10 审计修复）。
- */
-function getLocalePath(locale: string, path: string): string {
-    const stripped = path.replace(/^\/(zh|en)/, "") || "/";
-    if (locale === defaultLocale) {
-        // 英文错误页切回中文：错误页无对应页面，回中文首页
-        if (/^\/(404|500)\//.test(stripped)) return "/";
-        if (stripped.startsWith("/article/")) {
-            return articleHasZh && articleUrlSlug ? `/article/${articleUrlSlug}/` : "/blog/1/";
+function targetPath(locale: Locale): string {
+    if (locale === currentLocale) return currentPath;
+
+    // 文章页：有译文对直达对照版；新语言没有正文 → 落到该语言博客列表
+    if (articleUrlSlug) {
+        if (locale === defaultLocale) {
+            return articleHasZh ? `/article/${articleUrlSlug}/` : "/blog/1/";
         }
-        return stripped;
+        if (locale === "en") {
+            return articleHasEn ? `/en/article/${articleUrlSlug}/` : "/en/blog/1/";
+        }
+        return getLocalePath(locale, "/blog/1/");
     }
-    // 以下页面没有英文版 → 回退
-    if (/^\/(404|500)\//.test(stripped)) return "/en/";
-    if (
-        stripped === "/cookies/" ||
-        stripped === "/copyright/" ||
-        stripped === "/privacy-policy/" ||
-        stripped === "/redirect/"
-    ) {
-        return "/en/";
+
+    // 错误页没有对应版本 → 目标语言首页
+    if (/^\/(404|500)\//.test(basePath)) return getLocalePath(locale);
+
+    if (locale === "en") {
+        // en 是既有手写路由，保持原有回退规则（这几页没有英文版）
+        if (/^\/(cookies|copyright|privacy-policy|redirect)\/$/.test(basePath)) return "/en/";
+        if (/^\/albums\/[^/]+\/$/.test(basePath)) return "/en/albums/";
+        return getLocalePath(locale, basePath);
     }
-    if (stripped.startsWith("/article/")) {
-        return articleHasEn && articleUrlSlug ? `/en/article/${articleUrlSlug}/` : "/en/blog/1/";
-    }
-    if (/^\/albums\/[^/]+\//.test(stripped)) return "/en/albums/";
-    return "/en" + stripped;
+
+    // 新语言只有 5 个模板路由：其余路径回该语言首页，不造死链
+    if (!hasLocaleRoute(basePath)) return getLocalePath(locale);
+    return getLocalePath(locale, basePath);
 }
 
-const localeLabels: Record<string, string> = {
-    zh: "中文",
-    en: "EN",
-};
+const items = enabled.map((locale) => ({
+    locale,
+    label: localeLabelOf(locale),
+    hreflang: hreflangOf(locale),
+    name: localeMeta[locale].name,
+    href: targetPath(locale),
+    active: locale === currentLocale,
+}));
+const currentLabel = localeLabelOf(currentLocale);
 ---
 
 <div class="language-switcher">
     <button
         class="language-switcher-button"
-        aria-label={`切换语言，当前：${localeLabels[currentLocale]}`}
+        aria-label={`切换语言，当前：${currentLabel}`}
         aria-expanded="false"
     >
         <span class="language-icon">
             <DynamicIcon name="tabler:world" width="18" height="18" />
         </span>
-        <span class="language-label">{localeLabels[currentLocale]}</span>
+        <span class="language-label">{currentLabel}</span>
     </button>
     <ul class="language-switcher-dropdown">
         {
-            locales.map((locale) => (
+            items.map((item) => (
                 <li>
                     <a
-                        href={getLocalePath(locale, currentPath)}
-                        class:list={[
-                            "language-switcher-link",
-                            { active: locale === currentLocale },
-                        ]}
-                        hreflang={locale}
-                        lang={locale}
+                        href={item.href}
+                        class:list={["language-switcher-link", { active: item.active }]}
+                        hreflang={item.locale}
+                        lang={item.locale}
+                        data-locale={item.locale}
+                        data-hreflang={item.hreflang}
+                        aria-label={item.name}
                     >
-                        {localeLabels[locale]}
+                        {item.label}
                     </a>
                 </li>
             ))
@@ -201,10 +229,10 @@ const localeLabels: Record<string, string> = {
      * 之后，「中文」仍指向 /，直接把人扔回首页）。
      *
      * 换页后从 head 的 hreflang 里取真值（SeoLinks 每页都输出，swup 的 updateHead
-     * 会跟着换），取不到再按同样的回退规则现算，并同步按钮文案。
+     * 会跟着换）。M2-11a：hreflang 与 locale 代码不再一一对应（zh-TW → zh-Hant-TW），
+     * 所以映射走链接上的 data-hreflang；取不到 alternate 时**保留构建期算好的
+     * href**，不再按只有中英两套的旧规则瞎拼。
      */
-    const localeLabels: Record<string, string> = { zh: "中文", en: "EN" };
-
     function altPath(hreflang: string): string | null {
         const link = document.querySelector<HTMLLinkElement>(
             `link[rel="alternate"][hreflang="${hreflang}"]`,
@@ -219,18 +247,12 @@ const localeLabels: Record<string, string> = {
         }
     }
 
-    function fallbackZh(path: string): string {
-        if (/^\/(404|500)\//.test(path)) return "/";
-        if (path.startsWith("/article/")) return "/blog/1/";
-        return path.replace(/^\/en/, "") || "/";
-    }
-
-    function fallbackEn(path: string): string {
-        if (/^\/(404|500)\//.test(path)) return "/en/";
-        if (/^\/(cookies|copyright|privacy-policy|redirect)\//.test(path)) return "/en/";
-        if (path.startsWith("/article/")) return "/en/blog/1/";
-        if (/^\/albums\/[^/]+\//.test(path)) return "/en/albums/";
-        return "/en" + path;
+    function currentLocaleCode(codes: string[], path: string): string {
+        // 最长前缀优先：/zh-TW/ 不能被 /zh 抢走
+        const hit = codes
+            .filter((code) => path === `/${code}/` || path.startsWith(`/${code}/`))
+            .sort((a, b) => b.length - a.length)[0];
+        return hit ?? "zh";
     }
 
     function syncLanguageSwitcher(): void {
@@ -238,25 +260,29 @@ const localeLabels: Record<string, string> = {
         if (!root) return;
 
         const path = location.pathname;
-        const isEn = path === "/en" || path.startsWith("/en/");
-        const current = isEn ? "en" : "zh";
+        const links = Array.from(
+            root.querySelectorAll<HTMLAnchorElement>(".language-switcher-link"),
+        );
+        const codes = links
+            .map((link) => link.getAttribute("hreflang"))
+            .filter((code): code is string => Boolean(code));
+        const current = currentLocaleCode(codes, path);
 
-        const targets: Record<string, string> = {
-            zh: altPath("zh") ?? fallbackZh(path),
-            en: altPath("en") ?? fallbackEn(path),
-        };
+        for (const link of links) {
+            const code = link.getAttribute("hreflang");
+            if (!code) continue;
+            const hreflang = link.getAttribute("data-hreflang") ?? code;
+            const target = altPath(hreflang);
+            if (target) link.setAttribute("href", target);
+            link.classList.toggle("active", code === current);
+        }
 
-        root.querySelectorAll<HTMLAnchorElement>(".language-switcher-link").forEach((link) => {
-            const lang = link.getAttribute("hreflang");
-            if (!lang || !targets[lang]) return;
-            link.setAttribute("href", targets[lang]);
-            link.classList.toggle("active", lang === current);
-        });
-
+        const activeLink = links.find((link) => link.getAttribute("hreflang") === current);
+        const label = activeLink?.textContent?.trim() ?? "";
         const btn = root.querySelector<HTMLButtonElement>(".language-switcher-button");
-        const label = root.querySelector<HTMLElement>(".language-label");
-        if (label) label.textContent = localeLabels[current];
-        if (btn) btn.setAttribute("aria-label", `切换语言，当前：${localeLabels[current]}`);
+        const labelEl = root.querySelector<HTMLElement>(".language-label");
+        if (label && labelEl && labelEl.textContent !== label) labelEl.textContent = label;
+        if (btn && label) btn.setAttribute("aria-label", `切换语言，当前：${label}`);
     }
 
     (function () {

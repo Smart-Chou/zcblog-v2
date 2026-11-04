@@ -1,0 +1,151 @@
+{
+    "site": {
+        "title": "Marx's Blog",
+        "subtitle": "這裡沒有答案，但有同路人。",
+        "description": "MarxChou 的個人部落格。非科班獨立開發者，記錄工具調研、踩坑解法、想法驗證與收入數據。",
+        "coverImage": "avatar.png",
+        "coverImageAlt": "Marx's Blog Cover"
+    },
+    "nav": {
+        "home": "首頁",
+        "blog": "部落格",
+        "archives": "歸檔",
+        "tags": "標籤",
+        "albums": "相簿",
+        "friends": "友人",
+        "about": "關於",
+        "bangumi": "番劇",
+        "stats": "統計",
+        "talks": "隨筆",
+        "gallery": "畫廊",
+        "services": "服務"
+    },
+    "common": {
+        "search": "搜尋",
+        "searchPlaceholder": "搜尋文章...",
+        "loading": "載入中...",
+        "copy": "複製",
+        "copied": "已複製",
+        "share": "分享",
+        "backToTop": "返回頂部",
+        "readMore": "閱讀全文",
+        "viewAll": "查看全部",
+        "prev": "上一頁",
+        "next": "下一頁",
+        "page": "第 {page} 頁",
+        "of": "共 {total} 頁",
+        "404": {
+            "title": "頁面未找到",
+            "message": "抱歉，您造訪的頁面不存在或已被移除。",
+            "heading": "哦不，不在這裡。",
+            "backHome": "帶我回首頁。"
+        },
+        "500": {
+            "title": "伺服器錯誤",
+            "message": "抱歉，伺服器發生問題，請稍後再試。",
+            "pageTitle": "500 - 伺服器錯誤",
+            "pageDescription": "頁面載入時發生問題",
+            "heading": "伺服器錯誤",
+            "description": "抱歉，頁面載入時發生問題。我們正在努力修復。",
+            "backHome": "返回首頁",
+            "browseArchives": "瀏覽歸檔"
+        }
+    },
+    "footer": {
+        "copyright": "版權所有",
+        "allRightsReserved": "保留所有權利",
+        "icp": "ICP 備案",
+        "rss": "RSS 訂閱",
+        "sitemap": "網站地圖"
+    },
+    "article": {
+        "published": "發佈於",
+        "updated": "更新於",
+        "readingTime": "閱讀時長",
+        "views": "瀏覽",
+        "tags": "標籤",
+        "categories": "分類",
+        "author": "作者",
+        "toc": "目錄",
+        "shareTo": "分享到",
+        "qrcode": "掃碼閱讀",
+        "share": {
+            "copy": "複製連結",
+            "native": "系統分享",
+            "wechatHelper": "微信裡開啟後，點右上角 ··· 分享",
+            "inWechatHint": "點右上角 ··· 分享給朋友或朋友圈"
+        }
+    },
+    "blog": {
+        "title": "部落格",
+        "description": "所有文章",
+        "noMorePosts": "沒有更多文章了",
+        "empty": "還沒有文章，敬請期待。",
+        "sortBy": "排序",
+        "newest": "最新",
+        "hottest": "最熱"
+    },
+    "archives": {
+        "title": "歸檔",
+        "description": "文章歸檔",
+        "allPosts": "全部文章",
+        "postCount": "共 {count} 篇文章",
+        "subtitle": "(｡･∀･)ﾉﾞ 自 {startYear} 以來, 我共發佈了 {totalPosts} 篇文章，共計 {totalWords} 字。"
+    },
+    "tags": {
+        "title": "標籤",
+        "description": "所有標籤",
+        "postCount": "共 {count} 篇文章",
+        "subtitle": "快來看看有沒有你感興趣的標籤吧！",
+        "taggedCount": "{count} 篇文章標籤為「{tag}」",
+        "emptyTitle": "暫無文章",
+        "emptyMessage": "沒有標籤為「{tag}」的文章"
+    },
+    "home": {
+        "friendsTitle": "朋友連結",
+        "popularTitle": "近期熱門",
+        "photosTitle": "近期光影",
+        "moviesTitle": "近期觀影",
+        "booksTitle": "近期閱讀"
+    },
+    "douban": {
+        "title": "豆瓣",
+        "description": "我的書影音記錄",
+        "empty": "暫無數據，請先運行",
+        "emptyHint": "獲取豆瓣數據",
+        "tabs": {
+            "book": "書籍",
+            "movie": "影視",
+            "music": "音樂"
+        },
+        "status": {
+            "wish": "想看",
+            "watching": "在看",
+            "watched": "看過",
+            "reading": "在讀",
+            "read": "讀過",
+            "listening": "在聽",
+            "listened": "聽過"
+        }
+    },
+    "bangumi": {
+        "title": "Bangumi",
+        "description": "番劇與音樂",
+        "subtitle": "我的動漫、書籍、音樂和遊戲收藏",
+        "filters": {
+            "all": "全部",
+            "collect": "已收藏",
+            "doing": "在用/在看",
+            "wish": "想用/想看",
+            "onHold": "擱置",
+            "dropped": "拋棄"
+        },
+        "categories": {
+            "anime": "動畫",
+            "book": "書籍",
+            "music": "音樂",
+            "game": "遊戲",
+            "tv": "影視"
+        }
+    }
+}

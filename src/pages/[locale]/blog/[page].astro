@@ -1,0 +1,71 @@
+---
+/**
+ * P-02 列表分页（[locale] 模板路由，M2-11a）
+ *
+ * 5 个模板路由里唯一的分页路由。刻意**不重写**取文/排序/富化逻辑：
+ * `makeBlogGetStaticPaths(lang)` 已经在生成 `/blog/N/` 与 `/en/blog/N/`，
+ * 这里只在它的 `paginate` 外面套一层，把 `locale` 塞进 params ——
+ * 复制一份 20 行的挑选逻辑，三处迟早漂移（这正是本卡「路由冲突」风险的另一面）。
+ *
+ * 新语言暂无正文：`contentLocaleOf()` 回落到 zh 文章，页数因此与 `/blog/` 一致，
+ * 每页 canonical 由 SeoLinks 指回对应的中文列表页。
+ */
+import BlogContent from "~/components/Pages/BlogContent.astro";
+import { makeBlogGetStaticPaths } from "~/utils/blog-paths";
+import { contentLocaleOf, templateLocales } from "~/utils/i18n";
+
+interface PageRoute {
+    params: Record<string, string>;
+    props: Record<string, unknown>;
+}
+
+type LocalePaginate = (
+    data: unknown[],
+    options: { pageSize: number; params?: Record<string, string> },
+) => Promise<PageRoute[]>;
+
+export async function getStaticPaths({ paginate }: { paginate: LocalePaginate }) {
+    const routes: PageRoute[] = [];
+    for (const locale of templateLocales()) {
+        const build = makeBlogGetStaticPaths(contentLocaleOf(locale));
+        // blog-paths 的 PaginateFn 只声明了 pageSize，这里补上 locale 后再交回去；
+        // 两边的返回形状（{params, props}[]）由 Astro 的 paginate 保证一致。
+        const pageRoutes = await (
+            build as unknown as (context: { paginate: LocalePaginate }) => Promise<PageRoute[]>
+        )({
+            paginate: (data, options) => paginate(data, { ...options, params: { locale } }),
+        });
+        routes.push(...pageRoutes);
+    }
+    return routes;
+}
+
+interface PostData {
+    slug: string;
+    url: string;
+    data: {
+        title: string;
+        pubDate: Date;
+        tags?: string[];
+        image?: { url?: string; alt?: string };
+        description?: string;
+    };
+    wordCount: number;
+    readTime: string;
+    modifiedTime: Date | string;
+    excerpt: string;
+    sticky?: number;
+}
+
+const { page } = Astro.props as {
+    page: {
+        data: PostData[];
+        url: { prev?: string; next?: string };
+        currentPage: number;
+        lastPage: number;
+    };
+};
+const { locale } = Astro.params;
+---
+
+<BlogContent page={page} locale={locale} />

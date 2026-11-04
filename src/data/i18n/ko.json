@@ -1,0 +1,151 @@
+{
+    "site": {
+        "title": "Marx's Blog",
+        "subtitle": "여기엔 정답은 없지만, 같은 길을 걷는 사람은 있습니다.",
+        "description": "MarxChou의 개인 블로그. 비전공 인디 개발자가 도구 조사, 문제 해결 기록, 아이디어 검증과 수익 데이터를 남깁니다.",
+        "coverImage": "avatar.png",
+        "coverImageAlt": "Marx's Blog 커버"
+    },
+    "nav": {
+        "home": "홈",
+        "blog": "블로그",
+        "archives": "아카이브",
+        "tags": "태그",
+        "albums": "앨범",
+        "friends": "친구",
+        "about": "소개",
+        "bangumi": "방구미",
+        "stats": "통계",
+        "talks": "단상",
+        "gallery": "갤러리",
+        "services": "서비스"
+    },
+    "common": {
+        "search": "검색",
+        "searchPlaceholder": "글 검색...",
+        "loading": "불러오는 중...",
+        "copy": "복사",
+        "copied": "복사됨",
+        "share": "공유",
+        "backToTop": "맨 위로",
+        "readMore": "전문 읽기",
+        "viewAll": "전체 보기",
+        "prev": "이전 페이지",
+        "next": "다음 페이지",
+        "page": "{page}페이지",
+        "of": "총 {total}페이지",
+        "404": {
+            "title": "페이지를 찾을 수 없습니다",
+            "message": "죄송합니다. 찾으시는 페이지가 없거나 삭제되었습니다.",
+            "heading": "이런, 여기엔 없네요.",
+            "backHome": "홈으로 돌아가기."
+        },
+        "500": {
+            "title": "서버 오류",
+            "message": "죄송합니다. 서버에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+            "pageTitle": "500 - 서버 오류",
+            "pageDescription": "페이지를 불러오는 중 문제가 발생했습니다",
+            "heading": "서버 오류",
+            "description": "죄송합니다. 페이지를 불러오는 중 문제가 발생했습니다. 수정 중입니다.",
+            "backHome": "홈으로",
+            "browseArchives": "아카이브 보기"
+        }
+    },
+    "footer": {
+        "copyright": "저작권",
+        "allRightsReserved": "모든 권리 보유",
+        "icp": "ICP 등록",
+        "rss": "RSS 구독",
+        "sitemap": "사이트맵"
+    },
+    "article": {
+        "published": "게시일",
+        "updated": "수정일",
+        "readingTime": "읽는 시간",
+        "views": "조회",
+        "tags": "태그",
+        "categories": "카테고리",
+        "author": "작성자",
+        "toc": "목차",
+        "shareTo": "공유하기",
+        "qrcode": "QR 코드로 읽기",
+        "share": {
+            "copy": "링크 복사",
+            "native": "시스템 공유",
+            "wechatHelper": "WeChat에서 열었다면 오른쪽 위 ··· 로 공유하세요",
+            "inWechatHint": "오른쪽 위 ··· 로 친구나 모멘트에 공유하세요"
+        }
+    },
+    "blog": {
+        "title": "블로그",
+        "description": "모든 글",
+        "noMorePosts": "더 이상 글이 없습니다",
+        "empty": "아직 글이 없습니다. 기대해 주세요.",
+        "sortBy": "정렬",
+        "newest": "최신",
+        "hottest": "인기"
+    },
+    "archives": {
+        "title": "아카이브",
+        "description": "글 아카이브",
+        "allPosts": "모든 글",
+        "postCount": "총 {count}개 글",
+        "subtitle": "{startYear}년부터 {totalPosts}개의 글을 발행했습니다. 총 {totalWords}자."
+    },
+    "tags": {
+        "title": "태그",
+        "description": "모든 태그",
+        "postCount": "총 {count}개 글",
+        "subtitle": "관심 있는 태그를 찾아보세요!",
+        "taggedCount": "{count}개 글에 「{tag}」 태그가 있습니다",
+        "emptyTitle": "글이 없습니다",
+        "emptyMessage": "「{tag}」 태그가 붙은 글이 없습니다"
+    },
+    "home": {
+        "friendsTitle": "친구 연결",
+        "popularTitle": "최근 인기",
+        "photosTitle": "최근 사진",
+        "moviesTitle": "최근 본 작품",
+        "booksTitle": "최근 읽은 책"
+    },
+    "douban": {
+        "title": "Douban",
+        "description": "나의 책·영화·음악 기록",
+        "empty": "데이터가 없습니다. 먼저 실행해 주세요",
+        "emptyHint": "Douban 데이터 가져오기",
+        "tabs": {
+            "book": "도서",
+            "movie": "영화",
+            "music": "음악"
+        },
+        "status": {
+            "wish": "보고 싶음",
+            "watching": "보는 중",
+            "watched": "봤음",
+            "reading": "읽는 중",
+            "read": "읽음",
+            "listening": "듣는 중",
+            "listened": "들음"
+        }
+    },
+    "bangumi": {
+        "title": "Bangumi",
+        "description": "애니와 음악",
+        "subtitle": "나의 애니·책·음악·게임 컬렉션",
+        "filters": {
+            "all": "전체",
+            "collect": "컬렉션함",
+            "doing": "보는 중",
+            "wish": "보고 싶음",
+            "onHold": "보류",
+            "dropped": "중단"
+        },
+        "categories": {
+            "anime": "애니",
+            "book": "도서",
+            "music": "음악",
+            "game": "게임",
+            "tv": "영상"
+        }
+    }
+}

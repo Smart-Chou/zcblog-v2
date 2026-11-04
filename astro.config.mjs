@@ -193,10 +193,21 @@ export default defineConfig({
     prefetch: {
         defaultStrategy: "hover",
     },
-    // i18n 配置
+    // i18n 配置（M2-11a）
+    // ⚠️ 这份 locale 清单必须与 src/utils/i18n.ts 的 `locales` 注册表逐字一致——
+    // 路由前缀、Astro.currentLocale、hreflang 全靠它；不一致时
+    // `node scripts/gates/verify-i18n.mjs` 的 I2 直接红。
+    // `fallback` 声明缺内容时的承接语言：新语言暂时只有回退正文（noindex），
+    // 正文翻译落地后再逐条摘掉（M2-11b）。
     i18n: {
         defaultLocale: "zh",
-        locales: ["zh", "en"],
+        locales: ["zh", "en", "zh-TW", "ja", "ko", "fr"],
+        fallback: {
+            "zh-TW": "zh",
+            ja: "zh",
+            ko: "zh",
+            fr: "zh",
+        },
         routing: {
             prefixDefaultLocale: false, // 默认语言(中文)不带前缀
         },
@@ -269,6 +280,18 @@ export default defineConfig({
             },
             // 过滤不需要收录的页面
             filter: (page) => {
+                // 新语种的 5 个模板路由（M2-11a）暂时只有回退正文：canonical 指向
+                // 中文页，也不进 sitemap —— 否则同一批文章会以 6 个 URL 出现。
+                // 正文翻译落地后再放开（M2-11b）。
+                let pathname = page;
+                try {
+                    pathname = new URL(page).pathname;
+                } catch {
+                    /* page 已经是路径 */
+                }
+                if (/^\/(?:zh-TW|ja|ko|fr)(?:\/|$)/.test(pathname)) {
+                    return false;
+                }
                 // 设计实验页不进 sitemap（16-m1-brief §3.4：不放进主导航；不参与 sitemap）
                 if (page.includes("/design/")) {
                     return false;

@@ -1,0 +1,151 @@
+{
+    "site": {
+        "title": "Marx's Blog",
+        "subtitle": "Ici, pas de réponses — mais des gens sur le même chemin.",
+        "description": "Le blog personnel de MarxChou. Développeur indépendant autodidacte : enquêtes sur les outils, solutions aux problèmes rencontrés, validation d'idées et chiffres de revenus.",
+        "coverImage": "avatar.png",
+        "coverImageAlt": "Couverture de Marx's Blog"
+    },
+    "nav": {
+        "home": "Accueil",
+        "blog": "Blog",
+        "archives": "Archives",
+        "tags": "Étiquettes",
+        "albums": "Albums",
+        "friends": "Amis",
+        "about": "À propos",
+        "bangumi": "Bangumi",
+        "stats": "Statistiques",
+        "talks": "Carnets",
+        "gallery": "Galerie",
+        "services": "Services"
+    },
+    "common": {
+        "search": "Rechercher",
+        "searchPlaceholder": "Rechercher un article...",
+        "loading": "Chargement...",
+        "copy": "Copier",
+        "copied": "Copié",
+        "share": "Partager",
+        "backToTop": "Retour en haut",
+        "readMore": "Lire la suite",
+        "viewAll": "Tout voir",
+        "prev": "Page précédente",
+        "next": "Page suivante",
+        "page": "Page {page}",
+        "of": "sur {total} pages",
+        "404": {
+            "title": "Page introuvable",
+            "message": "Désolé, la page demandée n'existe pas ou a été supprimée.",
+            "heading": "Oups, elle n'est pas ici.",
+            "backHome": "Retour à l'accueil."
+        },
+        "500": {
+            "title": "Erreur serveur",
+            "message": "Désolé, le serveur a rencontré un problème. Réessayez plus tard.",
+            "pageTitle": "500 - Erreur serveur",
+            "pageDescription": "Un problème est survenu lors du chargement",
+            "heading": "Erreur serveur",
+            "description": "Désolé, un problème est survenu lors du chargement. Nous corrigeons.",
+            "backHome": "Retour à l'accueil",
+            "browseArchives": "Voir les archives"
+        }
+    },
+    "footer": {
+        "copyright": "Copyright",
+        "allRightsReserved": "Tous droits réservés",
+        "icp": "Enregistrement ICP",
+        "rss": "Flux RSS",
+        "sitemap": "Plan du site"
+    },
+    "article": {
+        "published": "Publié le",
+        "updated": "Mis à jour le",
+        "readingTime": "Temps de lecture",
+        "views": "Vues",
+        "tags": "Étiquettes",
+        "categories": "Catégories",
+        "author": "Auteur",
+        "toc": "Sommaire",
+        "shareTo": "Partager",
+        "qrcode": "Lire via QR code",
+        "share": {
+            "copy": "Copier le lien",
+            "native": "Partage système",
+            "wechatHelper": "Ouvert dans WeChat ? Utilisez ··· en haut à droite.",
+            "inWechatHint": "Utilisez ··· pour partager avec vos amis"
+        }
+    },
+    "blog": {
+        "title": "Blog",
+        "description": "Tous les articles",
+        "noMorePosts": "Plus d'articles",
+        "empty": "Il n'y a pas encore d'articles.",
+        "sortBy": "Trier",
+        "newest": "Plus récents",
+        "hottest": "Les plus lus"
+    },
+    "archives": {
+        "title": "Archives",
+        "description": "Archives des articles",
+        "allPosts": "Tous les articles",
+        "postCount": "{count} articles",
+        "subtitle": "Depuis {startYear}, j'ai publié {totalPosts} articles, soit {totalWords} caractères."
+    },
+    "tags": {
+        "title": "Étiquettes",
+        "description": "Toutes les étiquettes",
+        "postCount": "{count} articles",
+        "subtitle": "Venez voir les étiquettes qui vous intéressent !",
+        "taggedCount": "{count} articles portent l'étiquette « {tag} »",
+        "emptyTitle": "Aucun article",
+        "emptyMessage": "Aucun article avec l'étiquette « {tag} »"
+    },
+    "home": {
+        "friendsTitle": "Connexions",
+        "popularTitle": "En ce moment",
+        "photosTitle": "Photos récentes",
+        "moviesTitle": "Films récents",
+        "booksTitle": "Lectures récentes"
+    },
+    "douban": {
+        "title": "Douban",
+        "description": "Mes lectures, films et musiques",
+        "empty": "Données indisponibles, lancez d'abord",
+        "emptyHint": "Récupérer les données Douban",
+        "tabs": {
+            "book": "Livres",
+            "movie": "Films",
+            "music": "Musique"
+        },
+        "status": {
+            "wish": "À voir",
+            "watching": "En cours",
+            "watched": "Vu",
+            "reading": "En lecture",
+            "read": "Lu",
+            "listening": "En écoute",
+            "listened": "Écouté"
+        }
+    },
+    "bangumi": {
+        "title": "Bangumi",
+        "description": "Animes et musique",
+        "subtitle": "Ma collection d'animes, livres, musique et jeux",
+        "filters": {
+            "all": "Tout",
+            "collect": "Collectionné",
+            "doing": "En cours",
+            "wish": "À voir",
+            "onHold": "En pause",
+            "dropped": "Abandonné"
+        },
+        "categories": {
+            "anime": "Anime",
+            "book": "Livres",
+            "music": "Musique",
+            "game": "Jeux",
+            "tv": "Vidéo"
+        }
+    }
+}

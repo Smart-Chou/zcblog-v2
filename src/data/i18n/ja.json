@@ -1,0 +1,151 @@
+{
+    "site": {
+        "title": "Marx's Blog",
+        "subtitle": "ここに答えはないが、同じ道を歩く人がいる。",
+        "description": "MarxChou の個人ブログ。非エンジニア出身のインディー開発者が、ツール調査、つまずきの解決策、アイデアの検証、収益データを記録しています。",
+        "coverImage": "avatar.png",
+        "coverImageAlt": "Marx's Blog のカバー"
+    },
+    "nav": {
+        "home": "ホーム",
+        "blog": "ブログ",
+        "archives": "アーカイブ",
+        "tags": "タグ",
+        "albums": "アルバム",
+        "friends": "友だち",
+        "about": "このサイトについて",
+        "bangumi": "バングミ",
+        "stats": "統計",
+        "talks": "つぶやき",
+        "gallery": "ギャラリー",
+        "services": "サービス"
+    },
+    "common": {
+        "search": "検索",
+        "searchPlaceholder": "記事を検索...",
+        "loading": "読み込み中...",
+        "copy": "コピー",
+        "copied": "コピーしました",
+        "share": "シェア",
+        "backToTop": "トップへ戻る",
+        "readMore": "続きを読む",
+        "viewAll": "すべて見る",
+        "prev": "前のページ",
+        "next": "次のページ",
+        "page": "{page} ページ目",
+        "of": "全 {total} ページ",
+        "404": {
+            "title": "ページが見つかりません",
+            "message": "お探しのページは存在しないか、削除されました。",
+            "heading": "おっと、ここにはありません。",
+            "backHome": "ホームへ戻る。"
+        },
+        "500": {
+            "title": "サーバーエラー",
+            "message": "サーバーで問題が発生しました。しばらくしてからお試しください。",
+            "pageTitle": "500 - サーバーエラー",
+            "pageDescription": "ページの読み込み中に問題が発生しました",
+            "heading": "サーバーエラー",
+            "description": "ページの読み込み中に問題が発生しました。現在修正を進めています。",
+            "backHome": "ホームへ戻る",
+            "browseArchives": "アーカイブを見る"
+        }
+    },
+    "footer": {
+        "copyright": "著作権",
+        "allRightsReserved": "無断転載を禁じます",
+        "icp": "ICP 登録",
+        "rss": "RSS 購読",
+        "sitemap": "サイトマップ"
+    },
+    "article": {
+        "published": "公開日",
+        "updated": "更新日",
+        "readingTime": "読了時間",
+        "views": "閲覧",
+        "tags": "タグ",
+        "categories": "カテゴリ",
+        "author": "著者",
+        "toc": "目次",
+        "shareTo": "シェアする",
+        "qrcode": "QR コードで読む",
+        "share": {
+            "copy": "リンクをコピー",
+            "native": "端末でシェア",
+            "wechatHelper": "WeChat で開いた場合は右上の ··· からシェア",
+            "inWechatHint": "右上の ··· から友だちやモーメンツにシェア"
+        }
+    },
+    "blog": {
+        "title": "ブログ",
+        "description": "すべての記事",
+        "noMorePosts": "これ以上の記事はありません",
+        "empty": "まだ記事がありません。お楽しみに。",
+        "sortBy": "並び替え",
+        "newest": "新着",
+        "hottest": "人気"
+    },
+    "archives": {
+        "title": "アーカイブ",
+        "description": "記事のアーカイブ",
+        "allPosts": "すべての記事",
+        "postCount": "全 {count} 件の記事",
+        "subtitle": "{startYear} 年から {totalPosts} 件の記事を公開しました。合計 {totalWords} 字。"
+    },
+    "tags": {
+        "title": "タグ",
+        "description": "すべてのタグ",
+        "postCount": "全 {count} 件の記事",
+        "subtitle": "気になるタグを探してみてください。",
+        "taggedCount": "「{tag}」タグの記事は {count} 件です",
+        "emptyTitle": "記事がありません",
+        "emptyMessage": "「{tag}」タグの記事はありません"
+    },
+    "home": {
+        "friendsTitle": "つながり",
+        "popularTitle": "最近の人気記事",
+        "photosTitle": "最近の写真",
+        "moviesTitle": "最近観た作品",
+        "booksTitle": "最近読んだ本"
+    },
+    "douban": {
+        "title": "Douban",
+        "description": "読書・映画・音楽の記録",
+        "empty": "データがありません。先に実行してください",
+        "emptyHint": "Douban データを取得",
+        "tabs": {
+            "book": "書籍",
+            "movie": "映画",
+            "music": "音楽"
+        },
+        "status": {
+            "wish": "観たい",
+            "watching": "視聴中",
+            "watched": "視聴済み",
+            "reading": "読書中",
+            "read": "読了",
+            "listening": "聴取中",
+            "listened": "聴取済み"
+        }
+    },
+    "bangumi": {
+        "title": "Bangumi",
+        "description": "アニメと音楽",
+        "subtitle": "アニメ・書籍・音楽・ゲームのコレクション",
+        "filters": {
+            "all": "すべて",
+            "collect": "コレクション済み",
+            "doing": "視聴中",
+            "wish": "観たい",
+            "onHold": "保留",
+            "dropped": "中止"
+        },
+        "categories": {
+            "anime": "アニメ",
+            "book": "書籍",
+            "music": "音楽",
+            "game": "ゲーム",
+            "tv": "映像"
+        }
+    }
+}

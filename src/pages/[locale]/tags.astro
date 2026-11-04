@@ -1,0 +1,20 @@
+---
+/**
+ * P-03 标签索引（[locale] 模板路由，M2-11a）
+ *
+ * 同 archives：只加语言参数与路由，版式/统计复用 `TagsIndexContent`。
+ * 标签索引本身是 noindex（组件内已设），新语言再叠一层 canonical 指回中文页。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/tags.css";
+import TagsIndexContent from "~/components/Pages/TagsIndexContent.astro";
+import { templateLocales } from "~/utils/i18n";
+
+export function getStaticPaths() {
+    return templateLocales().map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+---
+
+<TagsIndexContent locale={locale} />

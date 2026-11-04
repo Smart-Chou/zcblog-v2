@@ -7,7 +7,7 @@ import BackToTop from "~/components/Layout/BackToTop.astro";
 import Hitokoto from "~/components/UI/Hitokoto.astro";
 import { site, pageView } from "~/config";
 import { getRandomImageUrl } from "~/utils";
-import { getLocale, t } from "~/utils/i18n";
+import { getLocale, getLocalePath, t } from "~/utils/i18n";
 
 interface PostData {
     slug: string;
@@ -40,7 +40,8 @@ const { locale = "zh", page } = Astro.props;
 const loc = getLocale(locale);
 const postsWithMeta = page.data;
 const latestModified = postsWithMeta[0]?.modifiedTime || new Date();
-const blogPath = loc === "en" ? "/en/blog" : "/blog";
+// 分页链接前缀跟着语言走（M2-11a：/ja/blog/2/ 不能把上一页/下一页送回 /blog/N/）
+const blogPath = getLocalePath(loc, "/blog");
 const prevUrl = page.url.prev ? new URL(page.url.prev, Astro.site).toString() : undefined;
 const nextUrl = page.url.next ? new URL(page.url.next, Astro.site).toString() : undefined;
 ---

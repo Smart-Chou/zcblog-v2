@@ -1,0 +1,21 @@
+---
+/**
+ * P-03 归档（[locale] 模板路由，M2-11a）
+ *
+ * 只做「语言参数 + 路由」两件事：版式、统计口径、热力图、时间轴全部复用
+ * `ArchivesContent`（与 zh / en 同一份组件，避免三份 markup 各自漂移）。
+ * 新语言暂无正文 → 组件内 `contentLocaleOf()` 回落到 zh 文章。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/archives.css";
+import ArchivesContent from "~/components/Pages/ArchivesContent.astro";
+import { templateLocales } from "~/utils/i18n";
+
+export function getStaticPaths() {
+    return templateLocales().map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+---
+
+<ArchivesContent locale={locale} />

@@ -1,9 +1,10 @@
 ---
 import { navLinks } from "~/config";
-import { t, getLocale } from "~/utils/i18n";
+import { t, getLocale, hasLocaleRoute, defaultLocale } from "~/utils/i18n";
 
 const loc = getLocale(Astro.currentLocale || "zh");
 const isEn = loc === "en";
+const isDefault = loc === defaultLocale;
 
 const currentPath = Astro.url.pathname;
 
@@ -20,12 +21,26 @@ const navKeyMap: Record<string, string> = {
     "/services/": "nav.services",
 };
 
-/** 按当前语言解析导航链接（en 页面 → /en...） */
-const navHref = (href: string) => (isEn ? (href === "/" ? "/en/" : `/en${href}`) : href);
+/**
+ * 按当前语言解析导航链接（M2-11a）。
+ * - zh：原样；
+ * - en：一律加 `/en` 前缀（既有手写路由，全站都有英文页）；
+ * - 其余语言：只给 `[locale]` 模板真的建过的 5 个路由加前缀，其余（相册 /
+ *   友人 / 番剧 …）该语言没有页面，**保持在中文路由** —— 宁可语言不一致，
+ *   也不把人送进 404。
+ */
+const navHref = (href: string): string => {
+    if (isDefault) return href;
+    if (isEn) return href === "/" ? "/en/" : `/en${href}`;
+    if (!hasLocaleRoute(href)) return href;
+    return href === "/" ? `/${loc}/` : `/${loc}${href}`;
+};
 
 // 分页路由匹配：/blog/1/ → base=/blog/，匹配 /blog/2/、/blog/3/ 等
 function isActive(href: string) {
-    if (href === "/" || href === "/en/") return currentPath === href;
+    // 单段链接（"/"、"/en/"、"/ja/" …）必须精确匹配：否则 "/ja/" 会把
+    // /ja/blog/1/ 也算成首页高亮（M2-11a）
+    if (/^\/[^/]*\/$/.test(href) && !href.startsWith("/blog/")) return currentPath === href;
     const base = href.replace(/\/\d+\/$/, "/");
     return currentPath.startsWith(base);
 }
@@ -111,7 +126,11 @@ function isActive(href: string) {
             const href = link.getAttribute("href") || "";
             if (!href) return;
             const base = href.replace(/\/\d+\/$/, "/");
-            const active = href === "/" || href === "/en/" ? path === href : path.startsWith(base);
+            // 与构建期同口径：单段链接精确匹配，其余按 base 前缀匹配
+            const active =
+                /^\/[^/]*\/$/.test(href) && !href.startsWith("/blog/")
+                    ? path === href
+                    : path.startsWith(base);
             link.classList.toggle("active", active);
             if (active) link.setAttribute("aria-current", "page");
             else link.removeAttribute("aria-current");

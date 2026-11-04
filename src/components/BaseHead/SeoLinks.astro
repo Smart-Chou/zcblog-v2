@@ -1,7 +1,29 @@
 ---
 import { getCollection } from "astro:content";
 import { articleLang, articleSlug } from "~/utils/article-url";
+import {
+    defaultLocale,
+    enabledLocales,
+    getLocale,
+    hasLocaleRoute,
+    hreflangOf,
+    isFallbackContent,
+    stripLocalePrefix,
+    type Locale,
+} from "~/utils/i18n";
 
+/**
+ * head 里的 canonical / feed / hreflang（M2-11a 改）
+ *
+ * 旧写法只有 `zh` / `en` 两条 hreflang：路径不以 `/en/` 开头就当成中文，
+ * 于是 `/ja/blog/1/` 会输出 `hreflang="zh" href="…/ja/blog/1/"`，还多一条
+ * 指向 `/en/ja/blog/1/` 的死链 —— 语言切换器的运行期同步正是读这两条，
+ * 等于把新语言用户送进 404。
+ *
+ * 现在：① 前缀剥离走 registry（`stripLocalePrefix`）；② 只给「本语言真的有
+ * 这一页」的输出 alternate（新语言目前只有 5 个模板路由，`hasLocaleRoute`）；
+ * ③ 只在 `enabledLocales()` 内输出，默认构建（zh/en）的 head 输出逐字节不变。
+ */
 interface Props {
     prevUrl?: string | null;
     nextUrl?: string | null;
@@ -12,14 +34,28 @@ const { prevUrl, nextUrl, noEnAlternate = false } = Astro.props;
 
 const siteUrl = (Astro.site?.toString() || "").replace(/\/$/, "");
 const currentPath = Astro.url.pathname;
-const isEnglish = currentPath.startsWith("/en/");
-const zhPath = isEnglish ? currentPath.replace(/^\/en/, "") : currentPath;
-const enPath = isEnglish ? currentPath : "/en" + currentPath;
+const currentLocale = getLocale(Astro.currentLocale);
+const isEnglish = currentLocale === "en";
+/** 语言无关路径：`/ja/blog/1/` → `/blog/1/`，`/en/` → `/` */
+const basePath = stripLocalePrefix(currentPath) || "/";
+
+/**
+ * 某语言下这一页的地址；null = 该语言没有这一页（不输出误导性 alternate）。
+ * `en` 不做存在性判断：它是既有手写路由，历史上就按路径直接加前缀。
+ */
+const hrefOf = (locale: Locale): string | null => {
+    if (locale === defaultLocale) return siteUrl + basePath;
+    if (locale === "en") {
+        return noEnAlternate ? null : siteUrl + "/en" + basePath;
+    }
+    if (!hasLocaleRoute(basePath)) return null;
+    return siteUrl + `/${locale}` + basePath;
+};
 
 // 默认（非文章页）：结构页在两种语言下都存在，按路径互推即可
-let zhHref: string | null = siteUrl + zhPath;
-let enHref: string | null = noEnAlternate ? null : siteUrl + enPath;
-let xDefaultHref: string = siteUrl + zhPath;
+let zhHref: string | null = hrefOf("zh");
+let enHref: string | null = hrefOf("en");
+let xDefaultHref: string = zhHref ?? enHref ?? siteUrl + currentPath;
 
 // 文章页：hreflang 按「翻译对」显式计算——有对照才互相标注；仅英文时 x-default 指向英文
 const articleMatch = currentPath.match(/^\/(?:en\/)?article\/([^/]+)\/?$/);
@@ -32,10 +68,36 @@ if (articleMatch) {
     enHref = hasEn ? `${siteUrl}/en/article/${urlSlug}/` : null;
     xDefaultHref = zhHref ?? enHref ?? siteUrl + currentPath;
 }
+
+// 输出顺序跟着 registry：zh → en → 其余（默认构建下与旧输出完全一致）
+const alternates: Array<{ locale: Locale; href: string }> = [];
+for (const locale of enabledLocales()) {
+    if (locale === "zh") {
+        if (zhHref) alternates.push({ locale, href: zhHref });
+        continue;
+    }
+    if (locale === "en") {
+        if (enHref) alternates.push({ locale, href: enHref });
+        continue;
+    }
+    const href = hrefOf(locale);
+    if (href) alternates.push({ locale, href });
+}
+
+/**
+ * canonical：只有回退正文的语言页指向默认语言那一页 ——
+ * 新语言的 5 个模板路由正文仍是中文，4 份「同一批正文 + 不同外壳」若各自
+ * 自指 canonical，会被判重复内容。正文翻译落地后 `isFallbackContent`
+ * 自动变 false，canonical 回到自指，不需要再改这里。
+ */
+const canonicalHref =
+    isFallbackContent(currentLocale) && hasLocaleRoute(basePath) && !articleMatch
+        ? `${siteUrl}${basePath}`
+        : Astro.url.href;
 ---
 
 <!-- canonical -->
-<link rel="canonical" href={Astro.url.href} />
+<link rel="canonical" href={canonicalHref} />
 
 <!-- RSS -->
 <link
@@ -66,6 +128,9 @@ if (articleMatch) {
 {nextUrl && <link rel="next" href={nextUrl} />}
 
 <!-- hreflang 多语言标注 -->
-{zhHref && <link rel="alternate" hreflang="zh" href={zhHref} />}
-{enHref && <link rel="alternate" hreflang="en" href={enHref} />}
+{
+    alternates.map((entry) => (
+        <link rel="alternate" hreflang={hreflangOf(entry.locale)} href={entry.href} />
+    ))
+}
 <link rel="alternate" hreflang="x-default" href={xDefaultHref} />
