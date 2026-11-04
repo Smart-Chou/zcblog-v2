@@ -104,8 +104,7 @@ const currentLabel = localeLabelOf(currentLocale);
                         class:list={["language-switcher-link", { active: item.active }]}
                         hreflang={item.locale}
                         lang={item.locale}
-                        data-locale={item.locale}
-                        data-hreflang={item.hreflang}
+                        data-hreflang={item.hreflang === item.locale ? undefined : item.hreflang}
                         aria-label={item.name}
                     >
                         {item.label}
@@ -232,6 +231,11 @@ const currentLabel = localeLabelOf(currentLocale);
      * 会跟着换）。M2-11a：hreflang 与 locale 代码不再一一对应（zh-TW → zh-Hant-TW），
      * 所以映射走链接上的 data-hreflang；取不到 alternate 时**保留构建期算好的
      * href**，不再按只有中英两套的旧规则瞎拼。
+     *
+     * M2-11b（10 门语言）：data-hreflang **只在与 locale 代码不同时才输出**
+     * （实际只有 zh-TW），其余按 hreflang 兜底；同时删掉没人读的 data-locale。
+     * 原因不是洁癖：10 个链接 × 每页都渲染，archives 这类长列表页的 HTML
+     * 预算只剩几百字节（perf-budget.py：list 105KB），多语言一注册就顶穿。
      */
     function altPath(hreflang: string): string | null {
         const link = document.querySelector<HTMLLinkElement>(

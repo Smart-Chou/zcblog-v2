@@ -35,16 +35,7 @@ export const ENTITY_FRESHNESS_DAYS = 180;
  * 数据侧仍然只有 zh/en 双语字段 —— `LocalizedText` 与校验口径未动。
  */
 export type EntityLocale =
-    | "zh"
-    | "en"
-    | "zh-TW"
-    | "ja"
-    | "ko"
-    | "fr"
-    | "de"
-    | "es"
-    | "pt-BR"
-    | "ru";
+    "zh" | "en" | "zh-TW" | "ja" | "ko" | "fr" | "de" | "es" | "pt-BR" | "ru";
 
 /** 站点双语字段：两个语种都必填，缺一个门禁就红（避免 en 页面掉回中文）。 */
 export interface LocalizedText {

@@ -329,26 +329,34 @@ try {
         );
 
         /* I10 —— dist 里不许留原始 key（漏翻的直接可见标记） */
-        const targets = [...TEMPLATE_LOCALES, "zh", "en"];
+        const allHtml = [];
+        const collectHtml = (dir) => {
+            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+                const full = join(dir, entry.name);
+                if (entry.isDirectory()) collectHtml(full);
+                else if (entry.name.endsWith(".html")) allHtml.push(full);
+            }
+        };
+        collectHtml(distDir);
         const leaks = [];
         let scanned = 0;
-        // 一次性编译成 alternation：570 个 HTML × 212 键逐个 indexOf 太慢
+        // 一次性编译成 alternation：588 个 HTML × 212 键逐个 indexOf 太慢
         const keyRe = new RegExp(
             `(?:${mod.allKeys
                 .map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
                 .join("|")})(?![A-Za-z0-9_])`,
             "g",
         );
-        for (const locale of targets) {
-            const dir = join(distDir, locale);
-            if (!existsSync(dir)) continue;
-            for (const file of walk(dir)) {
-                const html = readFileSync(file, "utf8");
-                scanned += 1;
-                keyRe.lastIndex = 0;
-                const hit = keyRe.exec(html);
-                if (hit) leaks.push(`${file.slice(distDir.length + 1)} → ${hit[0]}`);
-            }
+        for (const file of allHtml) {
+            const rel = file.slice(distDir.length + 1);
+            // /design/** 是组件文档，正文里**故意**以代码示例展示键名（`site.description`
+            // 之类），那是文档内容而不是漏翻标记 —— 排除在扫描之外。
+            if (rel.startsWith("design/")) continue;
+            const html = readFileSync(file, "utf8");
+            scanned += 1;
+            keyRe.lastIndex = 0;
+            const hit = keyRe.exec(html);
+            if (hit) leaks.push(`${rel} → ${hit[0]}`);
         }
         record(
             "I10",

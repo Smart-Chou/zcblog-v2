@@ -38,18 +38,7 @@ import ru from "~/data/i18n/ru.json";
 export const defaultLocale = "zh";
 
 /** 语言注册表：顺序 = 语言切换器里的展示顺序。 */
-export const locales = [
-    "zh",
-    "en",
-    "zh-TW",
-    "ja",
-    "ko",
-    "fr",
-    "de",
-    "es",
-    "pt-BR",
-    "ru",
-] as const;
+export const locales = ["zh", "en", "zh-TW", "ja", "ko", "fr", "de", "es", "pt-BR", "ru"] as const;
 export type Locale = (typeof locales)[number];
 
 /** 有独立正文的语言（文章集合的 `lang` 字段取值范围）。 */
