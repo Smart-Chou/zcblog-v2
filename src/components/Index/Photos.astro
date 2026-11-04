@@ -4,6 +4,14 @@
  *
  * M2-2（D-0110）：4 列方图（<768 两列），取最近 4 张带日期的照片。
  * 图片保留 width/height，避免 CLS；样式在 src/styles/pages/home.css。
+ *
+ * M2-2b（视觉收尾）：
+ *  - 相机直出的相册图底部带白色 EXIF 水印条（内容 4:3 + 223px@1920 宽），
+ *    `object-fit: cover` 进方图后前 3 张露出白条、竖构图那张被裁掉，底边对不齐。
+ *    统一策略 = 4 张一律裁掉该条（见 home.css `.photo-frame` 的裁切比例）。
+ *  - 说明文字不再整段塞 alt（`地点照片 2026-02-08 16:07:00`），只留
+ *    「地点 + 日期」；日期是独立不收缩的元素，不会被省略号拦腰截断。
+ *  - alt 仍保留完整原始描述（含时分秒），供读屏与灯箱使用。
  */
 import albums from "~/data/albums.json";
 import { getPicImageUrl } from "~/utils";
@@ -17,25 +25,43 @@ interface Props {
 
 const { title, locale } = Astro.props;
 
-function extractDate(alt: string): Date | null {
-    const match = alt.match(/(\d{4}-\d{2}-\d{2})\s*(\d{2}:\d{2}:\d{2})?/);
-    if (!match) return null;
-    const dateStr = match[2] ? `${match[1]}T${match[2]}` : `${match[1]}T00:00:00`;
-    return new Date(dateStr);
+/** `凤凰山照片 2026-01-24 16:15:04` → 地点「凤凰山」+ 日期 + 拍摄时刻（时刻只用于排序） */
+const ALT_PATTERN = /(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}:\d{2}))?/;
+
+function parsePhotoText(text: string) {
+    const match = text.match(ALT_PATTERN);
+    if (!match || match.index === undefined) return null;
+    const date = match[1];
+    const time = match[2] ?? "00:00:00";
+    const place = text
+        .slice(0, match.index)
+        .replace(/\s*照片\s*$/, "")
+        .trim();
+    return {
+        place,
+        date,
+        captured: new Date(`${date}T${time}`),
+        iso: `${date}T${time}`,
+    };
 }
 
 const MAX_PHOTOS = 4;
-const allPhotos = albums.flatMap((album) =>
-    album.photos.map((p) => ({
-        url: getPicImageUrl(p.url, 480),
-        title: p.alt || p.description || "",
-    })),
-);
-const withDates = allPhotos
-    .map((p) => ({ ...p, _date: extractDate(p.title) }))
-    .filter((p) => p._date !== null);
-const photos = withDates
-    .sort((a, b) => b._date!.getTime() - a._date!.getTime())
+
+const photos = albums
+    .flatMap((album) =>
+        album.photos.map((photo) => {
+            const text = photo.alt || photo.description || "";
+            const parsed = parsePhotoText(text);
+            if (!parsed) return null;
+            return {
+                url: getPicImageUrl(photo.url, 480),
+                alt: text,
+                ...parsed,
+            };
+        }),
+    )
+    .filter((photo): photo is NonNullable<typeof photo> => photo !== null)
+    .sort((a, b) => b.captured.getTime() - a.captured.getTime())
     .slice(0, MAX_PHOTOS);
 
 const albumsUrl = locale === defaultLocale ? "/albums/" : "/en/albums/";
@@ -57,16 +83,23 @@ const albumsUrl = locale === defaultLocale ? "/albums/" : "/en/albums/";
                 {photos.map((photo) => (
                     <li class="photo-item">
                         <figure class="photo-figure">
-                            <img
-                                class="photo-image"
-                                src={photo.url}
-                                alt={photo.title}
-                                width="400"
-                                height="400"
-                                loading="lazy"
-                                decoding="async"
-                            />
-                            <figcaption class="photo-caption">{photo.title}</figcaption>
+                            <div class="photo-frame">
+                                <img
+                                    class="photo-image"
+                                    src={photo.url}
+                                    alt={photo.alt}
+                                    width="400"
+                                    height="400"
+                                    loading="lazy"
+                                    decoding="async"
+                                />
+                            </div>
+                            <figcaption class="photo-caption">
+                                <span class="photo-caption__place">{photo.place}</span>
+                                <time class="photo-caption__date" datetime={photo.iso}>
+                                    {photo.date}
+                                </time>
+                            </figcaption>
                         </figure>
                     </li>
                 ))}

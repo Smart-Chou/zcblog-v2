@@ -482,14 +482,34 @@
     min-width: 0;
 }
 
-.photo-image {
-    display: block;
-    inline-size: 100%;
-    block-size: auto;
+.photo-frame {
+    position: relative;
+    overflow: hidden;
     aspect-ratio: 1;
-    object-fit: cover;
     border-radius: var(--radius-md);
     background-color: var(--color-bg-sunken);
+}
+
+/* 相册原图底部有一条相机直出的白色 EXIF 水印（内容 4:3 = 1440px 高，
+   外加 223px 白条，合计 1663px @1920 宽）。直接 cover 进方图时，横构图会把
+   白条留在画面里、竖构图又把它裁掉，4 张的底边因此对不齐。
+   这里把图片框做成 4:3 宽 × 方图高（133.334% × 100%）并顶对齐：
+   图片的 4:3 内容刚好铺满这个框，白条落在框外、被 .photo-frame 裁掉 →
+   4 张一致「无 EXIF 条」，内容底边对齐。
+   裁切只发生在水平方向（框比格子宽、两侧对称溢出），竖直方向不溢出——
+   图片底边因此不会压到 figcaption 上（压上去会让 axe 把说明文字判成
+   color-contrast incomplete：背景被其它元素遮挡、无法计算）。 */
+.photo-image {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 50%;
+    display: block;
+    inline-size: 133.334%;
+    block-size: 100%;
+    margin-inline-start: -66.667%;
+    max-inline-size: none;
+    object-fit: cover;
+    object-position: center top;
     transition: transform var(--duration-slower) var(--ease-standard);
 }
 
@@ -499,17 +519,30 @@
     }
 }
 
-/* 说明文字放在图片下方而不是压在图里：压图的文字 axe 无法计算对比度（incomplete） */
+/* 说明文字放在图片下方而不是压在图里：压图的文字 axe 无法计算对比度（incomplete）。
+   地点可省略号收缩，日期是不收缩的时间戳——两者拆开，日期永远不会被拦腰截断。 */
 .photo-caption {
-    display: block;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
     margin-top: var(--space-2);
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     line-height: var(--leading-snug);
     color: var(--color-fg-muted);
+}
+
+.photo-caption__place {
+    min-inline-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.photo-caption__date {
+    flex: none;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── 最新随笔（Talk ticker） ──────────────────────────────── */
@@ -574,8 +607,13 @@
 
 /* ── 侧栏：近期热门 ───────────────────────────────────────── */
 
-/* 侧栏卡片统一内边距（Card atom 传 padding="none"，在这里补 24px） */
-.home .home-side > .card > .card__body {
+/* 侧栏卡片统一内边距（Card atom 传 padding="none"，在这里补 24px）。
+   必须带 .card--pad-none 凑到 (0,5,0)：Card 组件 scoped 的
+   `.card--pad-none .card__body[data-astro-cid-*]` 是 (0,3,0)，与原来的
+   `.home .home-side > .card > .card__body`（0,3,0）打平后靠加载顺序取胜，
+   结果 24px 被组件的 0 覆盖 —— 三张卡内容全部贴到边框上，
+   「朋友连接」只剩几行文字，看起来就像直接落在纸底上。 */
+.home .home-side > .card.card--pad-none > .card__body {
     padding: var(--space-6);
     gap: var(--space-3);
 }
@@ -729,15 +767,19 @@
 
 .friends-list .fri-title {
     min-width: 0;
+    flex: 1 1 auto;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     font-size: var(--text-sm);
 }
 
+/* 省略号必须落在 <a> 自己的盒子上：父级 .fri-title 的 text-overflow 对
+   inline-block 子元素不生效，长标题会被硬裁半个字（"…在等人" 只出 "…在等"）。 */
 .friends-list .fri-title a {
-    display: inline-block;
+    display: block;
     padding-block: var(--space-1);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--color-fg-default);
     text-decoration: none;
 }
@@ -817,10 +859,6 @@
     .post-featured__body,
     .post-item {
         padding: var(--space-4);
-    }
-
-    .photo-caption {
-        padding: var(--space-2);
     }
 }
 
