@@ -65,7 +65,7 @@ const copy = isEn
           photoOne: "photos",
           listTitle: "Photographs",
           listMeta: "Thumbnails here · originals open in the lightbox",
-          note: "Click any photo to open the lightbox: arrow keys page through, Esc closes it, and focus returns to the photo you clicked. Each thumbnail above is a width-limited render (640px); the lightbox loads the original from the image host.",
+          note: "Click any photo to open the lightbox: arrow keys page through, Esc closes it, and focus returns to the photo you clicked. Each thumbnail above is a width-limited render (640 wide); the lightbox loads the original from the image host.",
           updatedPrefix: "album checked",
       }
     : {
@@ -74,7 +74,7 @@ const copy = isEn
           photoOne: "张照片",
           listTitle: "照片",
           listMeta: "这里只加载缩略图 · 原图交给灯箱",
-          note: "点任意照片打开灯箱：左右方向键翻页，Esc 关闭后焦点回到你点的那一张。上方每张都是按宽度压过的缩略图（640px），灯箱才去图床取原图。",
+          note: "点任意照片打开灯箱：左右方向键翻页，Esc 关闭后焦点回到你点的那一张。上方每张都是按宽度压过的缩略图（640 宽），灯箱才去图床取原图。",
           updatedPrefix: "相册核对于",
       };
 
@@ -106,7 +106,8 @@ const description = isEn
             <div class="entities-hero__meta">
                 <span class="entities-chip">
                     <Icon name="tabler:camera" size="xs" />
-                    {album.photos.length} {copy.photoOne}
+                    {album.photos.length}
+                    {copy.photoOne}
                 </span>
                 {
                     span && (

@@ -7,11 +7,11 @@
     },
     "frozen_total": 84,
     "totals": {
-        "files": 14,
-        "literals": 47,
-        "hex6": 19,
+        "files": 13,
+        "literals": 42,
+        "hex6": 16,
         "hex3": 8,
-        "color_function": 20
+        "color_function": 18
     },
     "components": {
         "src/components/Bangumi/Card.astro": [
@@ -22,13 +22,6 @@
         "src/components/BaseHead/BaseHead.astro": ["#1c1917", "#2d2822", "#e8e3de", "#fbf8f4"],
         "src/components/BaseHead/Robots.astro": ["#1c1917", "#ffffff"],
         "src/components/Douban/DoubanCard.astro": ["#f5a623", "#fff", "rgba(0,0,0,0.65)"],
-        "src/components/Gallery/AlbumCard.astro": [
-            "#e8e3de",
-            "#e8e3de",
-            "#e8e3de",
-            "rgba(0,0,0,0.5)",
-            "rgba(255,255,255,0.2)"
-        ],
         "src/components/Icons/index.ts": ["#229ed9", "#2aabee", "#55acee", "#fff"],
         "src/components/Layout/ToggleTheme.astro": ["#3b82f6", "#f59e0b"],
         "src/components/UI/Badge.astro": [
@@ -58,13 +51,6 @@
     },
     "pages_exempt": {
         "src/pages/500.astro": ["px:600px"],
-        "src/pages/[...custom].astro": ["px:800px"],
-        "src/pages/albums/[album].astro": [
-            "color:rgba(0,0,0,0.15)",
-            "color:rgba(0,0,0,0.7)",
-            "px:1200px",
-            "px:15px",
-            "px:8px"
-        ]
+        "src/pages/[...custom].astro": ["px:800px"]
     }
 }

@@ -33,13 +33,7 @@ export interface LocalizedText {
 }
 
 export type EntityKind =
-    | "projects"
-    | "skills"
-    | "devices"
-    | "games"
-    | "timeline"
-    | "music"
-    | "albums";
+    "projects" | "skills" | "devices" | "games" | "timeline" | "music" | "albums";
 
 export type EntityStatus = "ok" | "empty" | "error";
 
@@ -309,7 +303,8 @@ const SITE_IMAGE = /^\/[a-z0-9][a-z0-9/_.-]*\.(?:webp|avif|png|jpe?g|svg)$/i;
  * 图床照片路径：以 `/` 开头、**不带扩展名**、不许出现 `..`（图床地址就是无扩展名的 key）。
  * 大写字母是真实存在的（相机导出的 `CRnall_` / `IMG_` / `MVIMG_`），不能按小写卡。
  */
-const PIC_PATH = /^\/(?!.*\.\.)(?!.*\.(?:jpe?g|png|webp|avif|heic|gif)$)[A-Za-z0-9][A-Za-z0-9/_.-]*$/;
+const PIC_PATH =
+    /^\/(?!.*\.\.)(?!.*\.(?:jpe?g|png|webp|avif|heic|gif)$)[A-Za-z0-9][A-Za-z0-9/_.-]*$/;
 /** 相册 id：沿用既有 URL，允许下划线（slug 形状 + `_`）。 */
 const ALBUM_ID = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
 
@@ -949,9 +944,15 @@ export const albumSpec: EntitySpec<Album> = {
     negatives: () => [
         ["place 越界（beijing）", { ...albumSample(), place: "beijing" }],
         ["photos 空数组", { ...albumSample(), photos: [] }],
-        ["photos 不是数组", { ...albumSample(), photos: "/travel/demo/IMG_20260101_120000-abcdef12" }],
+        [
+            "photos 不是数组",
+            { ...albumSample(), photos: "/travel/demo/IMG_20260101_120000-abcdef12" },
+        ],
         // 相对路径 = 图床前缀拼错的典型形状
-        ["photos 是相对路径", { ...albumSample(), photos: ["travel/demo/IMG_20260101_120000-abcdef12"] }],
+        [
+            "photos 是相对路径",
+            { ...albumSample(), photos: ["travel/demo/IMG_20260101_120000-abcdef12"] },
+        ],
         // 带扩展名 = 把某个尺寸的成品图当成图床 key 存下来了
         ["photos 带扩展名", { ...albumSample(), photos: ["/travel/demo/IMG_20260101_120000.jpg"] }],
         ["photos 含 ..", { ...albumSample(), photos: ["/travel/../secret/IMG_20260101_120000"] }],

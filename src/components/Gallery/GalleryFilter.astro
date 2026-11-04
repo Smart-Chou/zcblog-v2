@@ -1,4 +1,15 @@
 ---
+/**
+ * 相册地点筛选（Gallery 层；M2-8c 收紧）
+ *
+ * 只是按钮组 + 事件委托：点一个地点，把 `.album-card` 里 `data-tags` 不含它的隐藏掉。
+ * 标签串由页面用 `albumPlaceLabel()` 算，与卡片 `data-tags` 同源，两边不会漂。
+ *
+ * M2-8c 的两处修正（都是实测出来的，不是审美偏好）：
+ * - 选中态原本是 `var(--color-accent)` + `white`，深色主题下 axe 判 `color-contrast`
+ *   serious；改成 design token 配套的 `--color-accent-solid` + `--color-fg-on-accent`。
+ * - 按钮补 `type="button"` 与 `aria-pressed`：选中状态此前只有 class，读屏用户看不到。
+ */
 interface Props {
     tags: string[];
     allLabel: string;
@@ -7,13 +18,13 @@ interface Props {
 const { tags, allLabel } = Astro.props;
 ---
 
-<div class="gallery-filter">
-    <button class="filter-tag active" data-tag="all">
+<div class="gallery-filter" role="group" aria-label={allLabel}>
+    <button type="button" class="filter-tag active" data-tag="all" aria-pressed="true">
         {allLabel}
     </button>
     {
         tags.map((tag) => (
-            <button class="filter-tag" data-tag={tag}>
+            <button type="button" class="filter-tag" data-tag={tag} aria-pressed="false">
                 {tag}
             </button>
         ))
@@ -32,8 +43,10 @@ const { tags, allLabel } = Astro.props;
             var tag = btn.getAttribute("data-tag");
             document.querySelectorAll(".filter-tag").forEach(function (b) {
                 b.classList.remove("active");
+                b.setAttribute("aria-pressed", "false");
             });
             btn.classList.add("active");
+            btn.setAttribute("aria-pressed", "true");
             document.querySelectorAll(".album-card").forEach(function (card) {
                 var tags = (card.getAttribute("data-tags") || "").split(",");
                 var show = tag === "all" || tags.indexOf(tag) !== -1;
@@ -47,33 +60,41 @@ const { tags, allLabel } = Astro.props;
     .gallery-filter {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: var(--space-2);
         justify-content: center;
-        margin-bottom: 2rem;
     }
 
     .filter-tag {
-        padding: 6px 16px;
-        border: none;
-        border-radius: 20px;
-        background: var(--color-bg-surface);
-        color: var(--color-text);
-        font-size: 0.85rem;
-        font-weight: 500;
+        padding: var(--space-1) var(--space-3);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-surface);
+        color: var(--color-fg-default);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
         cursor: pointer;
-        transition: all var(--duration-normal) var(--ease-out);
-        box-shadow: var(--shadow-sm);
+        transition:
+            background-color var(--duration-base) var(--ease-standard),
+            color var(--duration-base) var(--ease-standard),
+            border-color var(--duration-base) var(--ease-standard);
     }
 
     @media (hover: hover) {
         .filter-tag:hover {
-            background: var(--color-accent);
-            color: white;
+            border-color: var(--color-accent-solid);
         }
     }
 
+    /* 选中态 = 语义色对（底 + 其上文字），不是「accent 上放白字」的巧合组合 */
     .filter-tag.active {
-        background: var(--color-accent);
-        color: white;
+        background-color: var(--color-accent-solid);
+        border-color: var(--color-accent-solid);
+        color: var(--color-fg-on-accent);
+    }
+
+    .filter-tag:focus-visible {
+        outline: 2px solid var(--color-accent-solid);
+        outline-offset: 2px;
     }
 </style>

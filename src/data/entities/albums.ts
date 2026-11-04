@@ -20,8 +20,7 @@ import type { Album, EntityMeta } from "~/types/entities";
 export const albumsMeta: EntityMeta = {
     updated: "2026-11-04",
     owner: "周聪",
-    source:
-        "src/data/albums.json（图床导出清单）逐条核对：张数、拍摄时间戳、地点；英文名为通名翻译",
+    source: "src/data/albums.json（图床导出清单）逐条核对：张数、拍摄时间戳、地点；英文名为通名翻译",
 };
 
 export const albums: Album[] = [

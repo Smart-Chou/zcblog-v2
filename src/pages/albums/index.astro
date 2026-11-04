@@ -17,6 +17,7 @@ import BaseLayout from "~/layouts/BaseLayout.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
 import Alert from "~/components/UI/atom/Alert.astro";
 import AlbumCard from "~/components/Gallery/AlbumCard.astro";
+import GalleryFilter from "~/components/Gallery/GalleryFilter.astro";
 import { albums, albumsMeta } from "~/data/entities/albums";
 import {
     albumPhotoTotal,
@@ -39,6 +40,8 @@ const feed = normalizeCollection(albums, albumsMeta, albumSpec, {
 
 const photoTotal = albumPhotoTotal(feed.items);
 const places = [...new Set(feed.items.map((album) => album.place))];
+/** 筛选按**地点**：用与卡片 data-tags 同一个 label 函数算，两边永远同一串。 */
+const placeTags = places.map((place) => albumPlaceLabel(place, isEn ? "en" : "zh"));
 
 const copy = isEn
     ? {
@@ -47,6 +50,7 @@ const copy = isEn
           lede: "Trips kept as photo sets: the count, the place and the shooting date of each album come straight from the image-host manifest — the page does not retouch or reorder them.",
           listTitle: "Album wall",
           listMeta: "Data order · 1 / 2 / 3 columns by viewport",
+          allPlaces: "All",
           countOne: "albums",
           photoOne: "photos",
           placeOne: "places",
@@ -65,6 +69,7 @@ const copy = isEn
           lede: "一次出行一本相册：张数、地点、拍摄日期全部来自图床清单本身，页面不补拍、不改写、不重排。",
           listTitle: "相册墙",
           listMeta: "按数据顺序 · 1 / 2 / 3 列随视口变化",
+          allPlaces: "全部",
           countOne: "本相册",
           photoOne: "张照片",
           placeOne: "个地点",
@@ -101,7 +106,8 @@ const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh
             <div class="entities-hero__meta">
                 <span class="entities-chip">
                     <Icon name="tabler:library-photo" size="xs" />
-                    {feed.total} {copy.countOne}
+                    {feed.total}
+                    {copy.countOne}
                 </span>
                 {
                     photoTotal > 0 && (
@@ -147,43 +153,27 @@ const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh
 
             {
                 feed.status === "ok" && (
-                    <div class="albums-wall" data-albums-wall>
-                        {feed.items.map((album) => {
-                            const name = album.name[isEn ? "en" : "zh"];
-                            const span = albumSpan(album);
-                            const place = albumPlaceLabel(album.place, isEn ? "en" : "zh");
-                            return (
-                                <div class="albums-wall__item" data-album-item={album.id}>
+                    <>
+                        <GalleryFilter tags={placeTags} allLabel={copy.allPlaces} />
+                        <div class="albums-wall" data-albums-wall>
+                            {feed.items.map((album) => {
+                                const name = album.name[isEn ? "en" : "zh"];
+                                const span = albumSpan(album);
+                                const place = albumPlaceLabel(album.place, isEn ? "en" : "zh");
+                                return (
                                     <AlbumCard
                                         id={album.id}
                                         name={name}
                                         cover={getPicImageUrl(album.photos[0], 640)}
                                         photoCount={album.photos.length}
+                                        date={span}
+                                        location={place}
+                                        tags={[place]}
                                     />
-                                    <p class="albums-wall__meta">
-                                        <span>
-                                            {album.photos.length} {copy.photoOne}
-                                        </span>
-                                        <span class="albums-wall__separator" aria-hidden="true">
-                                            ·
-                                        </span>
-                                        <span>{place}</span>
-                                        {span && (
-                                            <>
-                                                <span
-                                                    class="albums-wall__separator"
-                                                    aria-hidden="true"
-                                                >
-                                                    ·
-                                                </span>
-                                                <time datetime={span.split(" ")[0]}>{span}</time>
-                                            </>
-                                        )}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
                 )
             }
 

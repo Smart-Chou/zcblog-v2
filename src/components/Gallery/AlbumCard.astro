@@ -1,5 +1,15 @@
 ---
-import Card from "~/components/UI/Card.astro";
+/**
+ * 相册卡片（Gallery 层；M2-8c 重做）
+ * ------------------------------------------------------------------
+ * 为什么不再用 `Card` + overlay 槽：卡片文字原本压在照片上的暗色渐变里，
+ * 播放层面（axe）**判不出对比度** —— 文字压在图片/渐变上永远是 `color-contrast`
+ * 的 incomplete，这与「机器可判定的 a11y」这条门禁冲突。现在改成
+ * 「封面在上、说明在下」：文字落在页面底色上，对比度可计算，也更好读。
+ *
+ * 张数徽标仍压在照片右上角，但用**实心底 + 默认前景色**（半透明底同样判不出）。
+ * `data-tags` 保留给 `GalleryFilter`：相册按地点筛，不是在按相册名筛自己。
+ */
 import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
 
 interface Props {
@@ -16,106 +26,152 @@ interface Props {
 const { id, name, cover, description, date, location, tags, photoCount } = Astro.props;
 ---
 
-<Card
-    href={`/albums/${id}/`}
-    image={cover}
-    alt={name}
-    aspectRatio="4/3"
-    placeholderEmoji="📷"
+<a
     class="album-card"
+    href={`/albums/${id}/`}
     data-tags={tags?.join(",") || ""}
+    data-album-item={id}
 >
-    <span slot="badges" class="photo-count">{photoCount || 0} 张</span>
-    <div slot="overlay">
-        <h3 class="album-name">{name}</h3>
-        {description && <p class="album-desc">{description}</p>}
-        <div class="album-meta">
-            {date && <span>{date}</span>}
+    <span class="album-card__cover">
+        {
+            cover ? (
+                <img
+                    class="album-card__image"
+                    src={cover}
+                    alt={name}
+                    loading="lazy"
+                    decoding="async"
+                />
+            ) : (
+                <span class="album-card__placeholder" aria-hidden="true">
+                    📷
+                </span>
+            )
+        }
+        <span class="album-card__count">{photoCount || 0} 张</span>
+    </span>
+    <span class="album-card__body">
+        <h3 class="album-card__name">{name}</h3>
+        {description && <span class="album-card__desc">{description}</span>}
+        <span class="album-card__meta">
+            {date && <span class="album-card__date">{date}</span>}
             {
                 location && (
-                    <span class="location">
+                    <span class="album-card__place">
                         <DynamicIcon name="tabler:map-pin-filled" width="12" height="12" />
                         {location}
                     </span>
                 )
             }
-        </div>
-        {
-            tags && tags.length > 0 && (
-                <div class="album-tags">
-                    {tags.slice(0, 4).map((tag) => (
-                        <span class="tag">{tag}</span>
-                    ))}
-                </div>
-            )
-        }
-    </div>
-</Card>
+        </span>
+    </span>
+</a>
 
 <style>
-    .photo-count {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-
-    .album-name {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        color: #e8e3de;
-    }
-
-    .album-desc {
-        font-size: 0.85rem;
-        opacity: 0.9;
-        margin-bottom: 0.5rem;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        color: #e8e3de;
-    }
-
-    .album-meta {
+    .album-card {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        font-size: 0.75rem;
-        opacity: 0.8;
-        color: #e8e3de;
+        flex-direction: column;
+        gap: var(--space-2);
+        text-decoration: none;
+        color: inherit;
+        min-inline-size: 0;
     }
 
-    .location {
+    .album-card__cover {
+        position: relative;
+        display: block;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-muted);
+        box-shadow: var(--shadow-1);
+        transition: box-shadow var(--duration-base) var(--ease-standard);
+    }
+
+    .album-card__image {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform var(--duration-base) var(--ease-standard);
+    }
+
+    .album-card__placeholder {
         display: flex;
         align-items: center;
-        gap: 2px;
+        justify-content: center;
+        block-size: 100%;
+        font-size: var(--text-2xl);
     }
 
-    .album-tags {
+    /* 徽标压在照片上：实心底 + 默认前景色，axe 才能判定对比度 */
+    .album-card__count {
+        position: absolute;
+        inset-block-start: var(--space-2);
+        inset-inline-end: var(--space-2);
+        padding: var(--space-1) var(--space-2);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-surface);
+        color: var(--color-fg-default);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+    }
+
+    .album-card__body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-inline-size: 0;
+    }
+
+    .album-card__name {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--leading-tight);
+        color: var(--color-fg-heading);
+    }
+
+    .album-card__desc {
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+        color: var(--color-fg-muted);
+    }
+
+    .album-card__meta {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
-        margin-top: 0.5rem;
+        align-items: center;
+        gap: var(--space-2);
+        margin-block-start: var(--space-1);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        color: var(--color-fg-muted);
     }
 
-    .tag {
-        font-size: 0.65rem;
-        padding: 2px 8px;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
+    .album-card__place {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .album-card:focus-visible {
+        outline: 2px solid var(--color-accent-solid);
+        outline-offset: 2px;
+        border-radius: var(--radius-lg);
+    }
+
+    @media (hover: hover) {
+        .album-card:hover .album-card__cover {
+            box-shadow: var(--shadow-3);
+        }
+
+        .album-card:hover .album-card__image {
+            transform: scale(1.03);
+        }
     }
 </style>

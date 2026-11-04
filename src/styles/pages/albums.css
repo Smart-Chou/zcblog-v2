@@ -23,34 +23,13 @@
 .albums-wall {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
+    gap: var(--space-5);
+    align-items: start;
     min-inline-size: 0;
 }
 
 .albums-wall > * {
     min-inline-size: 0;
-}
-
-.albums-wall__item {
-    display: flex;
-    flex-direction: column;
-    min-inline-size: 0;
-}
-
-/* 卡片是自己的、说明是本页补的：图片与标题都在卡片里，这一行只补「张数 · 地点 · 日期」 */
-.albums-wall__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-block-start: var(--space-2);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
-}
-
-.albums-wall__separator {
-    color: var(--color-border-strong);
 }
 
 /* ── 相册详情页头 ─────────────────────────────────────────── */
