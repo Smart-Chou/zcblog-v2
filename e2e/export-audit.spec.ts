@@ -1,5 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import {
+    appendFileSync,
+    existsSync,
+    mkdirSync,
+    readFileSync,
+    readdirSync,
+    writeFileSync,
+} from "node:fs";
 import path from "node:path";
 
 /**
@@ -47,23 +54,29 @@ const KNOWN_FILE = path.join(AUDIT_DIR, "axe-known.json");
  * 本卡不改页面源码，所以先落一份基线把存量登记清楚，门禁只对**新增**判红。
  * `AUDIT_BASELINE=0` 可强制回严格零容忍——修完之后就该这么跑。
  */
-type KnownIssue = { rule: string; selector?: string; note: string };
+type KnownIssue = { rule: string; route?: string; selector?: string; note: string };
 const USE_BASELINE = process.env.AUDIT_BASELINE !== "0" && existsSync(KNOWN_FILE);
 const KNOWN: KnownIssue[] = USE_BASELINE
     ? (JSON.parse(readFileSync(KNOWN_FILE, "utf8")) as KnownIssue[])
     : [];
 
-function findKnown(finding: AxeFinding): KnownIssue | undefined {
-    return KNOWN.find(
-        (k) =>
-            k.rule === finding.id &&
-            finding.nodes.every(
-                (n) => k.selector === undefined || String(n.target).includes(k.selector!),
+/** 逐节点比对基线：返回「不在存量清单里」的节点（空 = 整条 finding 都是存量）。 */
+function freshNodes(finding: AxeFinding, route: string): AxeNode[] {
+    return finding.nodes.filter(
+        (n) =>
+            !KNOWN.some(
+                (k) =>
+                    k.rule === finding.id &&
+                    (k.route === undefined || new RegExp(k.route).test(route)) &&
+                    (k.selector === undefined || String(n.target).includes(k.selector!)),
             ),
     );
 }
 
 /* ───────────────────────── 页面分母 ───────────────────────── */
+
+/** meta refresh 跳转桩（`/blog/` → `/blog/1/`）不是页面：单独记账，不进分母。 */
+const REDIRECT_STUBS: string[] = [];
 
 /** dist 里所有 HTML 文件 → URL（index.html 收敛成目录路由）。 */
 function listDistPages(): string[] {
@@ -78,10 +91,18 @@ function listDistPages(): string[] {
                 walk(full);
             } else if (entry.name.endsWith(".html")) {
                 const rel = path.relative(DIST, full).split(path.sep).join("/");
-                if (rel.endsWith("/index.html"))
-                    routes.push("/" + rel.slice(0, -"index.html".length));
-                else if (rel === "index.html") routes.push("/");
-                else routes.push("/" + rel); // 404.html / 500.html 这类独立文件
+                let route: string;
+                if (rel.endsWith("/index.html")) route = "/" + rel.slice(0, -"index.html".length);
+                else if (rel === "index.html") route = "/";
+                else route = "/" + rel; // 404.html / 500.html 这类独立文件
+                // Astro 的 redirect 页只有一张 meta refresh + noindex，导航会立刻跳走，
+                // 拿它当页面审会得到 "Execution context destroyed" 假红。
+                const head = readFileSync(full, "utf8").slice(0, 600);
+                if (/http-equiv=["']?refresh/i.test(head)) {
+                    REDIRECT_STUBS.push(route);
+                    continue;
+                }
+                routes.push(route);
             }
         }
     };
@@ -132,6 +153,13 @@ const MOBILE_ROUTES = ["/", "/blog/1/", "/archives/", "/culture/"].filter((r) =>
 const THEMES = ["light", "dark"] as const;
 const VIEWPORTS = [390, 768, 1440] as const;
 type Theme = (typeof THEMES)[number];
+
+/**
+ * 全站逐页扫描的主题。默认 dark（V-01 是暗色验收）；
+ * `AUDIT_THEME=light` 可把同一套清单跑到浅色上（用来判断某条问题是「暗色专属」还是「两模式都在」）。
+ * light 不是本次验收项，只作归因证据。
+ */
+const AUDIT_THEME: Theme = process.env.AUDIT_THEME === "light" ? "light" : "dark";
 
 function ensureDir(dir: string) {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -301,31 +329,46 @@ function slug(route: string) {
 
 /* ───────────────────────── 1. V-01 暗色逐页 + axe 全站 ───────────────────────── */
 
-test.describe("v01-dark-all-pages", () => {
+test.describe("v01-all-pages", () => {
     test.beforeAll(() => ensureDir(AUDIT_DIR));
     test.skip(
         ALL_PAGES.length === 0,
         "dist 不存在：先跑 `npx astro build`（本 spec 审构建产物，不审源码）",
     );
 
+    test("denominator", () => {
+        // 分母与跳转桩的自证：报告 §2 的 588 = 586 页 + 2 个 meta refresh 桩，由这条落盘
+        ensureDir(AUDIT_DIR);
+        writeFileSync(
+            path.join(AUDIT_DIR, "denominator.json"),
+            JSON.stringify(
+                { pages: ALL_PAGES.length, redirectStubs: REDIRECT_STUBS, theme: AUDIT_THEME },
+                null,
+                2,
+            ) + "\n",
+        );
+        console.log(
+            `[audit] 分母 ${ALL_PAGES.length} 页 · 跳转桩 ${REDIRECT_STUBS.length} 个：${REDIRECT_STUBS.join(" ")}`,
+        );
+        expect(ALL_PAGES.length).toBeGreaterThan(0);
+    });
+
     for (const route of PAGES) {
-        test(`dark ${route}`, async ({ page }) => {
+        test(`${AUDIT_THEME} ${route}`, async ({ page }) => {
             test.setTimeout(120_000);
-            const response = await openAs(page, route, "dark", 1440, 900);
+            const response = await openAs(page, route, AUDIT_THEME, 1440, 900);
             const status = response?.status() ?? 0;
             const m = await measure(page);
             const axe = await runAxe(page);
             const serious = axe.violations.filter(
                 (v) => v.impact === "serious" || v.impact === "critical",
             );
-            const known = serious.map((v) => ({ v, k: findKnown(v) })).filter((p) => p.k) as {
-                v: AxeFinding;
-                k: KnownIssue;
-            }[];
-            const fresh = serious.map((v) => ({ v, k: findKnown(v) })).filter((p) => !p.k) as {
-                v: AxeFinding;
-                k?: KnownIssue;
-            }[];
+            const seriousNodes = serious.reduce((n, v) => n + v.nodes.length, 0);
+            // 逐节点判：整条 finding 的所有节点都在基线里才算存量
+            const fresh = serious
+                .map((v) => ({ v, nodes: freshNodes(v, route) }))
+                .filter((p) => p.nodes.length > 0);
+            const freshNodeCount = fresh.reduce((n, p) => n + p.nodes.length, 0);
             const moderate = axe.violations.filter((v) => v.impact === "moderate");
             const minor = axe.violations.filter((v) => v.impact === "minor");
 
@@ -345,8 +388,9 @@ test.describe("v01-dark-all-pages", () => {
                 offenders: m.offenders,
                 axe: {
                     serious: serious.length,
-                    knownSerious: known.length,
-                    newSerious: fresh.length,
+                    seriousNodes,
+                    freshFindings: fresh.length,
+                    freshNodes: freshNodeCount,
                     critical: axe.violations.filter((v) => v.impact === "critical").length,
                     moderate: moderate.length,
                     minor: minor.length,
@@ -358,30 +402,35 @@ test.describe("v01-dark-all-pages", () => {
             record(DARK_JSONL, row);
             record(AXE_JSONL, {
                 route,
-                theme: "dark",
+                theme: AUDIT_THEME,
                 violations: axe.violations,
                 incomplete: axe.incomplete,
             });
             if (serious.length > 0)
                 console.log(
-                    `[axe] dark ${route}: serious=${serious.length} (known=${known.length} new=${fresh.length}) incomplete=${axe.incomplete.length}`,
+                    `[axe] ${AUDIT_THEME} ${route}: serious=${serious.length} nodes=${seriousNodes} fresh=${freshNodeCount} incomplete=${axe.incomplete.length}`,
                 );
 
-            const label = `dark ${route}`;
+            const label = `${AUDIT_THEME} ${route}`;
             expect(status, `${label}: HTTP 状态`).toBeLessThan(400);
-            expect(m.theme, `${label}: data-theme 未生效`).toBe("dark");
-            expect(m.hasDarkClass, `${label}: html.dark 缺失（部分 CSS 走 .dark 选择器）`).toBe(
-                true,
-            );
-            expect(m.bgLuminance, `${label}: 暗色页底色仍然偏亮 (${m.bgColor})`).toBeLessThan(0.25);
+            expect(m.theme, `${label}: data-theme 未生效`).toBe(AUDIT_THEME);
+            expect(m.hasDarkClass, `${label}: html.dark 与主题不一致`).toBe(AUDIT_THEME === "dark");
+            if (AUDIT_THEME === "dark")
+                expect(m.bgLuminance, `${label}: 暗色页底色仍然偏亮 (${m.bgColor})`).toBeLessThan(
+                    0.25,
+                );
+            else
+                expect(m.bgLuminance, `${label}: 浅色页底色偏暗 (${m.bgColor})`).toBeGreaterThan(
+                    0.75,
+                );
             expect(m.overflowX, `${label}: 1440 横向溢出 ${m.overflowX}px`).toBeLessThanOrEqual(1);
             expect(
                 fresh.map((p) => ({
                     id: p.v.id,
                     impact: p.v.impact,
-                    nodes: p.v.nodes.map((n) => n.target),
+                    nodes: p.nodes.map((n) => n.target),
                 })),
-                `${label}: axe serious/critical 出现**新增**（存量 ${known.length} 条已登记在 axe-known.json）`,
+                `${label}: axe serious/critical 出现**新增**（存量 ${KNOWN.length} 条规则项已登记在 axe-known.json）`,
             ).toEqual([]);
         });
     }
