@@ -1,0 +1,106 @@
+---
+/**
+ * MusicTrack — C 层（M2-8b）歌单里的单条作品
+ *
+ * 契约：只吃 `MusicTrack`（src/types/entities.ts）+ locale，0 数据、0 站点私有文案。
+ * 结构：序号 → 封面 → 作品名 · 表演者/形态/年份 → 一句话说明 → 试听 / 外链。
+ * 样式在 `src/styles/pages/music.css`（`.music-track*`），本组件不带 <style>：
+ * 与 ProjectCard / GameCard 同一判据 —— 列表靠行高与轨道对齐，样式散进组件会让行距漂。
+ *
+ * 「试听」按钮**始终渲染**，但它不携带任何音频：真正的播放器模块由页面脚本在第一次点击后
+ * 才 `import()`，`<audio>` 也是那一刻才创建。条目没有 `audio` 时按钮只会让播放器给出
+ * 「这一条没有试听源」的说明 —— 本站不自托管音频（M2 边界），没有源就不假装能放。
+ * 覆盖层由 `~/scripts/music-player.ts` 负责，本组件只提供数据属性：
+ *   data-music-track / data-music-id / data-music-title / data-music-artist / data-music-audio
+ *
+ * a11y：序号与封面是装饰（aria-hidden / alt=""，标题就在旁边）；
+ * 「无试听源」写在可视文本里，不只靠按钮置灰表达；外链一律 target=_blank + rel。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+import { musicFormatLabel, pick, type EntityLocale, type MusicTrack } from "~/types/entities";
+
+interface Props {
+    track: MusicTrack;
+    /** 列表序号（从 1 起），只做视觉编号。 */
+    index: number;
+    locale: EntityLocale;
+}
+
+const { track, index, locale } = Astro.props;
+
+const ordinal = String(index).padStart(2, "0");
+const formatLabel = musicFormatLabel(track.format, locale);
+const note = pick(track.note, locale);
+const links = track.links ?? [];
+const hasAudio = typeof track.audio === "string" && track.audio.trim() !== "";
+const playLabel = locale === "en" ? "Preview" : "试听";
+const noSourceLabel = locale === "en" ? "no preview source" : "无试听源";
+const linksLabel = locale === "en" ? "Listen elsewhere" : "去别处听";
+const separator = "·";
+---
+
+<li
+    class="music-track"
+    id={`music-${track.id}`}
+    data-music-track
+    data-music-id={track.id}
+    data-music-format={track.format}
+    data-music-year={track.year}
+    data-music-title={track.title}
+    data-music-artist={track.artist}
+    data-music-audio={hasAudio ? track.audio : ""}
+    data-music-has-audio={String(hasAudio)}
+>
+    <span class="music-track__index" aria-hidden="true">{ordinal}</span>
+
+    {
+        track.cover && (
+            <span class="music-track__cover" aria-hidden="true">
+                <img
+                    src={track.cover}
+                    alt=""
+                    width="96"
+                    height="96"
+                    loading="lazy"
+                    decoding="async"
+                />
+            </span>
+        )
+    }
+
+    <div class="music-track__body">
+        <h3 class="music-track__title">{track.title}</h3>
+        <p class="music-track__meta">
+            <span class="music-track__artist">{track.artist}</span>
+            <span class="music-track__sep" aria-hidden="true">{separator}</span>
+            <span class="music-track__format">{formatLabel}</span>
+            <span class="music-track__sep" aria-hidden="true">{separator}</span>
+            <span class="music-track__year">{track.year}</span>
+        </p>
+        <p class="music-track__note">{note}</p>
+    </div>
+
+    <div class="music-track__actions">
+        <button type="button" class="music-track__play" data-music-play>
+            {playLabel}
+        </button>
+        {!hasAudio && <p class="music-track__hint">{noSourceLabel}</p>}
+        {
+            links.length > 0 && (
+                <p class="music-track__links" aria-label={linksLabel}>
+                    {links.map((link) => (
+                        <a
+                            class="music-track__link"
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {link.label}
+                            <Icon name="tabler:external-link" size="xs" />
+                        </a>
+                    ))}
+                </p>
+            )
+        }
+    </div>
+</li>

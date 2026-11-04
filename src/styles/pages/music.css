@@ -1,0 +1,371 @@
+/* ============================================================
+   C-2 · 音乐（M2-8b）
+   ------------------------------------------------------------
+   版式：编辑式页头（复用 entities.css）→ 作品列表（序号 / 封面 / 正文 / 动作）
+        → 播放器挂载区（关闭态只有一句说明，点「试听」后才长出面板）。
+   约束：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl() / --palette-*。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 规则收在 `.music-*` / `.music-player*` 作用域内，**不复制** entities.css 的页头/三态外壳。
+   - 关闭态不许有任何「占位音频控件」：容器没内容时也不给高度，避免 CLS，
+     同时让 e2e 能直接断言 `document.querySelector("audio") === null`。
+   - 播放器的 DOM 由 ~/scripts/music-player.ts 在点击后创建，这里只给样式。
+   ============================================================ */
+
+.music-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-inline-size: 0;
+}
+
+.music-track {
+    display: grid;
+    grid-template-columns: 2.25rem 4.5rem minmax(0, 1fr) auto;
+    column-gap: var(--space-4);
+    row-gap: var(--space-3);
+    align-items: start;
+    padding-block: var(--space-6);
+    border-block-end: 1px solid var(--color-border-subtle);
+    min-inline-size: 0;
+}
+
+.music-list > .music-track:first-child {
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.music-track__index {
+    padding-block-start: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-subtle);
+}
+
+.music-track__cover {
+    display: block;
+    overflow: hidden;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg-sunken);
+}
+
+.music-track__cover img {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+.music-track__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-inline-size: 0;
+}
+
+.music-track__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    overflow-wrap: break-word;
+}
+
+.music-track__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.music-track__artist {
+    color: var(--color-fg-default);
+}
+
+.music-track__sep {
+    color: var(--color-fg-subtle);
+}
+
+.music-track__note {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.music-track__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+    min-inline-size: 0;
+}
+
+.music-track__play {
+    appearance: none;
+    padding: var(--space-2) var(--space-5);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-heading);
+    cursor: pointer;
+    transition:
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+.music-track__hint {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-subtle);
+    white-space: nowrap;
+}
+
+.music-track__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2) var(--space-3);
+    margin: 0;
+}
+
+.music-track__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-link);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .music-track__play:hover {
+        background-color: var(--color-bg-hover);
+        border-color: var(--color-border-strong);
+    }
+
+    .music-track__link:hover {
+        color: var(--color-fg-link-hover);
+        text-decoration: underline;
+        text-underline-offset: var(--space-1);
+    }
+}
+
+.music-track__play:focus-visible,
+.music-track__link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* 数据来源说明：放在列表下方，交代「为什么没有试听源」 */
+.music-note {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    padding-inline-start: var(--space-3);
+    border-inline-start: 2px solid var(--color-border-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+/* ── 播放器（关闭态只有一句说明） ─────────────────────────── */
+
+.music-player {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-inline-size: 0;
+}
+
+.music-player__idle {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+.music-player__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-raised);
+    min-inline-size: 0;
+}
+
+.music-player__body:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+.music-player__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+}
+
+.music-player__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.music-player__title {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    min-inline-size: 0;
+    overflow-wrap: break-word;
+}
+
+.music-player__close {
+    appearance: none;
+    margin-inline-start: auto;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+    cursor: pointer;
+    transition:
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .music-player__close:hover {
+        background-color: var(--color-bg-hover);
+        border-color: var(--color-border-strong);
+    }
+}
+
+.music-player__close:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+.music-player__audio {
+    min-inline-size: 0;
+}
+
+.music-player__element {
+    inline-size: 100%;
+    max-inline-size: 100%;
+}
+
+.music-player__notice {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.music-player__link {
+    color: var(--color-fg-link);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+}
+
+@media (hover: hover) {
+    .music-player__link:hover {
+        color: var(--color-fg-link-hover);
+        text-decoration: underline;
+        text-underline-offset: var(--space-1);
+    }
+}
+
+.music-player__link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* 出错时用状态色说清楚（不是静默失败） */
+.music-player[data-music-player-state="error"] .music-player__body {
+    border-color: var(--color-status-danger-border);
+    background-color: var(--color-status-danger-bg);
+}
+
+/* ── 中屏：动作移到正文下方一行 ───────────────────────────── */
+
+@media (max-width: 768px) {
+    .music-track {
+        grid-template-columns: 2rem 4rem minmax(0, 1fr);
+        column-gap: var(--space-3);
+    }
+
+    .music-track__actions {
+        grid-column: 2 / -1;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: var(--space-2) var(--space-3);
+    }
+
+    .music-track__links {
+        justify-content: flex-start;
+    }
+}
+
+/* ── 窄屏：序号 + 封面收窄，标题独占主体列 ───────────────── */
+
+@media (max-width: 450px) {
+    .music-track {
+        grid-template-columns: 1.5rem 3rem minmax(0, 1fr);
+        column-gap: var(--space-2);
+        padding-block: var(--space-5);
+    }
+
+    .music-track__actions {
+        grid-column: 1 / -1;
+    }
+
+    .music-track__title {
+        font-size: var(--text-lg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .music-track__play,
+    .music-track__link,
+    .music-player__close {
+        transition: none;
+    }
+}

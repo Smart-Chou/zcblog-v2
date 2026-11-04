@@ -32,7 +32,7 @@ export interface LocalizedText {
     en: string;
 }
 
-export type EntityKind = "projects" | "skills" | "devices" | "games" | "timeline";
+export type EntityKind = "projects" | "skills" | "devices" | "games" | "timeline" | "music";
 
 export type EntityStatus = "ok" | "empty" | "error";
 
@@ -201,6 +201,41 @@ export interface TimelineEvent {
     updated: string;
 }
 
+/* ───────────────────────── 音乐 ───────────────────────── */
+
+/** 作品形态：专辑 / 单曲。EP、现场、合辑等先不收 —— 少一档比多一档稳。 */
+export type MusicFormat = "album" | "single";
+
+/**
+ * 歌单条目（作品级，不是逐首歌）——
+ * 一张专辑或一支单曲能被稳定追踪（发行年、豆瓣条目），逐首歌的时长/编曲信息抓不到就只能编。
+ * 播放是**可选能力**：`audio` 写了才有试听源；没写就只有外链，页面也绝不会去加载音频。
+ */
+export interface MusicTrack {
+    /** 稳定键（slug 形状，小写连字符）；锚点与 e2e 断言都用它。 */
+    id: string;
+    /** 作品名（中文名照写，不翻译 —— 歌名翻过去就不是它了）。 */
+    title: string;
+    /** 表演者（不翻译）；多人用 ` / ` 分隔。 */
+    artist: string;
+    format: MusicFormat;
+    /** 发行年 `YYYY`；只知道年份就只写年份。 */
+    year: string;
+    /** 站点内封面路径（`/images/...`，构建期已存在的静态图）；缺省不渲染封面。 */
+    cover?: string;
+    /** 一句「为什么它在这张歌单里」。 */
+    note: LocalizedText;
+    /**
+     * 可选试听源：**只接受 http(s) 绝对地址**。
+     * 本站不自托管音频（M2 边界），所以缺省 = 这段关系只有外链；
+     * 有没有这个字段直接决定页面上会不会出现 `<audio>` —— 关闭态 0 请求靠它。
+     */
+    audio?: string;
+    links?: EntityLink[];
+    /** 条目最后核对日 `YYYY-MM-DD`。 */
+    updated: string;
+}
+
 /* ───────────────────────── 集合元信息 ───────────────────────── */
 
 /**
@@ -228,6 +263,8 @@ const ISO_DAY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const YEAR = /^\d{4}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HTTP = /^https?:\/\/[^\s]+$/;
+/** 站点内静态图路径：构建期已在 public/ 下，带扩展名；用来挡住 `/assets/x.mp3` 式的糊写。 */
+const SITE_IMAGE = /^\/[a-z0-9][a-z0-9/_.-]*\.(?:webp|avif|png|jpe?g|svg)$/i;
 
 const PROJECT_STATUSES: readonly ProjectStatus[] = ["active", "maintained", "archived"];
 const SKILL_LEVELS: readonly SkillLevel[] = ["exploring", "working", "solid", "deep"];
@@ -250,6 +287,7 @@ const GAME_PLATFORMS: readonly GamePlatform[] = [
 ];
 const GAME_STATUSES: readonly GameStatus[] = ["playing", "finished", "shelved", "backlog"];
 const TIMELINE_KINDS: readonly TimelineKind[] = ["build", "site", "infra", "life"];
+const MUSIC_FORMATS: readonly MusicFormat[] = ["album", "single"];
 
 export const PROJECT_REQUIRED_FIELDS = [
     "id",
@@ -288,6 +326,16 @@ export const TIMELINE_REQUIRED_FIELDS = [
     "title",
     "detail",
     "kind",
+    "updated",
+] as const;
+
+export const MUSIC_REQUIRED_FIELDS = [
+    "id",
+    "title",
+    "artist",
+    "format",
+    "year",
+    "note",
     "updated",
 ] as const;
 
@@ -526,6 +574,43 @@ export function validateTimelineEvent(value: unknown): string[] {
     return problems;
 }
 
+/** 单条歌单作品的结构问题；返回空数组 = 合法。 */
+export function validateMusicTrack(value: unknown): string[] {
+    if (!isRecord(value)) return ["不是对象"];
+
+    const problems: string[] = [];
+    const at = (field: string) => `music[${String(value.id ?? "?")}].${field}`;
+
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id))
+        problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isNonEmptyString(value.title)) problems.push(`${at("title")} 必须是非空字符串`);
+    if (!isNonEmptyString(value.artist)) problems.push(`${at("artist")} 必须是非空字符串`);
+    if (!MUSIC_FORMATS.includes(value.format as MusicFormat))
+        problems.push(`${at("format")} 必须是 ${MUSIC_FORMATS.join(" / ")}`);
+    if (!(typeof value.year === "string" && YEAR.test(value.year)))
+        problems.push(`${at("year")} 必须是 YYYY（只知道年份就只写年份）`);
+    if (value.cover !== undefined && !SITE_IMAGE.test(String(value.cover)))
+        problems.push(
+            `${at("cover")} 必须是站点内图片路径（以 / 开头、带扩展名），相对路径或外链一律不收`,
+        );
+    if (!isLocalizedText(value.note)) problems.push(`${at("note")} 需要 zh + en 两个非空字符串`);
+    // 试听源只收 http(s)：相对路径会让 `<audio src>` 打到本站静态目录，
+    // 等于偷偷变成「自托管音频」，与 M2 边界冲突。
+    if (value.audio !== undefined && !isHttpUrl(value.audio))
+        problems.push(`${at("audio")} 必须是 http(s) 绝对地址（本站不自托管音频；没有源就别写）`);
+    if (value.links !== undefined) {
+        const ok =
+            Array.isArray(value.links) &&
+            value.links.every(
+                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
+            );
+        if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
+    }
+    if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
+
+    return problems;
+}
+
 export function validateMeta(value: unknown): string[] {
     if (!isRecord(value)) return ["meta 不是对象"];
     const problems: string[] = [];
@@ -719,6 +804,43 @@ export const timelineSpec: EntitySpec<TimelineEvent> = {
         ["links 非 http", { ...timelineSample(), links: [{ label: "x", href: "/relative" }] }],
         ["id 不是 slug", { ...timelineSample(), id: "Demo Event" }],
         ["updated 不是真实日历日", { ...timelineSample(), updated: "2026-02-31" }],
+    ],
+};
+
+const musicSample = (): Record<string, unknown> => ({
+    id: "demo-track",
+    title: "Demo Track",
+    artist: "Demo Artist",
+    format: "album",
+    year: "2026",
+    cover: "/images/demo/demo.webp",
+    note: { zh: "示例说明", en: "Demo note" },
+    audio: "https://example.com/demo.mp3",
+    links: [{ label: "Douban", href: "https://music.douban.com/subject/1/" }],
+    updated: "2026-01-01",
+});
+
+export const musicSpec: EntitySpec<MusicTrack> = {
+    kind: "music",
+    validate: validateMusicTrack,
+    updatedOf: (track) => (isIsoDay(track.updated) ? track.updated : null),
+    keyOf: (track) => track.id,
+    requiredFields: MUSIC_REQUIRED_FIELDS,
+    sample: musicSample,
+    negatives: () => [
+        ["format 越界（ep）", { ...musicSample(), format: "ep" }],
+        ["year 写成 YYYY-MM", { ...musicSample(), year: "2026-01" }],
+        ["title 空串", { ...musicSample(), title: "   " }],
+        ["artist 缺字段", { ...musicSample(), artist: undefined }],
+        ["note 缺 en", { ...musicSample(), note: { zh: "示例说明" } }],
+        ["id 不是 slug", { ...musicSample(), id: "Demo Track" }],
+        // 相对路径 = 偷偷自托管音频；本站边界是不托管，必须判红
+        ["audio 是站内相对路径", { ...musicSample(), audio: "/assets/demo.mp3" }],
+        ["audio 是 javascript: 伪协议", { ...musicSample(), audio: "javascript:alert(1)" }],
+        ["cover 是相对路径", { ...musicSample(), cover: "images/demo/demo.webp" }],
+        ["cover 没有扩展名", { ...musicSample(), cover: "/images/demo/demo" }],
+        ["links 非 http", { ...musicSample(), links: [{ label: "x", href: "/relative" }] }],
+        ["updated 不是真实日历日", { ...musicSample(), updated: "2026-02-31" }],
     ],
 };
 
@@ -1079,4 +1201,44 @@ export function timelineRailLabel(date: string): string {
 /** `<time datetime>` 与读屏用：`2026.11.02` / `2026.11`。 */
 export function timelineDateLabel(date: string): string {
     return date.split("-").join(".");
+}
+
+/* ───────────────────────── 音乐 展示辅助 ───────────────────────── */
+
+const MUSIC_FORMAT_LABEL: Record<MusicFormat, LocalizedText> = {
+    album: { zh: "专辑", en: "Album" },
+    single: { zh: "单曲", en: "Single" },
+};
+
+export function musicFormatLabel(format: MusicFormat, locale: EntityLocale): string {
+    return pick(MUSIC_FORMAT_LABEL[format] ?? MUSIC_FORMAT_LABEL.album, locale);
+}
+
+/**
+ * 作品年代跨度：`2009–2018`；只有一年就是那一年；没有条目返回空串。
+ * 页面不自己 sort / 不去重 —— 这里算的只是页面头上一枚 chip，排序口径另说。
+ */
+export function musicYearSpan(tracks: readonly MusicTrack[]): string {
+    const years = tracks
+        .map((track) => track.year)
+        .filter((year) => typeof year === "string" && YEAR.test(year))
+        .sort();
+    const first = years.at(0);
+    const last = years.at(-1);
+    if (!first || !last) return "";
+    return first === last ? first : `${first}–${last}`;
+}
+
+/** 主艺人数量：`许嵩 / VAE` 与 `许嵩 / 何曼婷` 记作同一位（取 `/` 前那段）。 */
+export function musicArtistCount(tracks: readonly MusicTrack[]): number {
+    return new Set(
+        tracks
+            .map(
+                (track) =>
+                    String(track.artist ?? "")
+                        .split("/")[0]
+                        ?.trim() ?? "",
+            )
+            .filter((name) => name !== ""),
+    ).size;
 }

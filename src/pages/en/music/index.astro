@@ -1,0 +1,11 @@
+---
+/**
+ * C-2 音乐（英文路由，M2-8b）
+ *
+ * 与中文页同源：数据、组件、播放器挂载点完全一致；语言由 `Astro.currentLocale` 从 `/en/` 推出。
+ * 这里**不复制一份 markup**：复制会让两页在后续改动里各自漂移（与 projects / devices / timeline 同一判据）。
+ */
+import MusicPage from "~/pages/music/index.astro";
+---
+
+<MusicPage />

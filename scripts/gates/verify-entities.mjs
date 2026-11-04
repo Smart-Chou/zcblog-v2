@@ -95,6 +95,16 @@ const ENTITIES = [
         pages: ["src/pages/timeline/index.astro", "src/pages/en/timeline/index.astro"],
         nav: "/timeline/",
     },
+    {
+        kind: "music",
+        label: "音乐",
+        file: "src/data/entities/music.ts",
+        dataExport: "music",
+        metaExport: "musicMeta",
+        specExport: "musicSpec",
+        pages: ["src/pages/music/index.astro", "src/pages/en/music/index.astro"],
+        nav: "/music/",
+    },
 ];
 
 const results = [];

@@ -122,6 +122,8 @@ export const navLinks: NavLink[] = [
     { label: "游戏", href: "/games/" },
     // C-2（M2-8a）：时间线。
     { label: "时间线", href: "/timeline/" },
+    // C-2（M2-8b）：音乐。
+    { label: "音乐", href: "/music/" },
     { label: "随笔", href: "/talks/" },
     { label: "相册", href: "/albums/" },
     { label: "番剧", href: "/bangumi/" },

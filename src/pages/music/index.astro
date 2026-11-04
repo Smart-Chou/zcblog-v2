@@ -1,0 +1,273 @@
+---
+/**
+ * C-2 音乐（M2-8b，中文路由）
+ * ------------------------------------------------------------------
+ * 页面只做三件事：取数（实体契约归一化）→ 按数据顺序交给 C 层条目 → 提供播放器挂载点。
+ * 不排序：歌单顺序就是数据文件顺序（按发行年降序人工维护），页面自己 sort 会让
+ * e2e 断言的和人看到的是两套顺序（与时间线同一判据：排序口径只能有一个出处）。
+ *
+ * 播放器的边界（本卡核心）：
+ * - 首屏 HTML 里没有 `<audio>`、没有音频地址、没有播放器代码；
+ * - 播放器模块 `~/scripts/music-player` 在第一次点「试听」时才 `import()`；
+ * - 条目没有 `audio` 源时，面板只说明「没有试听源」+ 外链，不建 `<audio>`，因此 0 请求；
+ * - 关闭播放器 = 断源 + `load()` + 移出 DOM，后续不再产生请求。
+ *
+ * 空态 / 错误态都是页面状态：路由永远 200，导航与评论区不受影响。
+ * 构建期可用 `PUBLIC_MUSIC_STATE=empty|error` 预览另两态（验收/截图用，不改数据）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/music.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import MusicTrack from "~/components/C/MusicTrack.astro";
+import { music, musicMeta } from "~/data/entities/music";
+import {
+    formatUpdated,
+    musicArtistCount,
+    musicYearSpan,
+    normalizeCollection,
+    musicSpec,
+} from "~/types/entities";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(music, musicMeta, musicSpec, {
+    force: import.meta.env.PUBLIC_MUSIC_STATE,
+});
+
+const spanLabel = musicYearSpan(feed.items);
+const artistCount = musicArtistCount(feed.items);
+const audioCount = feed.items.filter((track) => Boolean(track.audio)).length;
+
+const copy = isEn
+    ? {
+          kicker: "PLAYLIST · LISTENING",
+          title: "Playlist",
+          lede: "Four releases, all of them real Douban music records: title, artist, release year and rating checked against the subject pages. No audio is hosted here — an entry without a source only links out.",
+          listTitle: "Releases",
+          listMeta: "Newest first · data-file order is page order",
+          countOne: "releases",
+          artistOne: "artists",
+          spanOne: "span",
+          updatedPrefix: "data updated",
+          sourceNote:
+              "None of the four entries has an `audio` field: M2 neither talks to a music API nor hosts audio, so this page ships outbound links plus a player that stays closed. Adding a source is a data change, not a code change.",
+          playerTitle: "Player",
+          playerMeta: "Loaded on demand · zero audio requests before it opens",
+          playerIdle:
+              "The player is not open: this page loads no player script and creates no audio element until you press “Preview”.",
+          playerNow: "Now playing",
+          playerClose: "Close player",
+          playerNoSource:
+              "No preview source for this entry — the site does not host audio. Listen on the linked release page.",
+          playerError: "The audio source failed to load (bad address or unsupported format).",
+          playerExternal: "Open the release page",
+          emptyTitle: "The playlist is empty",
+          emptyText:
+              "The music data file has no entries, so nothing is listed. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Playlist data could not be read",
+          errorText:
+              "The music file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "歌单 · LISTENING",
+          title: "歌单",
+          lede: "四张作品，全部来自豆瓣的音乐记录：专辑名、表演者、发行年与评分都对过条目页。这里不托管音频 —— 有源的才试听，没源就去豆瓣。",
+          listTitle: "作品",
+          listMeta: "按发行年倒序 · 数据文件顺序即页面顺序",
+          countOne: "张作品",
+          artistOne: "位艺人",
+          spanOne: "跨度",
+          updatedPrefix: "数据更新于",
+          sourceNote:
+              "四条都没有 `audio` 字段：M2 既不接音乐 API、也不自托管音频，所以这一页只有外链和一个保持关闭的播放器。加试听源是改数据，不是改代码。",
+          playerTitle: "播放器",
+          playerMeta: "按需加载 · 未打开前 0 个音频请求",
+          playerIdle:
+              "播放器还没打开：点击某一条的「试听」之前，这个页面不加载播放器脚本，也不创建音频元素。",
+          playerNow: "正在播放",
+          playerClose: "关闭播放器",
+          playerNoSource: "这一条没有试听源 —— 本站不托管音频，请去条目页听。",
+          playerError: "音频加载失败：源地址或格式不对。",
+          playerExternal: "去豆瓣条目",
+          emptyTitle: "歌单还是空的",
+          emptyText: "音乐数据文件里没有条目，这里暂不列出。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "歌单数据读取失败",
+          errorText: "音乐数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh");
+const countLabel = `${feed.total} ${copy.countOne}`;
+const artistLabel = `${artistCount} ${copy.artistOne}`;
+const spanText = `${copy.spanOne} ${spanLabel}`;
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Playlist", "歌单", "音乐", "Music", "Douban"]}
+>
+    <article
+        class="entities entities--music"
+        data-music-status={feed.status}
+        data-music-total={feed.total}
+        data-music-artists={artistCount}
+        data-music-audio-sources={audioCount}
+        data-music-span={spanLabel}
+        data-music-updated={feed.updated ?? ""}
+        aria-labelledby="music-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="music-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:flame" size="xs" />
+                    {countLabel}
+                </span>
+                {
+                    artistCount > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:user-circle" size="xs" />
+                            {artistLabel}
+                        </span>
+                    )
+                }
+                {
+                    spanLabel && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:chevrons-left" size="xs" />
+                            {spanText}
+                        </span>
+                    )
+                }
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
+            </div>
+        </header>
+
+        <section class="entities-section" aria-labelledby="music-list-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="music-list-title">{copy.listTitle}</h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            {
+                feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                    <p class="entities-notice" data-music-dropped={feed.dropped}>
+                        {isEn
+                            ? `${feed.dropped} entries failed validation and are not listed below.`
+                            : `有 ${feed.dropped} 条数据未通过校验，未在下方列出。`}
+                    </p>
+                )
+            }
+
+            {
+                feed.status === "ok" && (
+                    <>
+                        <ol class="music-list" data-music-list>
+                            {feed.items.map((track, index) => (
+                                <MusicTrack track={track} index={index + 1} locale={loc} />
+                            ))}
+                        </ol>
+                        <p class="music-note">{copy.sourceNote}</p>
+                    </>
+                )
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-music-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-music-empty={feed.issue?.code ?? "unknown"}
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:flame" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </section>
+
+        <section
+            class="music-player"
+            data-music-player-mount
+            data-music-player-state="closed"
+            data-music-locale={loc}
+            data-copy-close={copy.playerClose}
+            data-copy-now={copy.playerNow}
+            data-copy-no-source={copy.playerNoSource}
+            data-copy-error={copy.playerError}
+            data-copy-external={copy.playerExternal}
+            aria-labelledby="music-player-title"
+            aria-live="polite"
+        >
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="music-player-title">{copy.playerTitle}</h2>
+                <p class="entities-section__meta">{copy.playerMeta}</p>
+            </div>
+            <p class="music-player__idle" data-music-player-idle>{copy.playerIdle}</p>
+        </section>
+    </article>
+</BaseLayout>
+
+<script>
+    // 播放器按需加载：这里只有 ~30 行接线，真正的播放器（含 <audio> 的创建）在第一次
+    // 点「试听」时才 import()。列表容器每次换页都是新节点，所以监听挂在列表上而不是
+    // document 上 —— swup 的 reloadScripts 不会让同一份监听越叠越多。
+    (() => {
+        const list = document.querySelector<HTMLElement>("[data-music-list]");
+        const mount = document.querySelector<HTMLElement>("[data-music-player-mount]");
+        if (!list || !mount) return;
+
+        list.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const button = target.closest("[data-music-play]");
+            const row = button?.closest("[data-music-track]");
+            if (!(button instanceof HTMLElement) || !(row instanceof HTMLElement)) return;
+
+            const link = row.querySelector(".music-track__link");
+            const track = {
+                id: row.getAttribute("data-music-id") || "",
+                title: row.getAttribute("data-music-title") || "",
+                artist: row.getAttribute("data-music-artist") || "",
+                audio: row.getAttribute("data-music-audio") || "",
+                href: link instanceof HTMLAnchorElement ? link.href : "",
+            };
+
+            void import("~/scripts/music-player").then((mod) =>
+                mod.openTrack(mount, button, track),
+            );
+        });
+    })();
+</script>
