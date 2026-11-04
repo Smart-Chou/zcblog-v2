@@ -1,7 +1,14 @@
 ---
+/**
+ * Photos — 首页「近期光影」
+ *
+ * M2-2（D-0110）：4 列方图（<768 两列），取最近 4 张带日期的照片。
+ * 图片保留 width/height，避免 CLS；样式在 src/styles/pages/home.css。
+ */
 import albums from "~/data/albums.json";
 import { getPicImageUrl } from "~/utils";
-import { t, type Locale } from "~/utils/i18n";
+import { t, defaultLocale, type Locale } from "~/utils/i18n";
+import Icon from "~/components/UI/atom/Icon.astro";
 
 interface Props {
     title: string;
@@ -17,7 +24,7 @@ function extractDate(alt: string): Date | null {
     return new Date(dateStr);
 }
 
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = 4;
 const allPhotos = albums.flatMap((album) =>
     album.photos.map((p) => ({
         url: getPicImageUrl(p.url, 480),
@@ -27,41 +34,43 @@ const allPhotos = albums.flatMap((album) =>
 const withDates = allPhotos
     .map((p) => ({ ...p, _date: extractDate(p.title) }))
     .filter((p) => p._date !== null);
-const sortedPhotos = withDates.sort((a, b) => b._date!.getTime() - a._date!.getTime());
-const photos = sortedPhotos.slice(0, MAX_PHOTOS);
+const photos = withDates
+    .sort((a, b) => b._date!.getTime() - a._date!.getTime())
+    .slice(0, MAX_PHOTOS);
 
-const isLargeGrid = photos.length >= 9;
+const albumsUrl = locale === defaultLocale ? "/albums/" : "/en/albums/";
 ---
 
 {
     photos.length > 0 && (
-        <section class="photos-section">
+        <section class="photos-section" aria-labelledby="home-photos-title">
             <div class="section-header">
-                <h2 class="section-label">{title}</h2>
-                <a class="section-link" href="/albums/">
+                <h2 class="section-label" id="home-photos-title">
+                    {title}
+                </h2>
+                <a class="section-link" href={albumsUrl}>
                     {t(locale, "common.viewAll")}
-                    <span class="section-link-arrow" aria-hidden="true">
-                        →
-                    </span>
+                    <Icon name="tabler:chevron-right" size="xs" />
                 </a>
             </div>
-            <div class:list={["photos-grid", { "photos-grid--large": isLargeGrid }]}>
+            <ul class="photos-grid">
                 {photos.map((photo) => (
-                    <div class="photo-item">
-                        <img
-                            src={photo.url}
-                            alt={photo.title}
-                            width={400}
-                            height={300}
-                            loading="lazy"
-                            decoding="async"
-                        />
-                        <div class="photo-overlay">
-                            <span class="photo-caption">{photo.title}</span>
-                        </div>
-                    </div>
+                    <li class="photo-item">
+                        <figure class="photo-figure">
+                            <img
+                                class="photo-image"
+                                src={photo.url}
+                                alt={photo.title}
+                                width="400"
+                                height="400"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                            <figcaption class="photo-caption">{photo.title}</figcaption>
+                        </figure>
+                    </li>
                 ))}
-            </div>
+            </ul>
         </section>
     )
 }

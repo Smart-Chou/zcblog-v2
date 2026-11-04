@@ -1,93 +1,132 @@
 ---
+/**
+ * Posts — 首页「最近文章」
+ *
+ * M2-2（D-0110）：featured 大卡 + 4 条列表；标题层级 h3（区块 h2 在页面里）。
+ * 颜色 / 尺寸全部走 token，样式在 src/styles/pages/home.css。
+ * 组件保持 Astro 静态输出，JS 0 字节。
+ */
 import { t, defaultLocale, type Locale } from "~/utils/i18n";
+import { articleUrl } from "~/utils/article-url";
+import Tag from "~/components/UI/atom/Tag.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 import type { CollectionEntry } from "astro:content";
 
 type PostEntry = CollectionEntry<"article">;
 
 interface Props {
     posts: PostEntry[];
+    locale?: Locale;
 }
 
-const { posts } = Astro.props;
+const { posts, locale: localeProp } = Astro.props;
 
-const pathname = Astro.url.pathname;
-const locale: Locale = pathname.startsWith("/en") ? "en" : defaultLocale;
+const locale: Locale =
+    localeProp ?? (Astro.url.pathname.startsWith("/en") ? "en" : defaultLocale);
 
-// 文章链接按语言加前缀；英文页去掉 -en 后缀（中文页不裁剪，避免误伤 -en 结尾的中文 slug）
-const articlePrefix = locale === "en" ? "/en/article" : "/article";
-const toArticleUrl = (id: string) =>
-    `${articlePrefix}/${locale === "en" ? id.replace(/-en$/, "") : id}/`;
-
-function getImageUrl(image: PostEntry["data"]["image"]): string {
+function imageUrl(image: PostEntry["data"]["image"]): string {
     if (!image || !image.url) return "";
-    if (typeof image.url === "string") return image.url;
-    return image.url.src;
+    return typeof image.url === "string" ? image.url : image.url.src;
 }
 
 const archiveUrl = locale === defaultLocale ? "/archives/" : "/en/archives/";
 
-function formatDateFull(date: Date): string {
+function formatDate(date: Date): string {
     return date.toLocaleDateString(locale === "en" ? "en-US" : "zh-CN", {
         year: "numeric",
         month: "short",
         day: "numeric",
     });
 }
+
+const [featured, ...rest] = posts;
+const featuredCover = featured ? imageUrl(featured.data.image) : "";
+const featuredAlt = featured?.data.image?.alt || featured?.data.title || "";
 ---
 
 {
-    posts.length > 0 && (
-        <section>
+    featured && (
+        <section class="posts-section" aria-labelledby="home-posts-title">
             <div class="section-header">
-                <h2 class="section-label">{t(locale, "stats.recentPosts")}</h2>
+                <h2 class="section-label" id="home-posts-title">
+                    {t(locale, "stats.recentPosts")}
+                </h2>
                 <a class="section-link" href={archiveUrl}>
                     {t(locale, "common.viewAll")}
-                    <span class="section-link-arrow" aria-hidden="true">
-                        →
-                    </span>
+                    <Icon name="tabler:chevron-right" size="xs" />
                 </a>
             </div>
-            <div class="posts-home stagger-children">
-                {/* Featured post */}
-                <article class="post-featured">
-                    {posts[0].data.image && (
+
+            <article class="post-featured">
+                {featuredCover && (
+                    <div class="post-featured__media">
                         <img
-                            src={getImageUrl(posts[0].data.image)}
-                            alt={posts[0].data.image.alt}
-                            width={720}
-                            height={405}
-                            class="post-featured-cover"
+                            src={featuredCover}
+                            alt={featuredAlt}
+                            width="720"
+                            height="450"
                             loading="lazy"
                             decoding="async"
                         />
-                    )}
-                    <div class="post-featured-body">
-                        <span class="post-featured-label">Featured</span>
-                        <h2 class="post-featured-title">{posts[0].data.title}</h2>
-                        <span class="post-featured-date">
-                            {formatDateFull(posts[0].data.pubDate)}
-                        </span>
                     </div>
-                    <a
-                        href={toArticleUrl(posts[0].id)}
-                        class="post-card-link"
-                        aria-label={`${locale === "en" ? "Read" : "阅读"} ${posts[0].data.title}`}
-                    />
-                </article>
+                )}
+                <div class="post-featured__body">
+                    <div class="post-featured__meta">
+                        <span class="post-featured__badge">Featured</span>
+                        <time
+                            class="post-featured__time"
+                            datetime={featured.data.pubDate.toISOString()}
+                        >
+                            {formatDate(featured.data.pubDate)}
+                        </time>
+                    </div>
+                    <h3 class="post-featured__title">
+                        <a href={articleUrl(featured)}>{featured.data.title}</a>
+                    </h3>
+                    <p class="post-featured__desc">{featured.data.description}</p>
+                    {featured.data.tags.length > 0 && (
+                        <ul class="post-tags">
+                            {featured.data.tags.slice(0, 3).map((tag) => (
+                                <li>
+                                    <Tag size="sm">#{tag}</Tag>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </article>
 
-                {/* Secondary posts */}
-                {posts.slice(1).map((post) => (
-                    <article class="post-card">
-                        <h2 class="post-card-title">{post.data.title}</h2>
-                        <span class="post-card-meta">{formatDateFull(post.data.pubDate)}</span>
-                        <a
-                            href={toArticleUrl(post.id)}
-                            class="post-card-link"
-                            aria-label={`${locale === "en" ? "Read" : "阅读"} ${post.data.title}`}
-                        />
-                    </article>
-                ))}
-            </div>
+            {rest.length > 0 && (
+                <ol class="post-list">
+                    {rest.map((post) => (
+                        <li class="post-list__item">
+                            <article class="post-item">
+                                <div class="post-item__head">
+                                    <h3 class="post-item__title">
+                                        <a href={articleUrl(post)}>{post.data.title}</a>
+                                    </h3>
+                                    <time
+                                        class="post-item__time"
+                                        datetime={post.data.pubDate.toISOString()}
+                                    >
+                                        {formatDate(post.data.pubDate)}
+                                    </time>
+                                </div>
+                                <p class="post-item__desc">{post.data.description}</p>
+                                {post.data.tags.length > 0 && (
+                                    <ul class="post-tags">
+                                        {post.data.tags.slice(0, 2).map((tag) => (
+                                            <li>
+                                                <Tag size="sm">#{tag}</Tag>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </article>
+                        </li>
+                    ))}
+                </ol>
+            )}
         </section>
     )
 }

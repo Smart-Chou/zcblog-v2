@@ -4,7 +4,7 @@
  *
  * 判定 `blog2.0/docs/19-m2-plan.md` §3 M2-1 的前两件事：
  *   ① 从源码反推组件清单，冻结 P9 的分母：12 atoms（10 atom + 2 molecule）
- *      + 23 legacy UI + 12 page-organism 债（另有 1 个 layout 壳，见 I3）；
+ *      + 23 legacy UI + 11 page-organism 债（另有 1 个 layout 壳，见 I3）；
  *   ② `docs/component-inventory.json` 是唯一分母，清单与源码不一致即红。
  *
  * 判据
@@ -52,7 +52,13 @@ const PAGES_DIR_REL = "src/components/Pages";
 const LEGACY_UI_SLUG_PREFIX = "ui-";
 
 /** 冻结的分母：改这里 = 改 P9 的口径，必须走 decision-log。 */
-const FROZEN_COUNTS = { atom: 10, molecule: 2, ui: 23, layout: 1, "page-organism": 12, total: 48 };
+/**
+ * 2026-11-04 M2-2（D-0110）：`Pages/HomeContent.astro` 作为纯模板壳被消解进
+ * `src/pages/index.astro` / `src/pages/en/index.astro` 并删除，page-organism 债
+ * 12 → 11、total 48 → 47。这是**收紧**（分母只减不增），依据 `19-m2-plan.md`
+ * §3 M2-2「消解进路由并在卡内删除该文件；§4.4 的 page-organism 债 -1」。
+ */
+const FROZEN_COUNTS = { atom: 10, molecule: 2, ui: 23, layout: 1, "page-organism": 11, total: 47 };
 
 /** 唯一一个不进 UI 文档分母的 UI 文件：纯 slot 容器，无 props / 状态 / 样式。 */
 const LAYOUT_SHELLS = {
@@ -469,8 +475,8 @@ for (const component of organisms) {
 }
 addCheck(
     "I4",
-    "page-organism 债 12 条全部登记（只统计，不写文档）",
-    organismProblems.length === 0 && organisms.length === 12,
+    "page-organism 债 11 条全部登记（只统计，不写文档）",
+    organismProblems.length === 0 && organisms.length === 11,
     `page-organism=${organisms.length}`,
     organismProblems,
 );

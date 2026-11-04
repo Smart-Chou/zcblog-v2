@@ -1,8 +1,16 @@
 ---
+/**
+ * Popular — 首页侧栏「近期热门」
+ *
+ * M2-2（D-0110）：Card atom（padding 由 src/styles/pages/home.css 的侧栏规则统一给）。
+ * 数据仍来自 popular.json + config.popular；已删除/草稿的文章会被跳过。
+ */
 import { getCollection } from "astro:content";
 import { popular as popularConfig } from "~/config";
 import { t, type Locale } from "~/utils/i18n";
 import { articleUrl } from "~/utils/article-url";
+import Card from "~/components/UI/atom/Card.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 import popularData from "~/data/popular.json";
 
 interface Props {
@@ -51,14 +59,20 @@ function formatDate(date: Date): string {
 
 {
     entries.length > 0 && (
-        <section class="popular-section">
+        <Card
+            as="section"
+            variant="raised"
+            padding="none"
+            class="popular-section"
+            labelledby="home-popular-title"
+        >
             <div class="section-header">
-                <h2 class="section-label">{t(locale, "home.popularTitle")}</h2>
+                <h2 class="section-label" id="home-popular-title">
+                    {t(locale, "home.popularTitle")}
+                </h2>
                 <a class="section-link" href={viewAllUrl}>
                     {t(locale, "common.viewAll")}
-                    <span class="section-link-arrow" aria-hidden="true">
-                        →
-                    </span>
+                    <Icon name="tabler:chevron-right" size="xs" />
                 </a>
             </div>
             <ol class="popular-list">
@@ -74,76 +88,6 @@ function formatDate(date: Date): string {
                     </li>
                 ))}
             </ol>
-        </section>
+        </Card>
     )
 }
-
-<style>
-    .popular-section {
-        margin-bottom: 4rem;
-    }
-
-    .popular-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        border-top: 1px solid var(--color-border);
-    }
-
-    .popular-item {
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .popular-link {
-        display: flex;
-        align-items: baseline;
-        gap: 1.25rem;
-        padding: 0.85rem 0.25rem;
-        text-decoration: none;
-        color: inherit;
-        transition: background-color var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .popular-link:hover {
-            background-color: var(--color-hover);
-        }
-
-        .popular-link:hover .popular-title,
-        .popular-link:hover .popular-rank {
-            color: var(--color-accent);
-        }
-    }
-
-    .popular-rank {
-        flex: none;
-        min-width: 2.1em;
-        font-family: var(--font-heading);
-        font-style: italic;
-        font-size: var(--text-lg);
-        line-height: 1;
-        color: var(--color-text-dimmed);
-        transition: color var(--duration-fast) var(--ease-out);
-    }
-
-    .popular-title {
-        flex: 1;
-        font-size: var(--text-base);
-        line-height: var(--leading-snug);
-        color: var(--color-title);
-        transition: color var(--duration-fast) var(--ease-out);
-    }
-
-    .popular-date {
-        flex: none;
-        font-family: var(--font-mono);
-        font-size: var(--text-xs);
-        color: var(--color-text-dimmed);
-    }
-
-    @media (max-width: 640px) {
-        .popular-date {
-            display: none;
-        }
-    }
-</style>

@@ -1,7 +1,141 @@
 ---
-import { getLocale } from "~/utils/i18n";
-import HomeContent from "~/components/Pages/HomeContent.astro";
-const locale = getLocale(Astro.currentLocale || "zh");
+/**
+ * P-01 首页（中文）
+ *
+ * M2-2 / D-0110：marx_s_blog_2 的 8/4 双栏版式（桌面），移动单栏。
+ * 本文件只做「取数 + 版式编排」；样式在 src/styles/pages/home.css，
+ * 视觉值全部来自 tokens.css（页面内 0 硬编码设计值）。
+ * Pages/HomeContent.astro 已消解（模板壳），page-organism 债 -1。
+ */
+import BaseLayout from "~/layouts/BaseLayout.astro";
+// 设计 token 表（M1 生成物）此前只挂在 /design/atoms；生产页首次消费 atom 需要自带。
+// 只在本页加载，不动 BaseLayout（M2-11 统一收口全局注入）。
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/home.css";
+import { getCollection } from "astro:content";
+import HeroMasthead from "~/components/Index/HeroMasthead.astro";
+import TypewriterText from "~/components/UI/TypewriterText.astro";
+import Talk from "~/components/Index/Talk.astro";
+import Posts from "~/components/Index/Posts.astro";
+import Popular from "~/components/Index/Popular.astro";
+import Friends from "~/components/Index/Friends.astro";
+import Photos from "~/components/Index/Photos.astro";
+import Media from "~/components/Index/Media.astro";
+import Author from "~/components/UI/Author.astro";
+import Card from "~/components/UI/atom/Card.astro";
+import doubanData from "~/data/douban.json";
+import typewriterTexts from "~/data/typewriter.json";
+import { site } from "~/config";
+import { sortByPubDate } from "~/utils";
+import { enrichPost } from "~/utils/get-posts-with-meta";
+import { getAllTags, normalizeTag } from "~/utils/article-stats";
+import { filterByLang } from "~/utils/article-url";
+import { t, getLocale, type Locale } from "~/utils/i18n";
+
+const loc: Locale = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const toMediaItem = (item: (typeof doubanData)[number]) => ({
+    url: item.cover || "",
+    rating: item.rating * 20,
+    ratingNum: item.rating || undefined,
+    title: item.title,
+    link: item.url,
+});
+
+const booksItems = doubanData.filter((d) => d.type === "book").map(toMediaItem);
+const moviesItems = doubanData.filter((d) => d.type === "movie").map(toMediaItem);
+
+// 仅统计/展示当前语言的文章（双语完整化，2026-10）
+const allArticles = filterByLang(await getCollection("article", ({ data }) => !data.draft), loc);
+const sortedArticles = sortByPubDate(allArticles);
+const latestModified =
+    sortedArticles.length > 0 ? enrichPost(sortedArticles[0]).modifiedTime : new Date();
+const recentPosts = sortedArticles.slice(0, 5);
+const totalArticles = allArticles.length;
+const tagsCount = new Set(getAllTags(allArticles).map(normalizeTag)).size;
+
+const doubanUrl = isEn ? "/en/douban/" : "/douban/";
+// 「文化生活」在 i18n JSON 里还没有键（zh/en 两份不在本卡文件边界内，M2-11 统一收口）
+const cultureTitle = isEn ? "Culture" : "文化生活";
 ---
 
-<HomeContent locale={locale} />
+<BaseLayout
+    title={`${t(loc, "site.subtitle")} - ${site.title}`}
+    description={`${site.title} - ${site.description}`}
+    image={`${Astro.site + site.coverImage}`}
+    imageAlt={site.coverImageAlt}
+    keywords={site.keywords}
+    publishedTime={new Date()}
+    modifiedTime={latestModified}
+    locale={loc}
+>
+    <div class="home">
+        <div class="home-shell">
+            <header class="home-hero">
+                <HeroMasthead
+                    subtitle={t(loc, "site.subtitle")}
+                    totalArticles={totalArticles}
+                    tagsCount={tagsCount}
+                />
+
+                {
+                    !isEn && typewriterTexts.length > 0 && (
+                        <p class="home-hero__motto">
+                            <TypewriterText text={typewriterTexts} speed={80} pauseTime={2500} />
+                        </p>
+                    )
+                }
+
+                <div class="home-hero__author">
+                    <Author />
+                </div>
+            </header>
+
+            <div class="home-grid">
+                <div class="home-main">
+                    <Posts posts={recentPosts} locale={loc} />
+                    <Photos title={t(loc, "home.photosTitle")} locale={loc} />
+                    <Talk title={t(loc, "talks.title")} locale={loc} />
+                </div>
+
+                <aside class="home-side">
+                    <Popular locale={loc} />
+
+                    <Card
+                        as="section"
+                        variant="raised"
+                        padding="none"
+                        class="culture-section"
+                        labelledby="home-culture-title"
+                    >
+                        <div class="section-header">
+                            <h2 class="section-label" id="home-culture-title">
+                                {cultureTitle}
+                            </h2>
+                            <a class="section-link" href={doubanUrl}>{t(loc, "douban.title")}</a>
+                        </div>
+                        <Media
+                            title={t(loc, "home.moviesTitle")}
+                            items={moviesItems}
+                            href={doubanUrl}
+                            limit={3}
+                            locale={loc}
+                            level={3}
+                        />
+                        <Media
+                            title={t(loc, "home.booksTitle")}
+                            items={booksItems}
+                            href={doubanUrl}
+                            limit={2}
+                            locale={loc}
+                            level={3}
+                        />
+                    </Card>
+
+                    <Friends title={t(loc, "home.friendsTitle")} locale={loc} />
+                </aside>
+            </div>
+        </div>
+    </div>
+</BaseLayout>

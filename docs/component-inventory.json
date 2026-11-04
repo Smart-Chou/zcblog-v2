@@ -7,8 +7,8 @@
         "molecule": 2,
         "ui": 23,
         "layout": 1,
-        "page-organism": 12,
-        "total": 48
+        "page-organism": 11,
+        "total": 47
     },
     "slug_rules": {
         "atom": "atom/molecule 保持短名：button / card / pagination（12 条 M1-6 记录不动）",
@@ -56,8 +56,8 @@
             "doc_url": "/design/atoms/tag/",
             "doc_page": "src/pages/design/atoms/tag.astro",
             "status": "documented",
-            "usage_count": 2,
-            "usage_tags": 11
+            "usage_count": 3,
+            "usage_tags": 13
         },
         {
             "slug": "input",
@@ -82,8 +82,8 @@
             "doc_url": "/design/atoms/card/",
             "doc_page": "src/pages/design/atoms/card.astro",
             "status": "documented",
-            "usage_count": 2,
-            "usage_tags": 11
+            "usage_count": 6,
+            "usage_tags": 15
         },
         {
             "slug": "icon",
@@ -95,8 +95,8 @@
             "doc_url": "/design/atoms/icon/",
             "doc_page": "src/pages/design/atoms/icon.astro",
             "status": "documented",
-            "usage_count": 10,
-            "usage_tags": 34
+            "usage_count": 16,
+            "usage_tags": 40
         },
         {
             "slug": "avatar",
@@ -197,7 +197,7 @@
             "doc_url": "/design/components/author/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 8,
+            "usage_count": 9,
             "usage_tags": 9
         },
         {
@@ -543,18 +543,6 @@
             "kind": null,
             "layer": "page-organism",
             "file": "src/components/Pages/FriendsContent.astro",
-            "doc_url": null,
-            "doc_page": null,
-            "status": "debt",
-            "usage_count": 2,
-            "usage_tags": 2
-        },
-        {
-            "slug": "homecontent",
-            "name": "HomeContent",
-            "kind": null,
-            "layer": "page-organism",
-            "file": "src/components/Pages/HomeContent.astro",
             "doc_url": null,
             "doc_page": null,
             "status": "debt",

@@ -1,7 +1,15 @@
 ---
+/**
+ * Friends — 首页侧栏「朋友连接」
+ *
+ * M2-2（D-0110）：最多 5 条友链更新，Card atom 包裹；列表项仍复用 FriendCard
+ * （保持该组件 1 处引用，P9 清单不产生 0 引用债）。样式在 pages/home.css。
+ */
 import FriendCard from "~/components/UI/FriendCard.astro";
 import friends from "~/data/friends-articles.json";
-import { t, type Locale } from "~/utils/i18n";
+import { t, defaultLocale, type Locale } from "~/utils/i18n";
+import Card from "~/components/UI/atom/Card.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 
 interface Props {
     title: string;
@@ -9,33 +17,40 @@ interface Props {
 }
 
 const { title, locale } = Astro.props;
+const MAX_FRIENDS = 5;
+const entries = friends.slice(0, MAX_FRIENDS);
+const friendsUrl = locale === defaultLocale ? "/friends/" : "/en/friends/";
 ---
 
 {
-    friends.length > 0 && (
-        <section class="friends-section">
-            <div class="friends-inner">
-                <div class="section-header">
-                    <h2 class="section-label">{title}</h2>
-                    <a class="section-link" href="/friends/">
-                        {t(locale, "common.viewAll")}
-                        <span class="section-link-arrow" aria-hidden="true">
-                            →
-                        </span>
-                    </a>
-                </div>
-                <div id="friArticle">
-                    {friends.map((friend) => (
-                        <FriendCard
-                            name={friend.name}
-                            avatar={friend.avatar}
-                            title={friend.title}
-                            url={friend.url}
-                            updated={friend.updated}
-                        />
-                    ))}
-                </div>
+    entries.length > 0 && (
+        <Card
+            as="section"
+            variant="raised"
+            padding="none"
+            class="friends-section"
+            labelledby="home-friends-title"
+        >
+            <div class="section-header">
+                <h2 class="section-label" id="home-friends-title">
+                    {title}
+                </h2>
+                <a class="section-link" href={friendsUrl}>
+                    {t(locale, "common.viewAll")}
+                    <Icon name="tabler:chevron-right" size="xs" />
+                </a>
             </div>
-        </section>
+            <div id="friArticle" class="friends-list">
+                {entries.map((friend) => (
+                    <FriendCard
+                        name={friend.name}
+                        avatar={friend.avatar}
+                        title={friend.title}
+                        url={friend.url}
+                        updated={friend.updated}
+                    />
+                ))}
+            </div>
+        </Card>
     )
 }
