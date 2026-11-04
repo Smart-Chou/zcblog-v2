@@ -1,0 +1,172 @@
+---
+/**
+ * C-1 技能（M2-7a，中文路由）
+ * ------------------------------------------------------------------
+ * 与 `/projects/` 同源同构：实体契约归一化 → C 层分组组件 → 页面级三态。
+ * 空态 / 错误态都是页面状态：路由永远 200。
+ * 构建期可用 `PUBLIC_SKILLS_STATE=empty|error` 预览另两态。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import SkillGroup from "~/components/C/SkillGroup.astro";
+import { skills, skillsMeta } from "~/data/entities/skills";
+import { SKILL_LEVEL_RANK, normalizeCollection, skillGroupSpec, skillLevelLabel } from "~/types/entities";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(skills, skillsMeta, skillGroupSpec, {
+    force: import.meta.env.PUBLIC_SKILLS_STATE,
+});
+
+const items = [...feed.items].sort((a, b) => b.updated.localeCompare(a.updated));
+const skillCount = items.reduce((sum, group) => sum + group.items.length, 0);
+
+const copy = isEn
+    ? {
+          kicker: "SKILLS · CAPABILITY MAP",
+          title: "Skills",
+          lede: "What I actually use, grouped by the kind of problem it solves. Four levels, no percentages — a skill list is not an exam score.",
+          listTitle: "By discipline",
+          listMeta: "Four levels: exploring → deep",
+          groupOne: "groups",
+          skillOne: "skills",
+          legendTitle: "How to read the levels",
+          emptyTitle: "No skills yet",
+          emptyText:
+              "This site has not filled in its skill data yet. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Skill data could not be read",
+          errorText:
+              "The skill file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "技能 · 能力地图",
+          title: "技能",
+          lede: "按「解决哪类问题」分组，只列真正在用的东西。四档而不是百分比——技能不是考试分数。",
+          listTitle: "按领域",
+          listMeta: "四档：探索中 → 深耕",
+          groupOne: "个领域",
+          skillOne: "项技能",
+          legendTitle: "分档怎么读",
+          emptyTitle: "还没有技能条目",
+          emptyText: "这个站点还没填技能数据。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "技能数据读取失败",
+          errorText: "技能数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const groupLabel = `${items.length} ${copy.groupOne}`;
+const skillLabel = `${skillCount} ${copy.skillOne}`;
+const levels = (["exploring", "working", "solid", "deep"] as const).map((level) => ({
+    level,
+    rank: SKILL_LEVEL_RANK[level],
+    label: skillLevelLabel(level, loc),
+}));
+const segments = [1, 2, 3, 4] as const;
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Skills", "技能", "技术栈", "能力"]}
+>
+    <article
+        class="entities entities--skills"
+        data-skills-status={feed.status}
+        data-skills-groups={items.length}
+        data-skills-total={skillCount}
+        data-skills-stale={String(feed.stale)}
+        aria-labelledby="skills-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="skills-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:categories" size="xs" />
+                    {groupLabel}
+                </span>
+                <span class="entities-chip">
+                    <Icon name="tabler:tool" size="xs" />
+                    {skillLabel}
+                </span>
+            </div>
+        </header>
+
+        <section class="entities-section" aria-labelledby="skills-list-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="skills-list-title">{copy.listTitle}</h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            {
+                feed.status === "ok" && (
+                    <>
+                        <div class="skill-legend">
+                            <p class="skill-legend__title">{copy.legendTitle}</p>
+                            <ul class="skill-legend__list" role="list">
+                                {levels.map((entry) => (
+                                    <li class="skill-legend__item">
+                                        <span class="skill-legend__meter" aria-hidden="true">
+                                            {segments.map((segment) => (
+                                                <i
+                                                    class:list={[
+                                                        "skill__meter-seg",
+                                                        { "is-on": segment <= entry.rank },
+                                                    ]}
+                                                />
+                                            ))}
+                                        </span>
+                                        <span class="skill-legend__label">{entry.label}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div class="skill-groups">
+                            {items.map((group, index) => (
+                                <SkillGroup group={group} index={index + 1} locale={loc} />
+                            ))}
+                        </div>
+                    </>
+                )
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-skills-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-skills-empty={feed.issue?.code ?? "unknown"}
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:tool" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </section>
+    </article>
+</BaseLayout>

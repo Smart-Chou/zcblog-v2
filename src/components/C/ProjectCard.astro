@@ -1,0 +1,106 @@
+---
+/**
+ * ProjectCard — C 层（M2-7a）单个项目卡片
+ *
+ * 契约：只吃 `Project`（src/types/entities.ts）+ locale，0 数据、0 站点私有文案。
+ * 结构：序号 / 标题 / 周期·角色 / 状态 → 摘要 → 要点 → 技术栈 → 外链。
+ * 样式在 `src/styles/pages/entities.css`（`.project-card*`），本组件不带 <style>：
+ * C 层卡片将来要在列表里排布，样式散在组件里会让网格节奏无从统一。
+ *
+ * a11y：序号是装饰（aria-hidden）；状态既有文字也有色点，不靠颜色单独传达；
+ * 外链一律 target=_blank + rel="noopener noreferrer"（e2e 会断言）。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+import Tag from "~/components/UI/atom/Tag.astro";
+import {
+    formatPeriod,
+    pick,
+    projectStatusLabel,
+    type EntityLocale,
+    type Project,
+} from "~/types/entities";
+
+interface Props {
+    project: Project;
+    /** 列表序号（从 1 起），只做视觉编号。 */
+    index: number;
+    locale: EntityLocale;
+}
+
+const { project, index, locale } = Astro.props;
+
+const title = pick(project.title, locale);
+const summary = pick(project.summary, locale);
+const role = pick(project.role, locale);
+const highlights = (project.highlights ?? []).map((item) => pick(item, locale)).filter(Boolean);
+const links = project.links ?? [];
+const statusLabel = projectStatusLabel(project.status, locale);
+const stackLabel = locale === "en" ? "Stack" : "技术栈";
+const highlightsLabel = locale === "en" ? "What it does" : "在做什么";
+const linksLabel = locale === "en" ? "Links" : "链接";
+const ordinal = String(index).padStart(2, "0");
+---
+
+<article class="project-card" data-project-id={project.id} data-project-status={project.status}>
+    <header class="project-card__head">
+        <span class="project-card__index" aria-hidden="true">{ordinal}</span>
+        <div class="project-card__id">
+            <h3 class="project-card__title">{title}</h3>
+            <p class="project-card__meta">
+                <span class="project-card__period">{formatPeriod(project, locale)}</span>
+                {
+                    role && (
+                        <>
+                            <span class="project-card__sep" aria-hidden="true">·</span>
+                            <span class="project-card__role">{role}</span>
+                        </>
+                    )
+                }
+            </p>
+        </div>
+        <p class="project-card__status" data-status={project.status}>
+            <span class="project-card__status-dot" aria-hidden="true"></span>
+            {statusLabel}
+        </p>
+    </header>
+
+    <p class="project-card__summary">{summary}</p>
+
+    {
+        highlights.length > 0 && (
+            <ul class="project-card__highlights" aria-label={highlightsLabel}>
+                {highlights.map((item) => (
+                    <li class="project-card__highlight">{item}</li>
+                ))}
+            </ul>
+        )
+    }
+
+    <ul class="project-card__stack" aria-label={stackLabel}>
+        {
+            project.stack.map((tech) => (
+                <li class="project-card__stack-item">
+                    <Tag tone="neutral" size="sm">{tech}</Tag>
+                </li>
+            ))
+        }
+    </ul>
+
+    {
+        links.length > 0 && (
+            <footer class="project-card__links" aria-label={linksLabel}>
+                {links.map((link) => (
+                    <a
+                        class="project-card__link"
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {link.label}
+                        <Icon name="tabler:arrow-up-right" size="xs" />
+                    </a>
+                ))}
+            </footer>
+        )
+    }
+</article>

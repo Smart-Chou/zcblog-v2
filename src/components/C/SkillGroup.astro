@@ -1,0 +1,76 @@
+---
+/**
+ * SkillGroup — C 层（M2-7a）一组技能
+ *
+ * 契约：只吃 `SkillGroup`（src/types/entities.ts）+ locale。
+ * 结构：组标题 / 一句说明 / 条目数 → 技能行（名称 · 分档 · 刻度 · 备注）。
+ *
+ * a11y：分档既给文字（探索中 / 常用 / 熟练 / 深耕）也给 4 段刻度；刻度是纯装饰
+ * （aria-hidden），文字标签才是语义 —— 只靠颜色/长度表达等级会被读屏吞掉。
+ */
+import {
+    SKILL_LEVEL_RANK,
+    pick,
+    skillLevelLabel,
+    type EntityLocale,
+    type SkillGroup as SkillGroupData,
+} from "~/types/entities";
+
+interface Props {
+    group: SkillGroupData;
+    locale: EntityLocale;
+    /** 组序号（从 1 起），用于视觉编号。 */
+    index: number;
+}
+
+const { group, locale, index } = Astro.props;
+
+const title = pick(group.title, locale);
+const summary = pick(group.summary, locale);
+const countLabel =
+    locale === "en" ? `${group.items.length} skills` : `${group.items.length} 项`;
+const ordinal = String(index).padStart(2, "0");
+const segments = [1, 2, 3, 4] as const;
+---
+
+<section class="skill-group" data-skill-group={group.id} aria-labelledby={`skill-group-${group.id}`}>
+    <header class="skill-group__head">
+        <span class="skill-group__index" aria-hidden="true">{ordinal}</span>
+        <div class="skill-group__intro">
+            <h2 class="skill-group__title" id={`skill-group-${group.id}`}>{title}</h2>
+            {summary && <p class="skill-group__summary">{summary}</p>}
+        </div>
+        <p class="skill-group__count">{countLabel}</p>
+    </header>
+
+    <ul class="skill-group__list">
+        {
+            group.items.map((skill) => {
+                const note = pick(skill.note, locale);
+                const rank = SKILL_LEVEL_RANK[skill.level] ?? 1;
+                const level = skillLevelLabel(skill.level, locale);
+                return (
+                    <li class="skill" data-skill={skill.name}>
+                        <div class="skill__main">
+                            <h3 class="skill__name">{skill.name}</h3>
+                            <span class="skill__level" data-level={skill.level}>
+                                {level}
+                            </span>
+                            <span class="skill__meter" aria-hidden="true">
+                                {segments.map((segment) => (
+                                    <i class:list={["skill__meter-seg", { "is-on": segment <= rank }]} />
+                                ))}
+                            </span>
+                        </div>
+                        {(note || skill.since) && (
+                            <p class="skill__note">
+                                {skill.since && <span class="skill__since">{skill.since}</span>}
+                                {note}
+                            </p>
+                        )}
+                    </li>
+                );
+            })
+        }
+    </ul>
+</section>

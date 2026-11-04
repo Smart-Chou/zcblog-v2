@@ -1,0 +1,12 @@
+---
+/**
+ * C-1 项目（英文路由，M2-7a）
+ *
+ * 与中文页同源：数据、组件、结构完全一致；语言由 `Astro.currentLocale` 从 `/en/` 路由推出。
+ * 这里**不复制一份 markup**：复制会让两页在后续改动里各自漂移（C 层卡片还要在 M2-7b 复用）。
+ * 若将来英文页需要独立结构，再拆成共享组件，而不是复制页面。
+ */
+import ProjectsPage from "~/pages/projects/index.astro";
+---
+
+<ProjectsPage />

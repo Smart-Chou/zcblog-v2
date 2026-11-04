@@ -114,6 +114,9 @@ export interface FooterItem {
 export const navLinks: NavLink[] = [
     { label: "首页", href: "/" },
     { label: "博客", href: "/blog/1/" },
+    // C-1（M2-7a）：项目 / 技能两页。M2-7b 会再追加设备 / 游戏两条。
+    { label: "项目", href: "/projects/" },
+    { label: "技能", href: "/skills/" },
     { label: "随笔", href: "/talks/" },
     { label: "相册", href: "/albums/" },
     { label: "番剧", href: "/bangumi/" },

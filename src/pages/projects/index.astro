@@ -1,0 +1,170 @@
+---
+/**
+ * C-1 项目（M2-7a，中文路由）
+ * ------------------------------------------------------------------
+ * 页面只做三件事：取数（实体契约归一化）→ 交给 C 层卡片 → 提供页面级状态。
+ * 空态 / 错误态都是页面状态：路由永远 200，导航与评论区不受影响。
+ * 构建期可用 `PUBLIC_PROJECTS_STATE=empty|error` 预览另两态（验收/截图用，不改数据）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import ProjectCard from "~/components/C/ProjectCard.astro";
+import { projects, projectsMeta } from "~/data/entities/projects";
+import { formatUpdated, normalizeCollection, projectSpec } from "~/types/entities";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(projects, projectsMeta, projectSpec, {
+    force: import.meta.env.PUBLIC_PROJECTS_STATE,
+});
+
+// 按开始时间倒序：新项目在上，读者第一眼看到的是「最近在做什么」。
+const items = [...feed.items].sort((a, b) => b.started.localeCompare(a.started));
+const stackCount = new Set(items.flatMap((project) => project.stack)).size;
+const activeCount = items.filter((project) => project.status === "active").length;
+
+const copy = isEn
+    ? {
+          kicker: "PROJECTS · BUILD LOG",
+          title: "Projects",
+          lede: "Things I built and still maintain — a blog rebuilt around a design system, the agent stack that runs my daily work, and the services behind them.",
+          listTitle: "All projects",
+          listMeta: "Newest first",
+          countOne: "project",
+          activeOne: "active",
+          stackOne: "technologies",
+          updatedPrefix: "data updated",
+          emptyTitle: "No projects yet",
+          emptyText:
+              "This site has not filled in its project data yet. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Project data could not be read",
+          errorText:
+              "The project file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "项目 · 施工记录",
+          title: "项目",
+          lede: "做过并在维护的东西：围绕设计系统重写的博客、跑日常工作的 Agent 底座，以及撑住它们的那几台机器。",
+          listTitle: "全部项目",
+          listMeta: "按开始时间倒序",
+          countOne: "个项目",
+          activeOne: "个进行中",
+          stackOne: "项技术",
+          updatedPrefix: "数据更新于",
+          emptyTitle: "还没有项目",
+          emptyText: "这个站点还没填项目数据。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "项目数据读取失败",
+          errorText: "项目数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh");
+const countLabel = `${items.length} ${copy.countOne}`;
+const activeLabel = `${activeCount} ${copy.activeOne}`;
+const stackLabel = `${stackCount} ${copy.stackOne}`;
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Projects", "项目", "作品", "Astro"]}
+>
+    <article
+        class="entities entities--projects"
+        data-projects-status={feed.status}
+        data-projects-total={feed.total}
+        data-projects-stale={String(feed.stale)}
+        data-projects-updated={feed.updated ?? ""}
+        aria-labelledby="projects-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="projects-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:folders" size="xs" />
+                    {countLabel}
+                </span>
+                {
+                    activeCount > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:bolt" size="xs" />
+                            {activeLabel}
+                        </span>
+                    )
+                }
+                {
+                    stackCount > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:stack-2" size="xs" />
+                            {stackLabel}
+                        </span>
+                    )
+                }
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
+            </div>
+        </header>
+
+        <section class="entities-section" aria-labelledby="projects-list-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="projects-list-title">{copy.listTitle}</h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            {
+                feed.status === "ok" && (
+                    <ol class="project-grid" role="list">
+                        {items.map((project, index) => (
+                            <li class="project-grid__item">
+                                <ProjectCard project={project} index={index + 1} locale={loc} />
+                            </li>
+                        ))}
+                    </ol>
+                )
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-projects-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-projects-empty={feed.issue?.code ?? "unknown"}
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:folders" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </section>
+    </article>
+</BaseLayout>
