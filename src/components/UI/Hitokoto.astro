@@ -66,6 +66,12 @@ if (!hitokoto) return;
         opacity: 1;
         transition: opacity 0.3s ease;
     }
+
+    /* M2-13a：原色是浅底专用的暖灰，暗色底（画布 / 文档站面板）只有 3.0–3.1:1。
+       暗色改用 muted 暖灰，实测 6.7–6.9:1；浅色保持原值 5.3:1。 */
+    :global([data-theme="dark"]) .hitokoto-source {
+        color: var(--color-muted);
+    }
 </style>
 
 <script>

@@ -70,7 +70,9 @@ const { tabs, activeTab } = Astro.props;
 
     .count {
         font-size: 0.8rem;
-        opacity: 0.7;
+        /* M2-13a：opacity .7 把 accent 与底色混成脏红（3.53:1）。改为实色 muted，
+           不再靠透明度凑层级（暗色 6.86:1 / 浅色 6.1:1）。 */
+        color: var(--color-muted);
         margin-left: 4px;
     }
 </style>

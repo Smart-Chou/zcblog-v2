@@ -28,6 +28,11 @@ const getStatusColor = (type: number) => {
     }
 };
 
+/** M2-13a：状态底色是亮色 viz 色，白字只有 1.9–3.5:1。5 个已知状态改深墨（4.7–9.3:1），
+    未知灰（viz-unknown）反过来只有白字够（4.83:1）。 */
+const getStatusFg = (type: number) =>
+    type >= 1 && type <= 5 ? "var(--status-badge-fg)" : "var(--status-badge-fg-inverse)";
+
 const getStatusText = (type: number) => {
     const subjectType = item.subject.type;
     switch (type) {
@@ -83,7 +88,10 @@ const hiddenCoverTagCount = Math.max(displayTags.length - visibleCoverTags.lengt
     rel="noopener noreferrer nofollow"
 >
     <div slot="badges" class="badges">
-        <span class="status-badge" style={`background: ${getStatusColor(item.type)}`}>
+        <span
+            class="status-badge"
+            style={`background: ${getStatusColor(item.type)}; color: ${getStatusFg(item.type)}`}
+        >
             {getStatusText(item.type)}
         </span>
         {item.subject.score && <span class="score-badge">⭐ {item.subject.score}</span>}
@@ -123,7 +131,8 @@ const hiddenCoverTagCount = Math.max(displayTags.length - visibleCoverTags.lengt
         padding: 4px 8px;
         border-radius: 20px;
         font-size: 0.7rem;
-        color: white;
+        /* M2-13a：底色由行内 style 给（viz 色），字色同样行内给；这里只是兜底默认 */
+        color: var(--status-badge-fg);
         font-weight: 500;
     }
 

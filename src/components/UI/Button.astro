@@ -29,7 +29,9 @@ const { href, variant = "primary", target, rel, class: className } = Astro.props
 
     .btn-primary {
         background: var(--btn-primary-bg, var(--color-accent));
-        color: var(--btn-primary-color, #fff);
+        /* M2-13a：暗色 accent（亮珊瑚）上的白字只有 2.96:1；on-accent 语义=浅色纸白 / 暗色深墨
+           （浅色 5.1:1 / 暗色 6.0:1）。 */
+        color: var(--btn-primary-color, var(--color-on-accent));
     }
 
     @media (hover: hover) {

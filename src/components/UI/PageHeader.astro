@@ -59,8 +59,10 @@ const { title, subtitle, buildTime, showIcon = false } = Astro.props;
 
     .build-time {
         font-size: 0.8rem;
-        color: var(--color-text);
-        opacity: 0.6;
+        /* M2-13a：原来 --color-text + opacity .6，在暗色面上混成 0x82807c 灰 = 4.32:1（差 0.18）。
+           改为实色 muted（暗色 6.68:1 / 浅色 6.1:1），不靠透明度。 */
+        color: var(--color-muted);
+        opacity: 1;
         margin-top: 0.25rem;
     }
 </style>

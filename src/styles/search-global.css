@@ -76,12 +76,18 @@ html[data-theme="dark"] pagefind-modal-trigger {
     --pf-background: var(--search-modal-bg);
     --pf-border: var(--search-border);
     --pf-text-secondary: var(--search-text-subtle);
+    /* M2-13a：.pf-trigger-text 取的是 --pf-text-muted（pagefind 默认 #767676），
+       在 #1e1e2e 上只有 3.61:1 —— 全站 546 页的搜索占位都在这一条上。
+       暗色提到 #9ca3af（6.46:1），浅色不动（#767676 on #fff = 4.54 已过线）。 */
+    --pf-text-muted: var(--search-text-muted);
 }
 
 html[data-theme="dark"] pagefind-modal {
     --pf-text: var(--search-text);
     --pf-text-secondary: var(--search-text-muted);
-    --pf-text-muted: var(--search-text-subtle);
+    /* M2-13a：搜索框占位（placeholder）也走 --pf-text-muted；#6b7280 在 #1e1e2e 上 3.39:1，
+       与触发器同源同因，一起提到 #9ca3af（6.46:1） */
+    --pf-text-muted: var(--search-text-muted);
     --pf-background: var(--search-modal-bg);
     --pf-border: var(--search-border);
     --pf-border-focus: var(--search-primary);

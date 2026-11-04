@@ -73,6 +73,9 @@ html {
     --color-title: #1a1714;
     --color-link: #c2413b;
     --color-accent: #c2413b;
+    /* M2-13a：accent 底上的字。浅色（#c2413b）用纸白 5.1:1；暗色 accent 是亮珊瑚
+       （#e8736a），白字只有 2.96:1，必须换深墨 —— 见下方 dark 块。 */
+    --color-on-accent: #fffcf8;
     --color-code-accent: #8b3a36;
     --color-code-fg: #2d2822;
     --color-border: rgba(45, 40, 34, 0.12);
@@ -95,6 +98,7 @@ html {
         --color-title: #faf7f2;
         --color-link: #e8736a;
         --color-accent: #e8736a;
+        --color-on-accent: #15181e;
         --color-code-accent: #f0a8a2;
         --color-code-fg: #e8e3de;
         --color-border: rgba(232, 227, 222, 0.14);
@@ -118,6 +122,10 @@ html {
     --status-on-hold: #eab308;
     --status-dropped: #ef4444;
     --status-unknown: #6b7280;
+    /* M2-13a：徽章文字色。状态底色是亮色（viz 语义），白字只有 1.9–3.5:1；
+       深墨在 5 个状态色上 4.7–9.3:1（AA 4.5 通过）。未知灰 #6b7280 反过来只有白字够（4.83）。 */
+    --status-badge-fg: #15181e;
+    --status-badge-fg-inverse: #ffffff;
 
     /* ---- Layout ---- */
     --space: 3.5rem;

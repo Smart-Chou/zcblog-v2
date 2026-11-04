@@ -119,3 +119,10 @@ html[data-theme="dark"] {
     --cb-color-danger: #ef8b83;
     --cb-color-tip: #2fd39b;
 }
+
+/* M2-13a：aside 里的正文内链走全局 a 的 accent（暗色 #e8736a），在 tip 的暗绿 tint
+   （#1a3f39）上只有 3.9:1。暗色改用 code-accent（#f0a8a2）= 5.97:1；浅色不动（accent
+   在浅色 tint 上已过线）。 */
+html[data-theme="dark"] .remark-aside .remark-aside-content a {
+    color: var(--color-code-accent);
+}

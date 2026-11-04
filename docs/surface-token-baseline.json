@@ -8,9 +8,9 @@
     "frozen_total": 84,
     "totals": {
         "files": 13,
-        "literals": 42,
+        "literals": 41,
         "hex6": 16,
-        "hex3": 8,
+        "hex3": 7,
         "color_function": 18
     },
     "components": {
@@ -34,7 +34,7 @@
             "hsla(40,60%,30%,0.2)",
             "hsla(var(--hue-accent,0),50%,30%,0.2)"
         ],
-        "src/components/UI/Button.astro": ["#fff", "#fff", "rgba(0,0,0,0.15)"],
+        "src/components/UI/Button.astro": ["#fff", "rgba(0,0,0,0.15)"],
         "src/components/UI/Card.astro": ["#f0f0f0", "rgba(0,0,0,0.8)"],
         "src/components/UI/CardGrid.astro": ["#ffd700", "rgba(0,0,0,0.6)"],
         "src/components/UI/Hitokoto.astro": ["#6b6762"],

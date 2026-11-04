@@ -28,7 +28,10 @@ main {
     display: flex;
     justify-content: center;
     margin-bottom: 2rem;
-    opacity: 0.4;
+    /* M2-13a：原来 opacity .4 把 --color-text 混成 #746f6c，#262220 上只有 3.17:1。
+       守卫页最关键的句子就是这句「你要离开」，不再降透明。 */
+    opacity: 1;
+    color: var(--color-text);
 }
 
 .redirect #url {

@@ -20,9 +20,10 @@
 @import url(./fonts.css);
 
 /* Expressive Code 行号：主题默认 #727980 在 #24292e 上只有 3.3:1（A8）
+   M2-13a：diff 插入行的高亮底（#254025）上 #8b949e 只有 3.71:1 —— 提亮到 #b0b4bb（5.49:1）
    必须 !important：EC 在 .expressive-code 上声明了同名变量，:root 的普通声明会被就近作用域压掉 */
 :root {
-    --ec-lineNumbers-fg: #8b949e !important;
+    --ec-lineNumbers-fg: #b0b4bb !important;
 }
 
 /* =========================================
