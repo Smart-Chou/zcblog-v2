@@ -4,9 +4,9 @@
  * 数据：src/pages/design/_docs/data/components/badge.json
  * 契约：以实现为准（`src/components/UI/Badge.astro`），六个 variant 都是 §5.5 的 tone 词。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import Badge from "~/components/UI/Badge.astro";
 
 const doc = byComponentSlug("badge");
@@ -16,16 +16,21 @@ const SIZES = ["sm", "md", "lg"] as const;
 ---
 
 <ComponentDoc doc={doc}>
-    <DemoFrame layout="row" caption="六个 variant：default / note / tip / danger / success / warning">
+    <DemoFrame
+        layout="row"
+        caption="六个 variant：default / note / tip / danger / success / warning"
+    >
         {VARIANTS.map((variant) => <Badge variant={variant}>{variant}</Badge>)}
     </DemoFrame>
 
     <DemoFrame layout="row" caption="三个 size：sm / md / lg（只改字号与内边距）">
-        {SIZES.map((size) => (
-            <Badge variant="default" size={size}>
-                {`size=${size}`}
-            </Badge>
-        ))}
+        {
+            SIZES.map((size) => (
+                <Badge variant="default" size={size}>
+                    {`size=${size}`}
+                </Badge>
+            ))
+        }
     </DemoFrame>
 
     <DemoFrame layout="row" caption="典型用法：跟在文章标题后面，承担「这一条是什么」的一句话">

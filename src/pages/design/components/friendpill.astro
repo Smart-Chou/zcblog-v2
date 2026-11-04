@@ -6,16 +6,19 @@
  * 根节点是 `<li>`，示例必须包在列表里（这里用 `display: contents` 让网格/行布局不被 `<ul>`
  * 打断，同时保住列表语义）。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import FriendPill from "~/components/UI/FriendPill.astro";
 
 const doc = byComponentSlug("friendpill");
 ---
 
 <ComponentDoc doc={doc}>
-    <DemoFrame layout="stack" caption="带简介：副行取 description；头像缺省 → 首字母兜底（装饰，aria-hidden）">
+    <DemoFrame
+        layout="stack"
+        caption="带简介：副行取 description；头像缺省 → 首字母兜底（装饰，aria-hidden）"
+    >
         <ul style="list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem;">
             <FriendPill
                 name="MIFSH"

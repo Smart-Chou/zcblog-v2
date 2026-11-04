@@ -6,9 +6,9 @@
  * 示例一律传真实图片（public/logo.webp）：组件在既无 `image` 也无 `dataSrc` 时走 emoji 占位，
  * 而那个占位块的兜底底色是旧键，暗色下只有 1.54:1 —— 文档不拿它当示例。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import Card from "~/components/UI/Card.astro";
 
 const doc = byComponentSlug("ui-card");
@@ -16,7 +16,11 @@ const doc = byComponentSlug("ui-card");
 
 <ComponentDoc doc={doc}>
     <DemoFrame layout="row" caption="最小用法：href + image + alt（整卡一个链接，Tab 只停一次）">
-        <Card href="/design/components/ui-card/" image="/logo.webp" alt="站点图标（当作封面演示）" />
+        <Card
+            href="/design/components/ui-card/"
+            image="/logo.webp"
+            alt="站点图标（当作封面演示）"
+        />
     </DemoFrame>
 
     <DemoFrame

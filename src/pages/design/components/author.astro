@@ -7,9 +7,9 @@
  * 的示例就是「生产配置的实物」；样式在 `src/styles/article.css` 的 `.author` 作用域里，
  * 文档页没加载它 → 示例区是裸排版（头像无圆角、标题无字号）。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import Author from "~/components/UI/Author.astro";
 
 const doc = byComponentSlug("author");

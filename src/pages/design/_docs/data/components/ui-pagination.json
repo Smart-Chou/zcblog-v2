@@ -104,7 +104,8 @@
         "notes": [
             "窗口算法（实测）：`lastPage < 6` → 全显示；`currentPage < 4` → 1..5；`currentPage + 3 > lastPage` → 末 5 页；其余 `currentPage ± 2`。**没有省略号**，所以第 4 页和第 40 页看起来一样长。",
             "与 `Pagination`（molecule）的差别：本组件没有 `pageLabel` 模板（页码的可访问名称就是数字）、没有 `siblings`、第 1 页也拼 `/1/`、`lastPage ≤ 1` 不渲染空。两套实现并存属于 §4.2 的重复债务，收敛归 M2-10b。",
-            "`id=\"pagination\"` 与样式里的 `#pagination` 绑定 → 一个页面只能有一个实例；两个就会重复 id，且第二个复用第一份样式。"
+            "`id=\"pagination\"` 与样式里的 `#pagination` 绑定 → 一个页面只能有一个实例；两个就会重复 id，且第二个复用第一份样式。",
+            "axe 在本页报 1 条 `aria-prohibited-attr`：边界箭头是没有 `href` 的 `<a>`，ARIA-in-HTML 禁止在这种 generic 锚点上用 `aria-disabled`。这条已登记进 `e2e/design-component-docs.a11y.spec.ts` 的 `DEMO_EXCEPTIONS`（数量精确，修好后必须收紧）；修法在组件里（改成 `<span aria-disabled>` 或 `<button disabled>`），不在本卡边界内。"
         ]
     },
     "tokens": {

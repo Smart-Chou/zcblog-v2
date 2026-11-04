@@ -64,8 +64,8 @@
         {
             "state": "disabled",
             "trigger": "—",
-            "visual": "不适用：容器没有禁用态"
-            ,"aria": "—"
+            "visual": "不适用：容器没有禁用态",
+            "aria": "—"
         },
         {
             "state": "loading",

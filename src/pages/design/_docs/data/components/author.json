@@ -6,6 +6,7 @@
     "layer": "ui",
     "spec": "src/components/UI/Author.astro（以实现为准 · M2-10a）",
     "source": "src/components/UI/Author.astro",
+    "styleSource": "src/styles/article.css",
     "purpose": "文章页与关于页底部的作者区：圆形头像、站点标题、一句话简介，以及两排图标链接（分类入口 + 社交）。数据全部来自 `src/config`，不接受 props。",
     "notFor": [
         "需要传作者数据的场景（多作者、协作者）→ 本组件写死读 `~/config`，无法参数化。",
@@ -97,7 +98,8 @@
         "notes": [
             "三个旧键（`color-title` / `color-text-muted` / `color-accent`）与 `font-heading` 在 tokens.json 里都不存在，所以这一块的颜色实际全是「继承正文」——看起来正常纯属巧合。",
             "样式不在组件里：`Author.astro` 末尾只有一行注释「样式已移到 src/styles/article.css（D-0085）」。所以组件在文章页之外（例如本文档示例区）是裸排版：头像圆角有（`article.css` 里的规则带 `.author` 前缀，但文档页没加载它）→ 实测示例区无圆角。",
-            "`categories` / `socialLinks` 的 URL 若以 `/` 开头，组件会自动加 `/en` 前缀（按当前路径判断）——这是全站唯一一处「组件自己猜语言」的逻辑。"
+            "`categories` / `socialLinks` 的 URL 若以 `/` 开头，组件会自动加 `/en` 前缀（按当前路径判断）——这是全站唯一一处「组件自己猜语言」的逻辑。",
+            "axe 在文档页对本组件报 1 条 `target-size`（9 个图标链接）：34px 的命中区来自 `src/styles/article.css` 的 `.author` 规则，而文档页不加载页面级 CSS → 这个环境里命中区就是图标本身（16px）。生产页面上 34px ≥ 24px（WCAG 2.2 AA 达标），属环境差异。这条已登记进 e2e 的 `DEMO_EXCEPTIONS`（数量精确，样式进组件后必须收紧）。"
         ]
     },
     "tokens": {

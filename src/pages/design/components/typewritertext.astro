@@ -6,9 +6,9 @@
  * 这是 12 个组件里唯一带 `<script>` 的：示例区因此会有 1 段内联脚本（属于组件，不属于
  * 文档版式）。首句随 HTML 到达，脚本只负责之后的循环（D-0087）。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import TypewriterText from "~/components/UI/TypewriterText.astro";
 
 const doc = byComponentSlug("typewritertext");
@@ -21,7 +21,11 @@ const doc = byComponentSlug("typewritertext");
     >
         <p>
             <TypewriterText
-                text={["写字、做东西、然后把过程写下来。", "先量再定，不许凭空写 0。", "把债写在卡上。"]}
+                text={[
+                    "写字、做东西、然后把过程写下来。",
+                    "先量再定，不许凭空写 0。",
+                    "把债写在卡上。",
+                ]}
                 speed={70}
                 deleteSpeed={35}
                 pauseTime={1600}

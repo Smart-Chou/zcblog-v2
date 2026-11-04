@@ -123,7 +123,7 @@
         "target": "0.75rem × 1.5rem 内边距 + 1 行文本 → 实测高度 ≥ 44px；命中区等于整块按钮。",
         "reducedMotion": "**未处理**：`translateY(-2px)` 在 `prefers-reduced-motion: reduce` 下仍然执行（债）。",
         "notes": [
-            "上面「契约值」两行是 tokens.json 里真有的两个颜色（`--color-fg-on-accent` / `--color-accent-solid`）算出来的；实现里的 `btn-primary-bg` / `btn-primary-color` 等覆盖变量在 tokens.json 里都不存在，所以实际渲染是「白字 + 透明底」——light 主题下几乎看不见。",
+            "上面「契约值」两行是 tokens.json 里真有的两个颜色（`--color-fg-on-accent` / `--color-accent-solid`）算出来的；实现里的 `btn-primary-bg` / `btn-primary-color` 等覆盖变量在 tokens.json 里都不存在，所以实际渲染是「白字 + 透明底」——light 主题下几乎看不见（axe 在本页报 1:1 的 color-contrast incomplete）。",
             "dark 主题的 18.58 不是因为好看，而是白字压深色画布的极端读数；它说明的是「颜色没生效」，不是「达标」。",
             "结论：这个组件在 light 主题下不可直接用，M2-10b 必须先把 `btn-*` 覆盖变量换成 `--color-accent-solid` / `--color-fg-on-accent`。"
         ]

@@ -76,25 +76,25 @@
         "contrast": [
             {
                 "pair": "tip 变体：字 hsl(210,50%,75%) / 底 hsla(210,50%,30%,.2) 压纸底",
-                "light": "1.32",
+                "light": "1.36",
                 "dark": "8.71",
                 "threshold": "债 · 未达 4.5"
             },
             {
-                "pair": "danger 变体：字 hsl(0,50%,70%) / 底 hsla(0,50%,30%,.2)",
-                "light": "1.73",
+                "pair": "danger 变体：字色取 hue 缺省 0（S 50% / L 70%），底为同 hue 的 L 30% + alpha .2",
+                "light": "1.81",
                 "dark": "6.65",
                 "threshold": "债 · 未达 4.5"
             },
             {
                 "pair": "success 变体：字 hsl(140,40%,65%) / 底 hsla(140,50%,30%,.2)",
-                "light": "1.40",
+                "light": "1.46",
                 "dark": "8.10",
                 "threshold": "债 · 未达 4.5"
             },
             {
                 "pair": "warning 变体：字 hsl(40,60%,70%) / 底 hsla(40,60%,30%,.2)",
-                "light": "1.24",
+                "light": "1.28",
                 "dark": "9.20",
                 "threshold": "债 · 未达 4.5"
             },
@@ -110,7 +110,7 @@
         "reducedMotion": "不适用：组件没有过渡与动画。",
         "notes": [
             "实测口径：半透明底先与页面底色合成再算比值（light 底取 `--color-bg-canvas` 的纸底，dark 取同键的暗值），色值由 `tokens.json` 的 palette 与组件里的 hsla 字面量解出，2 位小数。",
-            "四个彩色变体在 light 主题全部低于 4.5（1.24–1.73），dark 主题反而达标——这正是「写死色值、不跟主题」的后果。收敛方向是 §3.4.5 的 `--color-status-*` 三件套（bg / fg / border），归 M2-10b。",
+            "四个彩色变体在 light 主题全部低于 4.5（axe 在浏览器里实测 1.28–1.81），dark 主题反而达标——这正是「写死色值、不跟主题」的后果。收敛方向是 §3.4.5 的 `--color-status-*` 三件套（bg / fg / border），归 M2-10b。",
             "`default` / `note` 两个变体之所以「能过」，是因为它们的旧键（`bg-elevated` / `text-muted` / `accent`）在 tokens.json 里不存在，颜色声明整体失效、退回继承正文色——不是设计达标，是没生效。"
         ]
     },

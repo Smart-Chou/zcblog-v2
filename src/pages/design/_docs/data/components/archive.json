@@ -4,8 +4,9 @@
     "name": "Archive",
     "cn": "归档行",
     "layer": "ui",
-    "spec": "src/components/UI/Archive.astro（以实现为准 · M2-10a）",
+    "spec": "src/components/UI/Archive.astro + src/styles/pages/archives.css（以实现为准 · M2-10a）",
     "source": "src/components/UI/Archive.astro",
+    "styleSource": "src/styles/pages/archives.css",
     "purpose": "归档页的一行：左侧 `MM/DD` 日期（`<time datetime>`），右侧文章标题链接。组件本身只有六个标记，没有一行 CSS。",
     "notFor": [
         "文章列表卡（要摘要/封面）→ `ui-card` 或 `PostCardShell`。",
@@ -116,6 +117,12 @@
                 "light": "5.76",
                 "dark": "5.15",
                 "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "裸组件（页面 CSS 未加载，示例区卡片底 `--color-bg-surface`）的标题链接：UA 默认蓝",
+                "light": "9.40",
+                "dark": "1.81",
+                "threshold": "债 · dark 未达 4.5（环境差异）"
             }
         ],
         "focusRing": "**没有接入 G4**：组件与页面 CSS 都没有 `:focus-visible` 规则。",
@@ -124,7 +131,8 @@
         "notes": [
             "样式与组件分离是本组件的核心事实：`Archive.astro` 里没有任何 `<style>`，行为与外观分别属于「组件」和「archives.css 的 `.archives` 作用域」。所以离开归档页（例如本文档的示例区）它就是一个没有任何样式的 `<p>`。",
             "日期格式写死 `en-US` 的 `MM/DD`：中文页面里也是 `11/04`。要本地化必须改组件（归 M2-10b）——页面 CSS 只能改样式，改不了文案。",
-            "「日期对比度 4.41 / 4.24」是 `--color-fg-muted` 压 `--color-bg-canvas` 的实测值，低于 4.5：小字（`--text-xs`）没有 3:1 的大字豁免。"
+            "「日期对比度 4.64 / 5.14」是 `--color-fg-muted` 压 `--color-bg-canvas` 的实测值；hover 时行底变 `--color-bg-hover`，同一灰字掉到 4.41 / 4.24（债）。",
+            "示例区看起来像「一行蓝链接」不是 bug：`.archives .archive-title` 的 `--color-fg-default` 与 hover 色都在页面 CSS 里，文档页不加载它 → 标题退回浏览器默认链接色，在暗色卡片底上只有 1.81:1，axe 因此在本页 dark 主题报 4 条 color-contrast。生产页面上这条规则生效，读数回到 10.57:1。"
         ]
     },
     "tokens": {

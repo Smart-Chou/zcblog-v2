@@ -43,8 +43,8 @@
             "doc_url": "/design/atoms/link/",
             "doc_page": "src/pages/design/atoms/link.astro",
             "status": "documented",
-            "usage_count": 4,
-            "usage_tags": 15
+            "usage_count": 7,
+            "usage_tags": 21
         },
         {
             "slug": "tag",
@@ -56,8 +56,8 @@
             "doc_url": "/design/atoms/tag/",
             "doc_page": "src/pages/design/atoms/tag.astro",
             "status": "documented",
-            "usage_count": 3,
-            "usage_tags": 13
+            "usage_count": 7,
+            "usage_tags": 17
         },
         {
             "slug": "input",
@@ -82,8 +82,8 @@
             "doc_url": "/design/atoms/card/",
             "doc_page": "src/pages/design/atoms/card.astro",
             "status": "documented",
-            "usage_count": 6,
-            "usage_tags": 15
+            "usage_count": 9,
+            "usage_tags": 22
         },
         {
             "slug": "icon",
@@ -95,8 +95,8 @@
             "doc_url": "/design/atoms/icon/",
             "doc_page": "src/pages/design/atoms/icon.astro",
             "status": "documented",
-            "usage_count": 16,
-            "usage_tags": 40
+            "usage_count": 39,
+            "usage_tags": 106
         },
         {
             "slug": "avatar",
@@ -160,8 +160,8 @@
             "doc_url": "/design/atoms/alert/",
             "doc_page": "src/pages/design/atoms/alert.astro",
             "status": "documented",
-            "usage_count": 2,
-            "usage_tags": 10
+            "usage_count": 12,
+            "usage_tags": 22
         },
         {
             "slug": "skeleton",
@@ -185,8 +185,8 @@
             "doc_url": "/design/components/archive/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 3
         },
         {
             "slug": "author",
@@ -197,8 +197,8 @@
             "doc_url": "/design/components/author/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 9,
-            "usage_tags": 9
+            "usage_count": 10,
+            "usage_tags": 10
         },
         {
             "slug": "badge",
@@ -210,7 +210,7 @@
             "doc_page": null,
             "status": "pending",
             "usage_count": 2,
-            "usage_tags": 3
+            "usage_tags": 5
         },
         {
             "slug": "ui-button",
@@ -221,8 +221,8 @@
             "doc_url": "/design/components/ui-button/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 2
+            "usage_count": 2,
+            "usage_tags": 5
         },
         {
             "slug": "ui-card",
@@ -234,7 +234,7 @@
             "doc_page": null,
             "status": "pending",
             "usage_count": 3,
-            "usage_tags": 3
+            "usage_tags": 5
         },
         {
             "slug": "cardgrid",
@@ -245,8 +245,8 @@
             "doc_url": "/design/components/cardgrid/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "donate",
@@ -269,8 +269,8 @@
             "doc_url": "/design/components/donatorslist/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "emptystate",
@@ -281,8 +281,8 @@
             "doc_url": "/design/components/emptystate/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "essayitem",
@@ -317,8 +317,8 @@
             "doc_url": "/design/components/friendpill/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 5
         },
         {
             "slug": "heatmap",
@@ -365,8 +365,8 @@
             "doc_url": "/design/components/pageheader/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "ui-pagination",
@@ -377,8 +377,8 @@
             "doc_url": "/design/components/ui-pagination/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "qrcard",
@@ -389,8 +389,8 @@
             "doc_url": "/design/components/qrcard/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 3
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "search",
@@ -425,8 +425,8 @@
             "doc_url": "/design/components/typewritertext/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "walinecomment",
@@ -437,8 +437,8 @@
             "doc_url": "/design/components/walinecomment/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 3,
-            "usage_tags": 3
+            "usage_count": 4,
+            "usage_tags": 4
         },
         {
             "slug": "watermark",
@@ -474,8 +474,8 @@
             "doc_url": null,
             "doc_page": null,
             "status": "debt",
-            "usage_count": 2,
-            "usage_tags": 2
+            "usage_count": 0,
+            "usage_tags": 0
         },
         {
             "slug": "archivescontent",

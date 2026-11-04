@@ -7,15 +7,19 @@
  * 作用域里（页面级样式）。所以示例区看到的是「裸组件」——这正是文档要说明的事实，
  * 而不是缺样式。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import Archive from "~/components/UI/Archive.astro";
 
 const doc = byComponentSlug("archive");
 
 const ROWS = [
-    { title: "把设计 token 从 84 条字面量收回到语义层", url: "/blog/", publishedTime: "2026-11-02" },
+    {
+        title: "把设计 token 从 84 条字面量收回到语义层",
+        url: "/blog/",
+        publishedTime: "2026-11-02",
+    },
     { title: "M2 拆解：12 张卡与它们的文件边界", url: "/blog/", publishedTime: "2026-11-04" },
     { title: "站内搜索换成 Pagefind 之后的第一次体检", url: "/blog/", publishedTime: "2026-10-28" },
 ];

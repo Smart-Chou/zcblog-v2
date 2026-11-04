@@ -4,9 +4,9 @@
  * 数据：src/pages/design/_docs/data/components/ui-button.json
  * 示例链接指到站内真实路由（/donate/ 与 /blog/），保证是可点路径而不是死链。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import Button from "~/components/UI/Button.astro";
 
 const doc = byComponentSlug("ui-button");
@@ -20,10 +20,7 @@ const doc = byComponentSlug("ui-button");
         <Button href="/donate/" variant="primary">请我喝杯咖啡</Button>
     </DemoFrame>
 
-    <DemoFrame
-        layout="row"
-        caption="secondary：描边 + accent 字（两个旧键同样缺失 → 描边不可见）"
-    >
+    <DemoFrame layout="row" caption="secondary：描边 + accent 字（两个旧键同样缺失 → 描边不可见）">
         <Button href="/blog/" variant="secondary">看全部文章</Button>
     </DemoFrame>
 

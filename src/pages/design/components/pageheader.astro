@@ -6,9 +6,9 @@
  * 第二个示例故意把已经坏掉的图标框摆出来：底色取旧键 `color-accent`（缺失 → 透明），
  * 字色写死白色，所以深色描边图标在纸底上几乎看不见。文档不替它遮。
  */
-import ComponentDoc from "../../_docs/ComponentDoc.astro";
-import DemoFrame from "../../_docs/DemoFrame.astro";
-import { byComponentSlug } from "../../_docs/components";
+import ComponentDoc from "../_docs/ComponentDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { byComponentSlug } from "../_docs/components";
 import PageHeader from "~/components/UI/PageHeader.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
 
@@ -20,7 +20,10 @@ const doc = byComponentSlug("pageheader");
         <PageHeader title="归档" subtitle="按年份收起的全部文章，共 3 篇。" />
     </DemoFrame>
 
-    <DemoFrame layout="stack" caption="带 buildTime：正文色 + opacity .6，light 主题实测 3.12:1（债）">
+    <DemoFrame
+        layout="stack"
+        caption="带 buildTime：正文色 + opacity .6，light 主题实测 3.12:1（债）"
+    >
         <PageHeader
             title="豆瓣"
             subtitle="读过的书、看过的电影、听过的唱片。"
