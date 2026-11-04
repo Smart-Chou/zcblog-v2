@@ -55,6 +55,23 @@ jobs:
                   node scripts/gates/verify-component-inventory.mjs
                   node scripts/gates/verify-doc-drift.mjs
 
+            # M1-2：token 契约（G-T1…G-S6，生成物逐字节比对）。源码级，不读 dist。
+            - name: Token contract gates (§3.12)
+              run: node scripts/gates/check-tokens.mjs
+
+            # M2-1：P5 表面 token 棘轮（页面新增 = 0 / 组件只减不增）。源码级。
+            - name: Surface token ratchet (P5)
+              run: node scripts/gates/verify-surface-tokens.mjs
+
+            # M2-7a：C 层实体契约（E1–E8）。依赖 src/types/entities.ts 的 ESM 转译，不读 dist；
+            # dropped > 0 即 FAIL（运行时宽容、CI 严格，同一份校验器）。
+            # --json 会在最后一行打 SUMMARY {...}，转进 step summary 便于归档指标。
+            - name: Entity contract gates (E1–E8)
+              run: |
+                  set -o pipefail
+                  node scripts/gates/verify-entities.mjs --json | tee "$RUNNER_TEMP/entities-gate.json"
+                  grep '^SUMMARY ' "$RUNNER_TEMP/entities-gate.json" >> "$GITHUB_STEP_SUMMARY" || true
+
     # ---- 视觉门禁：/design/atoms 72 张像素基线（Linux）----
     # 与 test/gates 平行跑。三条硬约束：
     #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），

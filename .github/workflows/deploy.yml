@@ -70,6 +70,20 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            # ---- 源码级门禁：build 之前跑（不读 dist，失败即中断部署）----
+            # 与 ci.yml test job 同三条命令；deploy 是手动触发，等于发版前再兜一次。
+            - name: Token contract gates (§3.12)
+              run: node scripts/gates/check-tokens.mjs
+
+            - name: Surface token ratchet (P5)
+              run: node scripts/gates/verify-surface-tokens.mjs
+
+            - name: Entity contract gates (E1–E8)
+              run: |
+                  set -o pipefail
+                  node scripts/gates/verify-entities.mjs --json | tee "$RUNNER_TEMP/entities-gate.json"
+                  grep '^SUMMARY ' "$RUNNER_TEMP/entities-gate.json" >> "$GITHUB_STEP_SUMMARY" || true
+
             - name: Build
               env:
                   CI: true
