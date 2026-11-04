@@ -1,0 +1,120 @@
+name: Perf
+
+# P6 / A6：dist 层性能预算门禁（列表 / 文章 / 页面 的 HTML + JS + CSS）。
+#
+# 为什么单独成 workflow（而不是只塞进 ci.yml 的 gates job）：
+#  1. 归因：红灯必须是「预算超支」，不能和 lint / 视觉基线 / 内容缺失混在一个 run 的结论里；
+#  2. 可复现的负向验证：workflow_dispatch 的 budget_scale 输入把阈值整体缩放
+#     （0.95 必然超支 → 红灯），不需要改源码、不需要临时改预算表；
+#  3. 与本地同一条命令：`python3 scripts/gates/perf-budget.py dist`。
+#
+# ci.yml 的 gates job 里仍保留同一条命令（已有 dist，零额外成本），作为第二道保险；
+# 两处阈值都来自 scripts/gates/perf-budget.py 的 BUDGET，不存在第二份真值。
+#
+# 不做：LCP / CLS / TBT。那套是 D-0077 的机房口径（hostdzire + Lighthouse 12 移动预设 +
+# 3 次中位数），GitHub runner 的数值与它不可比，详见 docs/_reviews/M2-12/perf.md。
+
+on:
+    push:
+        branches: [main, theme]
+    pull_request:
+        branches: [main, theme]
+    workflow_dispatch:
+        inputs:
+            budget_scale:
+                description: "阈值缩放（负向验证用，例 0.95 必红；留空 = 1.0 真实门禁）"
+                required: false
+                default: ""
+
+concurrency:
+    group: perf-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    budget:
+        name: perf budget (dist)
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+
+        steps:
+            - name: Checkout zcblog
+              uses: actions/checkout@v5
+
+            # 文章页/列表页的预算只有带真实内容才有意义；内容仓缺失时 article 页会归零，
+            # 门禁变成「什么都没测」。所以和 ci.yml gates job 用同一套内容准备步骤。
+            - name: Checkout articles (private)
+              uses: actions/checkout@v5
+              with:
+                  repository: Smart-Chou/zcblog-articles
+                  path: _articles
+                  token: ${{ secrets.ARTICLES_PAT }}
+
+            - name: Copy articles and images
+              run: |
+                  mkdir -p src/content/article src/assets
+                  cp _articles/*.md src/content/article/ 2>/dev/null || true
+                  cp _articles/*.mdx src/content/article/ 2>/dev/null || true
+                  cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  echo "📄 $(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l) 篇文章"
+                  echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
+
+            - name: Normalize frontmatter (v1 布尔键 → v2 features)
+              run: node scripts/normalize-frontmatter.mjs src/content/article
+
+            - name: Install system dependencies
+              run: sudo apt-get update && sudo apt-get install -y libvips-dev
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # 与 ci.yml gates job 同一套 env：perf 量的是「线上会发出去的那份 dist」。
+            - name: Build
+              env:
+                  CI: true
+                  ARTICLE_REPO_PATH: _articles
+                  BLINKO_API_URL: https://memos.marxchou.com
+                  BLINKO_API_TOKEN: ${{ secrets.BLINKO_API_TOKEN }}
+                  UMAMI_API_URL: https://umami.marxchou.com
+                  UMAMI_WEBSITE_ID: 73b29141-fccf-4d54-9c2f-f7d0d146f86b
+                  UMAMI_USERNAME: ${{ secrets.UMAMI_USERNAME }}
+                  UMAMI_PASSWORD: ${{ secrets.UMAMI_PASSWORD }}
+                  UMAMI_SHARE_SLUG: EIlCDPZqKiANCpuO
+                  BANGUMI_USER_ID: "1246668"
+                  DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
+                  ENCRYPTION_PASSWORD: ${{ secrets.ENCRYPTION_PASSWORD }}
+                  FOREVERBLOG_RSS_URL: ${{ secrets.FOREVERBLOG_RSS_URL }}
+                  BUILD_CONCURRENCY: 1
+              run: pnpm run build
+
+            # 阈值只有一个来源：scripts/gates/perf-budget.py 的 BUDGET（棘轮只许往下）。
+            # PERF_BUDGET_SCALE 留空 = 1.0；dispatch 输入或仓库变量都可以把它按比例压下来，
+            # 用来证明「超预算确实会红」。--summary 把 p95 表写进 job summary。
+            - name: Performance budget (A6) · list/article/page
+              env:
+                  PERF_BUDGET_SCALE: ${{ inputs.budget_scale || vars.PERF_BUDGET_SCALE }}
+              run: |
+                  set -o pipefail
+                  python3 scripts/gates/perf-budget.py dist \
+                    --json "$RUNNER_TEMP/perf-budget.json" \
+                    --summary "$GITHUB_STEP_SUMMARY" | tee "$RUNNER_TEMP/perf-budget.log"
+                  grep '^SUMMARY ' "$RUNNER_TEMP/perf-budget.log" >> "$GITHUB_STEP_SUMMARY" || true
+
+            - name: Upload perf report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: perf-budget
+                  path: |
+                      ${{ runner.temp }}/perf-budget.json
+                      ${{ runner.temp }}/perf-budget.log
+                  retention-days: 14
+                  if-no-files-found: ignore

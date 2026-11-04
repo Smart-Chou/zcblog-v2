@@ -245,5 +245,26 @@ jobs:
                   python3 scripts/gates/check-legacy-keys.py src/content/article
                   python3 scripts/gates/check-relative-assets.py src/content/article --verify . --expect 22
 
-            - name: Performance budget (A6)
-              run: python3 scripts/gates/perf-budget.py dist
+            # P6 / A6 性能预算（列表 / 文章 / 页面）。阈值只有一个来源：
+            # scripts/gates/perf-budget.py 的 BUDGET（棘轮只许往下）。
+            # 可归因的红灯 / 负向验证在独立 workflow `.github/workflows/perf.yml`；
+            # 这里复用刚建好的 dist 再跑一遍，零额外构建成本，当第二道保险。
+            - name: Performance budget (A6) · list/article/page
+              env:
+                  PERF_BUDGET_SCALE: ${{ vars.PERF_BUDGET_SCALE }}
+              run: |
+                  set -o pipefail
+                  python3 scripts/gates/perf-budget.py dist \
+                    --json "$RUNNER_TEMP/perf-budget.json" \
+                    --summary "$GITHUB_STEP_SUMMARY" | tee "$RUNNER_TEMP/perf-budget.log"
+
+            - name: Upload perf report
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: perf-budget
+                  path: |
+                      ${{ runner.temp }}/perf-budget.json
+                      ${{ runner.temp }}/perf-budget.log
+                  retention-days: 7
+                  if-no-files-found: ignore
