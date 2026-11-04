@@ -63,12 +63,16 @@ const hasData = tabs.length > 0;
         ) : (
             <>
                 <div class="tab-nav">
-                    <nav class="tab-buttons">
+                    <nav class="tab-buttons" role="tablist">
                         {tabs.map((tab) => (
                             <button
                                 class:list={["tab-btn", { active: tab.id === tabs[0].id }]}
                                 data-tab={tab.id}
+                                id={`tab-${tab.id}`}
                                 type="button"
+                                role="tab"
+                                aria-selected={tab.id === tabs[0].id}
+                                aria-controls={`panel-${tab.id}`}
                             >
                                 {tab.name}
                                 <span class="count">({tab.items.length})</span>
@@ -81,6 +85,9 @@ const hasData = tabs.length > 0;
                     <div
                         class:list={["tab-section", { hidden: tab.id !== tabs[0].id }]}
                         data-section={tab.id}
+                        id={`panel-${tab.id}`}
+                        role="tabpanel"
+                        aria-labelledby={`tab-${tab.id}`}
                     >
                         <div class="douban-grid">
                             {tab.items.map((item) => (

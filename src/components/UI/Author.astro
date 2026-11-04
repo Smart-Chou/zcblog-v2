@@ -66,3 +66,17 @@ const authorBio = bioParts[1] ? `${bioParts[1]}。` : site.subtitle;
 </div>
 
 <!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
+
+<style>
+    /* 命中区下限（WCAG 2.2 2.5.8 / axe target-size ≥ 24px）。
+       Author 的观感样式在全局 article.css，但 /design/components/* 的文档页不加载那张表，
+       示例区的图标链接会退化成 14×17 的裸 <a>（axe serious）。这里只兜尺寸，并且用 :where()
+       把优先级压到 0 —— 加载了 article.css 的页面仍用它的 34px，两处取值不打架。 */
+    :where(.author-links a) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        min-height: 24px;
+    }
+</style>

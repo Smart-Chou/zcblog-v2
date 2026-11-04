@@ -49,7 +49,13 @@ const filters = [
 ].filter((f) => f.value === "all" || f.count > 0);
 ---
 
-<div class:list={["bangumi-section", { hidden: !isActive }]} data-section={sectionId}>
+<div
+    class:list={["bangumi-section", { hidden: !isActive }]}
+    data-section={sectionId}
+    id={`panel-${sectionId}`}
+    role="tabpanel"
+    aria-labelledby={`tab-${sectionId}`}
+>
     {
         items.length > 0 ? (
             <>

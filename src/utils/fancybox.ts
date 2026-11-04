@@ -22,6 +22,30 @@ function ensureFancyboxCss(): void {
 }
 
 /**
+ * 灯箱入口的可访问名（M2-13b）
+ * 正文图 alt 多数为空（装饰性），包上 <a> 之后链接就没有任何可读文本（axe link-name）。
+ * 图有 alt 时用 alt；没有时用「查看大图」类的说明，按 <html lang> 取对应文案。
+ */
+const VIEW_IMAGE_LABEL: Record<string, string> = {
+    "zh-cn": "查看大图",
+    zh: "查看大图",
+    "zh-tw": "檢視大圖",
+    en: "View full-size image",
+    ja: "拡大表示",
+    ko: "원본 크기로 보기",
+    de: "Bild in voller Größe anzeigen",
+    fr: "Afficher l'image en taille réelle",
+    es: "Ver imagen a tamaño completo",
+    "pt-br": "Ver imagem em tamanho real",
+    ru: "Открыть изображение в полном размере",
+};
+
+function viewImageLabel(): string {
+    const lang = (typeof document !== "undefined" ? document.documentElement.lang : "") ?? "";
+    return VIEW_IMAGE_LABEL[lang.toLowerCase()] ?? VIEW_IMAGE_LABEL.en;
+}
+
+/**
  * 检测当前是否为生产环境
  */
 function isProduction(): boolean {
@@ -145,6 +169,8 @@ async function initDynamicFancybox(
             link.setAttribute("data-caption", img.alt || "");
             if (options.articleMode) {
                 link.classList.add("img-link");
+                // 链接的可访问名（axe link-name）：alt 为空时给一句「查看大图」，alt 有时直接用 alt
+                link.setAttribute("aria-label", img.alt?.trim() || viewImageLabel());
             } else {
                 link.style.display = "contents";
             }

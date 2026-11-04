@@ -35,7 +35,9 @@ const umamiViews =
 
 <footer class="footer" role="contentinfo">
     <!-- Stats bar — custom crafted, no external images -->
-    <div class="footer-stats" aria-label="站点统计">
+    <!-- role="group"：aria-label 挂在无 role 的 div 上不受支持（axe 记 incomplete，全站 546 页），
+         group 是最贴近「一组统计入口」的容器角色，不改变布局与读屏顺序。 -->
+    <div class="footer-stats" role="group" aria-label="站点统计">
         {
             stats.map((stat) => (
                 <a href={stat.url} class="stat-item">

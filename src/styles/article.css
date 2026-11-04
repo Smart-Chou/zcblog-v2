@@ -213,17 +213,28 @@
     bottom: calc(100% + 12px);
     transform: translateX(-50%) translateY(4px);
     opacity: 0;
+    /* 关闭态必须真的「不可聚焦」：浮层里有一个 .share-close 按钮，opacity:0 + pointer-events:none
+       仍然会进 Tab 序（axe aria-hidden-focus serious，85 篇文章页）。visibility:hidden 会把整棵
+       子树移出 Tab 序与读屏树；visibility 是离散属性，用 `0s linear <duration>` 延迟到淡出走完
+       再生效，动画观感不变。打开态见下一条规则（visibility:visible + 零延迟）。 */
+    visibility: hidden;
     pointer-events: none;
     transition:
         opacity var(--duration-fast) ease,
-        transform var(--duration-fast) ease;
+        transform var(--duration-fast) ease,
+        visibility 0s linear var(--duration-fast);
     z-index: 50;
 }
 
 .share-wechat-wrap.open .share-pop {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
     transform: translateX(-50%) translateY(0);
+    transition:
+        opacity var(--duration-fast) ease,
+        transform var(--duration-fast) ease,
+        visibility 0s linear 0s;
 }
 
 .share-card {

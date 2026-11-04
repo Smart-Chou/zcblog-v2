@@ -83,8 +83,12 @@ const { page, blogPath = "/blog" } = Astro.props;
 </style>
 
 <nav id="pagination" aria-label="Pagination Navigation">
+    <!-- 禁用态没有 href（Astro 省略 undefined 属性）→ <a> 落成 generic，aria-label / aria-disabled
+         都会被忽略（axe aria-prohibited-attr，19 个分页页）。role="link" 让两者都合法；
+         有 href 时显式 role="link" 与该元素本来隐含的角色一致，不改变任何行为。 -->
     <a
         href={page.url.prev}
+        role="link"
         aria-label="Previous"
         aria-disabled={!page.url.prev}
         class:list={[page.url.prev ? "" : "disabled", "square-class"]}
@@ -131,6 +135,7 @@ const { page, blogPath = "/blog" } = Astro.props;
     }
     <a
         href={page.url.next}
+        role="link"
         aria-label="Next"
         aria-disabled={!page.url.next}
         class:list={[page.url.next ? "" : "disabled", "square-class"]}

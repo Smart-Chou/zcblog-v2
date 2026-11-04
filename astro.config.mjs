@@ -18,6 +18,7 @@ import { remarkAsides } from "./src/remark-plugin/remark-asides.ts";
 import { remarkImageGrid } from "./src/remark-plugin/remark-image-grid.ts";
 import { remarkGithubCard } from "./src/remark-plugin/remark-github-card.ts";
 import { GithubCardComponent } from "./src/rehype-plugin/rehype-github-card.ts";
+import { rehypeTaskListA11y } from "./src/rehype-plugin/rehype-task-list-a11y.ts";
 import { remarkTabs } from "./src/remark-plugin/remark-tabs.ts";
 import { remarkAlign } from "./src/remark-plugin/remark-align.ts";
 import { remarkInclude } from "./src/remark-plugin/remark-include.ts";
@@ -252,6 +253,7 @@ export default defineConfig({
                 rehypeSlug, // 标题添加ID
                 [rehypeAutolinkHeadings, { behavior: "append" }], // 标题添加锚点
                 [rehypeComponents, { components: { github: GithubCardComponent } }],
+                rehypeTaskListA11y, // 任务列表 checkbox 补 aria-label（M2-13b）
                 rehypeEncrypted,
             ],
         }),
