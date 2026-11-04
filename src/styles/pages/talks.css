@@ -1,0 +1,354 @@
+/* ============================================================
+   P-06 · 随笔（M2-6b）
+   ------------------------------------------------------------
+   版式：编辑式页头（mono kicker + 衬线标题 + accent 短尺）
+        → 日期轨道 + 卡片时间线 → 话题标签云。
+   约束：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl()。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 全部规则收在 `.talks` 作用域内（另加两条 :has() 收口页面宽度）。
+   - 空态与错误态是页面状态，不是异常：两者都保留页头与评论区。
+   ============================================================ */
+
+/* 默认 .content 是文章正文宽度；随笔页要 1200 的外框 + 更窄的阅读轨道。
+   `.main` 带 margin-inline:auto（auto 外边距吃掉 stretch），宽度会退成 fit-content，
+   页面卡必须显式撑满，否则 1440 下只有 849px。 */
+.main:has(> .content > .talks) {
+    width: 100%;
+}
+
+.main > .content:has(> .talks) {
+    max-width: var(--layout-content);
+}
+
+.talks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    padding-block: var(--space-6) var(--space-16);
+}
+
+/* 列向 flex 的子项默认 min-width:auto，长正文/长 URL 会把整页撑宽 */
+.talks > * {
+    min-inline-size: 0;
+}
+
+/* ── 页头 ─────────────────────────────────────────────────── */
+
+.talks-hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-block-end: var(--space-6);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.talks-kicker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.talks-kicker::before {
+    content: "";
+    inline-size: var(--space-8);
+    block-size: 1px;
+    background-color: var(--color-accent-solid);
+}
+
+.talks-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: var(--font-weight-semibold);
+    font-size: clamp(var(--text-3xl), 4.5vw, var(--text-4xl));
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.talks-lede {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+.talks-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block-start: var(--space-2);
+}
+
+.talks-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    /* 12px 小字压在 --color-bg-muted 上：--color-fg-muted 实测 4.17/4.34，不到 4.5 →
+       用默认前景色，层级交给字号与字重。 */
+    color: var(--color-fg-default);
+    white-space: nowrap;
+}
+
+.talks-chip--quiet {
+    background-color: transparent;
+    border-style: dashed;
+}
+
+.talks-source {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-link);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .talks-source:hover {
+        color: var(--color-fg-link-hover);
+        text-decoration: underline;
+        text-underline-offset: var(--space-1);
+    }
+}
+
+.talks-source:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ── 区块外壳 ─────────────────────────────────────────────── */
+
+.talks-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    min-inline-size: 0;
+}
+
+.talks-section__head {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-block-end: var(--space-3);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.talks-section__head::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-end: -1px;
+    inline-size: var(--space-10);
+    block-size: 1px;
+    background-color: var(--color-accent-solid);
+}
+
+.talks-section__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.talks-section__meta {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+/* ── 时间线 ───────────────────────────────────────────────── */
+
+.talks-track {
+    position: relative;
+    margin-inline: auto;
+    max-inline-size: 56rem;
+    inline-size: 100%;
+}
+
+.talks-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* 日期轨道：一条 1px 竖线落在日期列右缘（列间沟槽里，不压任何文字）。
+   用真实元素而不是伪元素：axe 遇到绝对定位伪元素会判定「背景色无法确定」，
+   整条时间线的对比度检查都会降级成 incomplete。 */
+.talks-rail {
+    position: absolute;
+    inset-block: var(--space-2);
+    inset-inline-start: 8rem;
+    inline-size: 1px;
+    background-color: var(--color-border-subtle);
+}
+
+.talks-entry {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-6);
+    min-inline-size: 0;
+}
+
+.talks-entry__day {
+    margin: 0;
+    padding-block-start: var(--space-5);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+}
+
+.talks-entry > :global(.essay-card) {
+    min-inline-size: 0;
+}
+
+/* ── 话题云 ───────────────────────────────────────────────── */
+
+.talks-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.talks-topic {
+    display: inline-flex;
+}
+
+.talks-topic__count {
+    margin-inline-start: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    /* Tag 的底色是 --color-bg-muted：小字用 fg-muted 只有 4.17 < 4.5，走默认前景色 */
+    color: var(--color-fg-default);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 空态 / 错误态 ────────────────────────────────────────── */
+
+.talks-state {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-6);
+    border: 1px dashed var(--color-border-default);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-sunken);
+}
+
+.talks-state--empty {
+    align-items: center;
+    text-align: center;
+    padding-block: var(--space-12);
+}
+
+.talks-state__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-12);
+    block-size: var(--space-12);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-fg-muted);
+}
+
+.talks-state__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-heading);
+}
+
+.talks-state__text {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.talks-state__hint {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    /* 状态块底色是 --color-bg-sunken：fg-muted 在它上面 4.3 左右，不到 4.5 */
+    color: var(--color-fg-default);
+}
+
+/* ── 响应式 ───────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .talks-timeline {
+        gap: var(--space-5);
+    }
+
+    .talks-rail {
+        display: none;
+    }
+
+    .talks-entry {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+    }
+
+    .talks-entry__day {
+        padding-block-start: 0;
+        text-align: start;
+    }
+}
+
+@media (max-width: 450px) {
+    .talks {
+        gap: var(--space-8);
+    }
+
+    .talks-state {
+        padding: var(--space-4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .talks-source {
+        transition: none;
+    }
+}

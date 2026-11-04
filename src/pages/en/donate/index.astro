@@ -1,5 +1,27 @@
 ---
+/**
+ * P-07 赞赏（英文路由）
+ * 同一个 adapter、同一份账本与收款方式注入；只有文案随 locale 变（M2-6b）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/donate.css";
+import type { ImageMetadata } from "astro";
+import { donate } from "~/config";
+import { donatePage } from "~/config/ui";
+import { loadSiteDonate } from "~/data/adapters/donate";
 import DonateContent from "~/components/Pages/DonateContent.astro";
+
+const qrModules = import.meta.glob<{ default: ImageMetadata }>("~/assets/qr/*", { eager: true });
+const qr: Record<string, ImageMetadata> = {};
+for (const [key, module] of Object.entries(qrModules)) {
+    const name = key.split("/").pop();
+    if (name) qr[name] = module.default;
+}
+
+const feed = loadSiteDonate(donatePage.dataFile, {
+    accounts: donatePage.accounts,
+    enabled: donate.enable,
+});
 ---
 
-<DonateContent locale="en" />
+<DonateContent locale="en" feed={feed} qr={qr} />

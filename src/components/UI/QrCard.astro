@@ -1,86 +1,174 @@
 ---
+/**
+ * QrCard —— 一种收款方式（P-07 · M2-6b）
+ *
+ * 契约（本卡的核心判据）：
+ * - **没有 image 就不渲染 <figure>/<img>**：adapter 已经把「空串二维码」丢掉了，
+ *   组件这层再兜一次，保证产物里不存在 `src=""` 的空图。
+ * - link 型（PayPal）渲染成外链按钮；qr 型可以同时带 link（无图时仍可跳转）。
+ * - 账号文本与说明都是「有才渲染」，不会留下空的 <p>。
+ */
 import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
-import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 
 interface Props {
-    qrImage: ImageMetadata;
-    alt: string;
+    /** 由页面解析好的二维码资源；null/缺省 = 这个方式没有码图。 */
+    image?: ImageMetadata | null;
+    /** 二维码的可读名称（扫码方式的 alt，必须描述用途）。 */
+    alt?: string;
     platformName: string;
-    iconName: string;
-    paypalUrl?: string;
+    iconName?: string;
+    /** 跳转目标（http(s)，页面已校验） */
+    href?: string;
+    /** 链接按钮的可读名称（缺省用 platformName） */
+    actionLabel?: string;
+    account?: string;
+    note?: string;
 }
 
-const { qrImage, alt, platformName, iconName, paypalUrl } = Astro.props;
+const { image, alt, platformName, iconName, href, actionLabel, account, note } = Astro.props;
 ---
 
-<div class="donate-method">
-    <div class="qr-code">
-        <Image src={qrImage} alt={alt} width={160} height={160} loading="lazy" decoding="async" />
-        <div class="qr-info">
-            {
-                paypalUrl ? (
-                    <a
-                        href={paypalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="paypal-btn"
-                    >
-                        <DynamicIcon name={iconName} class="pay-icon" />
-                        <span class="pay-name">{platformName}</span>
-                    </a>
-                ) : (
-                    <>
-                        <DynamicIcon name={iconName} class="pay-icon" />
-                        <span class="pay-name">{platformName}</span>
-                    </>
-                )
-            }
-        </div>
+<li class="qr-card" data-account>
+    {
+        image ? (
+            <div class="qr-card__frame">
+                <Image
+                    src={image}
+                    alt={alt ?? platformName}
+                    width={200}
+                    height={200}
+                    class="qr-card__image"
+                    loading="lazy"
+                    decoding="async"
+                />
+            </div>
+        ) : (
+            <span class="qr-card__icon-alone" aria-hidden="true">
+                {iconName && <Icon name={iconName} size="lg" />}
+            </span>
+        )
+    }
+
+    <div class="qr-card__body">
+        <p class="qr-card__name">
+            {iconName && image && <Icon name={iconName} size="xs" />}
+            <span>{platformName}</span>
+        </p>
+        {account && <p class="qr-card__account">{account}</p>}
+        {note && <p class="qr-card__note">{note}</p>}
+        {
+            href && (
+                <a class="qr-card__action" href={href} target="_blank" rel="noopener noreferrer">
+                    {actionLabel ?? platformName}
+                    <Icon name="tabler:arrow-up-right" size="xs" />
+                </a>
+            )
+        }
     </div>
-</div>
+</li>
 
 <style>
-    .donate-method {
+    .qr-card {
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: var(--space-4);
+        box-sizing: border-box;
+        padding: var(--space-5);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-surface);
+        text-align: center;
     }
 
-    .qr-code {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .qr-code img {
-        width: 160px;
-        height: 160px;
-        object-fit: contain;
-        border-radius: 8px;
-    }
-
-    .qr-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .qr-info :global(.pay-icon) {
-        font-size: 1.2rem;
-    }
-
-    .pay-name {
-        font-weight: 500;
-    }
-
-    .paypal-btn {
+    .qr-card__frame {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
+        padding: var(--space-3);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
+        background-color: var(--color-bg-sunken);
+    }
+
+    .qr-card__image {
+        inline-size: 10rem;
+        block-size: auto;
+        aspect-ratio: 1;
+        object-fit: contain;
+        border-radius: var(--radius-sm);
+    }
+
+    .qr-card__icon-alone {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 10rem;
+        block-size: 10rem;
+        border: 1px dashed var(--color-border-default);
+        border-radius: var(--radius-md);
+        color: var(--color-fg-muted);
+    }
+
+    .qr-card__body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1);
+        min-inline-size: 0;
+    }
+
+    .qr-card__name {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin: 0;
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-fg-heading);
+    }
+
+    .qr-card__account {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        color: var(--color-fg-default);
+        overflow-wrap: anywhere;
+    }
+
+    .qr-card__note {
+        margin: 0;
+        font-size: var(--text-sm);
+        line-height: var(--leading-snug);
+        color: var(--color-fg-muted);
+        max-inline-size: 18rem;
+    }
+
+    .qr-card__action {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        margin-block-start: var(--space-1);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-fg-link);
         text-decoration: none;
-        color: inherit;
+        border-radius: var(--radius-sm);
+    }
+
+    @media (hover: hover) {
+        .qr-card__action:hover {
+            color: var(--color-fg-link-hover);
+            text-decoration: underline;
+            text-underline-offset: var(--space-1);
+        }
+    }
+
+    .qr-card__action:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
     }
 </style>

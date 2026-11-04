@@ -7,11 +7,11 @@
     },
     "frozen_total": 84,
     "totals": {
-        "files": 17,
-        "literals": 61,
-        "hex6": 22,
-        "hex3": 9,
-        "color_function": 30
+        "files": 14,
+        "literals": 47,
+        "hex6": 19,
+        "hex3": 8,
+        "color_function": 20
     },
     "components": {
         "src/components/Bangumi/Card.astro": [
@@ -31,11 +31,6 @@
         ],
         "src/components/Icons/index.ts": ["#229ed9", "#2aabee", "#55acee", "#fff"],
         "src/components/Layout/ToggleTheme.astro": ["#3b82f6", "#f59e0b"],
-        "src/components/Pages/DonateContent.astro": [
-            "#e74c3c",
-            "#f2a19a",
-            "rgba(255,255,255,0.65)"
-        ],
         "src/components/UI/Badge.astro": [
             "hsl(140,40%,65%)",
             "hsl(210,50%,75%)",
@@ -49,19 +44,6 @@
         "src/components/UI/Button.astro": ["#fff", "#fff", "rgba(0,0,0,0.15)"],
         "src/components/UI/Card.astro": ["#f0f0f0", "rgba(0,0,0,0.8)"],
         "src/components/UI/CardGrid.astro": ["#ffd700", "rgba(0,0,0,0.6)"],
-        "src/components/UI/DonatorsList.astro": [
-            "#f2a19a",
-            "rgba(0,0,0,0.08)",
-            "rgba(0,0,0,0.08)",
-            "rgba(0,0,0,0.6)",
-            "rgba(255,255,255,0.03)",
-            "rgba(255,255,255,0.05)",
-            "rgba(255,255,255,0.06)",
-            "rgba(255,255,255,0.12)",
-            "rgba(255,255,255,0.65)",
-            "rgba(255,255,255,0.92)"
-        ],
-        "src/components/UI/EssayItem.astro": ["#fff"],
         "src/components/UI/Hitokoto.astro": ["#6b6762"],
         "src/components/UI/Notice.astro": [
             "#fff",

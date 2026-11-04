@@ -46,6 +46,56 @@ export interface FriendsPageConfig {
 }
 
 /**
+ * 随笔页面配置（P-06 注入点）
+ */
+export interface TalksPageConfig {
+    /**
+     * 随笔数据槽位：站点把自己的 Blinko / memos 抓取产物放在 `src/data/<dataFile>`。
+     * - 留空串 = 不启用数据 → 页面走空态（构建照常通过）
+     * - 文件缺失 = 空态；文件内容坏 = 错误态（见 src/data/adapters/talks.ts）
+     * 这里只放「槽位指针」，不放任何随笔内容本身。
+     */
+    dataFile?: string;
+    /** 随笔来源实例（hero 上的「去 Blinko 看」入口）；留空不渲染。 */
+    sourceUrl?: string;
+    /** 来源名（用于入口文案，缺省 Blinko）。 */
+    sourceName?: string;
+}
+
+/**
+ * 赞赏收款方式（P-07 注入点的一条）。
+ *
+ * 形状与 `src/data/adapters/donate.ts` 的 `DonateAccountConfig` 一致，但**故意不 import**
+ * adapter 的类型：config 是数据层的最上游，不该反向依赖数据适配层。
+ */
+export interface DonateAccountItem {
+    id?: string; // 稳定键（i18n 回退/去重）
+    label?: string; // 展示名；缺省时页面按 id 查 i18n
+    icon?: string; // iconify 图标名
+    kind?: "qr" | "link"; // 缺省按「有二维码=qr，有链接=link」推断
+    qr?: string; // 二维码文件名（src/assets/qr/ 下）
+    href?: string; // 跳转目标（绝对 http(s)）
+    account?: string; // 账号文本（如邮箱）
+    note?: string; // 一句说明
+}
+
+/**
+ * 赞赏页面配置（P-07 注入点）
+ */
+export interface DonatePageConfig {
+    /**
+     * 账本槽位：站点赞赏记录 JSON 的位置（默认 donators.json）。
+     * 留空 / 缺失 = 空态；内容坏 = 错误态；两种都是页面状态，路由永远 200。
+     */
+    dataFile?: string;
+    /**
+     * 收款方式注入。**空数组 = 一种都不渲染**（页面给「未配置」提示，不产生空 <img>）；
+     * 每条都必须是「有二维码文件 或 有 http(s) 链接」的完整方式，缺字段的会被 adapter 丢掉。
+     */
+    accounts?: DonateAccountItem[];
+}
+
+/**
  * 页脚配置项
  */
 export interface FooterItem {
@@ -153,6 +203,37 @@ export const friendsPage: FriendsPageConfig = {
     friendLinkApplyUrl: "https://github.com/Smart-Chou/zcblog/issues/new?template=friend-link.yml",
     // 数据槽位指针：站点友链 JSON 的位置（src/data/friends.json）。内容不进配置。
     dataFile: "friends.json",
+};
+
+/**
+ * 随笔页面配置（P-06）：只放槽位指针与来源入口，随笔内容在站点数据文件里
+ */
+export const talksPage: TalksPageConfig = {
+    dataFile: "talks.json",
+    sourceUrl: "https://memos.marxchou.com",
+    sourceName: "Blinko",
+};
+
+/**
+ * 赞赏页面配置（P-07）：账本槽位 + 收款方式注入
+ *
+ * 收款方式的展示名故意留空：页面按 id 查 i18n（donate.wechatPay / donate.alipay），
+ * 只有通行全语言的（PayPal）才写死 label。二维码只写文件名，解析归页面（astro:assets）。
+ */
+export const donatePage: DonatePageConfig = {
+    dataFile: "donators.json",
+    accounts: [
+        { id: "wechat", icon: "mingcute:wechat-pay-line", qr: "wechat-pay.png" },
+        { id: "alipay", icon: "mingcute:alipay-line", qr: "alipay.jpg" },
+        {
+            id: "paypal",
+            kind: "link",
+            label: "PayPal",
+            icon: "mingcute:paypal-fill",
+            qr: "paypal.png",
+            href: "https://paypal.me/zcily",
+        },
+    ],
 };
 
 /**

@@ -1,5 +1,15 @@
 ---
+/**
+ * P-06 随笔（英文路由）
+ * 同一个 adapter、同一份站点数据；只有文案随 locale 变（M2-6b）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/talks.css";
+import { talksPage } from "~/config/ui";
+import { loadSiteTalks } from "~/data/adapters/talks";
 import TalksContent from "~/components/Pages/TalksContent.astro";
+
+const feed = loadSiteTalks(talksPage.dataFile);
 ---
 
-<TalksContent locale="en" />
+<TalksContent locale="en" feed={feed} />

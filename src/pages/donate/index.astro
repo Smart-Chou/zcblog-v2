@@ -1,7 +1,40 @@
 ---
+/**
+ * P-07 赞赏（中文路由）
+ * M2-6b：页面视觉全部走 src/styles/pages/donate.css + tokens.css；
+ * 本文件只做「取数 + 解析二维码资源 + 交给组件」。
+ *
+ * 两类输入：
+ * - 账本：`src/data/<donatePage.dataFile>`（默认 donators.json）→ donate adapter
+ * - 收款方式：`donatePage.accounts` 注入点 → 二维码文件名在这里解析成 ImageMetadata
+ *
+ * 「不渲染空 <img>」的两道闸：adapter 丢掉没有码图/没有 http(s) 链接的条目；
+ * QrCard 只在拿到 ImageMetadata 时才输出图像。构建期可用
+ * `PUBLIC_DONATE_STATE=empty|error|no-accounts` 预览/验收另三态。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/donate.css";
+import type { ImageMetadata } from "astro";
 import { getLocale } from "~/utils/i18n";
+import { donate } from "~/config";
+import { donatePage } from "~/config/ui";
+import { loadSiteDonate } from "~/data/adapters/donate";
 import DonateContent from "~/components/Pages/DonateContent.astro";
+
 const locale = getLocale(Astro.currentLocale || "zh");
+
+/** 收款二维码：配置里只写文件名，这里按文件名解析成 astro:assets 资源。 */
+const qrModules = import.meta.glob<{ default: ImageMetadata }>("~/assets/qr/*", { eager: true });
+const qr: Record<string, ImageMetadata> = {};
+for (const [key, module] of Object.entries(qrModules)) {
+    const name = key.split("/").pop();
+    if (name) qr[name] = module.default;
+}
+
+const feed = loadSiteDonate(donatePage.dataFile, {
+    accounts: donatePage.accounts,
+    enabled: donate.enable,
+});
 ---
 
-<DonateContent locale={locale} />
+<DonateContent locale={locale} feed={feed} qr={qr} />

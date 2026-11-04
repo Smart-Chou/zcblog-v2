@@ -1,183 +1,169 @@
 ---
-import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
-import { Image } from "astro:assets";
-
-interface Donator {
-    name: string;
-    avatar?: string;
-    amount: number;
-    message?: string;
-    date: string;
-}
+/**
+ * DonatorsList —— 赞赏者名单（P-07 · M2-6b）
+ *
+ * 只渲染 adapter 归一化后的 `Donator[]`（名字必填、金额已校验、日期已归一）。
+ * 设计取舍（相对旧版）：
+ * - 日期不再「只在 hover 时显示」：hover 才可见的信息在触摸/键盘下等于不存在。
+ * - 头像没有就渲染首字，不请求占位图；有头像时 alt=""（名字紧邻）。
+ * - 金额为 0 表示「心意已收、未记账」，此时不渲染 ¥0.00。
+ */
+import type { Donator } from "~/data/adapters/donate";
+import type { Locale } from "~/utils/i18n";
 
 interface Props {
     donators: Donator[];
+    /** 币种符号（adapter 给，缺省 ¥）。 */
+    currency?: string;
+    locale?: Locale;
 }
 
-const { donators } = Astro.props;
+const { donators, currency = "¥", locale = "zh" } = Astro.props;
+const isEn = locale === "en";
+
+const formatAmount = (amount: number) =>
+    Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+
+const formatDate = (date: string) => {
+    if (!date) return "";
+    const parsed = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return date;
+    return new Intl.DateTimeFormat(isEn ? "en-US" : "zh-CN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    }).format(parsed);
+};
 ---
 
-<div class="donators-list">
+<ul class="donators" role="list">
     {
         donators.map((donator) => (
-            <div class="donator-item">
-                <div class="donator-avatar">
+            <li class="donator">
+                <span class="donator__avatar" aria-hidden="true">
                     {donator.avatar ? (
-                        <Image
+                        <img
                             src={donator.avatar}
-                            alt={donator.name}
-                            width={48}
-                            height={48}
+                            alt=""
+                            width="44"
+                            height="44"
                             loading="lazy"
                             decoding="async"
                         />
                     ) : (
-                        <div class="avatar-placeholder">
-                            <DynamicIcon name="tabler:user-circle" />
-                        </div>
+                        <span class="donator__initial">{donator.name.slice(0, 2)}</span>
+                    )}
+                </span>
+                <div class="donator__body">
+                    <div class="donator__top">
+                        <span class="donator__name">{donator.name}</span>
+                        {donator.amount > 0 && (
+                            <span class="donator__amount">
+                                {currency}
+                                {formatAmount(donator.amount)}
+                            </span>
+                        )}
+                    </div>
+                    {donator.message && <p class="donator__message">{donator.message}</p>}
+                    {donator.date && (
+                        <time class="donator__date" datetime={donator.date}>
+                            {formatDate(donator.date)}
+                        </time>
                     )}
                 </div>
-                <div class="donator-info">
-                    <div class="donator-main">
-                        <span class="donator-name">{donator.name}</span>
-                        <span class="donator-amount">¥{donator.amount.toFixed(2)}</span>
-                    </div>
-                    {donator.message && <div class="donator-message">"{donator.message}"</div>}
-                    <div class="donator-time">{donator.date}</div>
-                </div>
-            </div>
+            </li>
         ))
     }
-</div>
+</ul>
 
 <style>
-    .donators-list {
+    .donators {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.25rem;
+        grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+        gap: var(--space-4);
+        margin: 0;
+        padding: 0;
+        list-style: none;
     }
 
-    .donator-item {
+    .donator {
         display: flex;
-        gap: 1rem;
-        padding: 1.25rem;
-        border-radius: 12px;
+        align-items: flex-start;
+        gap: var(--space-3);
+        box-sizing: border-box;
+        padding: var(--space-4);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
         background-color: var(--color-bg-surface);
-        transition:
-            transform 0.2s ease,
-            box-shadow 0.2s ease;
     }
 
-    @media (hover: hover) {
-        .donator-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        }
-    }
-
-    .donator-avatar {
-        flex-shrink: 0;
-    }
-
-    .avatar-placeholder,
-    .donator-avatar img {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-    }
-
-    .avatar-placeholder {
-        background-color: var(--primary-color);
-        opacity: 0.85;
-        display: flex;
+    .donator__avatar {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 1.5rem;
+        flex: none;
+        inline-size: var(--space-11);
+        block-size: var(--space-11);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+        background-color: var(--color-accent-subtle);
+        /* 首字压在 accent-subtle 上：--color-fg-link 在暗色只有 3.52，改用默认前景色 */
+        color: var(--color-fg-default);
+        font-family: var(--font-serif);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
     }
 
-    .donator-info {
+    .donator__avatar img {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+    }
+
+    .donator__body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-inline-size: 0;
         flex: 1;
     }
 
-    .donator-main {
+    .donator__top {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
+        gap: var(--space-2);
     }
 
-    .donator-name {
-        font-weight: 600;
-        font-size: 1.05rem;
+    .donator__name {
+        font-family: var(--font-sans);
+        font-size: var(--text-base);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-fg-heading);
+        overflow-wrap: anywhere;
     }
 
-    .donator-amount {
-        font-weight: 600;
-        color: var(--primary-color);
-        font-size: 0.9rem;
+    .donator__amount {
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-fg-link);
+        font-variant-numeric: tabular-nums;
     }
 
-    .donator-amount::before {
-        content: "支持 ";
-        font-weight: 400;
-        opacity: 0.6;
-        margin-right: 2px;
+    .donator__message {
+        margin: 0;
+        font-size: var(--text-sm);
+        line-height: var(--leading-snug);
+        color: var(--color-fg-default);
+        overflow-wrap: anywhere;
     }
 
-    .donator-time {
-        font-size: 0.75rem;
-        opacity: 0.6;
-        margin-top: 0.25rem;
-        display: none;
-    }
-
-    @media (hover: hover) {
-        .donator-item:hover .donator-time {
-            display: block;
-        }
-    }
-
-    .donator-message {
-        font-size: 0.85rem;
-        color: var(--color-text-muted);
-        font-style: italic;
-        line-height: 1.4;
-        margin-top: 0.45rem;
-        padding-left: 0.5rem;
-        border-left: 2px solid rgba(0, 0, 0, 0.08);
-    }
-
-    html[data-theme="dark"] .donator-item {
-        background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    @media (hover: hover) {
-        html[data-theme="dark"] .donator-item:hover {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-    }
-
-    html[data-theme="dark"] .donator-name {
-        color: rgba(255, 255, 255, 0.92);
-    }
-
-    html[data-theme="dark"] .donator-message {
-        color: rgba(255, 255, 255, 0.65);
-        border-left-color: rgba(255, 255, 255, 0.12);
-    }
-
-    html[data-theme="dark"] .donator-amount {
-        color: #f2a19a;
-    }
-
-    html[data-theme="dark"] .donator-amount::before {
-        opacity: 0.45;
-    }
-
-    html[data-theme="dark"] .avatar-placeholder {
-        background-color: var(--primary-color);
-        background-color: color-mix(in srgb, var(--primary-color) 60%, black);
+    .donator__date {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        color: var(--color-fg-muted);
+        letter-spacing: var(--tracking-wide);
     }
 </style>

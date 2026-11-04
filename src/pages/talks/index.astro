@@ -1,7 +1,21 @@
 ---
+/**
+ * P-06 随笔（中文路由）
+ * M2-6b：页面视觉全部走 src/styles/pages/talks.css + tokens.css；本文件只做「取数 + 交给组件」。
+ *
+ * 数据注入：`src/data/<talksPage.dataFile>`（默认 talks.json）→ talks adapter。
+ * 槽位文件缺失 / 内容为空 → 空态；内容坏 → 错误态；两种都是页面状态，路由永远 200。
+ * 构建期可用 `PUBLIC_TALKS_STATE=empty|error` 预览另两态（验收/截图用，不改数据文件）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/talks.css";
 import { getLocale } from "~/utils/i18n";
+import { talksPage } from "~/config/ui";
+import { loadSiteTalks } from "~/data/adapters/talks";
 import TalksContent from "~/components/Pages/TalksContent.astro";
+
 const locale = getLocale(Astro.currentLocale || "zh");
+const feed = loadSiteTalks(talksPage.dataFile);
 ---
 
-<TalksContent locale={locale} />
+<TalksContent locale={locale} feed={feed} />

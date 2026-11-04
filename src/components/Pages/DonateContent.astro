@@ -1,173 +1,251 @@
 ---
-import SectionPage from "~/components/Layout/SectionPage.astro";
-import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+/**
+ * P-07 · 赞赏页（M2-6b）
+ *
+ * 结构：
+ *   1. hero      —— h1 / 一句话说明 / 支持者数·累计金额·收款方式数
+ *   2. 支持方式  —— 注入的收款方式（二维码/外链）；未注入 → 明确提示，不渲染空 <img>
+ *   3. 名单      —— 三态：ok（卡片网格）/ empty（空态块）/ error（警示块 + 原因代码）
+ *   4. 致谢      —— 一段收尾文案（任何一态都渲染）
+ *
+ * 约束：
+ * - 数据只来自 props.feed（donate adapter）+ props.qr（页面解析好的二维码资源）；
+ *   本组件 0 数据、0 站点私有文案。
+ * - 样式在 src/styles/pages/donate.css（0 颜色字面量、尺寸全部 token）。
+ * - 标题层级 h1 → h2，任何一态都不跳级（e2e 覆盖）。
+ */
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
 import QrCard from "~/components/UI/QrCard.astro";
 import DonatorsList from "~/components/UI/DonatorsList.astro";
 import WalineComment from "~/components/UI/WalineComment.astro";
-import { donate, waline } from "~/config";
-import donateData from "~/data/donators.json";
-import wechatQR from "~/assets/qr/wechat-pay.png";
-import alipayQR from "~/assets/qr/alipay.jpg";
-import paypalQR from "~/assets/qr/paypal.png";
+import { site, waline } from "~/config";
 import { t, getLocale, type Locale } from "~/utils/i18n";
+import type { DonateFeed } from "~/data/adapters/donate";
+import type { ImageMetadata } from "astro";
 
 interface Props {
     locale?: string;
+    /** donate adapter 的产物；缺省为空态（组件被单独渲染时也不炸）。 */
+    feed?: DonateFeed;
+    /** 二维码文件名 → 资源（页面用 astro:assets 解析）；拿不到就不渲染 <img>。 */
+    qr?: Record<string, ImageMetadata>;
 }
 
-const { locale = "zh" } = Astro.props;
+const { locale = "zh", feed, qr = {} } = Astro.props;
 const loc: Locale = getLocale(locale);
-const { donators } = donateData;
+const isEn = loc === "en";
+
+const resolved: DonateFeed = feed ?? {
+    status: "empty",
+    enabled: false,
+    accounts: [],
+    donators: [],
+    total: 0,
+    amountTotal: 0,
+    currency: "¥",
+    issue: { code: "source-missing" },
+};
+
+/** 展示名：注入的 label 优先，其次按 id 查 i18n，最后退回 id。 */
+const accountLabel = (id: string, label?: string) => {
+    if (label) return label;
+    const known: Record<string, string> = {
+        wechat: t(loc, "donate.wechatPay"),
+        alipay: t(loc, "donate.alipay"),
+    };
+    return known[id] ?? id;
+};
+
+const formatAmount = (amount: number) =>
+    Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+
+const countLabel = isEn ? `${resolved.total} supporters` : `${resolved.total} 位支持者`;
+const methodLabel = isEn
+    ? `${resolved.accounts.length} methods`
+    : `${resolved.accounts.length} 种方式`;
 ---
 
-<SectionPage
-    title={t(loc, "donate.title")}
-    subtitle={t(loc, "donate.description")}
-    publishedTime={new Date()}
-    modifiedTime={new Date()}
-    locale={locale}
-    empty={!donate.enable}
-    emptyTitle={loc === "en" ? "Donations are not open" : "赞赏暂未开放"}
-    emptyMessage={loc === "en"
-        ? "The site owner has not enabled donations yet."
-        : "站主暂未开启赞赏功能。"}
+<BaseLayout
+    locale={loc}
+    title={`${t(loc, "donate.title")} - ${site.title}`}
+    description={`${t(loc, "donate.description")} - ${site.title}`}
+    image={`${Astro.site + site.coverImage}`}
+    imageAlt={t(loc, "donate.title")}
+    keywords={["Donate", "赞赏", "支持", "Sponsor"]}
 >
-    <DynamicIcon name="tabler:heart-handshake" slot="icon" />
-
-    <div class="donate-sections">
-        <div class="donate-section s-card">
-            <div class="donate-header">
-                <h2 class="section-title">{t(loc, "donate.paymentMethods")}</h2>
-            </div>
-            <div class="donate-methods">
-                <QrCard
-                    qrImage={wechatQR}
-                    alt={t(loc, "donate.wechatPay")}
-                    platformName={t(loc, "donate.wechatPay")}
-                    iconName="mingcute:wechat-pay-line"
-                />
-                <QrCard
-                    qrImage={alipayQR}
-                    alt={t(loc, "donate.alipay")}
-                    platformName={t(loc, "donate.alipay")}
-                    iconName="mingcute:alipay-line"
-                />
+    <article
+        class="donations"
+        data-donate-status={resolved.status}
+        data-donate-total={resolved.total}
+        data-donate-accounts={resolved.accounts.length}
+        data-donate-enabled={String(resolved.enabled)}
+        aria-labelledby="donate-title"
+    >
+        <header class="donations-hero">
+            <p class="donations-kicker">{isEn ? "SPONSOR · SUPPORT" : "赞赏 · 支持"}</p>
+            <h1 class="donations-title" id="donate-title">
+                {isEn ? "Support this site" : "赞赏与支持"}
+            </h1>
+            <p class="donations-lede">{t(loc, "donate.description")}</p>
+            <div class="donations-hero__meta">
+                <span class="donations-chip">
+                    <Icon name="tabler:users" size="xs" />
+                    {countLabel}
+                </span>
                 {
-                    donate.paypalUrl && (
-                        <QrCard
-                            qrImage={paypalQR}
-                            alt="PayPal"
-                            platformName="PayPal"
-                            iconName="mingcute:paypal-fill"
-                            paypalUrl={donate.paypalUrl}
-                        />
+                    resolved.amountTotal > 0 && (
+                        <span class="donations-chip">
+                            <Icon name="tabler:coin" size="xs" />
+                            {isEn ? "total " : "累计 "}
+                            {resolved.currency}
+                            {formatAmount(resolved.amountTotal)}
+                        </span>
+                    )
+                }
+                {
+                    resolved.accounts.length > 0 && (
+                        <span class="donations-chip donations-chip--quiet">{methodLabel}</span>
                     )
                 }
             </div>
-        </div>
+        </header>
 
-        <div class="donators-section s-card">
-            <div class="donators-header">
-                <h2 class="section-title">{t(loc, "donate.donorList")}</h2>
-                <p class="section-desc">{t(loc, "donate.donorListDesc")}</p>
+        <section class="donations-section" aria-labelledby="donate-methods-title">
+            <div class="donations-section__head">
+                <h2 class="donations-section__title" id="donate-methods-title">
+                    {t(loc, "donate.paymentMethods")}
+                </h2>
+                <p class="donations-section__meta">{t(loc, "donate.tipText")}</p>
             </div>
-            <DonatorsList donators={donators} />
-        </div>
 
-        <div class="thank-section s-card">
-            <div class="thank-content">
-                <DynamicIcon name="tabler:heart-handshake" class="thank-icon" />
-                <h2 class="thank-title">{t(loc, "donate.thankAgain")}</h2>
-                <p class="thank-text">{t(loc, "donate.thankText")}</p>
+            {
+                !resolved.enabled && (
+                    <div class="donations-state" data-donate-closed>
+                        <Alert tone="info" title={isEn ? "Donations are closed" : "赞赏暂未开放"}>
+                            {isEn
+                                ? "The owner has not opened donations yet. The list below is kept for reference."
+                                : "站主暂未开启赞赏功能。下方的名单仅作存档展示。"}
+                        </Alert>
+                    </div>
+                )
+            }
+
+            {
+                resolved.enabled && resolved.accounts.length === 0 && (
+                    <div class="donations-state" data-donate-no-methods>
+                        <Alert
+                            tone="info"
+                            title={isEn ? "No payment method configured" : "尚未配置收款方式"}
+                        >
+                            {isEn
+                                ? "No account or QR code has been injected, so nothing is rendered here — no placeholder images."
+                                : "没有注入账号或二维码，因此这里不渲染任何收款方式，也不会出现占位图。"}
+                        </Alert>
+                    </div>
+                )
+            }
+
+            {
+                resolved.enabled && resolved.accounts.length > 0 && (
+                    <ul class="donations-methods" role="list">
+                        {resolved.accounts.map((account) => (
+                            <QrCard
+                                image={account.qr ? qr[account.qr] : undefined}
+                                alt={
+                                    account.label ??
+                                    `${accountLabel(account.id, account.label)}${isEn ? " QR code" : " 收款二维码"}`
+                                }
+                                platformName={accountLabel(account.id, account.label)}
+                                iconName={account.icon}
+                                href={account.href}
+                                actionLabel={
+                                    account.href
+                                        ? isEn
+                                            ? `Open ${accountLabel(account.id, account.label)}`
+                                            : `打开${accountLabel(account.id, account.label)}`
+                                        : undefined
+                                }
+                                account={account.account}
+                                note={account.note}
+                            />
+                        ))}
+                    </ul>
+                )
+            }
+        </section>
+
+        <section class="donations-section" aria-labelledby="donate-list-title">
+            <div class="donations-section__head">
+                <h2 class="donations-section__title" id="donate-list-title">
+                    {t(loc, "donate.donorList")}
+                </h2>
+                <p class="donations-section__meta">{t(loc, "donate.donorListDesc")}</p>
             </div>
-        </div>
-    </div>
 
-    {waline.enable && <WalineComment locale={locale} />}
-</SectionPage>
+            {
+                resolved.status === "ok" && (
+                    <DonatorsList
+                        donators={resolved.donators}
+                        currency={resolved.currency}
+                        locale={loc}
+                    />
+                )
+            }
 
-<style>
-    .donate-sections {
-        max-width: 800px;
-        margin: 0 auto;
-    }
+            {
+                resolved.status === "error" && (
+                    <div class="donations-state" data-donate-error={resolved.issue?.code ?? "unknown"}>
+                        <Alert
+                            tone="warning"
+                            title={isEn ? "Donation records could not be read" : "赞赏记录读取失败"}
+                        >
+                            {isEn
+                                ? "The ledger file exists but its shape is invalid. Payment methods above are unaffected."
+                                : "赞赏记录文件存在但格式不合法，上方收款方式不受影响。"}
+                        </Alert>
+                        <p class="donations-state__hint">
+                            {isEn
+                                ? `Reason code: ${resolved.issue?.code ?? "unknown"}`
+                                : `原因代码：${resolved.issue?.code ?? "unknown"}`}
+                        </p>
+                    </div>
+                )
+            }
 
-    .donate-section,
-    .donators-section,
-    .thank-section {
-        margin-bottom: 2rem;
-        padding: 2rem;
-    }
+            {
+                resolved.status === "empty" && (
+                    <div
+                        class="donations-state donations-state--empty"
+                        data-donate-empty={resolved.issue?.code ?? "unknown"}
+                    >
+                        <span class="donations-state__icon" aria-hidden="true">
+                            <Icon name="tabler:heart-handshake" size="lg" />
+                        </span>
+                        <p class="donations-state__title">
+                            {isEn ? "No donation records yet" : "还没有赞赏记录"}
+                        </p>
+                        <p class="donations-state__text">
+                            {isEn
+                                ? "Nothing has been recorded here so far — the list will appear once the ledger has entries."
+                                : "这里暂时没有记录。等账本有了条目，名单会自动出现在这里。"}
+                        </p>
+                    </div>
+                )
+            }
+        </section>
 
-    .donate-header,
-    .donators-header {
-        margin-bottom: 2rem;
-    }
+        <section class="donations-thanks" aria-labelledby="donate-thanks-title">
+            <span class="donations-thanks__icon" aria-hidden="true">
+                <Icon name="tabler:heart-handshake" size="lg" />
+            </span>
+            <h2 class="donations-thanks__title" id="donate-thanks-title">
+                {t(loc, "donate.thankAgain")}
+            </h2>
+            <p class="donations-thanks__text">{t(loc, "donate.thankText")}</p>
+        </section>
+    </article>
 
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0 0 0.5rem 0;
-    }
-
-    .section-desc {
-        color: var(--color-text-muted);
-        margin: 0;
-    }
-
-    .donate-methods {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .thank-section {
-        text-align: center;
-    }
-
-    .thank-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .thank-content :global(.thank-icon) {
-        font-size: 2.5rem;
-        color: #e74c3c;
-    }
-
-    .thank-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0;
-    }
-
-    .thank-text {
-        color: var(--color-text-muted);
-        line-height: 1.6;
-        margin: 0;
-        max-width: 600px;
-    }
-
-    @media (max-width: 768px) {
-        .donate-section,
-        .donators-section,
-        .thank-section {
-            padding: 1.5rem;
-        }
-
-        .donate-methods {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    html[data-theme="dark"] .section-desc,
-    html[data-theme="dark"] .thank-text {
-        color: rgba(255, 255, 255, 0.65);
-    }
-
-    html[data-theme="dark"] .thank-content :global(.thank-icon) {
-        color: #f2a19a;
-    }
-</style>
+    {waline.enable && <WalineComment locale={loc} />}
+</BaseLayout>
