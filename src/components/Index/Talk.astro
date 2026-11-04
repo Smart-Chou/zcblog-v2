@@ -65,6 +65,7 @@ const talksUrl = locale === defaultLocale ? "/talks/" : "/en/talks/";
             const item = items[index];
             // 用 DOM API 替代 innerHTML，防止 XSS
             const li = document.createElement("li");
+            li.className = "item";
 
             const span = document.createElement("span");
             span.className = "datetime";
