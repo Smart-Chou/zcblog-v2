@@ -24,25 +24,15 @@ function ensureFancyboxCss(): void {
 /**
  * 灯箱入口的可访问名（M2-13b）
  * 正文图 alt 多数为空（装饰性），包上 <a> 之后链接就没有任何可读文本（axe link-name）。
- * 图有 alt 时用 alt；没有时用「查看大图」类的说明，按 <html lang> 取对应文案。
+ * 图有 alt 时用 alt；没有时用「查看大图」类的说明。
+ *
+ * 只留 zh / en 两条：这段代码落在 BaseLayout 的公共 chunk 里，列表页 JS 预算只剩 0.2KB，
+ * 十语言文案会把 blog 列表页顶出预算（实测 +0.2KB gz）。非中英页面按英文兜底，
+ * 与正文回退到中文的事实一致（这两个语言目前只有回退正文）。
  */
-const VIEW_IMAGE_LABEL: Record<string, string> = {
-    "zh-cn": "查看大图",
-    zh: "查看大图",
-    "zh-tw": "檢視大圖",
-    en: "View full-size image",
-    ja: "拡大表示",
-    ko: "원본 크기로 보기",
-    de: "Bild in voller Größe anzeigen",
-    fr: "Afficher l'image en taille réelle",
-    es: "Ver imagen a tamaño completo",
-    "pt-br": "Ver imagem em tamanho real",
-    ru: "Открыть изображение в полном размере",
-};
-
 function viewImageLabel(): string {
     const lang = (typeof document !== "undefined" ? document.documentElement.lang : "") ?? "";
-    return VIEW_IMAGE_LABEL[lang.toLowerCase()] ?? VIEW_IMAGE_LABEL.en;
+    return lang.toLowerCase().startsWith("zh") ? "查看大图" : "View full-size image";
 }
 
 /**
