@@ -47,10 +47,14 @@ const groups = DEVICE_CATEGORY_ORDER.map((category) => ({
     items: items.filter((device) => device.category === category),
 })).filter((group) => group.items.length > 0);
 
+// 序号按**视觉顺序**编（分组之后再编号）：先按 items 编会让「网络」那一台拿到 04
+// 却排在 05 后面 —— 屏幕上出现 01 02 03 05 04 这种跳号，读者会以为漏了一条。
+const ordinalOf = new Map(
+    groups.flatMap((group) => group.items).map((device, position) => [device.id, position + 1]),
+);
+
 const inUseCount = items.filter((device) => device.status === "in-use").length;
 const specCount = new Set(items.flatMap((device) => device.specs)).size;
-// 序号跨分组连续（01…05）：分组只是为了扫视，编号仍是整页一条清单。
-const ordinalOf = new Map(items.map((device, position) => [device.id, position + 1]));
 
 const copy = isEn
     ? {

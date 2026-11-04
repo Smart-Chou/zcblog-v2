@@ -45,9 +45,13 @@ const groups = GAME_STATUS_ORDER.map((status) => ({
     items: items.filter((game) => game.status === status),
 })).filter((group) => group.items.length > 0);
 
+// 序号按视觉顺序编（分组之后）：先编号再分组会让屏幕上的序号跳号。
+const ordinalOf = new Map(
+    groups.flatMap((group) => group.items).map((game, position) => [game.id, position + 1]),
+);
+
 const finishedCount = items.filter((game) => game.status === "finished").length;
 const totalHours = items.reduce((sum, game) => sum + (game.hours ?? 0), 0);
-const ordinalOf = new Map(items.map((game, position) => [game.id, position + 1]));
 
 const copy = isEn
     ? {
