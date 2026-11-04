@@ -120,18 +120,78 @@ export interface SkillGroup {
     updated: string;
 }
 
+/* ───────────────────────── 设备 ───────────────────────── */
+
+/** 六类闭集；分组展示的顺序见 `DEVICE_CATEGORY_ORDER`。 */
+export type DeviceCategory = "computer" | "display" | "audio" | "peripheral" | "network" | "other";
+
+/** 三态里没有「坏了」——设备只有在用 / 备用 / 退役。 */
+export type DeviceStatus = "in-use" | "backup" | "retired";
+
+export interface Device {
+    /** 稳定键（slug 形状，小写连字符）。 */
+    id: string;
+    /** 型号或主机名；技术名不翻译（`Intel NUC9` 在两种语言里都这么写）。 */
+    name: string;
+    category: DeviceCategory;
+    status: DeviceStatus;
+    /** 规格短标签（不翻译）：CPU / GPU / 内存 / 系统。至少一项。 */
+    specs: string[];
+    /** 这台机器留着干什么、为什么换 —— 页面上唯一的人话。 */
+    note: LocalizedText;
+    /** 上手年月 `YYYY-MM`。 */
+    since?: string;
+    /** 退役年月 `YYYY-MM`；`null` / 缺省 = 仍在役。退役（retired）必须填。 */
+    until?: string | null;
+    links?: EntityLink[];
+    /** 条目最后更新 `YYYY-MM-DD`。 */
+    updated: string;
+}
+
+/* ───────────────────────── 游戏 ───────────────────────── */
+
+export type GamePlatform = "pc" | "switch" | "playstation" | "xbox" | "mobile" | "vr";
+
+/** 四态；「弃坑」不单列，用 shelved + note 说清楚更诚实。 */
+export type GameStatus = "playing" | "finished" | "shelved" | "backlog";
+
+export interface Game {
+    id: string;
+    /** 双语标题：中文名与原名都可能在页面上出现，双语必填避免 en 页掉回中文。 */
+    title: LocalizedText;
+    /** 玩过的平台，至少一项。 */
+    platforms: GamePlatform[];
+    status: GameStatus;
+    /** 开始/通关年份 `YYYY`；只到年，游戏没有「精确到日」的必要。 */
+    year?: string;
+    /** 累计小时（1–9999 的整数）；没统计就不写，不写 0。 */
+    hours?: number;
+    /** 1–5 的整数评分；不打分就不写（不是 0 分）。 */
+    rating?: number;
+    /** 一句评价（为什么通关 / 为什么搁置）。 */
+    note: LocalizedText;
+    updated: string;
+}
+
 /* ───────────────────────── 集合元信息 ───────────────────────── */
 
 /**
  * 每个数据文件导出且只导出一份 meta。
- * `owner` 是 14 §7 规则 4 的「归属到人」；`source` 说明数据怎么来（手写 / 导入）。
+ * `owner` 是 14 §7 规则 4 的「归属到人」；`source` 说明数据怎么来（手写 / 导入 / 导入后手改）。
  */
 export interface EntityMeta {
     /** `YYYY-MM-DD`；新鲜度门禁的锚点。 */
     updated: string;
-    owner?: string;
+    /**
+     * **必填**（M2-7b 会签要求）：数据坏了要有一个能被 @ 的人。
+     * 可选会让「两份数据写了、新数据漏了」永远只靠自觉，E2 现在直接判。
+     */
+    owner: string;
     source?: string;
 }
+
+/** meta 的必填字段；门禁 E8 逐字段删除自检与 `validateMeta` 必须同步。 */
+export const META_REQUIRED_FIELDS = ["updated", "owner"] as const;
 
 /* ───────────────────────── 校验器 ───────────────────────── */
 
@@ -143,6 +203,17 @@ const HTTP = /^https?:\/\/[^\s]+$/;
 
 const PROJECT_STATUSES: readonly ProjectStatus[] = ["active", "maintained", "archived"];
 const SKILL_LEVELS: readonly SkillLevel[] = ["exploring", "working", "solid", "deep"];
+const DEVICE_CATEGORIES: readonly DeviceCategory[] = [
+    "computer",
+    "display",
+    "audio",
+    "peripheral",
+    "network",
+    "other",
+];
+const DEVICE_STATUSES: readonly DeviceStatus[] = ["in-use", "backup", "retired"];
+const GAME_PLATFORMS: readonly GamePlatform[] = ["pc", "switch", "playstation", "xbox", "mobile", "vr"];
+const GAME_STATUSES: readonly GameStatus[] = ["playing", "finished", "shelved", "backlog"];
 
 export const PROJECT_REQUIRED_FIELDS = [
     "id",
@@ -155,6 +226,18 @@ export const PROJECT_REQUIRED_FIELDS = [
 ] as const;
 
 export const SKILL_GROUP_REQUIRED_FIELDS = ["id", "title", "items", "updated"] as const;
+
+export const DEVICE_REQUIRED_FIELDS = [
+    "id",
+    "name",
+    "category",
+    "status",
+    "specs",
+    "note",
+    "updated",
+] as const;
+
+export const GAME_REQUIRED_FIELDS = ["id", "title", "platforms", "status", "note", "updated"] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value);
@@ -253,11 +336,82 @@ export function validateSkillGroup(value: unknown): string[] {
     return problems;
 }
 
+/** 单台设备的结构问题；返回空数组 = 合法。 */
+export function validateDevice(value: unknown): string[] {
+    if (!isRecord(value)) return ["不是对象"];
+
+    const problems: string[] = [];
+    const at = (field: string) => `devices[${String(value.id ?? "?")}].${field}`;
+
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id)) problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isNonEmptyString(value.name)) problems.push(`${at("name")} 必须是非空字符串`);
+    if (!DEVICE_CATEGORIES.includes(value.category as DeviceCategory))
+        problems.push(`${at("category")} 必须是 ${DEVICE_CATEGORIES.join(" / ")}`);
+    if (!DEVICE_STATUSES.includes(value.status as DeviceStatus))
+        problems.push(`${at("status")} 必须是 ${DEVICE_STATUSES.join(" / ")}`);
+    if (!Array.isArray(value.specs) || value.specs.length === 0 || !value.specs.every(isNonEmptyString))
+        problems.push(`${at("specs")} 必须是非空字符串数组（至少一项）`);
+    if (!isLocalizedText(value.note)) problems.push(`${at("note")} 需要 zh + en 两个非空字符串`);
+    if (value.since !== undefined && !isIsoMonth(value.since)) problems.push(`${at("since")} 必须是 YYYY-MM`);
+    if (value.until !== undefined && value.until !== null && !isIsoMonth(value.until))
+        problems.push(`${at("until")} 必须是 YYYY-MM 或 null`);
+    // 已退役却没有退役时间：页面上会显示「已退役 · 2024.05 — 至今」，自相矛盾。
+    if (value.status === "retired" && !isIsoMonth(value.until))
+        problems.push(`${at("until")} 状态为 retired 时必须填退役年月`);
+    if (isIsoMonth(value.since) && isIsoMonth(value.until) && value.until < value.since)
+        problems.push(`${at("until")} 不能早于 since（${value.until} < ${value.since}）`);
+    if (value.links !== undefined) {
+        const ok =
+            Array.isArray(value.links) &&
+            value.links.every((link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href));
+        if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
+    }
+    if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
+
+    return problems;
+}
+
+/** 单条游戏记录的结构问题；返回空数组 = 合法。 */
+export function validateGame(value: unknown): string[] {
+    if (!isRecord(value)) return ["不是对象"];
+
+    const problems: string[] = [];
+    const at = (field: string) => `games[${String(value.id ?? "?")}].${field}`;
+
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id)) problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isLocalizedText(value.title)) problems.push(`${at("title")} 需要 zh + en 两个非空字符串`);
+    if (
+        !Array.isArray(value.platforms) ||
+        value.platforms.length === 0 ||
+        !value.platforms.every((platform) => GAME_PLATFORMS.includes(platform as GamePlatform))
+    )
+        problems.push(`${at("platforms")} 必须是 ${GAME_PLATFORMS.join(" / ")} 的非空子集`);
+    if (!GAME_STATUSES.includes(value.status as GameStatus))
+        problems.push(`${at("status")} 必须是 ${GAME_STATUSES.join(" / ")}`);
+    if (value.year !== undefined && !(typeof value.year === "string" && YEAR.test(value.year)))
+        problems.push(`${at("year")} 必须是 YYYY`);
+    if (
+        value.hours !== undefined &&
+        !(typeof value.hours === "number" && Number.isInteger(value.hours) && value.hours >= 1 && value.hours <= 9999)
+    )
+        problems.push(`${at("hours")} 必须是 1–9999 的整数（没统计就别写这个字段）`);
+    if (
+        value.rating !== undefined &&
+        !(typeof value.rating === "number" && Number.isInteger(value.rating) && value.rating >= 1 && value.rating <= 5)
+    )
+        problems.push(`${at("rating")} 必须是 1–5 的整数（不打分就别写这个字段，别写 0）`);
+    if (!isLocalizedText(value.note)) problems.push(`${at("note")} 需要 zh + en 两个非空字符串`);
+    if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
+
+    return problems;
+}
+
 export function validateMeta(value: unknown): string[] {
     if (!isRecord(value)) return ["meta 不是对象"];
     const problems: string[] = [];
     if (!isIsoDay(value.updated)) problems.push("meta.updated 必须是 YYYY-MM-DD");
-    if (value.owner !== undefined && !isNonEmptyString(value.owner)) problems.push("meta.owner 必须是非空字符串");
+    // 归属到人（14 §7 规则 4）：M2-7b 起必填，不许靠「写了就好」。
+    if (!isNonEmptyString(value.owner)) problems.push("meta.owner 必填（14 §7 规则 4：归属到人）");
     if (value.source !== undefined && !isNonEmptyString(value.source)) problems.push("meta.source 必须是非空字符串");
     return problems;
 }
@@ -272,13 +426,84 @@ export interface EntitySpec<T> {
     updatedOf(value: T): string | null;
     /** 定位一个条目（门禁打印与去重用）。 */
     keyOf(value: T): string;
+    /**
+     * 必填字段（门禁 E8 用）：**必须是 validate 真正拦的那几个**。
+     * 门禁会逐字段删掉再校验，删掉能过 = 这份清单和校验器脱节。
+     */
+    requiredFields: readonly string[];
+    /**
+     * 一条最小合法样例（门禁 E8 的负向基准，不进页面）。
+     * E8 不硬编码样例：加实体的人只在这里写一次，负向覆盖自动长出来。
+     */
+    sample(): Record<string, unknown>;
+    /**
+     * 值级坏样例（枚举越界 / 日期格式 / 嵌套字段缺失 / 交叉字段矛盾）。
+     * 「必填字段被删」由门禁自动生成，不用在这里重复。
+     */
+    negatives(): ReadonlyArray<readonly [string, Record<string, unknown>]>;
 }
+
+/* ───────────────────────── 样例（门禁用） ───────────────────────── */
+
+const projectSample = (): Record<string, unknown> => ({
+    id: "demo",
+    title: { zh: "示例", en: "Demo" },
+    summary: { zh: "说明", en: "Summary" },
+    status: "active",
+    started: "2026-01",
+    ended: null,
+    stack: ["Astro"],
+    updated: "2026-01-01",
+});
+
+const skillGroupSample = (): Record<string, unknown> => ({
+    id: "demo",
+    title: { zh: "示例", en: "Demo" },
+    items: [{ name: "Astro", level: "solid" }],
+    updated: "2026-01-01",
+});
+
+const deviceSample = (): Record<string, unknown> => ({
+    id: "demo-box",
+    name: "Demo Box",
+    category: "computer",
+    status: "in-use",
+    specs: ["Demo CPU", "16GB"],
+    note: { zh: "示例设备", en: "Demo device" },
+    since: "2024-01",
+    updated: "2026-01-01",
+});
+
+const gameSample = (): Record<string, unknown> => ({
+    id: "demo-game",
+    title: { zh: "示例游戏", en: "Demo Game" },
+    platforms: ["pc"],
+    status: "finished",
+    year: "2025",
+    hours: 30,
+    rating: 4,
+    note: { zh: "示例评价", en: "Demo note" },
+    updated: "2026-01-01",
+});
 
 export const projectSpec: EntitySpec<Project> = {
     kind: "projects",
     validate: validateProject,
     updatedOf: (project) => (isIsoDay(project.updated) ? project.updated : null),
     keyOf: (project) => project.id,
+    requiredFields: PROJECT_REQUIRED_FIELDS,
+    sample: projectSample,
+    negatives: () => [
+        ["en 为空串", { ...projectSample(), title: { zh: "示例", en: "" } }],
+        ["status 越界", { ...projectSample(), status: "doing" }],
+        ["started 不是 YYYY-MM", { ...projectSample(), started: "2026/01" }],
+        ["ended 不是 YYYY-MM", { ...projectSample(), ended: "2026" }],
+        ["stack 空数组", { ...projectSample(), stack: [] }],
+        ["links 非 http", { ...projectSample(), links: [{ label: "x", href: "javascript:alert(1)" }] }],
+        ["id 不是 slug", { ...projectSample(), id: "Demo Project" }],
+        // 正则能过、日历不存在：Date.parse 会静默归一成 03-03，必须判出
+        ["updated 不是真实日历日", { ...projectSample(), updated: "2026-02-31" }],
+    ],
 };
 
 export const skillGroupSpec: EntitySpec<SkillGroup> = {
@@ -286,6 +511,56 @@ export const skillGroupSpec: EntitySpec<SkillGroup> = {
     validate: validateSkillGroup,
     updatedOf: (group) => (isIsoDay(group.updated) ? group.updated : null),
     keyOf: (group) => group.id,
+    requiredFields: SKILL_GROUP_REQUIRED_FIELDS,
+    sample: skillGroupSample,
+    negatives: () => [
+        ["items 空数组", { ...skillGroupSample(), items: [] }],
+        ["level 越界", { ...skillGroupSample(), items: [{ name: "Astro", level: "master" }] }],
+        ["条目缺 name", { ...skillGroupSample(), items: [{ level: "solid" }] }],
+        ["条目的 since 不是 YYYY", { ...skillGroupSample(), items: [{ name: "Astro", level: "solid", since: "26" }] }],
+    ],
+};
+
+export const deviceSpec: EntitySpec<Device> = {
+    kind: "devices",
+    validate: validateDevice,
+    updatedOf: (device) => (isIsoDay(device.updated) ? device.updated : null),
+    keyOf: (device) => device.id,
+    requiredFields: DEVICE_REQUIRED_FIELDS,
+    sample: deviceSample,
+    negatives: () => [
+        ["category 越界", { ...deviceSample(), category: "tablet" }],
+        ["status 越界", { ...deviceSample(), status: "dead" }],
+        ["name 空串", { ...deviceSample(), name: "   " }],
+        ["specs 空数组", { ...deviceSample(), specs: [] }],
+        ["note 缺 en", { ...deviceSample(), note: { zh: "示例" } }],
+        ["retired 但缺 until", { ...deviceSample(), status: "retired" }],
+        ["until 早于 since", { ...deviceSample(), since: "2024-06", until: "2024-01" }],
+        ["since 不是 YYYY-MM", { ...deviceSample(), since: "2024" }],
+        ["links 非 http", { ...deviceSample(), links: [{ label: "x", href: "/relative" }] }],
+        ["updated 不是真实日历日", { ...deviceSample(), updated: "2026-02-31" }],
+    ],
+};
+
+export const gameSpec: EntitySpec<Game> = {
+    kind: "games",
+    validate: validateGame,
+    updatedOf: (game) => (isIsoDay(game.updated) ? game.updated : null),
+    keyOf: (game) => game.id,
+    requiredFields: GAME_REQUIRED_FIELDS,
+    sample: gameSample,
+    negatives: () => [
+        ["platforms 空数组", { ...gameSample(), platforms: [] }],
+        ["platform 越界", { ...gameSample(), platforms: ["pc", "dreamcast"] }],
+        ["status 越界", { ...gameSample(), status: "dropped" }],
+        ["hours = 0", { ...gameSample(), hours: 0 }],
+        ["hours 非整数", { ...gameSample(), hours: 12.5 }],
+        ["rating 越界（6）", { ...gameSample(), rating: 6 }],
+        ["rating = 0", { ...gameSample(), rating: 0 }],
+        ["year 不是 YYYY", { ...gameSample(), year: "2025-03" }],
+        ["title en 为空串", { ...gameSample(), title: { zh: "示例", en: "" } }],
+        ["updated 不是真实日历日", { ...gameSample(), updated: "2026-02-31" }],
+    ],
 };
 
 /* ───────────────────────── 归一化 ───────────────────────── */
@@ -474,4 +749,86 @@ export function formatUpdated(updated: string | null, ageDays: number | null, lo
     if (ageDays === null) return updated;
     if (locale === "en") return `${updated} · ${ageDays} days ago`;
     return `${updated} · ${ageDays} 天前`;
+}
+
+/* ───────────────────────── 设备 / 游戏 展示辅助 ───────────────────────── */
+
+/** `2024-05` + 空 → `2024.05 — 至今`；只有一端时只显示那一端（不编造另一半）。 */
+export function formatSpan(
+    start: string | null | undefined,
+    end: string | null | undefined,
+    locale: EntityLocale,
+): string {
+    const from = isIsoMonth(start) ? start.replace("-", ".") : "";
+    const to = isIsoMonth(end) ? end.replace("-", ".") : "";
+    if (!from && !to) return "";
+    if (!to) return `${from} — ${locale === "en" ? "now" : "至今"}`;
+    return from ? `${from} — ${to}` : to;
+}
+
+const DEVICE_CATEGORY_LABEL: Record<DeviceCategory, LocalizedText> = {
+    computer: { zh: "计算机", en: "Computers" },
+    display: { zh: "显示", en: "Displays" },
+    audio: { zh: "音频", en: "Audio" },
+    peripheral: { zh: "外设", en: "Peripherals" },
+    network: { zh: "网络", en: "Network" },
+    other: { zh: "其他", en: "Other" },
+};
+
+/** 页面分组顺序（固定，不随数据顺序变）：先计算机，网络其次。 */
+export const DEVICE_CATEGORY_ORDER: readonly DeviceCategory[] = [
+    "computer",
+    "display",
+    "network",
+    "audio",
+    "peripheral",
+    "other",
+];
+
+export function deviceCategoryLabel(category: DeviceCategory, locale: EntityLocale): string {
+    return pick(DEVICE_CATEGORY_LABEL[category] ?? DEVICE_CATEGORY_LABEL.other, locale);
+}
+
+const DEVICE_STATUS_LABEL: Record<DeviceStatus, LocalizedText> = {
+    "in-use": { zh: "在用", en: "In use" },
+    backup: { zh: "备用", en: "Backup" },
+    retired: { zh: "已退役", en: "Retired" },
+};
+
+/** 排序权重：在用的排前面，退役的垫底。 */
+export const DEVICE_STATUS_RANK: Record<DeviceStatus, number> = {
+    "in-use": 0,
+    backup: 1,
+    retired: 2,
+};
+
+export function deviceStatusLabel(status: DeviceStatus, locale: EntityLocale): string {
+    return pick(DEVICE_STATUS_LABEL[status] ?? DEVICE_STATUS_LABEL["in-use"], locale);
+}
+
+const GAME_STATUS_LABEL: Record<GameStatus, LocalizedText> = {
+    playing: { zh: "在玩", en: "Playing" },
+    finished: { zh: "已通关", en: "Finished" },
+    shelved: { zh: "搁置", en: "Shelved" },
+    backlog: { zh: "待玩", en: "Backlog" },
+};
+
+/** 页面分组顺序：在玩 → 已通关 → 待玩 → 搁置。 */
+export const GAME_STATUS_ORDER: readonly GameStatus[] = ["playing", "finished", "backlog", "shelved"];
+
+export function gameStatusLabel(status: GameStatus, locale: EntityLocale): string {
+    return pick(GAME_STATUS_LABEL[status] ?? GAME_STATUS_LABEL.playing, locale);
+}
+
+const GAME_PLATFORM_LABEL: Record<GamePlatform, LocalizedText> = {
+    pc: { zh: "PC", en: "PC" },
+    switch: { zh: "Switch", en: "Switch" },
+    playstation: { zh: "PlayStation", en: "PlayStation" },
+    xbox: { zh: "Xbox", en: "Xbox" },
+    mobile: { zh: "手机", en: "Mobile" },
+    vr: { zh: "VR", en: "VR" },
+};
+
+export function gamePlatformLabel(platform: GamePlatform, locale: EntityLocale): string {
+    return pick(GAME_PLATFORM_LABEL[platform] ?? GAME_PLATFORM_LABEL.pc, locale);
 }

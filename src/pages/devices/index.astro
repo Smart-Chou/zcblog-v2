@@ -1,0 +1,211 @@
+---
+/**
+ * C-1 设备（M2-7b，中文路由）
+ * ------------------------------------------------------------------
+ * 页面只做三件事：取数（实体契约归一化）→ 按分类分组 → 交给 C 层卡片。
+ * 空态 / 错误态都是页面状态：路由永远 200，导航与其它页面不受影响。
+ * 构建期可用 `PUBLIC_DEVICES_STATE=empty|error` 预览另两态（验收/截图用，不改数据）。
+ *
+ * 外壳（页头 / 区块 / 三态 / dropped 提示）复用 `pages/entities.css`；
+ * 本页只多带一份 `pages/entities-b.css`（设备与游戏两套卡片系统）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/entities-b.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import DeviceCard from "~/components/C/DeviceCard.astro";
+import { devices, devicesMeta } from "~/data/entities/devices";
+import {
+    DEVICE_CATEGORY_ORDER,
+    DEVICE_STATUS_RANK,
+    deviceCategoryLabel,
+    deviceSpec,
+    formatUpdated,
+    normalizeCollection,
+} from "~/types/entities";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(devices, devicesMeta, deviceSpec, {
+    force: import.meta.env.PUBLIC_DEVICES_STATE,
+});
+
+// 组内排序：在用的先出现，退役的垫底；同状态按名称排，读者扫视时顺序稳定。
+const items = [...feed.items].sort(
+    (a, b) => DEVICE_STATUS_RANK[a.status] - DEVICE_STATUS_RANK[b.status] || a.name.localeCompare(b.name),
+);
+
+const groups = DEVICE_CATEGORY_ORDER.map((category) => ({
+    category,
+    label: deviceCategoryLabel(category, loc),
+    items: items.filter((device) => device.category === category),
+})).filter((group) => group.items.length > 0);
+
+const inUseCount = items.filter((device) => device.status === "in-use").length;
+const specCount = new Set(items.flatMap((device) => device.specs)).size;
+// 序号跨分组连续（01…05）：分组只是为了扫视，编号仍是整页一条清单。
+const ordinalOf = new Map(items.map((device, position) => [device.id, position + 1]));
+
+const copy = isEn
+    ? {
+          kicker: "DEVICES · THE RIG",
+          title: "Devices",
+          lede: "The machines this site is written and served from — a small server, a desk hub, a laptop that travels, and the router all of it hangs off.",
+          listMeta: "Grouped by role · in-use first",
+          deviceOne: "devices",
+          inUseOne: "in use",
+          specOne: "distinct specs",
+          updatedPrefix: "data updated",
+          emptyTitle: "No devices listed yet",
+          emptyText:
+              "This site has not filled in its device data yet. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Device data could not be read",
+          errorText:
+              "The device file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "设备 · 装备台",
+          title: "设备",
+          lede: "这个站点从哪几台机器上写出来、跑起来：一台小服务器、一个桌面中枢、一台随身笔电，还有撑着它们的路由器。",
+          listMeta: "按角色分组 · 在用的排在前面",
+          deviceOne: "台设备",
+          inUseOne: "台在用",
+          specOne: "项规格",
+          updatedPrefix: "数据更新于",
+          emptyTitle: "还没有设备记录",
+          emptyText: "这个站点还没填设备数据。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "设备数据读取失败",
+          errorText: "设备数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh");
+const countLabel = `${items.length} ${copy.deviceOne}`;
+const inUseLabel = `${inUseCount} ${copy.inUseOne}`;
+const specLabel = `${specCount} ${copy.specOne}`;
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Devices", "设备", "HomeLab", "装备"]}
+>
+    <article
+        class="entities entities--devices"
+        data-devices-status={feed.status}
+        data-devices-total={feed.total}
+        data-devices-groups={groups.length}
+        data-devices-stale={String(feed.stale)}
+        data-devices-updated={feed.updated ?? ""}
+        aria-labelledby="devices-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="devices-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:devices" size="xs" />
+                    {countLabel}
+                </span>
+                {
+                    inUseCount > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:bolt" size="xs" />
+                            {inUseLabel}
+                        </span>
+                    )
+                }
+                {
+                    specCount > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:cpu" size="xs" />
+                            {specLabel}
+                        </span>
+                    )
+                }
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
+            </div>
+        </header>
+
+        {
+            feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                <p class="entities-notice" data-devices-dropped={feed.dropped}>
+                    {isEn
+                        ? `${feed.dropped} entries failed validation and are not listed below.`
+                        : `有 ${feed.dropped} 条数据未通过校验，未在下方列出。`}
+                </p>
+            )
+        }
+
+        <div class="device-sections">
+            {
+                feed.status === "ok" &&
+                    groups.map((group) => (
+                        <section class="entities-section" aria-labelledby={`device-cat-${group.category}`}>
+                            <div class="entities-section__head">
+                                <h2 class="entities-section__title" id={`device-cat-${group.category}`}>
+                                    {group.label}
+                                </h2>
+                                <p class="entities-section__meta">
+                                    {group.items.length} {copy.deviceOne}
+                                </p>
+                            </div>
+                            <ol class="device-grid" role="list">
+                                {group.items.map((device) => (
+                                    <li class="device-grid__item">
+                                        <DeviceCard
+                                            device={device}
+                                            index={ordinalOf.get(device.id) ?? 1}
+                                            locale={loc}
+                                        />
+                                    </li>
+                                ))}
+                            </ol>
+                        </section>
+                    ))
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-devices-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-devices-empty={feed.issue?.code ?? "unknown"}
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:devices" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </div>
+    </article>
+</BaseLayout>

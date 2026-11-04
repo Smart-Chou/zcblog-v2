@@ -1,0 +1,207 @@
+---
+/**
+ * C-1 游戏（M2-7b，中文路由）
+ * ------------------------------------------------------------------
+ * 与 `/devices/` 同构：实体契约归一化 → 按状态分组 → C 层卡片。
+ * 空态 / 错误态都是页面状态：路由永远 200。
+ * 构建期可用 `PUBLIC_GAMES_STATE=empty|error` 预览另两态。
+ *
+ * 分组用固定顺序（在玩 → 已通关 → 待玩 → 搁置），不按条数排：
+ * 顺序随数据变会让读者每次进来都要重新找。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/entities-b.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import GameCard from "~/components/C/GameCard.astro";
+import { games, gamesMeta } from "~/data/entities/games";
+import {
+    GAME_STATUS_ORDER,
+    formatUpdated,
+    gameSpec,
+    gameStatusLabel,
+    normalizeCollection,
+} from "~/types/entities";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(games, gamesMeta, gameSpec, {
+    force: import.meta.env.PUBLIC_GAMES_STATE,
+});
+
+// 组内排序：有年份的按年份倒序（新玩过的在上面），没年份的按标题。
+const items = [...feed.items].sort(
+    (a, b) =>
+        (b.year ?? "").localeCompare(a.year ?? "") || a.title.zh.localeCompare(b.title.zh),
+);
+
+const groups = GAME_STATUS_ORDER.map((status) => ({
+    status,
+    label: gameStatusLabel(status, loc),
+    items: items.filter((game) => game.status === status),
+})).filter((group) => group.items.length > 0);
+
+const finishedCount = items.filter((game) => game.status === "finished").length;
+const totalHours = items.reduce((sum, game) => sum + (game.hours ?? 0), 0);
+const ordinalOf = new Map(items.map((game, position) => [game.id, position + 1]));
+
+const copy = isEn
+    ? {
+          kicker: "GAMES · THE LOG",
+          title: "Games",
+          lede: "What I played and what happened to it. Grouped by state instead of a scoreboard: playing, finished, waiting, set aside.",
+          listMeta: "Fixed order: playing → finished → backlog → shelved",
+          gameOne: "games",
+          finishedOne: "finished",
+          hoursOne: "hours logged",
+          updatedPrefix: "data updated",
+          emptyTitle: "No games logged yet",
+          emptyText:
+              "This site has not filled in its game data yet. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Game data could not be read",
+          errorText:
+              "The game file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "游戏 · 游玩记录",
+          title: "游戏",
+          lede: "玩过什么、后来怎么样了。按状态分组而不是排成就榜：在玩、已通关、待玩、搁置。",
+          listMeta: "固定顺序：在玩 → 已通关 → 待玩 → 搁置",
+          gameOne: "款游戏",
+          finishedOne: "款通关",
+          hoursOne: "小时记录",
+          updatedPrefix: "数据更新于",
+          emptyTitle: "还没有游戏记录",
+          emptyText: "这个站点还没填游戏数据。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "游戏数据读取失败",
+          errorText: "游戏数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh");
+const countLabel = `${items.length} ${copy.gameOne}`;
+const finishedLabel = `${finishedCount} ${copy.finishedOne}`;
+const hoursLabel = `${totalHours} ${copy.hoursOne}`;
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Games", "游戏", "游玩记录", "Steam"]}
+>
+    <article
+        class="entities entities--games"
+        data-games-status={feed.status}
+        data-games-total={feed.total}
+        data-games-groups={groups.length}
+        data-games-stale={String(feed.stale)}
+        data-games-updated={feed.updated ?? ""}
+        aria-labelledby="games-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="games-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:device-gamepad-2" size="xs" />
+                    {countLabel}
+                </span>
+                {
+                    finishedCount > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:trophy" size="xs" />
+                            {finishedLabel}
+                        </span>
+                    )
+                }
+                {
+                    totalHours > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:clock" size="xs" />
+                            {hoursLabel}
+                        </span>
+                    )
+                }
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
+            </div>
+        </header>
+
+        {
+            feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                <p class="entities-notice" data-games-dropped={feed.dropped}>
+                    {isEn
+                        ? `${feed.dropped} entries failed validation and are not listed below.`
+                        : `有 ${feed.dropped} 条数据未通过校验，未在下方列出。`}
+                </p>
+            )
+        }
+
+        <div class="game-sections">
+            {
+                feed.status === "ok" &&
+                    groups.map((group) => (
+                        <section class="entities-section" aria-labelledby={`game-state-${group.status}`}>
+                            <div class="entities-section__head">
+                                <h2 class="entities-section__title" id={`game-state-${group.status}`}>
+                                    {group.label}
+                                </h2>
+                                <p class="entities-section__meta">
+                                    {group.items.length} {copy.gameOne}
+                                </p>
+                            </div>
+                            <ol class="game-grid" role="list">
+                                {group.items.map((game) => (
+                                    <li class="game-grid__item">
+                                        <GameCard
+                                            game={game}
+                                            index={ordinalOf.get(game.id) ?? 1}
+                                            locale={loc}
+                                        />
+                                    </li>
+                                ))}
+                            </ol>
+                        </section>
+                    ))
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-games-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div class="entities-state entities-state--empty" data-games-empty={feed.issue?.code ?? "unknown"}>
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:device-gamepad-2" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </div>
+    </article>
+</BaseLayout>

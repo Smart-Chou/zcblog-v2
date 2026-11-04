@@ -1,0 +1,84 @@
+---
+/**
+ * GameCard — C 层（M2-7b）单条游戏记录
+ *
+ * 契约：只吃 `Game`（src/types/entities.ts）+ locale，0 数据、0 站点私有文案。
+ * 结构：序号 / 标题 · 平台+年份 / 评分 → 一句评价 → 时长。
+ * 状态（在玩 / 已通关 …）由页面按状态分组承载，卡片只留 `data-game-status` 供门禁断言，
+ * 不再重复一个五颜六色的状态块 —— 同一屏里状态已经由分组标题说清楚。
+ *
+ * a11y：序号与五星刻度都是装饰（aria-hidden）；评分另有「4/5」文字，
+ * 不让只靠数格子的人（读屏、色弱）拿不到分数。没填 rating 就不渲染评分块，不显示 0 分。
+ */
+import {
+    gamePlatformLabel,
+    gameStatusLabel,
+    pick,
+    type EntityLocale,
+    type Game,
+} from "~/types/entities";
+
+interface Props {
+    game: Game;
+    /** 列表序号（从 1 起），只做视觉编号。 */
+    index: number;
+    locale: EntityLocale;
+}
+
+const { game, index, locale } = Astro.props;
+
+const title = pick(game.title, locale);
+const note = pick(game.note, locale);
+const platforms = game.platforms.map((platform) => gamePlatformLabel(platform, locale));
+const statusLabel = gameStatusLabel(game.status, locale);
+const rating = game.rating ?? null;
+const hoursLabel = game.hours ? (locale === "en" ? `${game.hours} h` : `${game.hours} 小时`) : "";
+const ordinal = String(index).padStart(2, "0");
+const segments = [1, 2, 3, 4, 5] as const;
+---
+
+<article
+    class="game-card"
+    data-game-id={game.id}
+    data-game-status={game.status}
+    data-game-platforms={game.platforms.join(" ")}
+    data-game-rating={rating ?? ""}
+>
+    <header class="game-card__head">
+        <span class="game-card__index" aria-hidden="true">{ordinal}</span>
+        <div class="game-card__id">
+            <h3 class="game-card__title">{title}</h3>
+            <p class="game-card__meta">
+                <span class="game-card__platforms">{platforms.join(" · ")}</span>
+                {
+                    game.year && (
+                        <>
+                            <span class="game-card__sep" aria-hidden="true">·</span>
+                            <span class="game-card__year">{game.year}</span>
+                        </>
+                    )
+                }
+            </p>
+        </div>
+        {
+            rating !== null && (
+                <p class="game-card__rating" data-rating={rating}>
+                    <span class="game-card__scale" aria-hidden="true">
+                        {segments.map((segment) => (
+                            <i class:list={["game-card__seg", { "is-on": segment <= rating }]} />
+                        ))}
+                    </span>
+                    {/* 分数必须有一段可读文字：刻度条只是给眼睛的，读屏读到的是「4/5」 */}
+                    <span class="game-card__score">{rating}/5</span>
+                </p>
+            )
+        }
+    </header>
+
+    <p class="game-card__note">{note}</p>
+
+    <footer class="game-card__foot">
+        <span class="game-card__state">{statusLabel}</span>
+        {hoursLabel && <span class="game-card__hours">{hoursLabel}</span>}
+    </footer>
+</article>

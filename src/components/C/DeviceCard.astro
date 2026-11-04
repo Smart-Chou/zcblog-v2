@@ -1,0 +1,92 @@
+---
+/**
+ * DeviceCard — C 层（M2-7b）单台设备
+ *
+ * 契约：只吃 `Device`（src/types/entities.ts）+ locale，0 数据、0 站点私有文案。
+ * 结构：序号 / 名称 · 分类·时间跨度 / 状态 → 规格短标签 → 一句话交代 → 外链。
+ * 样式在 `src/styles/pages/entities-b.css`（`.device-card*`），本组件不带 <style>：
+ * 与 ProjectCard 同一判据 —— C 层卡片要在一页里排成网格，样式散进组件会让网格节奏无从统一。
+ *
+ * a11y：序号（.device-card__index）与状态点都是装饰（aria-hidden）；状态另有文字标签，
+ * 不靠颜色单独传达；外链一律 target=_blank + rel="noopener noreferrer"（e2e 会断言）。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+import {
+    deviceCategoryLabel,
+    deviceStatusLabel,
+    formatSpan,
+    pick,
+    type Device,
+    type EntityLocale,
+} from "~/types/entities";
+
+interface Props {
+    device: Device;
+    /** 列表序号（从 1 起），只做视觉编号。 */
+    index: number;
+    locale: EntityLocale;
+}
+
+const { device, index, locale } = Astro.props;
+
+const span = formatSpan(device.since, device.until, locale);
+const category = deviceCategoryLabel(device.category, locale);
+const statusLabel = deviceStatusLabel(device.status, locale);
+const note = pick(device.note, locale);
+const links = device.links ?? [];
+const specsLabel = locale === "en" ? "Specs" : "规格";
+const linksLabel = locale === "en" ? "Links" : "链接";
+const ordinal = String(index).padStart(2, "0");
+---
+
+<article
+    class="device-card"
+    data-device-id={device.id}
+    data-device-status={device.status}
+    data-device-category={device.category}
+>
+    <header class="device-card__head">
+        <span class="device-card__index" aria-hidden="true">{ordinal}</span>
+        <div class="device-card__id">
+            <h3 class="device-card__name">{device.name}</h3>
+            <p class="device-card__meta">
+                <span class="device-card__category">{category}</span>
+                {
+                    span && (
+                        <>
+                            <span class="device-card__sep" aria-hidden="true">·</span>
+                            <span class="device-card__span">{span}</span>
+                        </>
+                    )
+                }
+            </p>
+        </div>
+        <p class="device-card__status" data-status={device.status}>
+            <span class="device-card__status-dot" aria-hidden="true"></span>
+            {statusLabel}
+        </p>
+    </header>
+
+    <ul class="device-card__specs" aria-label={specsLabel}>
+        {
+            device.specs.map((spec) => (
+                <li class="device-card__spec">{spec}</li>
+            ))
+        }
+    </ul>
+
+    <p class="device-card__note">{note}</p>
+
+    {
+        links.length > 0 && (
+            <footer class="device-card__links" aria-label={linksLabel}>
+                {links.map((link) => (
+                    <a class="device-card__link" href={link.href} target="_blank" rel="noopener noreferrer">
+                        {link.label}
+                        <Icon name="tabler:arrow-up-right" size="xs" />
+                    </a>
+                ))}
+            </footer>
+        )
+    }
+</article>

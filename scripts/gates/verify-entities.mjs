@@ -11,13 +11,18 @@
  *
  * 门禁清单
  *   E1 数据文件存在且导出数组 + meta
- *   E2 schema 通过（`src/types/entities.ts` 的 validateProject / validateSkillGroup）
+ *   E2 schema 通过（`src/types/entities.ts` 里该实体的 validate；meta 必填含 owner）
  *   E3 条目 id 唯一（页面锚点与去重的前提）
  *   E4 页面路由存在（zh + en 两份都要）
  *   E5 导航入口存在（`src/config/ui.ts` 的 navLinks）
  *   E6 空数据可构建：[] → empty 态、不抛异常
  *   E7 新鲜度 warning：meta 或任一条目超过 180 天 → WARN（**不 fail**，14 §7 规则 3）
- *   E8 负向自检：坏 schema 必须被判出、旧数据必须判 stale 且不 fail
+ *   E8 负向自检（数据驱动）：从注册表 + 各 spec 的 `requiredFields` 自动生成「逐字段删除」样例，
+ *      再叠加各 spec 自带的 `negatives()` 值级坏样例；旧数据必须判 stale 且不 fail
+ *
+ * E8 为什么改成数据驱动（M2-7a 会签）：旧版把坏样例硬编码在两个 validate 上，新增实体即使
+ * 校验器形同虚设也照样 PASS。现在加一个实体 = 在 ENTITIES 加一条 + spec 里给出 requiredFields
+ * 与 sample()，负向覆盖自动长出来，漏写就会红。
  *
  * 设计取舍：运行时（页面）对坏条目宽容（丢弃 + 错误态），CI 对坏条目严格（dropped > 0 即红）。
  * 两者共用同一份校验器，避免「页面能跑、门禁说没事、数据其实烂了」。
@@ -38,7 +43,7 @@ const TYPES_REL = "src/types/entities.ts";
 const UI_CONFIG_REL = "src/config/ui.ts";
 const FRESHNESS_DAYS = 180; // 与 src/types/entities.ts 的 ENTITY_FRESHNESS_DAYS 对齐（E8 会核对）
 
-/** 实体注册表：M2-7b 追加 devices / games 时只在这里加两条。 */
+/** 实体注册表：新增实体只在这里加一条 + 在契约里给出对应 spec。 */
 const ENTITIES = [
     {
         kind: "projects",
@@ -59,6 +64,26 @@ const ENTITIES = [
         specExport: "skillGroupSpec",
         pages: ["src/pages/skills/index.astro", "src/pages/en/skills/index.astro"],
         nav: "/skills/",
+    },
+    {
+        kind: "devices",
+        label: "设备",
+        file: "src/data/entities/devices.ts",
+        dataExport: "devices",
+        metaExport: "devicesMeta",
+        specExport: "deviceSpec",
+        pages: ["src/pages/devices/index.astro", "src/pages/en/devices/index.astro"],
+        nav: "/devices/",
+    },
+    {
+        kind: "games",
+        label: "游戏",
+        file: "src/data/entities/games.ts",
+        dataExport: "games",
+        metaExport: "gamesMeta",
+        specExport: "gameSpec",
+        pages: ["src/pages/games/index.astro", "src/pages/en/games/index.astro"],
+        nav: "/games/",
     },
 ];
 
@@ -197,7 +222,7 @@ function checkEntity(entity, contract, module) {
 
     return {
         ...stats,
-        id: `E1${entity.kind === "projects" ? "" : "b"}-${entity.kind}`,
+        id: `E1-${entity.kind}`,
         title: `${entity.label} schema`,
         problems,
         detail: `${stats.total} 条${stats.dropped ? ` · 丢弃 ${stats.dropped}` : ""} · updated ${collection.updated ?? "—"}${
@@ -232,64 +257,93 @@ function checkEmptyBuild(contract) {
     };
 }
 
-/* ───────────────────────── E8 负向自检 ───────────────────────── */
+/* ───────────────────────── E8 负向自检（数据驱动） ───────────────────────── */
 
+/**
+ * 负向样例不再硬编码：每个实体的坏样例由三部分构成
+ *   ① `requiredFields` 里每个字段删掉一次（漏必填必须判出）
+ *   ② 样例里**没**列进 `requiredFields` 的字段也删掉一次（删掉必须仍然合法）
+ *      —— 反方向也查：事实必填却漏登记的字段会在这里红
+ *   ③ 各 spec 的 `negatives()`：枚举越界、日期格式、交叉字段矛盾等值级坏样例
+ * ② 是本次改数据驱动的关键：只查 ① 的话，`requiredFields` 少写一个字段永远不会被发现。
+ */
 function checkNegative(contract) {
     const problems = [];
+    let generated = 0;
 
-    const validProject = {
-        id: "demo",
-        title: { zh: "示例", en: "Demo" },
-        summary: { zh: "说明", en: "Summary" },
-        status: "active",
-        started: "2026-01",
-        ended: null,
-        stack: ["Astro"],
-        updated: "2026-01-01",
-    };
+    for (const entity of ENTITIES) {
+        const spec = contract[entity.specExport];
+        if (!spec) {
+            problems.push(`${entity.kind}: 契约里没有 ${entity.specExport}`);
+            continue;
+        }
+        if (typeof spec.sample !== "function" || !Array.isArray(spec.requiredFields)) {
+            problems.push(`${entity.kind}: ${entity.specExport} 缺 sample() 或 requiredFields（E8 无法生成负向样例）`);
+            continue;
+        }
 
-    const cases = [
-        ["缺 title", { ...validProject, title: undefined }],
-        ["en 为空串", { ...validProject, title: { zh: "示例", en: "" } }],
-        ["status 越界", { ...validProject, status: "doing" }],
-        ["started 不是 YYYY-MM", { ...validProject, started: "2026/01" }],
-        ["stack 空数组", { ...validProject, stack: [] }],
-        ["links 非 http", { ...validProject, links: [{ label: "x", href: "javascript:alert(1)" }] }],
-        ["id 不是 slug", { ...validProject, id: "Demo Project" }],
-        // 正则能过、日历不存在：Date.parse 会静默归一成 03-03，必须判出
-        ["updated 不是真实日历日", { ...validProject, updated: "2026-02-31" }],
-    ];
-    for (const [name, fixture] of cases) {
-        if (contract.validateProject(fixture).length === 0) problems.push(`validateProject 放过了「${name}」`);
-    }
-    if (contract.validateProject(validProject).length !== 0) {
-        problems.push("validateProject 误杀合法条目：合法样例被判不合格");
+        const sample = spec.sample();
+        const sampleProblems = spec.validate(sample);
+        if (sampleProblems.length !== 0) {
+            problems.push(`${entity.kind}: 合法样例被误杀 —— ${sampleProblems[0]}`);
+            continue;
+        }
+
+        const required = [...spec.requiredFields];
+        if (required.length === 0) problems.push(`${entity.kind}: requiredFields 为空`);
+
+        for (const field of required) {
+            const fixture = { ...sample };
+            delete fixture[field];
+            generated += 1;
+            if (spec.validate(fixture).length === 0)
+                problems.push(`${entity.kind}: 删掉必填字段 ${field} 后仍通过校验（requiredFields 与 validate 脱节）`);
+        }
+
+        for (const field of Object.keys(sample)) {
+            if (required.includes(field)) continue;
+            const fixture = { ...sample };
+            delete fixture[field];
+            generated += 1;
+            if (spec.validate(fixture).length !== 0)
+                problems.push(`${entity.kind}: 字段 ${field} 事实上必填，但 requiredFields 没登记`);
+        }
+
+        if (typeof spec.negatives !== "function") {
+            problems.push(`${entity.kind}: ${entity.specExport} 缺 negatives()（值级坏样例）`);
+            continue;
+        }
+        for (const [name, fixture] of spec.negatives()) {
+            generated += 1;
+            if (spec.validate(fixture).length === 0) problems.push(`${entity.kind}: 放过「${name}」`);
+        }
     }
 
-    const validGroup = {
-        id: "demo",
-        title: { zh: "示例", en: "Demo" },
-        items: [{ name: "Astro", level: "solid" }],
-        updated: "2026-01-01",
-    };
-    const groupCases = [
-        ["items 空数组", { ...validGroup, items: [] }],
-        ["level 越界", { ...validGroup, items: [{ name: "Astro", level: "master" }] }],
-        ["条目缺 name", { ...validGroup, items: [{ level: "solid" }] }],
-    ];
-    for (const [name, fixture] of groupCases) {
-        if (contract.validateSkillGroup(fixture).length === 0) problems.push(`validateSkillGroup 放过了「${name}」`);
-    }
-    if (contract.validateSkillGroup(validGroup).length !== 0) {
-        problems.push("validateSkillGroup 误杀合法条目：合法样例被判不合格");
+    // meta 必填（14 §7 规则 4：归属到人）
+    const metaRequired = contract.META_REQUIRED_FIELDS ?? [];
+    const validMeta = { updated: today, owner: "someone" };
+    const metaProblems = contract.validateMeta(validMeta);
+    if (metaProblems.length > 0) problems.push(`validateMeta 误杀合法 meta —— ${metaProblems[0]}`);
+    if (!metaRequired.includes("owner")) problems.push("META_REQUIRED_FIELDS 必须包含 owner（14 §7 规则 4）");
+    for (const field of metaRequired) {
+        const fixture = { ...validMeta };
+        delete fixture[field];
+        generated += 1;
+        if (contract.validateMeta(fixture).length === 0)
+            problems.push(`meta 缺 ${field} 仍通过（META_REQUIRED_FIELDS 与 validateMeta 脱节）`);
     }
 
-    // 旧数据必须判 stale，但状态仍是 ok（warning 不 fail）
-    const stale = contract.normalizeCollection([validProject], { updated: "2020-01-01" }, contract.projectSpec, {
-        now: today,
-    });
-    if (!stale.stale) problems.push("2020-01-01 的数据没有被判 stale");
-    if (stale.status !== "ok") problems.push(`stale 数据的状态应为 ok（warning 不 fail），实得 ${stale.status}`);
+    // 旧数据必须判 stale，但状态仍是 ok（warning 不 fail）—— 四个实体逐个验
+    for (const entity of ENTITIES) {
+        const spec = contract[entity.specExport];
+        if (!spec || typeof spec.sample !== "function") continue;
+        const stale = contract.normalizeCollection([spec.sample()], { updated: "2020-01-01", owner: "someone" }, spec, {
+            now: today,
+        });
+        if (!stale.stale) problems.push(`${entity.kind}: 2020-01-01 的数据没有被判 stale`);
+        if (stale.status !== "ok")
+            problems.push(`${entity.kind}: stale 数据的状态应为 ok（warning 不 fail），实得 ${stale.status}`);
+    }
 
     if (contract.ENTITY_FRESHNESS_DAYS !== FRESHNESS_DAYS) {
         problems.push(
@@ -299,9 +353,9 @@ function checkNegative(contract) {
 
     return {
         id: "E8",
-        title: "负向自检",
+        title: "负向自检（数据驱动）",
         ok: problems.length === 0,
-        detail: `${cases.length + groupCases.length} 个坏样例被判出 · stale 不 fail · 阈值同源 ${FRESHNESS_DAYS} 天`,
+        detail: `${ENTITIES.length} 实体 · ${generated} 个自动生成坏样例被判出 · meta 必填 ${metaRequired.join("+")} · stale 不 fail`,
         problems,
     };
 }
