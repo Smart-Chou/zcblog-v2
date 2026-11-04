@@ -82,8 +82,8 @@
             "doc_url": "/design/atoms/card/",
             "doc_page": "src/pages/design/atoms/card.astro",
             "status": "documented",
-            "usage_count": 9,
-            "usage_tags": 22
+            "usage_count": 10,
+            "usage_tags": 23
         },
         {
             "slug": "icon",
@@ -197,8 +197,8 @@
             "doc_url": "/design/components/author/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 10,
-            "usage_tags": 10
+            "usage_count": 11,
+            "usage_tags": 11
         },
         {
             "slug": "badge",
@@ -257,8 +257,8 @@
             "doc_url": "/design/components/donate/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "donatorslist",
@@ -281,8 +281,8 @@
             "doc_url": "/design/components/emptystate/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 2,
-            "usage_tags": 2
+            "usage_count": 3,
+            "usage_tags": 5
         },
         {
             "slug": "essayitem",
@@ -293,8 +293,8 @@
             "doc_url": "/design/components/essayitem/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "friendcard",
@@ -305,8 +305,8 @@
             "doc_url": "/design/components/friendcard/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 5
         },
         {
             "slug": "friendpill",
@@ -329,8 +329,8 @@
             "doc_url": "/design/components/heatmap/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "hitokoto",
@@ -341,8 +341,8 @@
             "doc_url": "/design/components/hitokoto/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "notice",
@@ -353,8 +353,8 @@
             "doc_url": "/design/components/notice/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "pageheader",
@@ -401,8 +401,8 @@
             "doc_url": "/design/components/search/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "servicecard",
@@ -413,8 +413,8 @@
             "doc_url": "/design/components/servicecard/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 4
         },
         {
             "slug": "typewritertext",
@@ -437,8 +437,8 @@
             "doc_url": "/design/components/walinecomment/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 4,
-            "usage_tags": 4
+            "usage_count": 5,
+            "usage_tags": 5
         },
         {
             "slug": "watermark",
@@ -449,8 +449,8 @@
             "doc_url": "/design/components/watermark/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 1,
-            "usage_tags": 1
+            "usage_count": 2,
+            "usage_tags": 2
         },
         {
             "slug": "postcardshell",
@@ -486,8 +486,8 @@
             "doc_url": null,
             "doc_page": null,
             "status": "debt",
-            "usage_count": 2,
-            "usage_tags": 2
+            "usage_count": 3,
+            "usage_tags": 3
         },
         {
             "slug": "bangumicontent",
@@ -510,8 +510,8 @@
             "doc_url": null,
             "doc_page": null,
             "status": "debt",
-            "usage_count": 2,
-            "usage_tags": 2
+            "usage_count": 3,
+            "usage_tags": 3
         },
         {
             "slug": "donatecontent",
@@ -582,8 +582,8 @@
             "doc_url": null,
             "doc_page": null,
             "status": "debt",
-            "usage_count": 2,
-            "usage_tags": 2
+            "usage_count": 3,
+            "usage_tags": 3
         },
         {
             "slug": "talkscontent",

@@ -42,6 +42,29 @@ const PROTECTED_ELEMENTS = new Set(["script", "style", "pre", "textarea", "code"
 /** 允许去掉引号的属性值字符集：无空格/引号/反引号/尖括号/等号/&。 */
 const UNQUOTABLE = /^[A-Za-z0-9._:\/#?~+@!$%-]+$/;
 
+/**
+ * 这些属性的引号**必须保留**：仓库里有 5 处「在产物 HTML 上做字符串断言」的检查，
+ * 去引号会让它们假红（不是真的坏了，而是断言写成了 `class="x"` 这种字面形态）：
+ *   · scripts/gates/verify-atom-docs.mjs:333 · verify-component-docs.mjs:551/578 → `id="props"`
+ *   · e2e/pages-article.spec.ts:552-560 → `class="toc-list"` / `class="toc-link"` / `id="<slug>"`
+ *   · e2e/pages-friends.spec.ts:520/522 → `class="friend-card"` / `class="friends-apply"`
+ *   · e2e/pages-talks-donate.spec.ts:613/641 → `class="essay-card"` / `class="donator"`
+ * 改这些断言（改成正则/quote-agnostic）应当单独开卡：本卡的边界不允许动别人的门禁，
+ * 而且「产物形态变了要连带改门禁」这件事该一次说清，不该顺手埋进来。
+ * `lang`/`hreflang`/`rel` 也留着：i18n 门禁与 SeoLinks 的断言直接比字符串语义。
+ */
+const UNQUOTE_SKIP = new Set([
+    "class",
+    "id",
+    "href",
+    "src",
+    "lang",
+    "hreflang",
+    "rel",
+    "aria-label",
+    "aria-labelledby",
+]);
+
 /** ` name = "value"` —— 只在标签内部匹配，值不含 `"`（HTML 不允许未转义引号）。 */
 const ATTRIBUTE_RE = /\s([A-Za-z_:][A-Za-z0-9_.:-]*)\s*=\s*"([^"]*)"/g;
 
@@ -122,7 +145,8 @@ function rewriteTag(tag, stats) {
     // 自闭合标签里不能去引号：`<img src=x/>` 的 `/` 会被吞进属性值
     if (/\/\s*>$/.test(out)) return out;
     out = out.replace(ATTRIBUTE_RE, (match, name, value) => {
-        if (!value || !UNQUOTABLE.test(value) || value.endsWith("/")) return match;
+        if (!value || UNQUOTE_SKIP.has(name.toLowerCase())) return match;
+        if (!UNQUOTABLE.test(value) || value.endsWith("/")) return match;
         stats.quoteBytes += 2;
         stats.quoteCount += 1;
         return ` ${name}=${value}`;
