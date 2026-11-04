@@ -49,6 +49,10 @@ async function openPage(page: Page, url: string, theme: Theme): Promise<void> {
             requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         );
     });
+    // 主题切换会触发元素上的 color / background-color 过渡（最长 --duration-slow 350ms）。
+    // 过渡没走完时 getComputedStyle 返回的是**插值中间色**，axe 会按中间色算对比度 →
+    // 假红（实测偶发 2.89 / 1.5 这种「浅底深字/深底浅字」混色）。等过渡落定再测。
+    await page.waitForTimeout(420);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
@@ -226,6 +230,12 @@ for (const page_ of PAGES) {
         for (const theme of THEMES) {
             await page.setViewportSize({ width: 1440, height: 900 });
             await openPage(page, page_.url, theme);
+
+            // 对比度是静态属性：把过渡/动画关掉再量，避免拿到插值中间色（见 openPage 注释）。
+            await page.addStyleTag({
+                content:
+                    "*, *::before, *::after { transition: none !important; animation: none !important; }",
+            });
 
             const shell = await runAxe(page, page_.shell);
             const doc = await runAxe(page);
@@ -536,6 +546,22 @@ test("赞赏契约：收款方式 = 注入数，每张码图有 src+alt，页面
     const donators = await page.locator(`${DONATE.shell} .donator`).count();
     expect(donators, "名单条目数 = adapter total").toBe(total);
     console.log(`[donate] ${methods.length} 种方式 / ${donators} 位支持者 / 0 空 src`);
+});
+
+/* ───────────────────────── 9b. 图标闭集 ───────────────────────── */
+
+test("图标全部来自闭集：页面主体内 0 个 ? 兜底", async ({ page }) => {
+    for (const page_ of PAGES) {
+        await page.goto(page_.url, { waitUntil: "load" });
+        const fallbacks = await page.evaluate(
+            (sel) =>
+                [...document.querySelectorAll(`${sel} .icon > span`)]
+                    .map((el) => (el.textContent ?? "").trim())
+                    .filter((text) => text === "?"),
+            page_.shell,
+        );
+        expect(fallbacks, `${page_.key}: DynamicIcon 找不到图标名时会渲染 ? 兜底`).toEqual([]);
+    }
 });
 
 /* ───────────────────────── 10. 空态 / 错误态（真实构建） ───────────────────────── */

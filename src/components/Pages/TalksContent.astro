@@ -85,13 +85,13 @@ const MAX_TAGS = 24;
             <p class="talks-lede">{t(loc, "talks.subtitle")}</p>
             <div class="talks-hero__meta">
                 <span class="talks-chip">
-                    <Icon name="tabler:message-2" size="xs" />
+                    <Icon name="tabler:message-chatbot-filled" size="xs" />
                     {countLabel}
                 </span>
                 {
                     resolved.tags.length > 0 && (
                         <span class="talks-chip">
-                            <Icon name="tabler:hash" size="xs" />
+                            <Icon name="tabler:tags" size="xs" />
                             {tagCountLabel}
                         </span>
                     )
@@ -185,7 +185,7 @@ const MAX_TAGS = 24;
                         data-talks-empty={resolved.issue?.code ?? "unknown"}
                     >
                         <span class="talks-state__icon" aria-hidden="true">
-                            <Icon name="tabler:message-2" size="lg" />
+                            <Icon name="tabler:message-chatbot-filled" size="lg" />
                         </span>
                         <p class="talks-state__title">
                             {isEn ? "No talks yet" : "还没有随笔"}

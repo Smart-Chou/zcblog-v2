@@ -91,13 +91,13 @@ const methodLabel = isEn
             <p class="donations-lede">{t(loc, "donate.description")}</p>
             <div class="donations-hero__meta">
                 <span class="donations-chip">
-                    <Icon name="tabler:users" size="xs" />
+                    <Icon name="tabler:user-circle" size="xs" />
                     {countLabel}
                 </span>
                 {
                     resolved.amountTotal > 0 && (
                         <span class="donations-chip">
-                            <Icon name="tabler:coin" size="xs" />
+                            <Icon name="tabler:heart-handshake" size="xs" />
                             {isEn ? "total " : "累计 "}
                             {resolved.currency}
                             {formatAmount(resolved.amountTotal)}

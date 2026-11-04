@@ -5,10 +5,12 @@
  * 只渲染 adapter 归一化后的 `Donator[]`（名字必填、金额已校验、日期已归一）。
  * 设计取舍（相对旧版）：
  * - 日期不再「只在 hover 时显示」：hover 才可见的信息在触摸/键盘下等于不存在。
- * - 头像没有就渲染首字，不请求占位图；有头像时 alt=""（名字紧邻）。
+ * - 没有头像就渲染闭集里的 user-circle 图标（不是首字）：首字在 1 个字符时会让
+ *   axe 的对比度检查降级成 incomplete，且「张三」这类名字取两个字会和名字重复。
  * - 金额为 0 表示「心意已收、未记账」，此时不渲染 ¥0.00。
  */
 import type { Donator } from "~/data/adapters/donate";
+import Icon from "~/components/UI/atom/Icon.astro";
 import type { Locale } from "~/utils/i18n";
 
 interface Props {
@@ -51,7 +53,7 @@ const formatDate = (date: string) => {
                             decoding="async"
                         />
                     ) : (
-                        <span class="donator__initial">{donator.name.slice(0, 2)}</span>
+                        <Icon name="tabler:user-circle" size="sm" />
                     )}
                 </span>
                 <div class="donator__body">
@@ -107,11 +109,8 @@ const formatDate = (date: string) => {
         border-radius: var(--radius-pill);
         overflow: hidden;
         background-color: var(--color-accent-subtle);
-        /* 首字压在 accent-subtle 上：--color-fg-link 在暗色只有 3.52，改用默认前景色 */
+        /* 占位图标压在 accent-subtle 上：--color-fg-link 在暗色只有 3.52 → 用默认前景色 */
         color: var(--color-fg-default);
-        font-family: var(--font-serif);
-        font-size: var(--text-lg);
-        font-weight: var(--font-weight-semibold);
     }
 
     .donator__avatar img {
