@@ -146,6 +146,12 @@
     justify-content: flex-end;
     gap: var(--space-2) var(--space-3);
     margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.music-track__item {
+    display: flex;
 }
 
 .music-track__link {
@@ -344,7 +350,7 @@
     }
 }
 
-/* ── 窄屏：序号 + 封面收窄，标题独占主体列 ───────────────── */
+/* ── 窄屏：序号 + 封面收窄，动作行跟正文列对齐（不挂到页面左边缘） ── */
 
 @media (max-width: 450px) {
     .music-track {
@@ -354,7 +360,7 @@
     }
 
     .music-track__actions {
-        grid-column: 1 / -1;
+        grid-column: 3 / -1;
     }
 
     .music-track__title {

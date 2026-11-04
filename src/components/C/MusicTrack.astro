@@ -87,19 +87,22 @@ const separator = "·";
         {!hasAudio && <p class="music-track__hint">{noSourceLabel}</p>}
         {
             links.length > 0 && (
-                <p class="music-track__links" aria-label={linksLabel}>
+                <ul class="music-track__links" aria-label={linksLabel}>
                     {links.map((link) => (
-                        <a
-                            class="music-track__link"
-                            href={link.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            {link.label}
-                            <Icon name="tabler:external-link" size="xs" />
-                        </a>
+                        <li class="music-track__item">
+                            <a
+                                class="music-track__link"
+                                href={link.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {link.label}
+                                <span class="sr-only"> · {track.title}</span>
+                                <Icon name="tabler:external-link" size="xs" />
+                            </a>
+                        </li>
                     ))}
-                </p>
+                </ul>
             )
         }
     </div>

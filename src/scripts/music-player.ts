@@ -68,6 +68,7 @@ function buildBody(copy: PlayerCopy): {
 } {
     const body = document.createElement("div");
     body.className = "music-player__body";
+    body.dataset.musicPlayerBody = "";
     body.tabIndex = -1;
 
     const head = document.createElement("div");
@@ -116,7 +117,7 @@ function teardownAudio(target: PlayerInstance): void {
 }
 
 function create(mount: HTMLElement, copy: PlayerCopy): PlayerInstance {
-    const { body, title, notice, closeButton } = buildBody(copy);
+    const { body, notice, closeButton } = buildBody(copy);
 
     const self: PlayerInstance = {
         mount,
@@ -138,7 +139,6 @@ function create(mount: HTMLElement, copy: PlayerCopy): PlayerInstance {
     });
 
     mount.append(body);
-    title.dataset.musicNowTitle = "";
     return self;
 }
 
@@ -178,7 +178,10 @@ function show(target: PlayerInstance, track: PlayerTrack, copy: PlayerCopy): voi
 
     const audio = document.createElement("audio");
     audio.controls = true;
-    audio.preload = "none";
+    // preload="metadata" + 显式 load()：请求由「打开条目」这一个用户动作触发，
+    // 而不是页面加载触发；用 "none" 的话 play() 被自动播放策略拒绝时连锁定元数据都不发，
+    // 看上去就像播放器根本没接上。
+    audio.preload = "metadata";
     audio.className = "music-player__element";
     audio.dataset.musicAudioElement = "";
     audio.setAttribute("aria-label", track.title);
@@ -196,6 +199,7 @@ function show(target: PlayerInstance, track: PlayerTrack, copy: PlayerCopy): voi
 
     target.mount.dataset.musicPlayerState = "open";
     audio.src = track.audio;
+    audio.load();
     // 点击就是手势：这里 play() 才算「用户要求播放」，页面加载时永远不会走到
     void audio.play().catch(() => {
         // 自动播放被策略拒绝 / 源不可解码：状态交给 error 事件，面板不假装在放
