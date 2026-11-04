@@ -1,0 +1,30 @@
+---
+/**
+ * CultureGrid — C 层（M2-9）文化入口列表
+ *
+ * 契约：吃 `CultureEntry[]`，只负责「一条一行」的排版容器；不筛数据、不补空态。
+ * 空态由页面决定（本组件在 0 条时根本不会被渲染）—— 在组件里塞空态文案就等于
+ * 让「入口列表」知道了页面状态，之后每加一个来源都要改组件。
+ *
+ * 样式在 `src/styles/pages/culture.css`（`.culture-grid*`），本组件不带 <style>。
+ */
+import CultureCard from "~/components/Culture/CultureCard.astro";
+import type { CultureEntry } from "~/components/Culture/CultureCard.astro";
+
+interface Props {
+    entries: CultureEntry[];
+    breakdownLabel: string;
+}
+
+const { entries, breakdownLabel } = Astro.props;
+---
+
+<ul class="culture-grid" data-culture-grid>
+    {
+        entries.map((entry) => (
+            <li class="culture-grid__item">
+                <CultureCard entry={entry} breakdownLabel={breakdownLabel} />
+            </li>
+        ))
+    }
+</ul>

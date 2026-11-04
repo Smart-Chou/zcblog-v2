@@ -1,0 +1,327 @@
+---
+/**
+ * C-2 文化聚合（M2-9，中文路由）
+ * ------------------------------------------------------------------
+ * 这一页只做一件事：把「已经存在的」三个收藏页摆成一个入口目录。
+ * 它不是第四个数据源，也不搬子页正文 —— 番剧 / 豆瓣 / 歌单的正文仍在原路由，
+ * 这里只给路标（刻意不做 301：旧地址就是正文地址，搬了反而断外链）。
+ *
+ * 三条判据（本卡核心，e2e 逐条断言）：
+ * 1. **缺实体则不渲染**：条目数为 0、数据形状不合法（bangumi/douban 静态 JSON
+ *    没通过形状探针、music 实体没过 normalizeCollection）时，那张卡整张不出现，
+ *    而不是渲染一张「0 条」的空卡。
+ * 2. **只链接已存在的路由**：`routeExists()` 直接查 `src/pages/<href>/index.astro`
+ *    是否真的在仓库里；目标页被删了，入口自己就消失，不会留下通向 404 的链接。
+ *    英文页查 `/en/...`，因为中英是两套文件。
+ * 3. **计数只有一个出处**：条数 / 分类构成 / 年份跨度全部由本文件从数据算好，
+ *    卡片只负责排版；歌单与豆瓣音乐的同源 4 条在这里去重，页面因此敢同时报
+ *    「原始 45 / 去重后 41」两个数。
+ *
+ * 构建期开关（只用于验收与截图，不改数据）：
+ *   PUBLIC_CULTURE_OMIT=music,douban   按 id 剔除来源（模拟「缺实体」）
+ *   PUBLIC_CULTURE_STATE=empty         三个来源全剔除（走空态）
+ */
+import { existsSync } from "node:fs";
+import path from "node:path";
+
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/culture.css";
+
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import CultureGrid from "~/components/Culture/CultureGrid.astro";
+import type { CultureEntry, CultureStat } from "~/components/Culture/CultureCard.astro";
+import { site } from "~/config";
+import bangumiJson from "~/data/bangumi.json";
+import doubanJson from "~/data/douban.json";
+import { music, musicMeta } from "~/data/entities/music";
+import { musicArtistCount, musicSpec, musicYearSpan, normalizeCollection } from "~/types/entities";
+import { getLocale, t } from "~/utils/i18n";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+/* ───────────────────── 1. 路由探针 ─────────────────────────── */
+
+/** 只认真实的页面文件：`/music/` → `src/pages/music/index.astro`。 */
+const PAGES_ROOT = path.resolve(process.cwd(), "src/pages");
+const routeExists = (href: string): boolean =>
+    existsSync(path.join(PAGES_ROOT, href.replace(/^\/+|\/+$/g, ""), "index.astro"));
+
+/* ───────────────────── 2. 三个来源的实体探针 ───────────────── */
+
+/** bangumi.json 的形状（只取本页要用的两栏）。 */
+interface BangumiItem {
+    updated_at?: string;
+    subject?: { date?: string };
+}
+
+/** douban.json 的形状（只取本页要用的三栏）。 */
+interface DoubanItem {
+    url?: string;
+    type?: string;
+    date?: string;
+}
+
+const BANGUMI_KEYS = ["anime", "book", "music", "game", "tv"] as const;
+const bangumiRaw = bangumiJson as unknown as Record<string, BangumiItem[] | undefined>;
+const bangumiGroups = BANGUMI_KEYS.map((key) => ({
+    key,
+    label: t(loc, `bangumi.categories.${key}`),
+    items: Array.isArray(bangumiRaw[key]) ? (bangumiRaw[key] as BangumiItem[]) : [],
+})).filter((group) => group.items.length > 0);
+const bangumiTotal = bangumiGroups.reduce((sum, group) => sum + group.items.length, 0);
+const bangumiYears = bangumiGroups
+    .flatMap((group) => group.items.map((item) => item.subject?.date ?? ""))
+    .filter((date) => /^\d{4}/.test(date))
+    .map((date) => date.slice(0, 4))
+    .sort();
+const bangumiFirst = bangumiYears.at(0);
+const bangumiLast = bangumiYears.at(-1);
+const bangumiSpan =
+    bangumiFirst && bangumiLast ? (bangumiFirst === bangumiLast ? bangumiFirst : `${bangumiFirst}–${bangumiLast}`) : "";
+const bangumiSnapshot = bangumiGroups
+    .flatMap((group) => group.items.map((item) => (item.updated_at ?? "").slice(0, 10)))
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+const DOUBAN_TYPES = ["book", "movie", "music"] as const;
+const doubanItems: DoubanItem[] = Array.isArray(doubanJson) ? (doubanJson as DoubanItem[]) : [];
+const doubanGroups = DOUBAN_TYPES.map((type) => ({
+    type,
+    label: t(loc, `douban.tabs.${type}`),
+    items: doubanItems.filter((item) => item.type === type),
+})).filter((group) => group.items.length > 0);
+const doubanTotal = doubanGroups.reduce((sum, group) => sum + group.items.length, 0);
+const doubanSnapshot =
+    doubanItems
+        .map((item) => (item.date ?? "").slice(0, 10))
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? "";
+
+/** 歌单走实体契约：形状不合法 = 没有实体 = 入口不渲染（不是「0 条的空卡」）。 */
+const musicFeed = normalizeCollection(music, musicMeta, musicSpec, {});
+const musicTracks = musicFeed.status === "ok" ? musicFeed.items : [];
+const musicSingles = musicTracks.filter((track) => track.format === "single").length;
+const musicAlbums = musicTracks.filter((track) => track.format === "album").length;
+
+/* ───────────────────── 3. 同源去重 ─────────────────────────── */
+
+/** 豆瓣条目 id：`https://music.douban.com/subject/5064190/` → `5064190`。 */
+const doubanSubjectId = (url: string | undefined): string => {
+    const match = /subject\/(\d+)/.exec(url ?? "");
+    return match ? match[1] : "";
+};
+const doubanSubjectIds = new Set(doubanItems.map((item) => doubanSubjectId(item.url)).filter(Boolean));
+const musicSharedTracks = musicTracks.filter((track) =>
+    (track.links ?? []).some((link) => doubanSubjectIds.has(doubanSubjectId(link.href))),
+);
+
+/* ───────────────────── 4. 三个入口的候选 ───────────────────── */
+
+type Candidate = Omit<CultureEntry, "index">;
+
+const bangumiLabels = bangumiGroups.map((group) => group.label).join(isEn ? ", " : "、");
+const bangumiNote = isEn
+    ? `An export of my Bangumi account, split into ${bangumiLabels}${bangumiSnapshot ? ` (snapshot ${bangumiSnapshot})` : ""}.`
+    : `Bangumi 账号导出的收藏，按${bangumiLabels}分栏${bangumiSnapshot ? `（${bangumiSnapshot} 快照）` : ""}。`;
+
+const doubanLabels = doubanGroups.map((group) => group.label).join(isEn ? ", " : "、");
+const doubanNote = isEn
+    ? `${doubanLabels} recorded on Douban: rating, status and a link to each subject${doubanSnapshot ? ` (${doubanSnapshot} snapshot)` : ""}.`
+    : `豆瓣上的${doubanLabels}记录：评分、状态与条目链接${doubanSnapshot ? `（${doubanSnapshot} 快照）` : ""}。`;
+
+const musicNote = isEn
+    ? `${musicTracks.length} records picked out of the Douban music list into their own playlist — links out, no hosted audio.`
+    : `从豆瓣音乐里挑出的 ${musicTracks.length} 张，独立成一页歌单 —— 有外链，不托管音频。`;
+
+const stat = (label: string, value: string): CultureStat => ({ label, value });
+
+const candidates: Candidate[] = [
+    {
+        id: "bangumi",
+        href: isEn ? "/en/bangumi/" : "/bangumi/",
+        count: bangumiTotal,
+        kicker: isEn ? "BANGUMI · ACCOUNT EXPORT" : "BANGUMI · 账号导出",
+        title: isEn ? "Bangumi" : "番剧",
+        note: bangumiNote,
+        stats: [
+            stat(isEn ? "records" : "记录", String(bangumiTotal)),
+            stat(isEn ? "categories" : "分类", String(bangumiGroups.length)),
+            stat(isEn ? "years" : "年份", bangumiSpan),
+        ],
+        breakdown: bangumiGroups.map((group) => `${group.label} ${group.items.length}`),
+    },
+    {
+        id: "douban",
+        href: isEn ? "/en/douban/" : "/douban/",
+        count: doubanTotal,
+        kicker: isEn ? "DOUBAN · FETCHED SNAPSHOT" : "DOUBAN · 抓取快照",
+        title: isEn ? "Douban" : "豆瓣书影音",
+        note: doubanNote,
+        stats: [
+            stat(isEn ? "records" : "记录", String(doubanTotal)),
+            stat(isEn ? "categories" : "分类", String(doubanGroups.length)),
+            stat(isEn ? "snapshot" : "快照", doubanSnapshot),
+        ],
+        breakdown: doubanGroups.map((group) => `${group.label} ${group.items.length}`),
+    },
+    {
+        id: "music",
+        href: isEn ? "/en/music/" : "/music/",
+        count: musicTracks.length,
+        kicker: isEn ? "DOUBAN MUSIC · HAND-PICKED" : "DOUBAN MUSIC · 人工挑选",
+        title: isEn ? "Playlist" : "歌单",
+        note: musicNote,
+        stats: [
+            stat(isEn ? "works" : "作品", String(musicTracks.length)),
+            stat(isEn ? "artists" : "主艺人", String(musicArtistCount(musicTracks))),
+            stat(isEn ? "years" : "年份", musicYearSpan(musicTracks)),
+        ],
+        breakdown: [
+            ...(musicSingles > 0 ? [`${isEn ? "Singles" : "单曲"} ${musicSingles}`] : []),
+            ...(musicAlbums > 0 ? [`${isEn ? "Albums" : "专辑"} ${musicAlbums}`] : []),
+        ],
+    },
+];
+
+/* ───────────────────── 5. 条件渲染 ─────────────────────────── */
+
+const CULTURE_IDS = ["bangumi", "douban", "music"] as const;
+
+const omitted = new Set(
+    String(import.meta.env.PUBLIC_CULTURE_OMIT ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+);
+const forcedEmpty = import.meta.env.PUBLIC_CULTURE_STATE === "empty";
+const hidden = new Set<string>(forcedEmpty ? [...CULTURE_IDS] : [...omitted]);
+
+const entries: CultureEntry[] = candidates
+    .filter((entry) => entry.count > 0 && !hidden.has(entry.id) && routeExists(entry.href))
+    .map((entry, index) => ({ ...entry, index: String(index + 1).padStart(2, "0") }));
+
+const rawTotal = entries.reduce((sum, entry) => sum + entry.count, 0);
+const showsMusic = entries.some((entry) => entry.id === "music");
+const showsDouban = entries.some((entry) => entry.id === "douban");
+/** 只有在两张卡都在场时才谈得上「同源」；缺一张就无从比对，不去编一个数。 */
+const overlap = showsMusic && showsDouban ? musicSharedTracks.length : 0;
+const uniqueTotal = rawTotal - overlap;
+
+/* ───────────────────── 6. 文案 ─────────────────────────────── */
+
+const ledeBase = isEn
+    ? "Anime, Douban books-and-screens, and the playlist — three entries pointing at three pages that already exist. If a source has no data, or its page is gone, its entry simply isn't here: this page only lists places you can actually go."
+    : "番剧、豆瓣书影音、歌单 —— 三个入口，指向站里已经存在的三页。哪个来源没有数据、或者那一页不在了，这里就不会出现它的入口：这一页只列真的能进去的地方。";
+
+const ledeDedupe =
+    overlap > 0
+        ? isEn
+            ? `${rawTotal} records counted; ${overlap} of them are the playlist and Douban music seeing the same entry twice, so ${uniqueTotal} unique.`
+            : `数下来 ${rawTotal} 条，其中 ${overlap} 条是歌单与豆瓣音乐的同一条记录，去重后 ${uniqueTotal} 条。`
+        : "";
+
+const copy = isEn
+    ? {
+          kicker: "CULTURE · COLLECTIONS",
+          title: "Culture",
+          lede: ledeDedupe ? `${ledeBase} ${ledeDedupe}` : ledeBase,
+          listTitle: "Entries",
+          listMeta: "Fixed order · Bangumi → Douban → Playlist",
+          entriesLabel: `${entries.length} ${entries.length === 1 ? "entry" : "entries"}`,
+          uniqueLabel: `${uniqueTotal} unique records`,
+          rawLabel: `${rawTotal} raw · ${overlap} shared`,
+          note: "Conditional, not decorative: every count and category is read out of the data files. When a source is empty, malformed, or its target route is not in the repo, the card is not rendered at all — never an entry that leads to a 404.",
+          emptyTitle: "None of the three sources has anything to show",
+          emptyText:
+              "The Bangumi, Douban and playlist data files are all empty, so there are no entries here. The empty state is part of the page: the route still resolves, and entries appear on their own once there is data.",
+          breakdownLabel: "Composition",
+      }
+    : {
+          kicker: "CULTURE · 收藏目录",
+          title: "文化",
+          lede: ledeDedupe ? `${ledeBase} ${ledeDedupe}` : ledeBase,
+          listTitle: "入口",
+          listMeta: "固定顺序 · 番剧 → 豆瓣 → 歌单",
+          entriesLabel: `${entries.length} 个入口`,
+          uniqueLabel: `${uniqueTotal} 条记录（去重后）`,
+          rawLabel: `${rawTotal} 条原始 · ${overlap} 条同源`,
+          note: "条件渲染不是装饰：条目数与分类构成都从数据文件里数出来，某个来源为空、格式不合法、或目标路由不在仓库里时，整张卡不渲染 —— 而不是留一个通向 404 的入口。",
+          emptyTitle: "三个来源暂时都没有可展示的记录",
+          emptyText:
+              "番剧、豆瓣、歌单的数据文件都没数，所以这一页没有入口。空态也是页面的一部分：路由照常可访问，有数据时入口会自己出现。",
+          breakdownLabel: "分类构成",
+      };
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={ledeBase}
+    keywords={["Culture", "文化", "Bangumi", "番剧", "豆瓣", "Douban", "歌单", "Playlist"]}
+>
+    <article
+        class="entities entities--culture"
+        data-culture-status={entries.length > 0 ? "ok" : "empty"}
+        data-culture-entries={entries.length}
+        data-culture-raw={rawTotal}
+        data-culture-unique={uniqueTotal}
+        data-culture-overlap={overlap}
+        data-culture-hidden={[...hidden].join(",")}
+        aria-labelledby="culture-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="culture-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:stack-2" size="xs" />
+                    {copy.entriesLabel}
+                </span>
+                <span class="entities-chip">
+                    <Icon name="tabler:circle-check" size="xs" />
+                    {copy.uniqueLabel}
+                </span>
+                {
+                    overlap > 0 && (
+                        <span class="entities-chip entities-chip--quiet">{copy.rawLabel}</span>
+                    )
+                }
+            </div>
+        </header>
+
+        <section class="entities-section" aria-labelledby="culture-entries-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="culture-entries-title">
+                    {copy.listTitle}
+                </h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            {
+                entries.length > 0 ? (
+                    <>
+                        <CultureGrid entries={entries} breakdownLabel={copy.breakdownLabel} />
+                        <p class="culture-note">{copy.note}</p>
+                    </>
+                ) : (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-culture-empty="no-entries"
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:library-photo" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </section>
+    </article>
+</BaseLayout>

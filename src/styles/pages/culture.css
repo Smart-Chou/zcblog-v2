@@ -1,0 +1,260 @@
+/* ============================================================
+   C-2 · 文化聚合（M2-9）
+   ------------------------------------------------------------
+   版式：索引条幅。一页三张，不是三张孤零零的卡：每张是一整行
+   「序号 | 来源·标题·一句说明 | 统计 | 分类构成」，宽屏下像目录页，
+   窄屏收成一列。这样 1440 下不会出现「三张卡片浮在 1200 宽的格子里」。
+
+   为什么不用 auto-fill 网格：条目数恒为 3（且可能因缺数据变成 2 或 1），
+   auto-fill 的列数是视口算出来的，卡数一变就留空位；这里干脆固定
+   「一条一行」，列数不参与契约（与 albums 的判据相反，因为那边条目是几十个）。
+
+   约束（与 entities.css / entities-b.css 同一判据）：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl()。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 整张卡是标题链接的 ::after 热区（stretched link）：一张卡只有一个
+     Tab 停靠点，读屏只念一次标题。
+   ============================================================ */
+
+.culture-grid {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.culture-grid__item {
+    display: flex;
+    min-inline-size: 0;
+}
+
+/* ── 条幅 ─────────────────────────────────────────────────── */
+
+.culture-card {
+    position: relative;
+    display: grid;
+    grid-template-areas:
+        "index"
+        "main"
+        "stats"
+        "foot";
+    gap: var(--space-4);
+    inline-size: 100%;
+    padding: var(--space-6);
+    border: 1px solid var(--color-border-subtle);
+    border-block-start: 2px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    transition:
+        border-color var(--duration-base) var(--ease-standard),
+        box-shadow var(--duration-base) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .culture-card:hover {
+        border-color: var(--color-border-default);
+        border-block-start-color: var(--color-accent-solid);
+        box-shadow: var(--shadow-2);
+    }
+
+    .culture-card:hover .culture-card__title-link {
+        color: var(--color-fg-link);
+    }
+
+    .culture-card:hover .culture-card__arrow {
+        transform: translateX(var(--space-1));
+    }
+}
+
+.culture-card__index {
+    grid-area: index;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.culture-card__main {
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-inline-size: 0;
+}
+
+.culture-card__kicker {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.culture-card__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+}
+
+.culture-card__title-link {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    color: var(--color-fg-heading);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+/* 整张卡是热区：一张卡一个链接、一个 Tab 停靠点 */
+.culture-card__title-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+}
+
+.culture-card__title-link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: var(--space-1);
+    border-radius: var(--radius-xs);
+}
+
+.culture-card__arrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    line-height: var(--leading-none);
+    color: var(--color-fg-muted);
+    transition:
+        transform var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
+}
+
+.culture-card__note {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+/* ── 统计 ─────────────────────────────────────────────────── */
+
+.culture-card__stats {
+    grid-area: stats;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-6);
+    margin: 0;
+    padding: var(--space-4) 0 0;
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.culture-card__stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.culture-card__stat-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.culture-card__stat-value {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-heading);
+}
+
+/* ── 分类构成 ─────────────────────────────────────────────── */
+
+.culture-card__breakdown {
+    grid-area: foot;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-muted);
+}
+
+.culture-card__breakdown-item + .culture-card__breakdown-item::before {
+    content: "·";
+    margin-inline-end: var(--space-2);
+    color: var(--color-border-strong);
+}
+
+/* ── 脚注 ─────────────────────────────────────────────────── */
+
+.culture-note {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+/* ── 宽屏：目录条幅（序号 | 主栏 | 统计右栏） ─────────────── */
+
+@media (min-width: 1024px) {
+    .culture-card {
+        grid-template-columns: var(--space-8) minmax(0, 1fr) auto;
+        grid-template-rows: auto 1fr;
+        grid-template-areas:
+            "index main stats"
+            "index foot stats";
+        column-gap: var(--space-8);
+        padding: var(--space-8);
+    }
+
+    .culture-card__title {
+        font-size: var(--text-3xl);
+    }
+
+    .culture-card__stats {
+        flex-direction: column;
+        align-items: flex-end;
+        text-align: end;
+        padding: 0 0 0 var(--space-6);
+        border-block-start: 0;
+        border-inline-start: 1px solid var(--color-border-subtle);
+    }
+
+    .culture-card__breakdown {
+        align-self: end;
+    }
+}
+
+/* ── 降低动效 ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .culture-card,
+    .culture-card__title-link,
+    .culture-card__arrow {
+        transition: none;
+    }
+
+    .culture-card:hover .culture-card__arrow {
+        transform: none;
+    }
+}

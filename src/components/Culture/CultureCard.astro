@@ -1,0 +1,92 @@
+---
+/**
+ * CultureCard — C 层（M2-9）文化聚合入口的一张卡
+ *
+ * 契约：只吃 `CultureEntry`（本文件导出）+ 一个分组标题，0 数据读取、0 站点私有文案。
+ * 计数、年份跨度、分类构成全由页面算好传进来 —— 卡片自己再算一遍就会出现
+ * 「页面显示 31、卡片显示 30」这种两套口径。
+ *
+ * 结构：序号（装饰）/ 来源 · 标题 / 一句说明 / 统计（dl）/ 分类构成（ul）。
+ * 一张卡只有一个链接（标题），用 `::after` 铺满整张卡做热区：
+ * 整卡可点，但 Tab 只停一次、读屏只念一次标题（不是「同一目标两个链接」）。
+ *
+ * 样式在 `src/styles/pages/culture.css`（`.culture-card*`），本组件不带 <style>：
+ * 与 ProjectCard / DeviceCard 同一判据 —— C 层卡片的节奏归页面样式表管。
+ */
+
+export interface CultureStat {
+    /** 统计项名称（「记录」「分类」「年份」）；大小写交给 CSS。 */
+    label: string;
+    /** 统计值（已格式化好的字符串：31 / 1965–2024 / 2026-05-23）。 */
+    value: string;
+}
+
+export interface CultureEntry {
+    /** 稳定键（bangumi / douban / music），e2e 与 data 属性用它。 */
+    id: string;
+    /** 视觉序号（01、02…）；由页面按渲染后的顺序生成，缺来源时不留空洞。 */
+    index: string;
+    /** 来源说明（provenance），不是标题的复读。 */
+    kicker: string;
+    /** 入口名 = 目标页面名。 */
+    title: string;
+    /** 一句「里面有什么」，说明口径与数据来源。 */
+    note: string;
+    /** 站点内路由（构建期已验证存在）。 */
+    href: string;
+    /** 该来源的实体条数；渲染前已保证 > 0（0 的卡根本不会到这一层）。 */
+    count: number;
+    stats: CultureStat[];
+    /** 分类构成（「动画 14」「书籍 6」…）；空数组则不渲染该行。 */
+    breakdown: string[];
+}
+
+interface Props {
+    entry: CultureEntry;
+    /** 分类清单的读屏名称（「分类构成」/「Composition」）。 */
+    breakdownLabel: string;
+}
+
+const { entry, breakdownLabel } = Astro.props;
+---
+
+<article
+    class="culture-card"
+    data-culture-entry={entry.id}
+    data-culture-count={entry.count}
+    data-culture-href={entry.href}
+>
+    <span class="culture-card__index" aria-hidden="true">{entry.index}</span>
+
+    <div class="culture-card__main">
+        <p class="culture-card__kicker">{entry.kicker}</p>
+        <h3 class="culture-card__title">
+            <a class="culture-card__title-link" href={entry.href} data-culture-link={entry.id}>
+                {entry.title}
+                <span class="culture-card__arrow" aria-hidden="true">→</span>
+            </a>
+        </h3>
+        <p class="culture-card__note">{entry.note}</p>
+    </div>
+
+    <dl class="culture-card__stats">
+        {
+            entry.stats.map((stat) => (
+                <div class="culture-card__stat">
+                    <dt class="culture-card__stat-label">{stat.label}</dt>
+                    <dd class="culture-card__stat-value">{stat.value}</dd>
+                </div>
+            ))
+        }
+    </dl>
+
+    {
+        entry.breakdown.length > 0 && (
+            <ul class="culture-card__breakdown" aria-label={breakdownLabel}>
+                {entry.breakdown.map((part) => (
+                    <li class="culture-card__breakdown-item">{part}</li>
+                ))}
+            </ul>
+        )
+    }
+</article>

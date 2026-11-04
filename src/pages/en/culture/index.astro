@@ -1,0 +1,12 @@
+---
+/**
+ * C-2 文化聚合（英文路由，M2-9）
+ *
+ * 与中文页同源：同一份数据、同一套组件、同一套条件渲染；语言由 `Astro.currentLocale`
+ * 从 `/en/` 推出。这里**不复制一份 markup**：复制会让两页在后续改动里各自漂移
+ * （与 projects / devices / timeline / music 同一判据）。
+ */
+import CulturePage from "~/pages/culture/index.astro";
+---
+
+<CulturePage />
