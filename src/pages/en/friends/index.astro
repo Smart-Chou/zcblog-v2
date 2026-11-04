@@ -1,5 +1,15 @@
 ---
+/**
+ * P-05 友链（英文路由）
+ * 与 `/friends/` 同源：同一个 adapter、同一份站点数据、同一套样式表 —— 只切 locale。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/friends.css";
+import { friendsPage } from "~/config";
+import { loadSiteFriends } from "~/data/adapters/friends";
 import FriendsContent from "~/components/Pages/FriendsContent.astro";
+
+const feed = loadSiteFriends(friendsPage.dataFile);
 ---
 
-<FriendsContent locale="en" />
+<FriendsContent locale="en" feed={feed} />

@@ -7,11 +7,11 @@
     },
     "frozen_total": 84,
     "totals": {
-        "files": 19,
-        "literals": 74,
-        "hex6": 23,
-        "hex3": 11,
-        "color_function": 40
+        "files": 17,
+        "literals": 61,
+        "hex6": 22,
+        "hex3": 9,
+        "color_function": 30
     },
     "components": {
         "src/components/Bangumi/Card.astro": [
@@ -35,19 +35,6 @@
             "#e74c3c",
             "#f2a19a",
             "rgba(255,255,255,0.65)"
-        ],
-        "src/components/Pages/FriendsContent.astro": [
-            "#fff",
-            "rgba(176,128,60,0.15)",
-            "rgba(194,65,59,0.04)",
-            "rgba(194,65,59,0.06)",
-            "rgba(194,65,59,0.06)",
-            "rgba(194,65,59,0.08)",
-            "rgba(194,65,59,0.12)",
-            "rgba(194,65,59,0.15)",
-            "rgba(194,65,59,0.2)",
-            "rgba(194,65,59,0.2)",
-            "rgba(77,124,77,0.08)"
         ],
         "src/components/UI/Badge.astro": [
             "hsl(140,40%,65%)",
@@ -75,7 +62,6 @@
             "rgba(255,255,255,0.92)"
         ],
         "src/components/UI/EssayItem.astro": ["#fff"],
-        "src/components/UI/FriendPill.astro": ["#55504a", "#fff"],
         "src/components/UI/Hitokoto.astro": ["#6b6762"],
         "src/components/UI/Notice.astro": [
             "#fff",

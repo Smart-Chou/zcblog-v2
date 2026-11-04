@@ -1,19 +1,48 @@
 ---
-import SectionPage from "~/components/Layout/SectionPage.astro";
-import WalineComment from "~/components/UI/WalineComment.astro";
+/**
+ * P-05 · 友链页（M2-6a）
+ *
+ * 结构（沿用 M2-2/M2-4 的编辑式版面语言：mono kicker + 衬线标题 + accent 短尺）：
+ *   1. hero        —— h1 / 一句话定位 / 友人计数 / 跳到申请
+ *   2. 朋友的小站  —— 三态：ok（卡片网格）/ empty（空态块）/ error（警示块）
+ *   3. 申请友链    —— 本站信息（可复制）+ 三步流程 + 模板 + GitHub 入口
+ *   4. 注意事项    —— 四条互换规则
+ *   5. 评论区      —— 放在 `.friends` 之外：第三方组件不进页面主体的样式/a11y 范围
+ *
+ * 约束：
+ * - 数据只来自 props.feed（friends adapter 的产物）；本组件 0 数据、0 站点私有文案。
+ * - 样式在 src/styles/pages/friends.css（0 颜色字面量、尺寸全部 token）。
+ * - 标题层级 h1 → h2 → h3，任何一态都不跳级（e2e 覆盖）。
+ * - 空态/错误态都是页面状态：路由照常 200，申请入口与评论不受影响。
+ */
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Card from "~/components/UI/atom/Card.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
 import FriendPill from "~/components/UI/FriendPill.astro";
-import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
-import friendsList from "~/data/friends.json";
+import WalineComment from "~/components/UI/WalineComment.astro";
 import { site, author, waline, friendsPage } from "~/config";
 import siteAvatar from "~/assets/logo.svg";
 import { t, getLocale, type Locale } from "~/utils/i18n";
+import type { FriendsFeed } from "~/data/adapters/friends";
 
 interface Props {
     locale?: string;
+    /** friends adapter 的三态产物；缺省为空态（组件被单独渲染时也不炸）。 */
+    feed?: FriendsFeed;
 }
 
-const { locale = "zh" } = Astro.props;
+const { locale = "zh", feed } = Astro.props;
 const loc: Locale = getLocale(locale);
+const isEn = loc === "en";
+
+const resolved: FriendsFeed = feed ?? {
+    status: "empty",
+    items: [],
+    total: 0,
+    dropped: 0,
+    issue: { code: "source-missing" },
+};
 
 const siteInfo = {
     name: site.title,
@@ -22,740 +51,299 @@ const siteInfo = {
     avatar: `${site.url}/${author.avatar}`,
 };
 
-const fieldLabels: Record<string, string> = {
-    siteName: t(loc, "friends.fieldLabels.siteName"),
-    siteDescription: t(loc, "friends.fieldLabels.siteDescription"),
-    siteLink: t(loc, "friends.fieldLabels.siteLink"),
-    avatarLink: t(loc, "friends.fieldLabels.avatarLink"),
-};
+const siteInfoFields = [
+    { key: "siteName", label: t(loc, "friends.fieldLabels.siteName"), value: siteInfo.name },
+    {
+        key: "siteDescription",
+        label: t(loc, "friends.fieldLabels.siteDescription"),
+        value: siteInfo.description,
+    },
+    { key: "siteLink", label: t(loc, "friends.fieldLabels.siteLink"), value: siteInfo.link },
+    { key: "avatarLink", label: t(loc, "friends.fieldLabels.avatarLink"), value: siteInfo.avatar },
+];
 
-const siteInfoFields: Record<string, string> = {
-    [fieldLabels.siteName]: siteInfo.name,
-    [fieldLabels.siteDescription]: siteInfo.description,
-    [fieldLabels.siteLink]: siteInfo.link,
-    [fieldLabels.avatarLink]: siteInfo.avatar,
-};
+const templateText = siteInfoFields.map((field) => `${field.label}：${field.value}`).join("\n");
+const templatePlaceholder = siteInfoFields
+    .map((field) => `${field.label}：${isEn ? "<your site info>" : "<你的站点信息>"}`)
+    .join("\n");
 
-const templateText = `${fieldLabels.siteName}：${t(loc, "friends.fieldLabels.siteName")}
-${fieldLabels.siteDescription}：${t(loc, "friends.fieldLabels.siteDescription")}
-${fieldLabels.siteLink}：${t(loc, "friends.fieldLabels.siteLink")}
-${fieldLabels.avatarLink}：${t(loc, "friends.fieldLabels.avatarLink")}`;
+const steps = [
+    { title: t(loc, "friends.steps.step1Title"), text: t(loc, "friends.steps.step1Desc") },
+    { title: t(loc, "friends.steps.step2Title"), text: t(loc, "friends.steps.step2Desc") },
+    { title: t(loc, "friends.steps.step3Title"), text: t(loc, "friends.steps.step3Desc") },
+];
 
-const templatePlaceholder = `${fieldLabels.siteName}：<你的站点名称>
-${fieldLabels.siteDescription}：<你的站点描述>
-${fieldLabels.siteLink}：<你的站点链接>
-${fieldLabels.avatarLink}：<你的站点头像>`;
+const notes = [
+    { title: t(loc, "friends.notes.exchangeTitle"), text: t(loc, "friends.notes.exchangeDesc") },
+    {
+        title: t(loc, "friends.notes.maintenanceTitle"),
+        text: t(loc, "friends.notes.maintenanceDesc"),
+    },
+    { title: t(loc, "friends.notes.contentTitle"), text: t(loc, "friends.notes.contentDesc") },
+    { title: t(loc, "friends.notes.siteTitle"), text: t(loc, "friends.notes.siteDesc") },
+];
+
+const countLabel = isEn ? `${resolved.total} friends` : `${resolved.total} 位友人`;
+const statusLabel = isEn
+    ? `Friends page, ${resolved.total} listed`
+    : `友链页，已收录 ${resolved.total} 位友人`;
 ---
 
-<SectionPage
-    title={t(loc, "friends.title")}
-    subtitle={t(loc, "friends.subtitle")}
-    description={`${t(loc, "friends.title")} - ${t(loc, "friends.note")}`}
+<BaseLayout
+    locale={loc}
+    title={`${t(loc, "friends.title")} - ${site.title}`}
+    description={`${t(loc, "friends.description")} - ${site.title}`}
     image={`${Astro.site + site.coverImage}`}
     imageAlt={t(loc, "friends.title")}
-    keywords={["Friends"]}
-    publishedTime={new Date()}
-    modifiedTime={new Date()}
-    locale={locale}
+    keywords={["Friends", "友链", "RSS"]}
 >
-    <DynamicIcon name="tabler:user-circle" slot="icon" />
+    <article class="friends" data-friends-status={resolved.status} aria-labelledby="friends-title">
+        <header class="friends-hero">
+            <p class="friends-kicker">{isEn ? "FRIENDS · RSS" : "友人 · RSS"}</p>
+            <h1 class="friends-title" id="friends-title">{t(loc, "friends.title")}</h1>
+            <p class="friends-lede">{t(loc, "friends.description")}</p>
+            <div class="friends-hero__meta">
+                <span class="friends-count" aria-label={statusLabel}>
+                    <Icon name="tabler:heart-handshake" size="xs" />
+                    {countLabel}
+                </span>
+                <a class="friends-jump" href="#friends-apply">
+                    {t(loc, "friends.addFriend")}
+                    <Icon name="tabler:chevron-right" size="xs" />
+                </a>
+            </div>
+        </header>
 
-    <div class="friends-container text-center space-bottom">
-        {
-            friendsList.map((friend) => (
-                <FriendPill
-                    name={friend.id}
-                    url={friend.link}
-                    avatar={friend.avatar}
-                    style={friend.style}
-                />
-            ))
-        }
-    </div>
+        <section class="friends-section" id="friends-list" aria-labelledby="friends-list-title">
+            <div class="friends-section__head">
+                <h2 class="friends-section__title" id="friends-list-title">
+                    {isEn ? "Friends' sites" : "朋友的小站"}
+                </h2>
+                <p class="friends-section__meta">
+                    {isEn ? "Each card opens in a new tab" : "每张卡片在新标签页打开"}
+                </p>
+            </div>
 
-    <p class="friends-note">
-        {t(loc, "friends.note")}
-    </p>
+            {
+                resolved.status === "ok" && (
+                    <ul class="friends-grid" role="list">
+                        {resolved.items.map((friend) => (
+                            <FriendPill
+                                name={friend.name}
+                                url={friend.url}
+                                avatar={friend.avatar}
+                                description={friend.description}
+                            />
+                        ))}
+                    </ul>
+                )
+            }
 
-    <div class="friends-apply-grid">
-        <!-- 左侧：本站信息 -->
-        <div class="apply-card">
-            <div class="card-body">
-                <div class="site-info-header">
-                    <div class="site-avatar-wrap">
+            {
+                resolved.status === "error" && (
+                    <div
+                        class="friends-state"
+                        data-friends-error={resolved.issue?.code ?? "unknown"}
+                    >
+                        <Alert
+                            tone="warning"
+                            title={isEn ? "Friend links could not be read" : "友链数据读取失败"}
+                        >
+                            {isEn
+                                ? "The friend-link file exists but its shape is invalid, so nothing is listed here. The application steps and comments below are unaffected."
+                                : "友链数据文件存在但格式不合法，这里暂不列出。下方的申请流程与评论区不受影响。"}
+                        </Alert>
+                        <p class="friends-state__hint">
+                            {isEn
+                                ? `Reason code: ${resolved.issue?.code ?? "unknown"}`
+                                : `原因代码：${resolved.issue?.code ?? "unknown"}`}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                resolved.status === "empty" && (
+                    <div
+                        class="friends-state friends-state--empty"
+                        data-friends-empty={resolved.issue?.code ?? "unknown"}
+                    >
+                        <span class="friends-state__icon" aria-hidden="true">
+                            <Icon name="tabler:user-circle" size="lg" />
+                        </span>
+                        <p class="friends-state__title">
+                            {isEn ? "No friend links yet" : "还没有友链"}
+                        </p>
+                        <p class="friends-state__text">
+                            {isEn
+                                ? "This site has not published a friends list yet — you can be the first one here."
+                                : "这个站点还没挂上友链，欢迎成为这里的第一位。"}
+                        </p>
+                        <a class="friends-state__cta" href="#friends-apply">
+                            {t(loc, "friends.addFriend")}
+                            <Icon name="tabler:chevron-right" size="xs" />
+                        </a>
+                    </div>
+                )
+            }
+        </section>
+
+        <section class="friends-section" id="friends-apply" aria-labelledby="friends-apply-title">
+            <div class="friends-section__head">
+                <h2 class="friends-section__title" id="friends-apply-title">
+                    {t(loc, "friends.steps.title")}
+                </h2>
+                <p class="friends-section__meta">{t(loc, "friends.note")}</p>
+            </div>
+
+            <div class="friends-apply">
+                <Card variant="raised" padding="lg" as="div" class="friends-panel">
+                    <div class="friends-identity">
                         <img
+                            class="friends-identity__avatar"
                             src={siteAvatar.src}
-                            alt={siteInfo.name}
-                            class="site-avatar"
-                            width={48}
-                            height={48}
+                            alt=""
+                            width="48"
+                            height="48"
                             loading="lazy"
                             decoding="async"
                         />
-                        <span class="verified-badge">
-                            <DynamicIcon name="tabler:circle-check" width="12" height="12" />
-                        </span>
+                        <div class="friends-identity__text">
+                            <h3 class="friends-identity__name">{siteInfo.name}</h3>
+                            <p class="friends-identity__desc">{siteInfo.description}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="site-name">{siteInfo.name}</h3>
-                        <p class="site-desc">{siteInfo.description}</p>
-                    </div>
-                </div>
 
-                <div class="info-fields">
-                    {
-                        Object.entries(siteInfoFields).map(([label, value]) => (
-                            <div class="info-field">
-                                <div class="field-text">
-                                    <span class="field-label">{label}</span>
-                                    <span class="field-value">{value}</span>
+                    <dl class="friends-fields">
+                        {
+                            siteInfoFields.map((field) => (
+                                <div class="friends-field">
+                                    <dt class="friends-field__label">{field.label}</dt>
+                                    <dd class="friends-field__value">
+                                        <span class="friends-field__text">{field.value}</span>
+                                        <button
+                                            class="friends-copy"
+                                            type="button"
+                                            data-copy={field.value}
+                                            data-copied-label={t(loc, "common.copied")}
+                                            aria-label={`${t(loc, "friends.copy")}：${field.label}`}
+                                        >
+                                            <span class="friends-copy__glyph friends-copy__glyph--copy">
+                                                <Icon name="tabler:copy" size="xs" />
+                                            </span>
+                                            <span class="friends-copy__glyph friends-copy__glyph--done">
+                                                <Icon name="tabler:check" size="xs" />
+                                            </span>
+                                        </button>
+                                    </dd>
                                 </div>
-                                <button
-                                    class="copy-btn"
-                                    data-copy={value}
-                                    title={t(loc, "friends.copy")}
-                                >
-                                    <DynamicIcon name="tabler:copy" class="copy-icon" />
-                                    <DynamicIcon name="tabler:check" class="check-icon" />
-                                </button>
-                            </div>
-                        ))
+                            ))
+                        }
+                    </dl>
+                </Card>
+
+                <Card variant="raised" padding="lg" as="div" class="friends-panel">
+                    <ol class="friends-steps">
+                        {
+                            steps.map((step, index) => (
+                                <li class="friends-step">
+                                    <span class="friends-step__num" aria-hidden="true">
+                                        {index + 1}
+                                    </span>
+                                    <div class="friends-step__body">
+                                        <h3 class="friends-step__title">{step.title}</h3>
+                                        <p class="friends-step__text">{step.text}</p>
+                                        {index === 1 && (
+                                            <div class="friends-template">
+                                                <pre class="friends-template__code"><code>{templateText}</code></pre>
+                                                <button
+                                                    class="friends-copy friends-copy--template"
+                                                    type="button"
+                                                    data-copy={templatePlaceholder}
+                                                    data-copied-label={t(loc, "common.copied")}
+                                                    aria-label={t(loc, "friends.copyTemplate")}
+                                                >
+                                                    <span class="friends-copy__glyph friends-copy__glyph--copy">
+                                                        <Icon name="tabler:copy" size="xs" />
+                                                    </span>
+                                                    <span class="friends-copy__glyph friends-copy__glyph--done">
+                                                        <Icon name="tabler:check" size="xs" />
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </li>
+                            ))
+                        }
+                    </ol>
+
+                    {
+                        friendsPage.friendLinkApplyUrl && (
+                            <a
+                                class="friends-gh"
+                                href={friendsPage.friendLinkApplyUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <Icon name="tabler:brand-github" size="xs" />
+                                {t(loc, "friends.steps.viaGithub")}
+                            </a>
+                        )
                     }
-                </div>
+                </Card>
             </div>
-        </div>
-
-        <!-- 右侧：申请步骤 -->
-        <div class="apply-card">
-            <div class="card-body">
-                <h3 class="steps-title">
-                    <span class="steps-icon">
-                        <DynamicIcon name="tabler:checklist" width="14" height="14" />
-                    </span>
-                    {t(loc, "friends.steps.title")}
-                </h3>
-
-                <div class="steps-list">
-                    <div class="step frist">
-                        <div class="step-marker">
-                            <span class="step-num">1</span>
-                            <div class="step-line"></div>
-                        </div>
-                        <div class="step-content">
-                            <p class="step-heading">{t(loc, "friends.steps.step1Title")}</p>
-                            <p class="step-desc">{t(loc, "friends.steps.step1Desc")}</p>
-                        </div>
-                    </div>
-
-                    <div class="step">
-                        <div class="step-marker">
-                            <span class="step-num">2</span>
-                            <div class="step-line"></div>
-                        </div>
-                        <div class="step-content">
-                            <p class="step-heading">{t(loc, "friends.steps.step2Title")}</p>
-                            <p class="step-desc">{t(loc, "friends.steps.step2Desc")}</p>
-                            <div class="template-box">
-                                <button
-                                    class="copy-btn template-copy"
-                                    data-copy={templatePlaceholder}
-                                    title={t(loc, "friends.copyTemplate")}
-                                >
-                                    <DynamicIcon name="tabler:copy" class="copy-icon" />
-                                    <DynamicIcon name="tabler:check" class="check-icon" />
-                                </button>
-                                <pre><code>{templateText}</code></pre>
-                            </div>
-                            {
-                                friendsPage.friendLinkApplyUrl && (
-                                    <a
-                                        class="github-apply-link"
-                                        href={friendsPage.friendLinkApplyUrl}
-                                        target="_blank"
-                                        rel="noopener"
-                                    >
-                                        <DynamicIcon
-                                            name="tabler:brand-github"
-                                            width="15"
-                                            height="15"
-                                        />
-                                        {t(loc, "friends.steps.viaGithub")}
-                                    </a>
-                                )
-                            }
-                        </div>
-                    </div>
-
-                    <div class="step">
-                        <div class="step-marker">
-                            <span class="step-num">3</span>
-                        </div>
-                        <div class="step-content">
-                            <p class="step-heading">{t(loc, "friends.steps.step3Title")}</p>
-                            <p class="step-desc">{t(loc, "friends.steps.step3Desc")}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 注意事项 -->
-    <div class="notes-card">
-        <h3 class="notes-title">
-            <DynamicIcon name="tabler:alert-triangle" width="16" height="16" />
-            {t(loc, "friends.notes.title")}
-        </h3>
-        <div class="notes-list">
-            <div class="note-item">
-                <span class="note-dot"></span>
-                <p>
-                    <strong>{t(loc, "friends.notes.exchangeTitle")}</strong>：{
-                        t(loc, "friends.notes.exchangeDesc")
-                    }
-                </p>
-            </div>
-            <div class="note-item">
-                <span class="note-dot"></span>
-                <p>
-                    <strong>{t(loc, "friends.notes.maintenanceTitle")}</strong>：{
-                        t(loc, "friends.notes.maintenanceDesc")
-                    }
-                </p>
-            </div>
-            <div class="note-item">
-                <span class="note-dot"></span>
-                <p>
-                    <strong>{t(loc, "friends.notes.contentTitle")}</strong>：{
-                        t(loc, "friends.notes.contentDesc")
-                    }
-                </p>
-            </div>
-            <div class="note-item">
-                <span class="note-dot"></span>
-                <p>
-                    <strong>{t(loc, "friends.notes.siteTitle")}</strong>：{
-                        t(loc, "friends.notes.siteDesc")
-                    }
-                </p>
-            </div>
-        </div>
-    </div>
-
-    {waline.enable && <WalineComment locale={locale} />}
-</SectionPage>
-
-<style is:global>
-    .friends-container {
-        max-width: var(--content-width);
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .friends-note {
-        margin: var(--space-md) 0 var(--space-lg);
-        font-size: var(--text-sm);
-        color: var(--color-text-muted);
-        text-align: center;
-        font-style: italic;
-        letter-spacing: 0.02em;
-    }
-
-    .github-apply-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4em;
-        margin-top: var(--space-sm);
-        padding: 0.45em 0.9em;
-        border: 1px solid var(--color-border);
-        border-radius: 999px;
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        text-decoration: none;
-        transition:
-            color var(--duration-fast) var(--ease-out),
-            border-color var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .github-apply-link:hover {
-            color: var(--color-accent);
-            border-color: var(--color-accent);
-        }
-    }
-
-    /* =========================================
-       双栏布局 — Apply Grid
-       ========================================= */
-    .friends-apply-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--space-lg);
-        max-width: 900px;
-        margin: var(--space-xl) auto;
-    }
-
-    .friends-apply-grid h3,
-    .friends-apply-grid p {
-        margin: 0;
-    }
-
-    @media (max-width: 768px) {
-        .friends-apply-grid {
-            grid-template-columns: 1fr;
-            gap: var(--space-md);
-            margin: var(--space-lg) auto;
-        }
-    }
-
-    /* =========================================
-       Card Base
-       ========================================= */
-    .apply-card {
-        background: var(--color-bg-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-        transition:
-            box-shadow var(--duration-normal) var(--ease-out),
-            border-color var(--duration-normal) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .apply-card:hover {
-            box-shadow: var(--shadow-md);
-            border-color: rgba(194, 65, 59, 0.15);
-        }
-    }
-
-    .card-body {
-        padding: var(--space-lg);
-    }
-
-    @media (max-width: 450px) {
-        .card-body {
-            padding: var(--space-md);
-        }
-    }
-
-    /* =========================================
-       左侧卡片 — 本站信息
-       ========================================= */
-    .site-info-header {
-        display: flex;
-        align-items: center;
-        gap: var(--space-md);
-        margin-bottom: var(--space-lg);
-        padding-bottom: var(--space-md);
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .site-avatar-wrap {
-        position: relative;
-        flex-shrink: 0;
-    }
-
-    .site-avatar {
-        width: 56px;
-        height: 56px;
-        border-radius: var(--radius-lg);
-        object-fit: cover;
-        box-shadow: var(--shadow-xs);
-        border: 2px solid var(--color-bg-surface);
-        outline: 1px solid var(--color-border);
-    }
-
-    .verified-badge {
-        position: absolute;
-        bottom: -4px;
-        right: -4px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: var(--color-success);
-        border: 2px solid var(--color-bg-surface);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-    }
-
-    .site-name {
-        font-size: var(--text-base);
-        font-weight: 700;
-        color: var(--color-title);
-        line-height: var(--leading-snug);
-    }
-
-    .site-desc {
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        margin-top: 2px;
-        line-height: 1.4;
-    }
-
-    /* ---- Info Fields ---- */
-    .info-fields {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-    }
-
-    .info-field {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-sm);
-        padding: var(--space-xs) var(--space-sm);
-        border-radius: var(--radius-md);
-        background: var(--color-surface-secondary);
-        border: 1px solid transparent;
-        transition:
-            background var(--duration-fast) var(--ease-out),
-            border-color var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .info-field:hover {
-            background: var(--color-selection);
-            border-color: rgba(194, 65, 59, 0.12);
-        }
-    }
-
-    .field-text {
-        min-width: 0;
-    }
-
-    .field-label {
-        display: block;
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--color-text-muted);
-        margin-bottom: 2px;
-    }
-
-    .field-value {
-        display: block;
-        font-size: var(--text-xs);
-        font-weight: 500;
-        color: var(--color-text);
-        font-family: var(--font-mono);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* ---- Copy Buttons ---- */
-    .copy-btn {
-        flex-shrink: 0;
-        width: 30px;
-        height: 30px;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--color-border);
-        background: var(--color-bg-surface);
-        color: var(--color-text-muted);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .copy-btn:hover {
-            color: var(--color-accent);
-            border-color: var(--color-accent);
-            background: rgba(194, 65, 59, 0.04);
-        }
-    }
-
-    .copy-btn:active {
-        transform: scale(0.94);
-    }
-
-    .copy-btn.copied {
-        color: var(--color-success);
-        border-color: var(--color-success);
-        background: rgba(77, 124, 77, 0.08);
-    }
-
-    .copy-btn.copied .copy-icon,
-    .copy-btn:not(.copied) .check-icon {
-        display: none;
-    }
-
-    /* =========================================
-       右侧卡片 — 申请步骤
-       ========================================= */
-    .steps-title {
-        display: flex;
-        align-items: center;
-        gap: var(--space-sm);
-        font-size: var(--text-base);
-        font-weight: 700;
-        color: var(--color-title);
-        margin-bottom: var(--space-lg);
-        padding-bottom: var(--space-md);
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .steps-icon {
-        width: 30px;
-        height: 30px;
-        border-radius: var(--radius-md);
-        background: rgba(194, 65, 59, 0.08);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-accent);
-    }
-
-    .steps-icon svg {
-        width: 15px;
-        height: 15px;
-    }
-
-    .steps-list {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .step {
-        display: flex;
-        gap: var(--space-sm);
-    }
-
-    .step.frist {
-        margin-top: 1rem;
-    }
-
-    .step:last-child .step-content {
-        padding-bottom: 0;
-    }
-
-    .step-marker {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex-shrink: 0;
-    }
-
-    .step-num {
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        border: 2px solid var(--color-border);
-        background: var(--color-bg-surface);
-        color: var(--color-text-muted);
-        font-size: 11px;
-        font-weight: 700;
-        font-family: var(--font-mono);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        transition:
-            border-color var(--duration-normal) var(--ease-out),
-            color var(--duration-normal) var(--ease-out),
-            background var(--duration-normal) var(--ease-out);
-    }
-
-    .step:first-child .step-num {
-        border-color: var(--color-accent);
-        color: var(--color-accent);
-        background: rgba(194, 65, 59, 0.06);
-    }
-
-    .step-line {
-        width: 1.5px;
-        flex: 1;
-        min-height: 18px;
-        background: var(--color-border);
-        margin: 4px 0;
-        border-radius: 1px;
-        transition: background var(--duration-normal) var(--ease-out);
-    }
-
-    .step:first-child .step-line {
-        background: rgba(194, 65, 59, 0.2);
-    }
-
-    .step-content {
-        padding-bottom: var(--space-md);
-        min-width: 0;
-    }
-
-    .step-heading {
-        font-size: var(--text-sm);
-        font-weight: 600;
-        color: var(--color-title);
-        margin-bottom: 3px;
-        line-height: var(--leading-snug);
-    }
-
-    .step-desc {
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        line-height: 1.6;
-    }
-
-    /* ---- Template Box ---- */
-    .template-box {
-        position: relative;
-        margin-top: var(--space-sm);
-        border-radius: var(--radius-md);
-        background: var(--color-surface-secondary);
-        border: 1px solid var(--color-border);
-        border-left: 3px solid var(--color-accent);
-        overflow: hidden;
-        transition: border-color var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .template-box:hover {
-            border-color: rgba(194, 65, 59, 0.2);
-        }
-    }
-
-    .template-box pre {
-        margin: 0;
-        padding: var(--space-sm);
-        padding-right: 40px;
-        overflow-x: auto;
-    }
-
-    .template-box code {
-        font-size: 11px;
-        font-family: var(--font-mono);
-        color: var(--color-text);
-        line-height: 1.8;
-        white-space: pre;
-    }
-
-    .template-copy {
-        position: absolute;
-        top: var(--space-xs);
-        right: var(--space-xs);
-        width: 28px;
-        height: 28px;
-        border-radius: var(--radius-sm);
-        border: 1px solid transparent;
-        background: transparent;
-        color: var(--color-text-muted);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .template-copy:hover {
-            color: var(--color-accent);
-            background: rgba(194, 65, 59, 0.06);
-        }
-    }
-
-    .template-copy:active {
-        transform: scale(0.94);
-    }
-
-    .template-copy.copied {
-        color: var(--color-success);
-    }
-
-    .template-copy.copied .copy-icon,
-    .template-copy:not(.copied) .check-icon {
-        display: none;
-    }
-
-    /* =========================================
-       注意事项 — Notes Card
-       ========================================= */
-    .notes-card {
-        max-width: 900px;
-        margin: var(--space-xl) auto 0;
-        background: var(--color-bg-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        padding: var(--space-lg);
-    }
-
-    .notes-card h3,
-    .notes-card p {
-        margin: 0;
-    }
-
-    .notes-title {
-        display: flex;
-        align-items: center;
-        gap: var(--space-sm);
-        font-size: var(--text-base);
-        font-weight: 700;
-        color: var(--color-title);
-        margin-bottom: var(--space-md);
-        padding-bottom: var(--space-sm);
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .notes-title svg {
-        color: var(--color-warning);
-        flex-shrink: 0;
-    }
-
-    .notes-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-    }
-
-    .note-item {
-        display: flex;
-        align-items: baseline;
-        gap: var(--space-sm);
-        padding: var(--space-xs) var(--space-sm);
-        border-radius: var(--radius-md);
-        font-size: var(--text-sm);
-        color: var(--color-text);
-        line-height: 1.6;
-        transition: background var(--duration-fast) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .note-item:hover {
-            background: var(--color-hover);
-        }
-    }
-
-    .note-dot {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: var(--color-warning);
-        flex-shrink: 0;
-        margin-top: 0.6em;
-        box-shadow: 0 0 0 2px rgba(176, 128, 60, 0.15);
-    }
-
-    .note-item strong {
-        color: var(--color-title);
-        font-weight: 600;
-    }
-</style>
+        </section>
+
+        <section class="friends-section" aria-labelledby="friends-notes-title">
+            <h2 class="friends-section__title" id="friends-notes-title">
+                {t(loc, "friends.notes.title")}
+            </h2>
+            <ul class="friends-notes" role="list">
+                {
+                    notes.map((note) => (
+                        <li class="friends-note">
+                            <strong class="friends-note__title">{note.title}</strong>
+                            <span class="friends-note__text">{note.text}</span>
+                        </li>
+                    ))
+                }
+            </ul>
+        </section>
+    </article>
+
+    {waline.enable && <WalineComment locale={loc} />}
+</BaseLayout>
 
 <script>
-    document.addEventListener("click", (e) => {
-        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-copy]");
-        if (!btn) return;
+    /**
+     * 复制按钮：事件委托 → swup 换页后无需重新绑定。
+     * 非安全上下文（http）下 clipboard 不可用：静默降级，按钮本身仍可聚焦、可读。
+     */
+    const FEEDBACK_MS = 1500;
 
-        const text = btn.dataset.copy || "";
-        navigator.clipboard.writeText(text).then(() => {
-            btn.classList.add("copied");
-            setTimeout(() => btn.classList.remove("copied"), 1500);
-        });
+    document.addEventListener("click", async (event) => {
+        const target = event.target as HTMLElement | null;
+        const button = target?.closest<HTMLButtonElement>("[data-copy]");
+        if (!button) return;
+
+        const text = button.dataset.copy ?? "";
+        if (!text) return;
+
+        const originalLabel = button.getAttribute("aria-label");
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch {
+            return;
+        }
+
+        button.classList.add("is-copied");
+        if (button.dataset.copiedLabel) {
+            button.setAttribute("aria-label", button.dataset.copiedLabel);
+        }
+        window.setTimeout(() => {
+            button.classList.remove("is-copied");
+            if (originalLabel) button.setAttribute("aria-label", originalLabel);
+        }, FEEDBACK_MS);
     });
 </script>

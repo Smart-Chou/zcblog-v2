@@ -1,73 +1,187 @@
 ---
-import { Image } from "astro:assets";
+/**
+ * FriendPill — 友链页的站点卡片（P-05 起归设计系统）
+ *
+ * 语义：整张卡是一个外链（`<a>`），名字是链接文本，简介/host 是副行；
+ * 头像纯装饰（`alt=""` + 首字母兜底），避免屏幕阅读器把站点名念两遍。
+ *
+ * 约束：0 颜色字面量、尺寸全部 token（与 verify-surface-tokens C1 同口径）；
+ * JS 0 字节 —— 头像加载失败时由 CSS 背景兜底，不做 onerror。
+ * 数据形状来自 `src/data/adapters/friends.ts`，本组件不自己判空/判重复。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
 
 interface Props {
     name: string;
-    avatar: string;
     url: string;
-    style?: string;
+    avatar?: string;
+    /** 一句话简介；缺省时副行显示站点 host。 */
+    description?: string;
 }
 
-const { name, avatar, url, style } = Astro.props;
+const { name, url, avatar, description } = Astro.props;
 
-const fallbackInitial = name.replace(/^@/, "").charAt(0).toUpperCase();
+const initial = name.replace(/^@/, "").trim().charAt(0).toUpperCase() || "?";
+
+let host = url;
+try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+} catch {
+    host = url;
+}
+
+const caption = description ?? host;
 ---
 
-<a class="fri-pill" href={url} target="_blank" rel="noopener" style={style}>
-    {
-        avatar ? (
-            <Image
-                class="fri-pill-avatar"
-                src={avatar}
-                alt={name}
-                width={48}
-                height={48}
-                loading="lazy"
-                decoding="async"
-            />
-        ) : (
-            <span class="fri-pill-avatar fri-pill-avatar--fallback" aria-hidden="true">
-                {fallbackInitial}
+<li class="friend-item">
+    <a class="friend-card" href={url} target="_blank" rel="noopener noreferrer nofollow">
+        <span class="friend-card__avatar">
+            {
+                avatar ? (
+                    <img
+                        class="friend-card__img"
+                        src={avatar}
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                        decoding="async"
+                        referrerpolicy="no-referrer"
+                    />
+                ) : (
+                    <span class="friend-card__initial" aria-hidden="true">
+                        {initial}
+                    </span>
+                )
+            }
+        </span>
+        <span class="friend-card__body">
+            <span class="friend-card__name">
+                {name}
+                <Icon name="tabler:arrow-up-right" size="xs" class="friend-card__arrow" />
             </span>
-        )
-    }
-    <span class="fri-pill-label">{name}</span>
-</a>
+            <span class="friend-card__caption">{caption}</span>
+        </span>
+    </a>
+</li>
 
 <style>
-    .fri-pill {
-        margin: 0.3em 0.6em 0.3em 0;
-        text-decoration: none;
-        padding: 0.5em;
-        border-radius: var(--radius);
-        display: inline-block;
-        overflow: hidden;
-        position: relative;
+    .friend-item {
+        min-inline-size: 0;
+        list-style: none;
     }
 
-    .fri-pill-avatar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 48px;
-        height: 48px;
-        border-radius: var(--radius);
-        background-color: #fff;
-        transform: rotate(20deg) translate(-15%);
-    }
-
-    .fri-pill-label {
-        margin-left: 2.6em;
-    }
-
-    .fri-pill-avatar--fallback {
+    .friend-card {
         display: flex;
         align-items: center;
+        gap: var(--space-3);
+        block-size: 100%;
+        padding: var(--space-4);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg);
+        background-color: var(--color-bg-raised);
+        color: inherit;
+        text-decoration: none;
+        transition:
+            border-color var(--duration-fast) var(--ease-standard),
+            box-shadow var(--duration-fast) var(--ease-standard),
+            background-color var(--duration-fast) var(--ease-standard);
+    }
+
+    @media (hover: hover) {
+        .friend-card:hover {
+            border-color: var(--color-border-strong);
+            background-color: var(--color-bg-surface);
+            box-shadow: var(--shadow-2);
+        }
+
+        .friend-card:hover .friend-card__arrow {
+            color: var(--color-fg-link);
+            transform: translate(var(--space-1), calc(var(--space-1) * -1));
+        }
+    }
+
+    .friend-card:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    .friend-card__avatar {
+        position: relative;
+        display: flex;
+        flex: none;
+        align-items: center;
         justify-content: center;
-        font-family: var(--font-heading);
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #55504a;
+        inline-size: var(--space-12);
+        block-size: var(--space-12);
+        overflow: hidden;
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-muted);
+        box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+    }
+
+    .friend-card__img {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+        border-radius: inherit;
+    }
+
+    .friend-card__initial {
+        font-family: var(--font-serif);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--leading-none);
+        color: var(--color-fg-muted);
+    }
+
+    .friend-card__body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-inline-size: 0;
+    }
+
+    .friend-card__name {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-inline-size: 0;
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--leading-snug);
+        color: var(--color-fg-heading);
+        overflow-wrap: anywhere;
+    }
+
+    .friend-card__arrow {
+        flex: none;
+        color: var(--color-fg-subtle);
+        transition:
+            color var(--duration-fast) var(--ease-standard),
+            transform var(--duration-fast) var(--ease-standard);
+    }
+
+    .friend-card__caption {
+        min-inline-size: 0;
+        overflow: hidden;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        line-height: var(--leading-snug);
+        color: var(--color-fg-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* 系统级 reduced-motion：卡片不做位移，只保留颜色变化 */
+    @media (prefers-reduced-motion: reduce) {
+        .friend-card,
+        .friend-card__arrow {
+            transition: none;
+        }
+
+        .friend-card:hover .friend-card__arrow {
+            transform: none;
+        }
     }
 </style>

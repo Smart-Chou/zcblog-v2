@@ -36,6 +36,13 @@ export interface FriendsPageConfig {
     title: string; // 标题
     note: string; // 描述
     friendLinkApplyUrl?: string; // 友链申请入口（如 GitHub Issue 表单链接；留空则不显示按钮）
+    /**
+     * 友链数据槽位（注入点，P-05）：站点把自己的友链 JSON 放在 `src/data/<dataFile>`。
+     * - 留空串 = 不启用数据 → 页面走空态（构建照常通过）
+     * - 文件缺失 = 空态；文件内容坏 = 错误态（见 src/data/adapters/friends.ts）
+     * 这里只放「槽位指针」，不放任何友链内容本身。
+     */
+    dataFile?: string;
 }
 
 /**
@@ -144,6 +151,8 @@ export const friendsPage: FriendsPageConfig = {
     title: "Friends",
     note: "欢迎申请友链，在评论区留下你的博客信息即可。",
     friendLinkApplyUrl: "https://github.com/Smart-Chou/zcblog/issues/new?template=friend-link.yml",
+    // 数据槽位指针：站点友链 JSON 的位置（src/data/friends.json）。内容不进配置。
+    dataFile: "friends.json",
 };
 
 /**
