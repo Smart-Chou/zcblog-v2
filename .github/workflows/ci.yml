@@ -55,22 +55,56 @@ jobs:
                   node scripts/gates/verify-component-inventory.mjs
                   node scripts/gates/verify-doc-drift.mjs
 
-            # M1-2：token 契约（G-T1…G-S6，生成物逐字节比对）。源码级，不读 dist。
+    # ---- 契约门禁：token / 表面棘轮 / C 层实体（源码级，不读 dist、不碰内容仓）----
+    # 单独成 job 而不是塞进 test：这三条是数据/Tokens 契约，红要能一眼归因；
+    # 也不该被 lint 之类的格式漂移挡住（格式债在 test 里单独算）。
+    # 三条命令与本地 `pnpm gates:tokens|gates:surfaces|gates:entities` 完全同源。
+    contract:
+        name: contract (tokens · surfaces · entities)
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # M1-2：token 契约（G-T1…G-S6，生成物逐字节比对）
             - name: Token contract gates (§3.12)
               run: node scripts/gates/check-tokens.mjs
 
-            # M2-1：P5 表面 token 棘轮（页面新增 = 0 / 组件只减不增）。源码级。
+            # M2-1：P5 表面 token 棘轮（页面新增 = 0 / 组件只减不增）
             - name: Surface token ratchet (P5)
               run: node scripts/gates/verify-surface-tokens.mjs
 
             # M2-7a：C 层实体契约（E1–E8）。依赖 src/types/entities.ts 的 ESM 转译，不读 dist；
             # dropped > 0 即 FAIL（运行时宽容、CI 严格，同一份校验器）。
-            # --json 会在最后一行打 SUMMARY {...}，转进 step summary 便于归档指标。
+            # --json 把 SUMMARY {...} 打在最后一行，grep 出来归档到 step summary。
             - name: Entity contract gates (E1–E8)
               run: |
                   set -o pipefail
                   node scripts/gates/verify-entities.mjs --json | tee "$RUNNER_TEMP/entities-gate.json"
                   grep '^SUMMARY ' "$RUNNER_TEMP/entities-gate.json" >> "$GITHUB_STEP_SUMMARY" || true
+
+            - name: Upload entity gate report on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: entities-gate-report
+                  path: ${{ runner.temp }}/entities-gate.json
+                  retention-days: 7
+                  if-no-files-found: ignore
 
     # ---- 视觉门禁：/design/atoms 72 张像素基线（Linux）----
     # 与 test/gates 平行跑。三条硬约束：
