@@ -154,6 +154,27 @@ AUDIT_THEME=light AUDIT_DATA_DIR=/tmp/m2light npx playwright test e2e/export-aud
 
 **这张表的用处**：修复卡可以按「暗色专属（改 dark token）」和「两模式都在（改结构/语义）」两批落，不用逐个页面猜。抽样命令与原数据：`AUDIT_THEME=light AUDIT_ROUTES='…' AUDIT_DATA_DIR=/tmp/m2light npx playwright test e2e/export-audit.spec.ts`。
 
+### 6.4 已修复：M2-13a 对比度收口（2026-11-05 复测，586 页 × dark）
+
+复测数据：`docs/_reviews/M2-13/audit-data/{axe,dark-pages,mobile}.jsonl`（同一支 spec、同一分母；本节的「修前」列取自 §6.1）。
+
+| 组 | 位置 | 修前 | 修后 | 落点 |
+|---|---|---|---|---|
+| 1 | `.pf-trigger-text`（全站 Header） | 546 页 / 3.61 | **0 findings** / 6.46 | `--pf-text-muted` 暗色映射到 `--search-text-muted`（`search-global.css`）；搜索框 placeholder 同源同修 3.39→6.46 |
+| 2 | `#hitokoto-source` | 91 页 / 3.11 | **0 findings** / 6.7 | 暗色改用 `--color-muted`（`Hitokoto.astro`）；浅色保持 5.30 |
+| 3 | 番剧/豆瓣状态徽章 | 4 页 / 1.91–3.52 | **0 findings** / 4.7–9.3 | 徽章字色随状态给深墨（`--status-badge-fg`，未知灰仍用白 4.83） |
+| 4 | `tab .count` / `.filter-count` | 4 页 / 3.53、2.17 | **0 findings** / 6.9、6.0 | 去掉 `opacity` 混合改实色 `--color-muted` / `inherit` |
+| 5 | `.build-time`（`/design/**`） | 40 页 / 4.32 | **0 findings** / 6.68 | 去掉 `opacity: .6`，改 `--color-muted` |
+| 6 | EC 行号 `.ln`（diff 插入行） | 1 页 / 3.71 | **0 findings** / 5.49 | `--ec-lineNumbers-fg` 提亮到 `#b0b4bb` |
+| 7 | remark-aside 内链 | 2 页 / 3.90 | **0 findings** / 5.97（暗）· 5.80（浅） | 改 `--color-code-accent`；顺带修浅色 3.88/4.36 |
+| 8 | `/redirect/ .redirect-tip` | 1 页 / 3.17 | **0 findings** / 12.37 | 去掉 `opacity: .4` |
+| 9 | `/500.html .btn-primary` | 1 页 / 2.96 | **0 findings** / 6.00 | 新增 `--color-on-accent`（浅纸白 / 暗深墨） |
+| 10 | `link-in-text-block`（法务三页） | 3 页 / 10 节点 / 2.32 | **0 findings** | 正文链接加常驻下划线（非颜色线索） |
+
+**复测结论（586 页）**：`color-contrast` **0 页**、`link-in-text-block` **0 页**；serious/critical 从 **8 规则 / 661 findings / 833 节点** 降到 **6 规则 / 139 节点**，剩下的是 `aria-hidden-focus` 85、`aria-prohibited-attr` 19、`aria-allowed-attr` 10（critical）、`target-size` 9、`label` 8（critical）、`link-name` 8 —— 全部属 `M2-13b`（结构 / 语义 / 命中区），不在本卡边界。暗色结构与移动矩阵无回归：586/586 主题生效、底色 ≤0.010、1440 溢出 0，24 组合 0 溢出。
+
+`axe-known.json` 16 → **7 条**（只保留 M2-13b 的 ARIA/target-size 条目），基线只减不增。因此**严格零容忍全量跑（`AUDIT_BASELINE=0`）仍会在 M2-13b 的 ARIA 项上红**——这是排期事实，不是本卡未完成项：本卡交付形态是「基线含 7 条 ARIA + color/link 已清零」，全量 611 passed 即由这 7 条基线兜住。
+
 ## 7. 出口九项（逐项 PASS/FAIL + 证据）
 
 > 计划里没有写死的「九项」清单：`19-m2-plan.md` §4 只有 14 行出口映射，M1 的九项是 M1 自己的口径（`16-m1-brief.md` §5）。本卡按 §4 归并成 9 项，每项都能回溯到 §4 的行，归并规则写在「判据」列。
