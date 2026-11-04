@@ -41,6 +41,7 @@ import rehypeCallouts from "rehype-callouts";
 import astroVtBot from "astro-vtbot";
 import { VitePWA } from "vite-plugin-pwa";
 import swup from "@swup/astro";
+import { collapseDist } from "./scripts/postbuild/collapse-html-whitespace.mjs";
 
 // ── PWA ──────────────────────────────────────────────────────────────────────
 // Astro 7（Vite 7 环境模型）下，vite-plugin-pwa 自身的 closeBundle 不会在 client
@@ -178,6 +179,24 @@ const sitemapPreviewStylesheet = {
                 patched += 1;
             }
             if (patched > 0) logger.info(`sitemap 预览样式：已注入 ${patched} 个文件`);
+        },
+    },
+};
+
+// ── HTML 冗余折叠（M2-11a）────────────────────────────────────────────────────
+// perf-budget 的 list 桶按**原始字节**算 105KB，archives 页随文章数线性增长已经贴线。
+// 实测 Astro 默认 compressHTML 已把「标签之间缩进」全去掉（产物里 0 处），
+// 真正能省的是 HTML 注释、属性值多余引号、`data-astro-cid-*="true"` 的冗余值（约 -3%）。
+// 受保护的 script/style/pre/textarea/code 折叠前后逐字节比对，被改动即构建失败。
+// 放在 integrations 末尾：等 pagefind/og/sitemap 等收尾产物都写完了再动 HTML。
+const htmlCollapse = {
+    name: "html-collapse",
+    hooks: {
+        "astro:build:done": async ({ dir, logger }) => {
+            const res = await collapseDist(fileURLToPath(dir), {
+                logger: { log: (m) => logger.info(m), error: (m) => logger.error(m) },
+            });
+            if (res.saved > 0) logger.info(`HTML 折叠：-${res.saved} B（-${res.pct}%）`);
         },
     },
 };
@@ -358,6 +377,7 @@ export default defineConfig({
         }),
         pwaServiceWorker,
         sitemapPreviewStylesheet,
+        htmlCollapse,
     ],
     image: {
         layout: "constrained",
