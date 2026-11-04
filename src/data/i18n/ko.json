@@ -132,6 +132,12 @@
         "title": "Bangumi",
         "description": "애니와 음악",
         "subtitle": "나의 애니·책·음악·게임 컬렉션",
+        "buildTimePrefix": "마지막 업데이트: ",
+        "emptyTitleNoUser": "Bangumi 사용자 ID가 설정되지 않았습니다",
+        "emptyMessageNoUser": "페이지 코드에서 Bangumi 사용자 ID를 설정해 주세요",
+        "emptyTitleNoData": "데이터가 없습니다",
+        "emptyMessageNoData": "컬렉션이 비어 있습니다",
+        "emptySection": "데이터가 없습니다",
         "filters": {
             "all": "전체",
             "collect": "컬렉션함",

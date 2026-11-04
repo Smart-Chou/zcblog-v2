@@ -7,7 +7,7 @@
  */
 import { share } from "~/config";
 import { getIconSvg } from "~/components/Icons";
-import { t, getLocale } from "~/utils/i18n";
+import { t, getLocale, contentLocaleOf } from "~/utils/i18n";
 import { renderSVG } from "uqr";
 // M2-5：分享 sheet 的表皮（[data-overlay="share"] 规则在 overlays.css）
 import "~/styles/pages/overlays.css";
@@ -106,7 +106,7 @@ const qrSvg = items.some((item) => item.action === "wechat")
             <span class="share-label">{shareToLabel}</span>
             <div class="share-icons">
                 {items.map((item) => {
-                    const label = item[locale] ?? item.zh;
+                    const label = item[contentLocaleOf(locale)] ?? item.zh;
                     const aria = `${shareToLabel} ${label}`;
                     const icon = getIconSvg(item.icon);
                     if (item.action === "wechat") {

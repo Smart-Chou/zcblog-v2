@@ -197,17 +197,16 @@ export default defineConfig({
     // ⚠️ 这份 locale 清单必须与 src/utils/i18n.ts 的 `locales` 注册表逐字一致——
     // 路由前缀、Astro.currentLocale、hreflang 全靠它；不一致时
     // `node scripts/gates/verify-i18n.mjs` 的 I2 直接红。
-    // `fallback` 声明缺内容时的承接语言：新语言暂时只有回退正文（noindex），
-    // 正文翻译落地后再逐条摘掉（M2-11b）。
+    //
+    // ⚠️ 这里**故意不写 `fallback: {...}`**：Astro 的 fallback 会给每个缺失页面
+    // 生成一份「默认语言内容 + 目标语言 URL」的副本，实测把整个中文站复制了 4 份
+    // （474 页 → 2470 个 HTML）。本卡的回退发生在两处、都需要显式控制：
+    //   ① 词典回退（src/utils/i18n.ts 的 fallbackChain：缺词 → zh）；
+    //   ② 正文回退（contentLocaleOf：新语言暂无正文 → zh 文章，canonical 指回中文页）。
+    // 路由集只由 `src/pages/[locale]/**` 的 getStaticPaths 决定（5 条模板路由）。
     i18n: {
         defaultLocale: "zh",
         locales: ["zh", "en", "zh-TW", "ja", "ko", "fr"],
-        fallback: {
-            "zh-TW": "zh",
-            ja: "zh",
-            ko: "zh",
-            fr: "zh",
-        },
         routing: {
             prefixDefaultLocale: false, // 默认语言(中文)不带前缀
         },

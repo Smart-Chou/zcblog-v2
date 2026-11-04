@@ -132,6 +132,12 @@
         "title": "Bangumi",
         "description": "番劇與音樂",
         "subtitle": "我的動漫、書籍、音樂和遊戲收藏",
+        "buildTimePrefix": "最後更新: ",
+        "emptyTitleNoUser": "未設定 Bangumi 使用者 ID",
+        "emptyMessageNoUser": "請在頁面程式碼中設定你的 Bangumi 使用者 ID",
+        "emptyTitleNoData": "暫無資料",
+        "emptyMessageNoData": "你的收藏列表是空的",
+        "emptySection": "暫無資料",
         "filters": {
             "all": "全部",
             "collect": "已收藏",

@@ -132,6 +132,12 @@
         "title": "Bangumi",
         "description": "Animes et musique",
         "subtitle": "Ma collection d'animes, livres, musique et jeux",
+        "buildTimePrefix": "Dernière mise à jour : ",
+        "emptyTitleNoUser": "Identifiant Bangumi non configuré",
+        "emptyMessageNoUser": "Configurez votre identifiant Bangumi dans le code de la page",
+        "emptyTitleNoData": "Aucune donnée",
+        "emptyMessageNoData": "Votre collection est vide",
+        "emptySection": "Aucune donnée",
         "filters": {
             "all": "Tout",
             "collect": "Collectionné",

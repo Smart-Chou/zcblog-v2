@@ -30,7 +30,7 @@ import { sortByPubDate } from "~/utils";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { getAllTags, normalizeTag } from "~/utils/article-stats";
 import { filterByLang } from "~/utils/article-url";
-import { t, getLocale, type Locale } from "~/utils/i18n";
+import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
 
 const loc: Locale = getLocale(Astro.currentLocale || "zh");
 const isEn = loc === "en";
@@ -46,8 +46,11 @@ const toMediaItem = (item: (typeof doubanData)[number]) => ({
 const booksItems = doubanData.filter((d) => d.type === "book").map(toMediaItem);
 const moviesItems = doubanData.filter((d) => d.type === "movie").map(toMediaItem);
 
-// 仅统计/展示当前语言的文章（双语完整化，2026-10）
-const allArticles = filterByLang(await getCollection("article", ({ data }) => !data.draft), loc);
+// 仅统计/展示当前语言的文章（双语完整化，2026-10；M2-11a：新语言暂无正文 → 回退 zh）
+const allArticles = filterByLang(
+    await getCollection("article", ({ data }) => !data.draft),
+    contentLocaleOf(loc),
+);
 const sortedArticles = sortByPubDate(allArticles);
 const latestModified =
     sortedArticles.length > 0 ? enrichPost(sortedArticles[0]).modifiedTime : new Date();

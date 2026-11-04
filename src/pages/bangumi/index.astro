@@ -1,7 +1,8 @@
 ---
-import { getLocale } from "~/utils/i18n";
+import { getLocale, contentLocaleOf } from "~/utils/i18n";
 import BangumiContent from "~/components/Pages/BangumiContent.astro";
-const locale = getLocale(Astro.currentLocale || "zh");
+// 番剧数据只有 zh/en 双语字段：新语言按既定口径吃中文兜底（contentLocaleOf）
+const locale = contentLocaleOf(getLocale(Astro.currentLocale || "zh"));
 ---
 
 <BangumiContent locale={locale} />

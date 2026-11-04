@@ -1,10 +1,12 @@
 ---
-import { getLocale, t } from "~/utils/i18n";
+import { getLocale, contentLocaleOf, t } from "~/utils/i18n";
 import SectionPage from "~/components/Layout/SectionPage.astro";
 import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
 import ServicesContent from "~/components/Pages/ServicesContent.astro";
 
 const locale = getLocale(Astro.currentLocale || "zh");
+// 服务内容只有 zh/en 两套文案：新语言按 contentLocaleOf 吃中文兜底
+const contentLocale = contentLocaleOf(locale);
 ---
 
 <SectionPage
@@ -16,5 +18,5 @@ const locale = getLocale(Astro.currentLocale || "zh");
 >
     <DynamicIcon name="tabler:tools" slot="icon" />
 
-    <ServicesContent locale={locale} />
+    <ServicesContent locale={contentLocale} />
 </SectionPage>

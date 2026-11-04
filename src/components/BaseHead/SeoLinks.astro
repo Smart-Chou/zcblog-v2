@@ -81,7 +81,14 @@ for (const locale of enabledLocales()) {
         continue;
     }
     const href = hrefOf(locale);
-    if (href) alternates.push({ locale, href });
+    if (!href) continue;
+    /**
+     * 回退正文的语言（新语言 5 个模板路由）不参与 hreflang：它们的 canonical
+     * 指向中文页，指向「canonical 在他处」的 URL 是 hreflang 的已知错误用法，
+     * Google 会整组忽略。等正文翻译落地（isFallbackContent 变 false）自动恢复。
+     */
+    if (isFallbackContent(locale)) continue;
+    alternates.push({ locale, href });
 }
 
 /**

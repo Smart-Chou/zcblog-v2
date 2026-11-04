@@ -132,6 +132,12 @@
         "title": "Bangumi",
         "description": "アニメと音楽",
         "subtitle": "アニメ・書籍・音楽・ゲームのコレクション",
+        "buildTimePrefix": "最終更新: ",
+        "emptyTitleNoUser": "Bangumi ユーザー ID が未設定です",
+        "emptyMessageNoUser": "ページのコードで Bangumi ユーザー ID を設定してください",
+        "emptyTitleNoData": "データがありません",
+        "emptyMessageNoData": "コレクションは空です",
+        "emptySection": "データがありません",
         "filters": {
             "all": "すべて",
             "collect": "コレクション済み",
