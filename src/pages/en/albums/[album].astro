@@ -1,0 +1,13 @@
+---
+/**
+ * C-2 相册详情（英文路由，M2-8c）
+ *
+ * 与中文页同源：静态路径直接复用中文页的 `getStaticPaths`（同一份契约归一化结果），
+ * markup 直接渲染中文页组件，语言由 `/en/` 推出。复制一份路由表 = 两边迟早各说各话。
+ */
+import AlbumDetail, { getStaticPaths as zhGetStaticPaths } from "~/pages/albums/[album].astro";
+
+export const getStaticPaths = zhGetStaticPaths;
+---
+
+<AlbumDetail />

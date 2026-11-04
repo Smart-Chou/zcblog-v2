@@ -1,5 +1,11 @@
 ---
-import AlbumsContent from "~/components/Pages/AlbumsContent.astro";
+/**
+ * C-2 相册列表（英文路由，M2-8c）
+ *
+ * 与中文页同源：数据、组件、版式完全一致；语言由 `Astro.currentLocale` 从 `/en/` 推出。
+ * 这里**不复制一份 markup**（与 projects / devices / timeline / music 同一判据）。
+ */
+import AlbumsIndex from "~/pages/albums/index.astro";
 ---
 
-<AlbumsContent locale="en" />
+<AlbumsIndex />

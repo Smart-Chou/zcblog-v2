@@ -1,7 +1,219 @@
 ---
+/**
+ * C-2 相册列表（M2-8c，中文路由）
+ * ------------------------------------------------------------------
+ * 页面只做三件事：取数（实体契约归一化）→ 相册墙 → 三态。
+ * 相册顺序 = 数据文件顺序（按最近一次出行往前排的人工维护顺序），页面不排序：
+ * e2e 断言「页面顺序 = 数据顺序」，两套顺序会让断言变成自说自话。
+ *
+ * 缩略图 / 原图的分离不在这一页（这页只有封面缩略图）；详情页才是本卡的主场。
+ * 空态 / 错误态都是页面状态：路由永远 200，导航与评论区不受影响。
+ * 构建期可用 `PUBLIC_ALBUMS_STATE=empty|error` 预览另两态（验收/截图用，不改数据）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/albums.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import AlbumCard from "~/components/Gallery/AlbumCard.astro";
+import { albums, albumsMeta } from "~/data/entities/albums";
+import {
+    albumPhotoTotal,
+    albumPlaceLabel,
+    albumSpan,
+    albumSpec,
+    formatUpdated,
+    normalizeCollection,
+} from "~/types/entities";
+import { getPicImageUrl } from "~/utils";
 import { getLocale } from "~/utils/i18n";
-import AlbumsContent from "~/components/Pages/AlbumsContent.astro";
-const locale = getLocale(Astro.currentLocale || "zh");
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(albums, albumsMeta, albumSpec, {
+    force: import.meta.env.PUBLIC_ALBUMS_STATE,
+});
+
+const photoTotal = albumPhotoTotal(feed.items);
+const places = [...new Set(feed.items.map((album) => album.place))];
+
+const copy = isEn
+    ? {
+          kicker: "ALBUM · FIELD NOTES",
+          title: "Albums",
+          lede: "Trips kept as photo sets: the count, the place and the shooting date of each album come straight from the image-host manifest — the page does not retouch or reorder them.",
+          listTitle: "Album wall",
+          listMeta: "Data order · 1 / 2 / 3 columns by viewport",
+          countOne: "albums",
+          photoOne: "photos",
+          placeOne: "places",
+          updatedPrefix: "data updated",
+          emptyTitle: "No albums yet",
+          emptyText:
+              "The album data file has no entries, so nothing is listed here. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Album data could not be read",
+          errorText:
+              "The album file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "ALBUM · 走走拍拍",
+          title: "相册",
+          lede: "一次出行一本相册：张数、地点、拍摄日期全部来自图床清单本身，页面不补拍、不改写、不重排。",
+          listTitle: "相册墙",
+          listMeta: "按数据顺序 · 1 / 2 / 3 列随视口变化",
+          countOne: "本相册",
+          photoOne: "张照片",
+          placeOne: "个地点",
+          updatedPrefix: "数据更新于",
+          emptyTitle: "还没有相册",
+          emptyText: "相册数据文件里没有条目，这里暂不列出。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "相册数据读取失败",
+          errorText: "相册数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh");
 ---
 
-<AlbumsContent locale={locale} />
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Albums", "相册", "照片", "Photos", "Gallery"]}
+>
+    <article
+        class="entities entities--albums"
+        data-albums-status={feed.status}
+        data-albums-total={feed.total}
+        data-albums-photos={photoTotal}
+        data-albums-places={places.length}
+        data-albums-updated={feed.updated ?? ""}
+        aria-labelledby="albums-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="albums-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:library-photo" size="xs" />
+                    {feed.total} {copy.countOne}
+                </span>
+                {
+                    photoTotal > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:camera" size="xs" />
+                            {photoTotal} {copy.photoOne}
+                        </span>
+                    )
+                }
+                {
+                    places.length > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:map-pin" size="xs" />
+                            {places.length} {copy.placeOne}
+                        </span>
+                    )
+                }
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
+            </div>
+        </header>
+
+        <section class="entities-section" aria-labelledby="albums-list-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="albums-list-title">{copy.listTitle}</h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            {
+                feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                    <p class="entities-notice" data-albums-dropped={feed.dropped}>
+                        {isEn
+                            ? `${feed.dropped} albums failed validation and are not listed below.`
+                            : `有 ${feed.dropped} 本相册未通过校验，未在下方列出。`}
+                    </p>
+                )
+            }
+
+            {
+                feed.status === "ok" && (
+                    <div class="albums-wall" data-albums-wall>
+                        {feed.items.map((album) => {
+                            const name = album.name[isEn ? "en" : "zh"];
+                            const span = albumSpan(album);
+                            const place = albumPlaceLabel(album.place, isEn ? "en" : "zh");
+                            return (
+                                <div class="albums-wall__item" data-album-item={album.id}>
+                                    <AlbumCard
+                                        id={album.id}
+                                        name={name}
+                                        cover={getPicImageUrl(album.photos[0], 640)}
+                                        photoCount={album.photos.length}
+                                    />
+                                    <p class="albums-wall__meta">
+                                        <span>
+                                            {album.photos.length} {copy.photoOne}
+                                        </span>
+                                        <span class="albums-wall__separator" aria-hidden="true">
+                                            ·
+                                        </span>
+                                        <span>{place}</span>
+                                        {span && (
+                                            <>
+                                                <span
+                                                    class="albums-wall__separator"
+                                                    aria-hidden="true"
+                                                >
+                                                    ·
+                                                </span>
+                                                <time datetime={span.split(" ")[0]}>{span}</time>
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-albums-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-albums-empty={feed.issue?.code ?? "unknown"}
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:library-photo" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </section>
+    </article>
+</BaseLayout>

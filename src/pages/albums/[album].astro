@@ -1,218 +1,144 @@
 ---
-// 灯箱样式按需注入（见 src/utils/fancybox.ts / D-0057）
+/**
+ * C-2 相册详情（M2-8c，中文路由）
+ * ------------------------------------------------------------------
+ * 结构：页头（相册名 / 张数 / 地点 / 拍摄日）+ 照片瀑布流 + 灯箱提示。
+ *
+ * 本卡的三条硬边界都在这里：
+ * 1. **缩略图与原图分离**：`AlbumGrid` 里 `<img>` 读站点 `/cdn-cgi/image/width=…`
+ *    缩略图，`<a href>` 读图床原图；两者地址不同源、不同串，e2e 直接对账数量与形状。
+ * 2. **灯箱复用**：容器 id `#fancybox-gallery`，绑定的是 BaseLayout 常驻的
+ *    `~/scripts/fancybox-album`（`~/utils/fancybox.ts`）。本页 0 行灯箱代码。
+ * 3. **列数是断点契约**：albums.css 里 390 → 1、768 → 2、1440 → 3，不用 auto-fill
+ *    碰巧凑数（e2e 读 computed columnCount 断言）。
+ *
+ * 路由只由通过校验的条目生成（坏数据不会生出一个 200 的空壳页）；
+ * 相册 id 沿用既有 URL（`shenzhen_feng-huang-shan`），不重写 slug。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/albums.css";
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import { site } from "~/config";
+import Icon from "~/components/UI/atom/Icon.astro";
+import AlbumGrid from "~/components/C/AlbumGrid.astro";
+import { albums, albumsMeta } from "~/data/entities/albums";
+import {
+    albumPlaceLabel,
+    albumSpan,
+    albumSpec,
+    formatUpdated,
+    normalizeCollection,
+} from "~/types/entities";
 import { getPicImageUrl } from "~/utils";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
 
-interface AlbumPhoto {
-    id: string;
-    url: string;
-    alt?: string;
-    description?: string;
+/**
+ * 无入参：语言来自 URL、数据来自实体契约。
+ * 显式声明成「空 props」是为了让 `/en/albums/[album]` 能直接渲染本页组件 ——
+ * 不声明时 Astro 把页面 props 推成 `never`，复用方连 `<Page />` 都过不了类型检查。
+ */
+type Props = Record<string, never>;
+
+export function getStaticPaths() {
+    const feed = normalizeCollection(albums, albumsMeta, albumSpec);
+    return feed.items.map((album) => ({ params: { album: album.id } }));
 }
 
-interface Album {
-    id: string;
-    name: string;
-    description?: string;
-    location?: string;
-    date?: string;
-    tags?: string[];
-    cover?: string;
-    photos: AlbumPhoto[];
-    photoCount?: number;
-}
+const feed = normalizeCollection(albums, albumsMeta, albumSpec);
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
 
-import albumsData from "~/data/albums.json";
+const album = feed.items.find((item) => item.id === Astro.params.album);
+if (!album) return Astro.redirect("/albums/");
 
-const allAlbums: Album[] = (albumsData as Album[]).map((album) => ({
-    ...album,
-    cover: album.cover ? getPicImageUrl(album.cover) : "",
-    photoCount: album.photos?.length || 0,
-}));
+const name = album.name[isEn ? "en" : "zh"];
+const place = albumPlaceLabel(album.place, isEn ? "en" : "zh");
+const span = albumSpan(album);
+const backHref = isEn ? "/en/albums/" : "/albums/";
+const updatedLabel = formatUpdated(album.updated, null, isEn ? "en" : "zh");
 
-export async function getStaticPaths() {
-    const data = await import("~/data/albums.json");
-    const allAlbums = (data.default as Album[]).map((album) => ({
-        ...album,
-        cover: album.cover ? getPicImageUrl(album.cover) : "",
-        photoCount: album.photos?.length || 0,
-    }));
+const copy = isEn
+    ? {
+          back: "Back to albums",
+          kicker: "ALBUM · FIELD NOTES",
+          photoOne: "photos",
+          listTitle: "Photographs",
+          listMeta: "Thumbnails here · originals open in the lightbox",
+          note: "Click any photo to open the lightbox: arrow keys page through, Esc closes it, and focus returns to the photo you clicked. Each thumbnail above is a width-limited render (640px); the lightbox loads the original from the image host.",
+          updatedPrefix: "album checked",
+      }
+    : {
+          back: "返回相册列表",
+          kicker: "ALBUM · 走走拍拍",
+          photoOne: "张照片",
+          listTitle: "照片",
+          listMeta: "这里只加载缩略图 · 原图交给灯箱",
+          note: "点任意照片打开灯箱：左右方向键翻页，Esc 关闭后焦点回到你点的那一张。上方每张都是按宽度压过的缩略图（640px），灯箱才去图床取原图。",
+          updatedPrefix: "相册核对于",
+      };
 
-    return allAlbums.map((album) => ({
-        params: { album: album.id },
-    }));
-}
-
-const { album } = Astro.params;
-const foundAlbum = allAlbums.find((a) => a.id === album);
-
-if (!foundAlbum) {
-    return Astro.redirect("/albums");
-}
+const description = isEn
+    ? `${name} · ${place}${span ? ` · ${span}` : ""} · ${album.photos.length} photos`
+    : `${name} · ${place}${span ? ` · ${span}` : ""} · ${album.photos.length} 张照片`;
 ---
 
 <BaseLayout
-    noEnAlternate
-    title={`${foundAlbum.name} - 相册`}
-    description={site.title + ` - ` + foundAlbum.description}
-    image={foundAlbum.cover}
-    imageAlt={foundAlbum.name}
-    keywords={`${foundAlbum.name},相册,照片`}
+    locale={loc}
+    title={`${name} - ${isEn ? "Album" : "相册"} - ${site.title}`}
+    description={description}
+    image={getPicImageUrl(album.photos[0], 640)}
+    imageAlt={name}
+    keywords={[name, isEn ? "Album" : "相册", isEn ? "Photos" : "照片", place]}
 >
-    <div class="album-detail-container">
-        <div class="album-header">
-            <a href="/albums/" class="back-link">← 返回相册列表</a>
-            <h1 class="album-title">{foundAlbum.name}</h1>
-            <p class="album-description">{foundAlbum.description}</p>
-            <div class="album-meta">
-                <span class="photo-count">{foundAlbum.photos.length} 张照片</span>
-                {foundAlbum.location && <span class="location">{foundAlbum.location}</span>}
+    <article
+        class="entities entities--albums"
+        data-album-detail={album.id}
+        data-album-photos={album.photos.length}
+        data-album-place={album.place}
+        data-album-span={span}
+        aria-labelledby="album-title"
+    >
+        <header class="entities-hero">
+            <a class="album-detail__back" href={backHref}>← {copy.back}</a>
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="album-title">{name}</h1>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:camera" size="xs" />
+                    {album.photos.length} {copy.photoOne}
+                </span>
+                {
+                    span && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:calendar" size="xs" />
+                            {span}
+                        </span>
+                    )
+                }
+                <span class="entities-chip">
+                    <Icon name="tabler:map-pin" size="xs" />
+                    {place}
+                </span>
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
             </div>
-        </div>
+        </header>
 
-        <div class="photos-grid" id="fancybox-gallery">
-            {
-                foundAlbum.photos.map((photo, index) => (
-                    <a
-                        href={getPicImageUrl(photo.url)}
-                        class="photo-item"
-                        data-fancybox="gallery"
-                        data-caption=""
-                        data-index={index}
-                    >
-                        <div class="photo-wrapper">
-                            <img
-                                src={getPicImageUrl(photo.url, 640)}
-                                alt={photo.alt || ""}
-                                class="photo-image"
-                                loading="lazy"
-                            />
-                        </div>
-                    </a>
-                ))
-            }
-        </div>
-    </div>
+        <section class="entities-section" aria-labelledby="album-photos-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="album-photos-title">{copy.listTitle}</h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            <AlbumGrid album={album} locale={loc} />
+
+            <p class="album-detail__note">{copy.note}</p>
+        </section>
+    </article>
 </BaseLayout>
-
-<style>
-    .album-detail-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem 1.5rem;
-    }
-
-    .album-header {
-        margin-bottom: 3rem;
-        text-align: center;
-    }
-
-    .back-link {
-        display: inline-block;
-        margin-bottom: 1.5rem;
-        font-size: 1rem;
-        color: var(--color-text);
-        text-decoration: none;
-        transition: color var(--duration-slow) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .back-link:hover {
-            color: var(--color-accent);
-        }
-    }
-
-    .album-title {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        color: var(--color-title);
-    }
-
-    .album-description {
-        font-size: 1.1rem;
-        color: var(--color-text);
-        margin-bottom: 1rem;
-    }
-
-    .album-meta {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        font-size: 0.9rem;
-        color: var(--color-text);
-        opacity: 0.8;
-    }
-
-    .photos-grid {
-        column-count: 2;
-        column-gap: 1rem;
-    }
-
-    .photo-item {
-        display: block;
-        border-radius: var(--radius);
-        overflow: hidden;
-        break-inside: avoid;
-        margin-bottom: 1rem;
-        box-shadow: var(--shadow-sm);
-        transition: box-shadow var(--duration-slow) var(--ease-out);
-        text-decoration: none;
-        color: inherit;
-        cursor: zoom-in;
-    }
-
-    @media (hover: hover) {
-        .photo-item:hover {
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
-        }
-    }
-
-    .photo-wrapper {
-        overflow: hidden;
-    }
-
-    .photo-image {
-        width: 100%;
-        display: block;
-        transition: transform var(--duration-slower) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .photo-item:hover .photo-image {
-            transform: scale(1.05);
-        }
-    }
-
-    .photo-overlay {
-        background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-        color: white;
-        padding: 1rem;
-        opacity: 0;
-        transition: opacity var(--duration-slow) var(--ease-out);
-    }
-
-    @media (hover: hover) {
-        .photo-item:hover .photo-overlay {
-            opacity: 1;
-        }
-    }
-
-    .photo-description {
-        font-size: 0.85rem;
-        line-height: 1.4;
-    }
-
-    @media (max-width: 768px) {
-        .album-meta {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .photos-grid {
-            column-count: 1;
-            column-gap: 0.5rem;
-        }
-    }
-</style>

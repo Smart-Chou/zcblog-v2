@@ -32,7 +32,14 @@ export interface LocalizedText {
     en: string;
 }
 
-export type EntityKind = "projects" | "skills" | "devices" | "games" | "timeline" | "music";
+export type EntityKind =
+    | "projects"
+    | "skills"
+    | "devices"
+    | "games"
+    | "timeline"
+    | "music"
+    | "albums";
 
 export type EntityStatus = "ok" | "empty" | "error";
 
@@ -236,6 +243,39 @@ export interface MusicTrack {
     updated: string;
 }
 
+/* ───────────────────────── 相册 ───────────────────────── */
+
+/**
+ * 地点键（闭集）：只收数据里真实出现过的城市，多一档就要有对应图片。
+ * 展示名走 `ALBUM_PLACE_LABEL`，中文名照写、英文用通行拼写。
+ */
+export type AlbumPlace = "shenzhen" | "guangzhou" | "huizhou" | "wuhan" | "qingyuan";
+
+/**
+ * 相册条目 —— 一本相册 = 一次出行（或一次扫街）。
+ *
+ * 照片只存**图床相对路径**（不带扩展名、不带宽度）：缩略图与原图在页面里由
+ * `getPicImageUrl(path, width)` 现算。数据里存下一个宽度，就等于把「缩略图地址」
+ * 当原图存了下来 —— 那是假分离，不是真分离。
+ */
+export interface Album {
+    /**
+     * 稳定键：沿用既有 URL 里的相册 id（`shenzhen_feng-huang-shan`），
+     * 因此本实体的 id 允许下划线 —— 改 slug 规则等于改线上 URL。
+     */
+    id: string;
+    /** 相册名：中文照写，英文用通名翻译（凤凰山 → Fenghuang Mountain）。 */
+    name: LocalizedText;
+    place: AlbumPlace;
+    /**
+     * 图床路径清单（顺序 = 清单顺序 = 页面顺序）。封面 = `photos[0]`，
+     * 张数 = `photos.length`，拍摄日 = 文件名时间戳，三者都不另存字段。
+     */
+    photos: string[];
+    /** 条目最后核对日 `YYYY-MM-DD`。 */
+    updated: string;
+}
+
 /* ───────────────────────── 集合元信息 ───────────────────────── */
 
 /**
@@ -265,6 +305,13 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HTTP = /^https?:\/\/[^\s]+$/;
 /** 站点内静态图路径：构建期已在 public/ 下，带扩展名；用来挡住 `/assets/x.mp3` 式的糊写。 */
 const SITE_IMAGE = /^\/[a-z0-9][a-z0-9/_.-]*\.(?:webp|avif|png|jpe?g|svg)$/i;
+/**
+ * 图床照片路径：以 `/` 开头、**不带扩展名**、不许出现 `..`（图床地址就是无扩展名的 key）。
+ * 大写字母是真实存在的（相机导出的 `CRnall_` / `IMG_` / `MVIMG_`），不能按小写卡。
+ */
+const PIC_PATH = /^\/(?!.*\.\.)(?!.*\.(?:jpe?g|png|webp|avif|heic|gif)$)[A-Za-z0-9][A-Za-z0-9/_.-]*$/;
+/** 相册 id：沿用既有 URL，允许下划线（slug 形状 + `_`）。 */
+const ALBUM_ID = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
 
 const PROJECT_STATUSES: readonly ProjectStatus[] = ["active", "maintained", "archived"];
 const SKILL_LEVELS: readonly SkillLevel[] = ["exploring", "working", "solid", "deep"];
@@ -288,6 +335,13 @@ const GAME_PLATFORMS: readonly GamePlatform[] = [
 const GAME_STATUSES: readonly GameStatus[] = ["playing", "finished", "shelved", "backlog"];
 const TIMELINE_KINDS: readonly TimelineKind[] = ["build", "site", "infra", "life"];
 const MUSIC_FORMATS: readonly MusicFormat[] = ["album", "single"];
+const ALBUM_PLACES: readonly AlbumPlace[] = [
+    "shenzhen",
+    "guangzhou",
+    "huizhou",
+    "wuhan",
+    "qingyuan",
+];
 
 export const PROJECT_REQUIRED_FIELDS = [
     "id",
@@ -338,6 +392,8 @@ export const MUSIC_REQUIRED_FIELDS = [
     "note",
     "updated",
 ] as const;
+
+export const ALBUM_REQUIRED_FIELDS = ["id", "name", "place", "photos", "updated"] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null && !Array.isArray(value);
@@ -611,6 +667,34 @@ export function validateMusicTrack(value: unknown): string[] {
     return problems;
 }
 
+/** 相册条目的结构问题；返回空数组 = 合法。 */
+export function validateAlbum(value: unknown): string[] {
+    if (!isRecord(value)) return ["不是对象"];
+
+    const problems: string[] = [];
+    const at = (field: string) => `albums[${String(value.id ?? "?")}].${field}`;
+
+    // id 允许下划线：既有 URL 就是这个形状（`shenzhen_feng-huang-shan`），不改线上地址。
+    if (!isNonEmptyString(value.id) || !ALBUM_ID.test(value.id))
+        problems.push(`${at("id")} 必须是小写 slug（允许下划线，沿用既有 URL）`);
+    if (!isLocalizedText(value.name)) problems.push(`${at("name")} 需要 zh + en 两个非空字符串`);
+    if (!ALBUM_PLACES.includes(value.place as AlbumPlace))
+        problems.push(`${at("place")} 必须是 ${ALBUM_PLACES.join(" / ")}`);
+    if (!Array.isArray(value.photos) || value.photos.length === 0) {
+        problems.push(`${at("photos")} 必须是非空数组（空相册就别建条目）`);
+    } else {
+        if (!value.photos.every((photo) => PIC_PATH.test(String(photo))))
+            problems.push(
+                `${at("photos")} 每项必须是以 / 开头的图床路径（不带扩展名、不带宽度、无 ..）`,
+            );
+        if (new Set(value.photos).size !== value.photos.length)
+            problems.push(`${at("photos")} 有重复照片`);
+    }
+    if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
+
+    return problems;
+}
+
 export function validateMeta(value: unknown): string[] {
     if (!isRecord(value)) return ["meta 不是对象"];
     const problems: string[] = [];
@@ -841,6 +925,42 @@ export const musicSpec: EntitySpec<MusicTrack> = {
         ["cover 没有扩展名", { ...musicSample(), cover: "/images/demo/demo" }],
         ["links 非 http", { ...musicSample(), links: [{ label: "x", href: "/relative" }] }],
         ["updated 不是真实日历日", { ...musicSample(), updated: "2026-02-31" }],
+    ],
+};
+
+const albumSample = (): Record<string, unknown> => ({
+    id: "demo_album",
+    name: { zh: "示例相册", en: "Demo album" },
+    place: "shenzhen",
+    photos: [
+        "/travel/demo/IMG_20260101_120000-abcdef12",
+        "/travel/demo/IMG_20260101_120500-12345678",
+    ],
+    updated: "2026-01-01",
+});
+
+export const albumSpec: EntitySpec<Album> = {
+    kind: "albums",
+    validate: validateAlbum,
+    updatedOf: (album) => (isIsoDay(album.updated) ? album.updated : null),
+    keyOf: (album) => album.id,
+    requiredFields: ALBUM_REQUIRED_FIELDS,
+    sample: albumSample,
+    negatives: () => [
+        ["place 越界（beijing）", { ...albumSample(), place: "beijing" }],
+        ["photos 空数组", { ...albumSample(), photos: [] }],
+        ["photos 不是数组", { ...albumSample(), photos: "/travel/demo/IMG_20260101_120000-abcdef12" }],
+        // 相对路径 = 图床前缀拼错的典型形状
+        ["photos 是相对路径", { ...albumSample(), photos: ["travel/demo/IMG_20260101_120000-abcdef12"] }],
+        // 带扩展名 = 把某个尺寸的成品图当成图床 key 存下来了
+        ["photos 带扩展名", { ...albumSample(), photos: ["/travel/demo/IMG_20260101_120000.jpg"] }],
+        ["photos 含 ..", { ...albumSample(), photos: ["/travel/../secret/IMG_20260101_120000"] }],
+        ["photos 重复", { ...albumSample(), photos: ["/travel/demo/a-1", "/travel/demo/a-1"] }],
+        ["name 缺 en", { ...albumSample(), name: { zh: "示例相册" } }],
+        ["name 空串", { ...albumSample(), name: { zh: "  ", en: "Demo" } }],
+        ["id 含大写", { ...albumSample(), id: "Demo_Album" }],
+        ["id 含空格", { ...albumSample(), id: "demo album" }],
+        ["updated 不是真实日历日", { ...albumSample(), updated: "2026-02-31" }],
     ],
 };
 
@@ -1241,4 +1361,57 @@ export function musicArtistCount(tracks: readonly MusicTrack[]): number {
             )
             .filter((name) => name !== ""),
     ).size;
+}
+
+/* ───────────────────────── 相册 展示辅助 ───────────────────────── */
+
+const ALBUM_PLACE_LABEL: Record<AlbumPlace, LocalizedText> = {
+    shenzhen: { zh: "深圳", en: "Shenzhen" },
+    guangzhou: { zh: "广州", en: "Guangzhou" },
+    huizhou: { zh: "惠州", en: "Huizhou" },
+    wuhan: { zh: "武汉", en: "Wuhan" },
+    qingyuan: { zh: "清远", en: "Qingyuan" },
+};
+
+export function albumPlaceLabel(place: AlbumPlace, locale: EntityLocale): string {
+    return pick(ALBUM_PLACE_LABEL[place] ?? ALBUM_PLACE_LABEL.shenzhen, locale);
+}
+
+/**
+ * 从图床路径的文件名里取拍摄日 `YYYY-MM-DD`（相机导出名 `CRnall_20260124_161504998`
+ * / `IMG_20260321_131257` / `MVIMG_20260418_153204` 都带同一段 `_YYYYMMDD_`）。
+ * 取不到返回 null —— 页面据此不写日期，而不是编一个。
+ */
+export function albumPhotoTakenOn(photo: string): string | null {
+    const match = /_(\d{4})(\d{2})(\d{2})_/.exec(photo);
+    if (!match) return null;
+    const date = `${match[1]}-${match[2]}-${match[3]}`;
+    return isIsoDay(date) ? date : null;
+}
+
+/** 一本相册的拍摄日范围：单日返回那一天，跨日返回 `起 – 止`。 */
+export function albumSpan(album: Album): string {
+    const days = album.photos
+        .map(albumPhotoTakenOn)
+        .filter((day): day is string => typeof day === "string")
+        .sort();
+    const first = days.at(0);
+    const last = days.at(-1);
+    if (!first || !last) return "";
+    return first === last ? first : `${first} – ${last}`;
+}
+
+/** 所有相册合计张数（页面 data-* 与 e2e 对账用）。 */
+export function albumPhotoTotal(albums: readonly Album[]): number {
+    return albums.reduce((sum, album) => sum + album.photos.length, 0);
+}
+
+/**
+ * 照片的 alt / 灯箱说明：`凤凰山 · 2026-01-24`。
+ * 由相册名 + 文件名时间戳拼出来，不另存一句人写的说明 —— 数据里没有的东西不编。
+ */
+export function albumPhotoAlt(album: Album, photo: string, locale: EntityLocale): string {
+    const day = albumPhotoTakenOn(photo);
+    const name = pick(album.name, locale);
+    return day ? `${name} · ${day}` : name;
 }

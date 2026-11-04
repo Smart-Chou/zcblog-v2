@@ -1,0 +1,153 @@
+/* ============================================================
+   C-2 · 相册（M2-8c）
+   ------------------------------------------------------------
+   版式：编辑式页头（复用 entities.css）→ 相册墙（卡片 1/2/3 列）
+        → 相册详情：页头 + 照片瀑布流（1/2/3 列）。
+   约束：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl() / --palette-*。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 只出现在 1px/2px 描边与断点里。
+   - 列数是**断点决定的**（不是 auto-fill）：390 → 1、768 → 2、1440 → 3。
+     用 auto-fill 的话「768 上恰好 2 列」只是碰巧，e2e 断出来的数字没有契约意义。
+   - 瀑布流用 CSS 多列（column-count）：照片比例未知（数据里没有尺寸），
+     定高裁切会把人像裁成证件照；多列让每张按自身比例排，列高自然错落。
+   - 本文件只管版式：灯箱样式由 fancybox 自己按需注入（D-0057）。
+   ============================================================ */
+
+/* 相册详情/列表都要 1200 的外框（与 C-1/C-2 其余页同一条判据） */
+.main:has(> .content > .entities--albums) {
+    width: 100%;
+}
+
+/* ── 相册墙（列表页） ─────────────────────────────────────── */
+
+.albums-wall {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    min-inline-size: 0;
+}
+
+.albums-wall > * {
+    min-inline-size: 0;
+}
+
+.albums-wall__item {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+}
+
+/* 卡片是自己的、说明是本页补的：图片与标题都在卡片里，这一行只补「张数 · 地点 · 日期」 */
+.albums-wall__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.albums-wall__separator {
+    color: var(--color-border-strong);
+}
+
+/* ── 相册详情页头 ─────────────────────────────────────────── */
+
+.album-detail__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    align-self: flex-start;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+    text-decoration: none;
+    transition: border-color var(--duration-base) var(--ease-standard);
+}
+
+.album-detail__back:focus-visible {
+    outline: 2px solid var(--color-accent-solid);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .album-detail__back:hover {
+        border-color: var(--color-accent-solid);
+    }
+}
+
+/* ── 照片瀑布流（详情页） ─────────────────────────────────── */
+
+.album-grid {
+    column-count: 1;
+    column-gap: var(--space-3);
+    min-inline-size: 0;
+}
+
+.album-grid__item {
+    display: block;
+    break-inside: avoid;
+    margin-block-end: var(--space-3);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    /* 图片没有内在尺寸（数据里没有宽高）：加载中先给一块底色，
+       否则整列会先塌成一条线再弹开，滚动位置跟着跳。 */
+    background-color: var(--color-bg-muted);
+    box-shadow: var(--shadow-1);
+    cursor: zoom-in;
+    transition: box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.album-grid__item:focus-visible {
+    outline: 2px solid var(--color-accent-solid);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    .album-grid__item:hover {
+        box-shadow: var(--shadow-3);
+    }
+}
+
+.album-grid__image {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+}
+
+/* 灯箱提示：只在有脚本的浏览器里出现（无 JS 时点开就是原图，不需要这句话） */
+.album-detail__note {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+/* ── 断点：列数是契约（390 / 768 / 1440 三档 e2e 断言） ────── */
+
+@media (min-width: 640px) {
+    .albums-wall {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .album-grid {
+        column-count: 2;
+    }
+}
+
+@media (min-width: 1024px) {
+    .albums-wall {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .album-grid {
+        column-count: 3;
+    }
+}

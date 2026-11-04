@@ -105,6 +105,16 @@ const ENTITIES = [
         pages: ["src/pages/music/index.astro", "src/pages/en/music/index.astro"],
         nav: "/music/",
     },
+    {
+        kind: "albums",
+        label: "相册",
+        file: "src/data/entities/albums.ts",
+        dataExport: "albums",
+        metaExport: "albumsMeta",
+        specExport: "albumSpec",
+        pages: ["src/pages/albums/index.astro", "src/pages/en/albums/index.astro"],
+        nav: "/albums/",
+    },
 ];
 
 const results = [];

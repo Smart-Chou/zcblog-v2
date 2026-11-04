@@ -1,0 +1,69 @@
+---
+/**
+ * C-2 · 相册照片瀑布流（M2-8c）
+ * ------------------------------------------------------------------
+ * 只做一件事：把一条相册实体渲染成「缩略图墙 + 原图链接」。
+ *
+ * 缩略图与原图的分离在这里是**结构性**的，不靠 CSS：
+ *   <a href={原图}>   ← 灯箱读它（无宽度，图床原图）
+ *     <img src={缩略图}> ← 页面读它（站点 /cdn-cgi/image 按宽度转码）
+ * e2e 直接对账：`a[href]` 数量 = `img[src]` 数量 = photos.length，且两组地址互不相等。
+ * 数据里没有尺寸字段，所以这里也不编宽高比：图片按自身比例排（瀑布流就是靠这个）。
+ *
+ * 灯箱是复用：容器 id `#fancybox-gallery` 由 BaseLayout 常驻的
+ * `~/scripts/fancybox-album` 绑定（`a[href]` 全组），本组件不引任何灯箱代码。
+ */
+import { getPicImageUrl } from "~/utils";
+import { albumPhotoAlt, albumPhotoTakenOn } from "~/types/entities";
+import type { Album, EntityLocale } from "~/types/entities";
+
+interface Props {
+    album: Album;
+    locale: EntityLocale;
+    /** 缩略图宽度（站点 /cdn-cgi/image 的 width 参数）。换值 = 换一张缩略图，不动原图。 */
+    thumbWidth?: number;
+}
+
+const { album, locale, thumbWidth = 640 } = Astro.props;
+
+const photos = album.photos.map((path, index) => ({
+    path,
+    index,
+    thumb: getPicImageUrl(path, thumbWidth),
+    full: getPicImageUrl(path),
+    alt: albumPhotoAlt(album, path, locale),
+    day: albumPhotoTakenOn(path),
+}));
+---
+
+<div
+    class="album-grid"
+    id="fancybox-gallery"
+    data-album-grid
+    data-album-id={album.id}
+    data-album-thumb-width={thumbWidth}
+    data-album-photo-count={photos.length}
+>
+    {
+        photos.map((photo) => (
+            <a
+                class="album-grid__item"
+                href={photo.full}
+                data-fancybox="album"
+                data-caption={photo.alt}
+                data-photo-path={photo.path}
+                data-photo-index={photo.index}
+                aria-label={photo.alt}
+            >
+                <img
+                    class="album-grid__image"
+                    src={photo.thumb}
+                    alt={photo.alt}
+                    loading={photo.index < 2 ? "eager" : "lazy"}
+                    decoding="async"
+                    fetchpriority={photo.index === 0 ? "high" : undefined}
+                />
+            </a>
+        ))
+    }
+</div>
