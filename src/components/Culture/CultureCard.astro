@@ -12,7 +12,12 @@
  *
  * 样式在 `src/styles/pages/culture.css`（`.culture-card*`），本组件不带 <style>：
  * 与 ProjectCard / DeviceCard 同一判据 —— C 层卡片的节奏归页面样式表管。
+ *
+ * 箭头用图标而不是 `→` 字形：裸符号是「非文字字符」，axe 的 color-contrast
+ * 判定不了（报 incomplete: nonBmp），双主题都会把 a11y 门禁顶红。换成已注册的
+ * `tabler:chevron-right`（只是 path，没有文本节点）后判定正常。
  */
+import Icon from "~/components/UI/atom/Icon.astro";
 
 export interface CultureStat {
     /** 统计项名称（「记录」「分类」「年份」）；大小写交给 CSS。 */
@@ -63,7 +68,9 @@ const { entry, breakdownLabel } = Astro.props;
         <h3 class="culture-card__title">
             <a class="culture-card__title-link" href={entry.href} data-culture-link={entry.id}>
                 {entry.title}
-                <span class="culture-card__arrow" aria-hidden="true">→</span>
+                <span class="culture-card__arrow" aria-hidden="true">
+                    <Icon name="tabler:chevron-right" size="md" />
+                </span>
             </a>
         </h3>
         <p class="culture-card__note">{entry.note}</p>

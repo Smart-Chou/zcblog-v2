@@ -80,7 +80,11 @@ const bangumiYears = bangumiGroups
 const bangumiFirst = bangumiYears.at(0);
 const bangumiLast = bangumiYears.at(-1);
 const bangumiSpan =
-    bangumiFirst && bangumiLast ? (bangumiFirst === bangumiLast ? bangumiFirst : `${bangumiFirst}–${bangumiLast}`) : "";
+    bangumiFirst && bangumiLast
+        ? bangumiFirst === bangumiLast
+            ? bangumiFirst
+            : `${bangumiFirst}–${bangumiLast}`
+        : "";
 const bangumiSnapshot = bangumiGroups
     .flatMap((group) => group.items.map((item) => (item.updated_at ?? "").slice(0, 10)))
     .filter(Boolean)
@@ -115,7 +119,9 @@ const doubanSubjectId = (url: string | undefined): string => {
     const match = /subject\/(\d+)/.exec(url ?? "");
     return match ? match[1] : "";
 };
-const doubanSubjectIds = new Set(doubanItems.map((item) => doubanSubjectId(item.url)).filter(Boolean));
+const doubanSubjectIds = new Set(
+    doubanItems.map((item) => doubanSubjectId(item.url)).filter(Boolean),
+);
 const musicSharedTracks = musicTracks.filter((track) =>
     (track.links ?? []).some((link) => doubanSubjectIds.has(doubanSubjectId(link.href))),
 );
@@ -225,13 +231,16 @@ const ledeDedupe =
             : `数下来 ${rawTotal} 条，其中 ${overlap} 条是歌单与豆瓣音乐的同一条记录，去重后 ${uniqueTotal} 条。`
         : "";
 
+/** 顺序说明只列真的在页面上的入口：缺了一个来源时，别在标题旁边点它的名。 */
+const orderLabel = entries.map((entry) => entry.title).join(" → ");
+
 const copy = isEn
     ? {
           kicker: "CULTURE · COLLECTIONS",
           title: "Culture",
           lede: ledeDedupe ? `${ledeBase} ${ledeDedupe}` : ledeBase,
           listTitle: "Entries",
-          listMeta: "Fixed order · Bangumi → Douban → Playlist",
+          listMeta: `Fixed order · ${orderLabel}`,
           entriesLabel: `${entries.length} ${entries.length === 1 ? "entry" : "entries"}`,
           uniqueLabel: `${uniqueTotal} unique records`,
           rawLabel: `${rawTotal} raw · ${overlap} shared`,
@@ -246,7 +255,7 @@ const copy = isEn
           title: "文化",
           lede: ledeDedupe ? `${ledeBase} ${ledeDedupe}` : ledeBase,
           listTitle: "入口",
-          listMeta: "固定顺序 · 番剧 → 豆瓣 → 歌单",
+          listMeta: `固定顺序 · ${orderLabel}`,
           entriesLabel: `${entries.length} 个入口`,
           uniqueLabel: `${uniqueTotal} 条记录（去重后）`,
           rawLabel: `${rawTotal} 条原始 · ${overlap} 条同源`,

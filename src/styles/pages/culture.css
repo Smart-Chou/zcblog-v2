@@ -127,13 +127,21 @@
 }
 
 .culture-card__arrow {
-    font-family: var(--font-mono);
-    font-size: var(--text-lg);
-    line-height: var(--leading-none);
+    /* 基线对齐会让 24px 的箭头比 CJK 字面高出一截（CJK 的墨迹中心在基线之上约 0.38em），
+       改成在自己那一行里居中：两种字号下都落在标题的视觉中线上。 */
+    align-self: center;
     color: var(--color-fg-muted);
     transition:
         transform var(--duration-fast) var(--ease-standard),
         color var(--duration-fast) var(--ease-standard);
+}
+
+/* 箭头跟标题同一字号级：24px 下面板（标题 24px）、32px 宽屏（标题 32px）。
+   Icon 的 size 档是给相邻正文用的，这里显式跟上标题大小，免得箭头成了脚注。
+   选择器写到四级：Icon 自己的 `.icon--md` 带 Astro 作用域属性，同权重下组件样式
+   后注入会赢，所以这里刻意加长链。 */
+.culture-card .culture-card__title-link .culture-card__arrow .icon {
+    font-size: var(--space-6);
 }
 
 .culture-card__note {
@@ -229,6 +237,10 @@
 
     .culture-card__title {
         font-size: var(--text-3xl);
+    }
+
+    .culture-card .culture-card__title-link .culture-card__arrow .icon {
+        font-size: var(--space-8);
     }
 
     .culture-card__stats {
