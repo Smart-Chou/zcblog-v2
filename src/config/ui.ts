@@ -120,6 +120,8 @@ export const navLinks: NavLink[] = [
     // C-1（M2-7b）：设备 / 游戏两页。
     { label: "设备", href: "/devices/" },
     { label: "游戏", href: "/games/" },
+    // C-2（M2-8a）：时间线。
+    { label: "时间线", href: "/timeline/" },
     { label: "随笔", href: "/talks/" },
     { label: "相册", href: "/albums/" },
     { label: "番剧", href: "/bangumi/" },

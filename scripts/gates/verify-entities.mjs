@@ -85,6 +85,16 @@ const ENTITIES = [
         pages: ["src/pages/games/index.astro", "src/pages/en/games/index.astro"],
         nav: "/games/",
     },
+    {
+        kind: "timeline",
+        label: "时间线",
+        file: "src/data/entities/timeline.ts",
+        dataExport: "timeline",
+        metaExport: "timelineMeta",
+        specExport: "timelineSpec",
+        pages: ["src/pages/timeline/index.astro", "src/pages/en/timeline/index.astro"],
+        nav: "/timeline/",
+    },
 ];
 
 const results = [];

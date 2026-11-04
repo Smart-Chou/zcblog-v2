@@ -1,0 +1,104 @@
+---
+/**
+ * TimelineItem — C 层（M2-8a）时间线单条事件
+ *
+ * 契约：只吃 `TimelineEvent`（src/types/entities.ts）+ locale，0 数据、0 站点私有文案。
+ * 结构：左轨（日期 + 圆点）→ 标题 · 类别徽标 → 一句话交代 → 标签 / 外链。
+ * 样式在 `src/styles/pages/timeline.css`（`.timeline-item*`），本组件不带 <style>：
+ * 与 ProjectCard / DeviceCard 同一判据 —— 时间线整列靠轨道对齐，样式散进组件会让轨道错位。
+ *
+ * a11y：
+ * - 圆点与竖线是装饰（aria-hidden），语义由日期文本与标题承担；
+ * - 日期写进 `<time datetime>`；「只到月」的条目补 sr-only 文字 + 隐藏的完整日期，
+ *   不让精度差异只靠 `11` 与 `11.02` 这点视觉格式表达。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+import {
+    pick,
+    timelineDateLabel,
+    timelineKindLabel,
+    timelinePrecision,
+    timelineRailLabel,
+    type EntityLocale,
+    type TimelineEvent,
+} from "~/types/entities";
+
+interface Props {
+    event: TimelineEvent;
+    locale: EntityLocale;
+}
+
+const { event, locale } = Astro.props;
+
+const precision = timelinePrecision(event.date);
+const rail = timelineRailLabel(event.date);
+const fullDate = timelineDateLabel(event.date);
+const kindLabel = timelineKindLabel(event.kind, locale);
+const title = pick(event.title, locale);
+const detail = pick(event.detail, locale);
+const tags = event.tags ?? [];
+const links = event.links ?? [];
+const monthOnly = locale === "en" ? " (month only)" : "（仅到月）";
+const tagsLabel = locale === "en" ? "Tags" : "标签";
+const linksLabel = locale === "en" ? "Links" : "链接";
+---
+
+<li
+    class="timeline-item"
+    id={`timeline-${event.id}`}
+    data-timeline-id={event.id}
+    data-timeline-date={event.date}
+    data-timeline-kind={event.kind}
+    data-timeline-precision={precision}
+>
+    <div class="timeline-item__rail">
+        <time class="timeline-item__date" datetime={event.date}>{rail}</time>
+        {
+            precision === "month" && (
+                <span class="sr-only">
+                    {monthOnly}
+                    {fullDate}
+                </span>
+            )
+        }
+        <span class="timeline-item__dot" aria-hidden="true"></span>
+    </div>
+
+    <article class="timeline-item__body">
+        <div class="timeline-item__head">
+            <h4 class="timeline-item__title">{title}</h4>
+            <p class="timeline-item__kind" data-kind={event.kind}>{kindLabel}</p>
+        </div>
+
+        <p class="timeline-item__detail">{detail}</p>
+
+        {
+            (tags.length > 0 || links.length > 0) && (
+                <footer class="timeline-item__foot">
+                    {tags.length > 0 && (
+                        <ul class="timeline-item__tags" aria-label={tagsLabel}>
+                            {tags.map((tag) => (
+                                <li class="timeline-item__tag">{tag}</li>
+                            ))}
+                        </ul>
+                    )}
+                    {links.length > 0 && (
+                        <p class="timeline-item__links" aria-label={linksLabel}>
+                            {links.map((link) => (
+                                <a
+                                    class="timeline-item__link"
+                                    href={link.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {link.label}
+                                    <Icon name="tabler:arrow-up-right" size="xs" />
+                                </a>
+                            ))}
+                        </p>
+                    )}
+                </footer>
+            )
+        }
+    </article>
+</li>

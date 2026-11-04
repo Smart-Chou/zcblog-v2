@@ -1,0 +1,206 @@
+---
+/**
+ * C-2 时间线（M2-8a，中文路由）
+ * ------------------------------------------------------------------
+ * 页面只做三件事：取数（实体契约归一化）→ 按年分组交给 C 层条目 → 提供页面级状态。
+ * 排序口径固定在 `groupTimeline()` 里（年份降序、同年日期降序、同日按 id 兜底），
+ * 页面不自己 sort —— 否则 e2e 断言的和页面渲染的会是两套顺序。
+ * 空态 / 错误态都是页面状态：路由永远 200，导航与评论区不受影响。
+ * 构建期可用 `PUBLIC_TIMELINE_STATE=empty|error` 预览另两态（验收/截图用，不改数据）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/entities.css";
+import "~/styles/pages/timeline.css";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import TimelineItem from "~/components/C/TimelineItem.astro";
+import { timeline, timelineMeta } from "~/data/entities/timeline";
+import { formatUpdated, groupTimeline, normalizeCollection, timelineSpec } from "~/types/entities";
+import { getLocale } from "~/utils/i18n";
+import { site } from "~/config";
+
+const loc = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const feed = normalizeCollection(timeline, timelineMeta, timelineSpec, {
+    force: import.meta.env.PUBLIC_TIMELINE_STATE,
+});
+
+const groups = groupTimeline(feed.items);
+const oldestYear = groups.at(-1)?.year ?? null;
+const newestYear = groups.at(0)?.year ?? null;
+const spanLabel =
+    oldestYear && newestYear ? (oldestYear === newestYear ? newestYear : `${oldestYear}–${newestYear}`) : "";
+
+const copy = isEn
+    ? {
+          kicker: "TIMELINE · CHRONICLE",
+          title: "Timeline",
+          lede: "What happened when: self-hosting, the agent stack, and the rebuild of this site — every entry traceable to a project start date or a recorded decision.",
+          listTitle: "Chronology",
+          listMeta: "Newest first · grouped by year",
+          eventOne: "events",
+          yearOne: "years",
+          spanOne: "span",
+          updatedPrefix: "data updated",
+          precisionNote: "Entries only known to the month are marked as month only.",
+          emptyTitle: "Nothing on the timeline yet",
+          emptyText:
+              "This site has not recorded any timeline entries. The empty state is part of the page: the route still resolves.",
+          errorTitle: "Timeline data could not be read",
+          errorText:
+              "The timeline file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
+          reason: "Reason code",
+      }
+    : {
+          kicker: "时间线 · 编年",
+          title: "时间线",
+          lede: "哪一年发生了什么：自托管、Agent 底座，以及这个站点自己的重建过程。每条都能追到项目起点或一条留档的决定。",
+          listTitle: "编年表",
+          listMeta: "按年分组 · 同年日期倒序",
+          eventOne: "条事件",
+          yearOne: "个年份",
+          spanOne: "跨度",
+          updatedPrefix: "数据更新于",
+          precisionNote: "只知道月份的事件只标到月，不拿 1 号凑数。",
+          emptyTitle: "时间线还没有条目",
+          emptyText: "这个站点还没填时间线数据。空态也是页面的一部分：路由照常可访问。",
+          errorTitle: "时间线数据读取失败",
+          errorText: "时间线数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
+          reason: "原因代码",
+      };
+
+const updatedLabel = formatUpdated(feed.updated, feed.ageDays, isEn ? "en" : "zh");
+const countLabel = `${feed.total} ${copy.eventOne}`;
+const yearLabel = `${groups.length} ${copy.yearOne}`;
+const spanText = `${copy.spanOne} ${spanLabel}`;
+---
+
+<BaseLayout
+    locale={loc}
+    title={`${copy.title} - ${site.title}`}
+    description={copy.lede}
+    keywords={["Timeline", "时间线", "编年", "Chronology"]}
+>
+    <article
+        class="entities entities--timeline"
+        data-timeline-status={feed.status}
+        data-timeline-total={feed.total}
+        data-timeline-years={groups.length}
+        data-timeline-stale={String(feed.stale)}
+        data-timeline-updated={feed.updated ?? ""}
+        aria-labelledby="timeline-title"
+    >
+        <header class="entities-hero">
+            <p class="entities-kicker">{copy.kicker}</p>
+            <h1 class="entities-title" id="timeline-title">{copy.title}</h1>
+            <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:clock" size="xs" />
+                    {countLabel}
+                </span>
+                {
+                    groups.length > 0 && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:archive" size="xs" />
+                            {yearLabel}
+                        </span>
+                    )
+                }
+                {
+                    spanLabel && (
+                        <span class="entities-chip">
+                            <Icon name="tabler:chevrons-left" size="xs" />
+                            {spanText}
+                        </span>
+                    )
+                }
+                {
+                    updatedLabel && (
+                        <span class="entities-chip entities-chip--quiet">
+                            {copy.updatedPrefix} {updatedLabel}
+                        </span>
+                    )
+                }
+            </div>
+        </header>
+
+        <section class="entities-section" aria-labelledby="timeline-list-title">
+            <div class="entities-section__head">
+                <h2 class="entities-section__title" id="timeline-list-title">{copy.listTitle}</h2>
+                <p class="entities-section__meta">{copy.listMeta}</p>
+            </div>
+
+            {
+                feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                    <p class="entities-notice" data-timeline-dropped={feed.dropped}>
+                        {isEn
+                            ? `${feed.dropped} entries failed validation and are not listed below.`
+                            : `有 ${feed.dropped} 条数据未通过校验，未在下方列出。`}
+                    </p>
+                )
+            }
+
+            {
+                feed.status === "ok" && (
+                    <>
+                        <div class="timeline" data-timeline-groups={groups.length}>
+                            {groups.map((group) => (
+                                <section
+                                    class="timeline-year"
+                                    data-timeline-year={group.year}
+                                    aria-labelledby={`timeline-year-${group.year}`}
+                                >
+                                    <div class="timeline-year__head">
+                                        <h3 class="timeline-year__label" id={`timeline-year-${group.year}`}>
+                                            {group.year}
+                                        </h3>
+                                        <p class="timeline-year__count">
+                                            {group.items.length} {copy.eventOne}
+                                        </p>
+                                    </div>
+                                    <ol class="timeline-year__items" role="list">
+                                        {group.items.map((event) => (
+                                            <TimelineItem event={event} locale={loc} />
+                                        ))}
+                                    </ol>
+                                </section>
+                            ))}
+                        </div>
+                        <p class="timeline-note">{copy.precisionNote}</p>
+                    </>
+                )
+            }
+
+            {
+                feed.status === "error" && (
+                    <div class="entities-state" data-timeline-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
+                            {copy.errorText}
+                        </Alert>
+                        <p class="entities-state__hint">
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
+                        </p>
+                    </div>
+                )
+            }
+
+            {
+                feed.status === "empty" && (
+                    <div
+                        class="entities-state entities-state--empty"
+                        data-timeline-empty={feed.issue?.code ?? "unknown"}
+                    >
+                        <span class="entities-state__icon" aria-hidden="true">
+                            <Icon name="tabler:clock" size="lg" />
+                        </span>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
+                        <p class="entities-state__text">{copy.emptyText}</p>
+                    </div>
+                )
+            }
+        </section>
+    </article>
+</BaseLayout>

@@ -32,7 +32,7 @@ export interface LocalizedText {
     en: string;
 }
 
-export type EntityKind = "projects" | "skills" | "devices" | "games";
+export type EntityKind = "projects" | "skills" | "devices" | "games" | "timeline";
 
 export type EntityStatus = "ok" | "empty" | "error";
 
@@ -173,6 +173,34 @@ export interface Game {
     updated: string;
 }
 
+/* ───────────────────────── 时间线 ───────────────────────── */
+
+/**
+ * 四类闭合标签；只做「这是哪一类事」的视觉徽标，不参与分组（分组按年份）。
+ * 少一档比多一档稳：没有「其他」兜底桶，写不进去的就不该上时间线。
+ */
+export type TimelineKind = "build" | "site" | "infra" | "life";
+
+export interface TimelineEvent {
+    /** 稳定键（slug 形状，小写连字符）；页面锚点与排序兜底都靠它。 */
+    id: string;
+    /**
+     * 事件日期：`YYYY-MM-DD`（知道哪一天）或 `YYYY-MM`（只知道哪个月）。
+     * 两种精度都合法，是因为编年史里「某年某月立项」和「某日 00:04 切流」本来就不同粒度；
+     * 不知道日期就写月份，不拿 1 号凑数（时间线最容易被编造的地方就是这里）。
+     */
+    date: string;
+    title: LocalizedText;
+    /** 一句话交代发生了什么；不写情绪，写事实。 */
+    detail: LocalizedText;
+    kind: TimelineKind;
+    /** 技术名 / 版本 / 编号（不翻译），如 `Astro`、`D-0098`。 */
+    tags?: string[];
+    links?: EntityLink[];
+    /** 条目最后核对日 `YYYY-MM-DD`。 */
+    updated: string;
+}
+
 /* ───────────────────────── 集合元信息 ───────────────────────── */
 
 /**
@@ -221,6 +249,7 @@ const GAME_PLATFORMS: readonly GamePlatform[] = [
     "vr",
 ];
 const GAME_STATUSES: readonly GameStatus[] = ["playing", "finished", "shelved", "backlog"];
+const TIMELINE_KINDS: readonly TimelineKind[] = ["build", "site", "infra", "life"];
 
 export const PROJECT_REQUIRED_FIELDS = [
     "id",
@@ -250,6 +279,15 @@ export const GAME_REQUIRED_FIELDS = [
     "platforms",
     "status",
     "note",
+    "updated",
+] as const;
+
+export const TIMELINE_REQUIRED_FIELDS = [
+    "id",
+    "date",
+    "title",
+    "detail",
+    "kind",
     "updated",
 ] as const;
 
@@ -447,6 +485,47 @@ export function validateGame(value: unknown): string[] {
     return problems;
 }
 
+/** `YYYY-MM` 或 `YYYY-MM-DD`；两种精度都合法（见 TimelineEvent.date）。 */
+export function isTimelineDate(value: unknown): value is string {
+    return isIsoMonth(value) || isIsoDay(value);
+}
+
+/** 单条时间线事件的结构问题；返回空数组 = 合法。 */
+export function validateTimelineEvent(value: unknown): string[] {
+    if (!isRecord(value)) return ["不是对象"];
+
+    const problems: string[] = [];
+    const at = (field: string) => `timeline[${String(value.id ?? "?")}].${field}`;
+
+    if (!isNonEmptyString(value.id) || !SLUG.test(value.id))
+        problems.push(`${at("id")} 必须是小写连字符 slug`);
+    if (!isTimelineDate(value.date))
+        problems.push(`${at("date")} 必须是 YYYY-MM 或 YYYY-MM-DD（不知道哪一天就只写月份）`);
+    if (!isLocalizedText(value.title)) problems.push(`${at("title")} 需要 zh + en 两个非空字符串`);
+    if (!isLocalizedText(value.detail))
+        problems.push(`${at("detail")} 需要 zh + en 两个非空字符串`);
+    if (!TIMELINE_KINDS.includes(value.kind as TimelineKind))
+        problems.push(`${at("kind")} 必须是 ${TIMELINE_KINDS.join(" / ")}`);
+    if (
+        value.tags !== undefined &&
+        (!Array.isArray(value.tags) ||
+            value.tags.length === 0 ||
+            !value.tags.every(isNonEmptyString))
+    )
+        problems.push(`${at("tags")} 必须是非空字符串数组（至少一项）`);
+    if (value.links !== undefined) {
+        const ok =
+            Array.isArray(value.links) &&
+            value.links.every(
+                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
+            );
+        if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
+    }
+    if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
+
+    return problems;
+}
+
 export function validateMeta(value: unknown): string[] {
     if (!isRecord(value)) return ["meta 不是对象"];
     const problems: string[] = [];
@@ -608,6 +687,38 @@ export const gameSpec: EntitySpec<Game> = {
         ["year 不是 YYYY", { ...gameSample(), year: "2025-03" }],
         ["title en 为空串", { ...gameSample(), title: { zh: "示例", en: "" } }],
         ["updated 不是真实日历日", { ...gameSample(), updated: "2026-02-31" }],
+    ],
+};
+
+const timelineSample = (): Record<string, unknown> => ({
+    id: "demo-event",
+    date: "2026-01-01",
+    title: { zh: "示例事件", en: "Demo event" },
+    detail: { zh: "示例说明", en: "Demo detail" },
+    kind: "build",
+    tags: ["Astro"],
+    updated: "2026-01-01",
+});
+
+export const timelineSpec: EntitySpec<TimelineEvent> = {
+    kind: "timeline",
+    validate: validateTimelineEvent,
+    updatedOf: (event) => (isIsoDay(event.updated) ? event.updated : null),
+    keyOf: (event) => event.id,
+    requiredFields: TIMELINE_REQUIRED_FIELDS,
+    sample: timelineSample,
+    negatives: () => [
+        ["date 既不是月也不是日（斜杠）", { ...timelineSample(), date: "2026/01" }],
+        // 正则能过、日历不存在：按月校验 `2026-02-31` 不匹配，按日校验 round-trip 失败
+        ["date 不是真实日历日", { ...timelineSample(), date: "2026-02-31" }],
+        ["kind 越界", { ...timelineSample(), kind: "release" }],
+        ["title 缺 en", { ...timelineSample(), title: { zh: "示例事件" } }],
+        ["detail 空串", { ...timelineSample(), detail: { zh: "", en: "" } }],
+        ["tags 空数组", { ...timelineSample(), tags: [] }],
+        ["tags 含空串", { ...timelineSample(), tags: ["Astro", " "] }],
+        ["links 非 http", { ...timelineSample(), links: [{ label: "x", href: "/relative" }] }],
+        ["id 不是 slug", { ...timelineSample(), id: "Demo Event" }],
+        ["updated 不是真实日历日", { ...timelineSample(), updated: "2026-02-31" }],
     ],
 };
 
@@ -894,4 +1005,78 @@ const GAME_PLATFORM_LABEL: Record<GamePlatform, LocalizedText> = {
 
 export function gamePlatformLabel(platform: GamePlatform, locale: EntityLocale): string {
     return pick(GAME_PLATFORM_LABEL[platform] ?? GAME_PLATFORM_LABEL.pc, locale);
+}
+
+/* ───────────────────────── 时间线 展示辅助 ───────────────────────── */
+
+const TIMELINE_KIND_LABEL: Record<TimelineKind, LocalizedText> = {
+    build: { zh: "工程", en: "Build" },
+    site: { zh: "站点", en: "Site" },
+    infra: { zh: "基建", en: "Infra" },
+    life: { zh: "生活", en: "Life" },
+};
+
+export function timelineKindLabel(kind: TimelineKind, locale: EntityLocale): string {
+    return pick(TIMELINE_KIND_LABEL[kind] ?? TIMELINE_KIND_LABEL.build, locale);
+}
+
+/** `YYYY-MM-DD` = 到日；`YYYY-MM` = 只到月。 */
+export function timelinePrecision(date: string): "day" | "month" {
+    return date.length === 7 ? "month" : "day";
+}
+
+/**
+ * 排序键：`YYYY-MM` 补成 `YYYY-MM-00`。
+ * 补 0 而不是补 1 号 —— 同一个月里「只知道月份」的事件排在具体日子之前，
+ * 排序不会把「某月的某件事」排到假的 `-01` 上（补 1 号会谎报精度，也会和真实的 1 号撞车）。
+ */
+export function timelineSortKey(date: string): string {
+    return timelinePrecision(date) === "month" ? `${date}-00` : date;
+}
+
+export interface TimelineGroup {
+    /** 年份（`YYYY`），分组键。 */
+    year: string;
+    /** 组内条目：日期降序。 */
+    items: TimelineEvent[];
+}
+
+/**
+ * 按年分组、组内日期降序。
+ *
+ * - 年份组之间：新 → 旧（读者第一眼看到最近发生的事）。
+ * - 组内：`timelineSortKey` 降序；**同一天**的条目按 id 升序兜底 ——
+ *   排序必须唯一确定，否则相同日期的两条会在两次构建里换位，e2e 与截图都不可复现。
+ * - 不修改入参；坏日期（校验不会放过）在这里也不会抛异常，只按字符串比较。
+ */
+export function groupTimeline(events: readonly TimelineEvent[]): TimelineGroup[] {
+    const buckets = new Map<string, TimelineEvent[]>();
+    for (const event of events) {
+        const year = typeof event.date === "string" ? event.date.slice(0, 4) : "";
+        const bucket = buckets.get(year);
+        if (bucket) bucket.push(event);
+        else buckets.set(year, [event]);
+    }
+
+    return [...buckets.entries()]
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([year, items]) => ({
+            year,
+            items: [...items].sort((a, b) => {
+                const byDate = timelineSortKey(b.date).localeCompare(timelineSortKey(a.date));
+                return byDate !== 0 ? byDate : a.id.localeCompare(b.id);
+            }),
+        }));
+}
+
+/** 左轨日期：`11.02`（到日）/ `11`（只到月；精度差异由组件补读屏文字说明）。 */
+export function timelineRailLabel(date: string): string {
+    const parts = date.split("-");
+    if (parts.length === 3) return `${parts[1]}.${parts[2]}`;
+    return parts[1] ?? date;
+}
+
+/** `<time datetime>` 与读屏用：`2026.11.02` / `2026.11`。 */
+export function timelineDateLabel(date: string): string {
+    return date.split("-").join(".");
 }

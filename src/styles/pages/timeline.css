@@ -1,0 +1,311 @@
+/* ============================================================
+   C-2 · 时间线（M2-8a）
+   ------------------------------------------------------------
+   版式：编辑式页头（复用 entities.css）→ 年分组（左列年份，右列条目）
+        → 每条：左轨日期 + 圆点 → 标题 · 类别徽标 → 一句事实 → 标签/外链。
+   约束：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl() / --palette-*。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 规则收在 `.timeline*` 作用域内，**不复制** entities.css 的页头/区块/三态外壳。
+   - 年份只由 `groupTimeline()` 决定（降序），本文件不参与排序，只负责对齐。
+   - 圆点与竖线是装饰（aria-hidden）；日期写在 <time datetime>，“只到月”另有读屏文字。
+   ============================================================ */
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    min-inline-size: 0;
+}
+
+/* ── 年分组 ───────────────────────────────────────────────── */
+
+.timeline-year {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    min-inline-size: 0;
+}
+
+.timeline-year__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-3);
+    padding-block-end: var(--space-2);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.timeline-year__label {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-none);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.timeline-year__count {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.timeline-year__items {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-inline-size: 0;
+}
+
+/* ── 条目 ─────────────────────────────────────────────────── */
+
+.timeline-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: var(--space-4);
+    min-inline-size: 0;
+}
+
+/* 左轨：日期在上、圆点压在竖线上；竖线用伪元素，随条目高度自适应 */
+.timeline-item__rail {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+    min-inline-size: 0;
+    padding-block-start: var(--space-1);
+    padding-inline-end: var(--space-4);
+}
+
+.timeline-item__rail::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    inline-size: 1px;
+    background-color: var(--color-border-subtle);
+}
+
+/* 最后一条的竖线不往下拖：否则会在时间线尾部留一截没有终点的线 */
+.timeline-year__items > .timeline-item:last-child .timeline-item__rail::before {
+    inset-block-end: auto;
+    block-size: var(--space-5);
+}
+
+.timeline-item__date {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-wide);
+    /* 12px 小字是条目的时间锚点，用默认前景色，不压到 4.3 的 fg-muted */
+    color: var(--color-fg-default);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.timeline-item__dot {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-end: 0;
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+    transform: translateX(50%);
+}
+
+.timeline-item[data-timeline-kind="infra"] .timeline-item__dot {
+    background-color: var(--color-status-info-solid);
+}
+
+.timeline-item[data-timeline-kind="site"] .timeline-item__dot {
+    background-color: var(--color-status-success-solid);
+}
+
+.timeline-item[data-timeline-kind="life"] .timeline-item__dot {
+    background-color: var(--color-status-warning-solid);
+}
+
+.timeline-item__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-inline-size: 0;
+    padding-block-end: var(--space-6);
+}
+
+.timeline-item:last-child .timeline-item__body {
+    padding-block-end: 0;
+}
+
+.timeline-item__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-3);
+    min-inline-size: 0;
+}
+
+.timeline-item__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    min-inline-size: 0;
+}
+
+.timeline-item__kind {
+    margin: 0;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    /* 底色 bg-muted：12px 小字用默认前景色（fg-muted 在 muted 上只有 4.17） */
+    color: var(--color-fg-default);
+    white-space: nowrap;
+}
+
+.timeline-item__detail {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.timeline-item__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+}
+
+.timeline-item__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.timeline-item__tag {
+    display: inline-flex;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+    white-space: nowrap;
+}
+
+.timeline-item__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+}
+
+.timeline-item__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-link);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .timeline-item__link:hover {
+        color: var(--color-fg-link-hover);
+        text-decoration: underline;
+        text-underline-offset: var(--space-1);
+    }
+}
+
+.timeline-item__link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* 精度说明：放在列表下方，说明“到月”的条目不是漏了日期 */
+.timeline-note {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+/* ── 桌面：年份独立成列（对齐时间线左轨） ─────────────────── */
+
+@media (min-width: 1024px) {
+    .timeline-year {
+        grid-template-columns: 7rem minmax(0, 1fr);
+        column-gap: var(--space-8);
+        align-items: start;
+    }
+
+    .timeline-year__head {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: var(--space-1);
+        padding-block-end: 0;
+        border-block-end: 0;
+        /* 长年份组滚动时年份留在视野里：右列的条目多起来也不会失去“这是哪一年” */
+        position: sticky;
+        inset-block-start: calc(var(--layout-header-height) + var(--space-4));
+    }
+
+    .timeline-year__label {
+        font-size: var(--text-3xl);
+    }
+
+    .timeline-item__body {
+        padding-block-end: var(--space-8);
+    }
+}
+
+/* ── 窄屏：左轨收窄，日期与标题各占一行 ─────────────────── */
+
+@media (max-width: 450px) {
+    .timeline {
+        gap: var(--space-8);
+    }
+
+    .timeline-item {
+        column-gap: var(--space-3);
+    }
+
+    .timeline-item__rail {
+        padding-inline-end: var(--space-3);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .timeline-item__link {
+        transition: none;
+    }
+}
