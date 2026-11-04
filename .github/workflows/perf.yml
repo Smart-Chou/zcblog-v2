@@ -100,7 +100,7 @@ jobs:
             # 用来证明「超预算确实会红」。--summary 把 p95 表写进 job summary。
             - name: Performance budget (A6) · list/article/page
               env:
-                  PERF_BUDGET_SCALE: ${{ inputs.budget_scale || vars.PERF_BUDGET_SCALE }}
+                  PERF_BUDGET_SCALE: "0.95" # 负向探针：临时压低阈值，验证门禁会红（勿合并）
               run: |
                   set -o pipefail
                   python3 scripts/gates/perf-budget.py dist \
