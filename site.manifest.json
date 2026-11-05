@@ -72,9 +72,10 @@
                 ".env.example",
                 "README.md",
                 "CONTRIBUTING.md",
-                "LICENSE"
+                "LICENSE",
+                "NOTICE"
             ],
-            "reserved": []
+            "reserved": [".changeset/**", "docs/release.md", ".github/workflows/release.yml"]
         },
         "O": {
             "label": "overlay",
@@ -125,6 +126,7 @@
     ],
     "anchors": [
         { "path": "astro.config.mjs", "class": "T" },
+        { "path": "NOTICE", "class": "T" },
         { "path": "package.json", "class": "T" },
         { "path": "src/config/index.ts", "class": "T" },
         { "path": "src/components/Article/PostCard.astro", "class": "T" },
