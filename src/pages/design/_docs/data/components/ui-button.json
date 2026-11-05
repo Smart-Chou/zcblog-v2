@@ -4,8 +4,8 @@
     "name": "Button",
     "cn": "按钮式链接",
     "layer": "ui",
-    "spec": "src/components/UI/Button.astro（以实现为准 · M2-10a）",
-    "source": "src/components/UI/Button.astro",
+    "spec": "packages/ui/src/Button.astro（以实现为准 · M2-10a，M3-3b 迁入 packages/ui）",
+    "source": "packages/ui/src/Button.astro",
     "purpose": "页面上「看起来是按钮」的跳转入口（捐赠、订阅、外部链接）。唯一的实现是 `<a>` 加两种外观：实心 primary、描边 secondary。",
     "notFor": [
         "提交表单 / 触发 JS → 用原生 `<button type=\"button\">`：本组件永远是 `<a>`，回车与空格的行为按链接走。",

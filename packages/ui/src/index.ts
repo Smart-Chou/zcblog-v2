@@ -5,3 +5,4 @@
  * 进包判据：不 import `~/config` / `~/data` / `~/assets` / `./Icons`；包内 `grep -c "~/"` = 0。
  */
 export { default as Badge } from "./Badge.astro";
+export { default as Button } from "./Button.astro";

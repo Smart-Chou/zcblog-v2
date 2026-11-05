@@ -3,6 +3,9 @@
  * /design/components/ui-button/ — Button 文档页（M2-10a）
  * 数据：src/pages/design/_docs/data/components/ui-button.json
  * 示例链接指到站内真实路由（/donate/ 与 /blog/），保证是可点路径而不是死链。
+ * 契约：以实现为准（`packages/ui/src/Button.astro`，M3-3b 迁入 packages/ui）。
+ * 站点侧的 src/components/UI/Button.astro 是 git 符号链接（与包内同一份文件），
+ * 下方 import 走该路径是因为 verify-component-docs D3 的口径仍校验站点路径。
  */
 import ComponentDoc from "../_docs/ComponentDoc.astro";
 import DemoFrame from "../_docs/DemoFrame.astro";
