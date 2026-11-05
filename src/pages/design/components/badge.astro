@@ -2,7 +2,10 @@
 /**
  * /design/components/badge/ — Badge 文档页（M2-10a）
  * 数据：src/pages/design/_docs/data/components/badge.json
- * 契约：以实现为准（`src/components/UI/Badge.astro`），六个 variant 都是 §5.5 的 tone 词。
+ * 契约：以实现为准（`packages/ui/src/Badge.astro`，M3-3a 迁入 packages/ui）。
+ * 站点侧的 src/components/UI/Badge.astro 是 git 符号链接（与包内同一份文件），
+ * 下方 import 走该路径是因为 verify-component-docs D3 的口径仍校验站点路径。
+ * 六个 variant 都是 §5.5 的 tone 词。
  */
 import ComponentDoc from "../_docs/ComponentDoc.astro";
 import DemoFrame from "../_docs/DemoFrame.astro";

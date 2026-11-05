@@ -1,9 +1,17 @@
 {
     "name": "@marxchou/zcblog-ui",
     "version": "2.0.0",
-    "description": "零依赖 UI 原语（Astro 组件）。M3-1 空壳，Badge/Button 由 M3-3a/M3-3b 迁入。",
+    "description": "零依赖 UI 原语（Astro 组件）。M3 只装 Badge（M3-3a）与 Button（M3-3b）；其余原语见 21-m3-plan.md §3.2。",
     "type": "module",
     "private": true,
+    "files": [
+        "src"
+    ],
+    "exports": {
+        ".": "./src/index.ts",
+        "./Badge.astro": "./src/Badge.astro",
+        "./package.json": "./package.json"
+    },
     "peerDependencies": {
         "astro": "^7.3.6"
     }

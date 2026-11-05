@@ -1,0 +1,64 @@
+---
+interface Props {
+    variant?: "default" | "note" | "tip" | "danger" | "success" | "warning";
+    size?: "sm" | "md" | "lg";
+}
+
+const { variant = "default", size = "md" } = Astro.props;
+---
+
+<span class:list={["badge", `badge--${variant}`, `badge--${size}`]}>
+    <slot />
+</span>
+
+<style>
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25em;
+        border-radius: var(--radius-full);
+        font-weight: var(--font-weight-medium);
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    /* Sizes */
+    .badge--sm {
+        font-size: var(--text-xs);
+        padding: 2px 7px;
+    }
+    .badge--md {
+        font-size: var(--text-sm);
+        padding: 3px 10px;
+    }
+    .badge--lg {
+        font-size: var(--text-body-sm);
+        padding: 5px 14px;
+    }
+
+    /* Variants */
+    .badge--default {
+        background: var(--color-bg-elevated);
+        color: var(--color-text-muted);
+    }
+    .badge--note {
+        background: var(--color-bg-elevated);
+        color: var(--color-accent);
+    }
+    .badge--tip {
+        background: hsla(210, 50%, 30%, 0.2);
+        color: hsl(210, 50%, 75%);
+    }
+    .badge--danger {
+        background: hsla(var(--hue-accent, 0), 50%, 30%, 0.2);
+        color: hsl(var(--hue-accent, 0), 50%, 70%);
+    }
+    .badge--success {
+        background: hsla(140, 50%, 30%, 0.2);
+        color: hsl(140, 40%, 65%);
+    }
+    .badge--warning {
+        background: hsla(40, 60%, 30%, 0.2);
+        color: hsl(40, 60%, 70%);
+    }
+</style>

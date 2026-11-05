@@ -4,8 +4,8 @@
     "name": "Badge",
     "cn": "徽标",
     "layer": "ui",
-    "spec": "src/components/UI/Badge.astro（以实现为准 · M2-10a）",
-    "source": "src/components/UI/Badge.astro",
+    "spec": "packages/ui/src/Badge.astro（以实现为准 · M2-10a，M3-3a 迁入 packages/ui）",
+    "source": "packages/ui/src/Badge.astro",
     "purpose": "行内状态/分类标记：跟在标题、列表项或卡片后面，用一个读得完的短词说明「这条是什么」。视觉上是一枚 pill，不该抢主体的字重。",
     "notFor": [
         "可点击的导航或筛选 → `Tag`（atom）或 Button：徽标没有 `href`，不进 Tab 序列。",
