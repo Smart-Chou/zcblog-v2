@@ -1,0 +1,324 @@
+name: Release packages
+
+# M4-4 · 三包（@marxchou/dogeared-*）的发布流水线。只搭链，默认不真发。
+#
+# 触发面只有两条，普通 push（含 main 分支）**永远进不来**：
+#   1. push tag `v*`        —— tag 必须与三包版本一致（verify-versions 校验），视为「发布意图」
+#   2. workflow_dispatch    —— 默认真 dry-run；要真发布必须 dry_run=false + confirm_publish=PUBLISH
+#
+# 发布前的判据（全部本地可复现）：
+#   scripts/release/verify-versions.mjs  版本 lockstep + tag/version 一致
+#   scripts/release/build-packages.mjs   包构建（有 build 脚本则跑，并校验入口存在）
+#   scripts/release/preflight.mjs        版本 / private 闸门 / pack 清单 / LICENSE-NOTICE / 已知阻断项 / publish-plan 空转
+#   scripts/release/publish-dry-run.mjs  对真 tarball 跑 npm publish --dry-run（不写 registry）
+on:
+    push:
+        tags: ["v*"]
+    workflow_dispatch:
+        inputs:
+            dry_run:
+                description: "true = 只跑 dry-run（绝不写 registry）"
+                type: boolean
+                default: true
+            confirm_publish:
+                description: "真发布必须输入 PUBLISH（仅 dry_run=false 时校验）"
+                type: string
+                default: ""
+            provenance:
+                description: "启用 npm provenance；失败会显式记录并降级重发，不静默跳过"
+                type: boolean
+                default: true
+
+concurrency:
+    group: release-${{ github.ref }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+env:
+    # changeset pack 的产物目录（tarball + publish-plan.json）。放 runner.temp，不污染工作树。
+    PACK_DIR: ${{ runner.temp }}/release-pack
+    # tag 推送时等于 ref 名（如 v2.1.0）；dispatch 时为空 → 只校验 lockstep，不校验 tag
+    RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+
+jobs:
+    # ---------------------------------------------------------------- 发布前检查
+    preflight:
+        name: preflight (versions · build · gates · pack)
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        outputs:
+            version: ${{ steps.version.outputs.version }}
+            dry_run: ${{ steps.mode.outputs.dry_run }}
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # workflow 自身的契约（触发面、publish 闸门、命令字面量）——防止以后有人给
+            # release.yml 加一条 `push: branches` 就悄悄把发布接到普通 push 上
+            - name: Workflow contract (triggers / publish gate / command parity)
+              run: node scripts/release/verify-workflow.mjs
+
+            - name: Build packages
+              run: node scripts/release/build-packages.mjs
+
+            # 契约门禁。M4-7 已把 NOTICE 与发布链路径补进 site.manifest.json；
+            # 若这里仍红，说明分类真的漂移了，不要用 `|| true` 掩盖。
+            - name: Contract gates
+              run: pnpm gates:all
+
+            - name: Verify versions & tag
+              id: version
+              run: |
+                  set -o pipefail
+                  node scripts/release/verify-versions.mjs --tag "${RELEASE_TAG}" | tee "$RUNNER_TEMP/versions.txt"
+                  VER=$(grep -o '"version":"[^"]*"' "$RUNNER_TEMP/versions.txt" | head -1 | cut -d'"' -f4)
+                  echo "version=$VER" >> "$GITHUB_OUTPUT"
+                  echo "三包版本：$VER" >> "$GITHUB_STEP_SUMMARY"
+
+            # check 模式：已知阻断项（M4-2/M4-3 findings）只报 WARN，不拦；publish 模式才硬失败
+            - name: Preflight (check mode)
+              run: node scripts/release/preflight.mjs --tag "${RELEASE_TAG}"
+
+            # 决定这一次到底允不允许真发：tag 推送 = 允许（tag 已与版本对齐）；
+            # 手动 dispatch = 必须 dry_run=false 且 confirm_publish=PUBLISH，否则强制 dry-run。
+            - name: Resolve publish mode
+              id: mode
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+                  INPUT_DRY_RUN: ${{ inputs.dry_run }}
+                  INPUT_CONFIRM: ${{ inputs.confirm_publish }}
+              run: |
+                  if [ "$EVENT_NAME" = "push" ]; then
+                    MODE=real
+                    WHY="tag 推送 $RELEASE_TAG（tag 与三包版本已校验一致）"
+                  elif [ "$INPUT_DRY_RUN" = "false" ] && [ "$INPUT_CONFIRM" = "PUBLISH" ]; then
+                    MODE=real
+                    WHY="手动 dispatch + confirm_publish=PUBLISH"
+                  else
+                    MODE=dry-run
+                    WHY="未满足真发布条件（dry_run=$INPUT_DRY_RUN, confirm=$INPUT_CONFIRM）"
+                  fi
+                  if [ "$MODE" = "real" ]; then echo "dry_run=false" >> "$GITHUB_OUTPUT"; else echo "dry_run=true" >> "$GITHUB_OUTPUT"; fi
+                  {
+                    echo "### 发布模式：$MODE"
+                    echo ""
+                    echo "- 原因：$WHY"
+                    echo "- ref：$GITHUB_REF（$GITHUB_REF_TYPE）"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            # 打包（changeset pack 只写本地 tarball + publish-plan.json，不碰 registry）。
+            # pack 会在 PACK_DIR 里同时写 packages/*.tgz 和 publish-plan.json ——
+            # 后者正是 publish 阶段 `--from-pack-dir` 读取的发布计划（含每个 tarball 的 sha256 integrity）。
+            # private 状态下这一步会明确产出为空——publish 模式的 preflight 会因此硬失败。
+            - name: Pack (changeset pack)
+              run: |
+                  pnpm exec changeset pack --out-dir "$PACK_DIR" | tee "$RUNNER_TEMP/pack.txt"
+                  echo "--- publish-plan.json ---" | tee -a "$RUNNER_TEMP/pack.txt"
+                  cat "$PACK_DIR/publish-plan.json" 2>/dev/null | tee -a "$RUNNER_TEMP/pack.txt" || echo "(没有 publish-plan.json：本次没有任何包待发布)"
+                  echo "--- tarballs ---" | tee -a "$RUNNER_TEMP/pack.txt"
+                  find "$PACK_DIR" -name '*.tgz' 2>/dev/null | sort | tee -a "$RUNNER_TEMP/pack.txt"
+                  {
+                    echo "### changeset pack 输出"
+                    echo '```'
+                    tail -30 "$RUNNER_TEMP/pack.txt"
+                    echo '```'
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Upload pack dir
+              uses: actions/upload-artifact@v4
+              with:
+                  name: changeset-pack
+                  path: ${{ env.PACK_DIR }}
+                  if-no-files-found: warn
+                  retention-days: 7
+
+    # ---------------------------------------------------------------- dry-run（默认路径）
+    dry-run:
+        name: dry-run publish (no registry write)
+        needs: preflight
+        if: needs.preflight.outputs.dry_run == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # 必须先 build：publish-dry-run.mjs 用 `npm pack --ignore-scripts`，
+            # 会绕过 prepack；若这里不 build，CI 的 dry-run 证据就是缺 dist 的旧包。
+            - name: Build packages
+              run: node scripts/release/build-packages.mjs
+
+            # 对真 tarball 跑 `npm publish --dry-run --access public --tag latest`。
+            # 不做 npm 登录、不传 token：dry-run 不需要凭据，也就证明它没有写 registry。
+            - name: npm publish --dry-run（三包）
+              run: node scripts/release/publish-dry-run.mjs --out "$RUNNER_TEMP/dryrun"
+
+            - name: Summary
+              run: |
+                  {
+                    echo "### 发布命令 dry-run"
+                    echo ""
+                    echo "三包 tarball 均已通过 \`npm publish --dry-run\`；本 job 未持有 npm 凭据、未写 registry。"
+                    echo "证据：artifact \`release-dry-run\`（dry-run-evidence.json + 三个 .tgz）。"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Upload dry-run evidence
+              uses: actions/upload-artifact@v4
+              with:
+                  name: release-dry-run
+                  path: ${{ runner.temp }}/dryrun
+                  retention-days: 7
+
+    # ---------------------------------------------------------------- 真发布
+    publish:
+        name: publish (@marxchou/dogeared-*)
+        needs: preflight
+        if: needs.preflight.outputs.dry_run == 'false'
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        # 仓库设置里给这个 environment 配 required reviewers + 只允许 tag 部署，
+        # 就是最后一道人工闸门（见 docs/release.md §4）
+        environment:
+            name: npm-publish
+            url: https://www.npmjs.com/org/marxchou
+        permissions:
+            contents: write # changeset publish 会写 tag/CHANGELOG 提交（本卡用 --no-git-tag 关掉 tag 创建）
+            id-token: write # provenance 需要 OIDC
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+                  registry-url: "https://registry.npmjs.org"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Download pack dir
+              uses: actions/download-artifact@v4
+              with:
+                  name: changeset-pack
+                  path: ${{ runner.temp }}
+
+            # upload-artifact 对「单个目录」的落盘层级不保证带目录名，这里按 publish-plan.json
+            # 的实际位置定位 pack dir，写进 GITHUB_ENV 供后续 publish/preflight 使用。
+            - name: Locate pack dir
+              run: |
+                  PLAN=$(find "$RUNNER_TEMP" -maxdepth 4 -name publish-plan.json -not -path '*/node_modules/*' | head -1)
+                  if [ -z "$PLAN" ]; then
+                    echo "::error::artifact changeset-pack 里没有 publish-plan.json（pack 阶段没有产出发布计划）"
+                    exit 1
+                  fi
+                  DIR=$(dirname "$PLAN")
+                  echo "PACK_DIR=$DIR" >> "$GITHUB_ENV"
+                  echo "pack dir = $DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+                  find "$DIR" -name '*.tgz' | sort | tee -a "$GITHUB_STEP_SUMMARY"
+
+            # 凭据闸门：没配 NPM_TOKEN 就明确失败，不让后面的 publish 变成一句 ENEEDAUTH
+            - name: Credential gate
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  if [ -z "${NPM_TOKEN:-}" ]; then
+                    echo "::error::缺少 secrets.NPM_TOKEN：请在仓库 secrets 里配置 npm granular token（只对 @marxchou 的 3 个包有 publish 权限）"
+                    exit 1
+                  fi
+                  echo "NPM_TOKEN 已提供（值不打印）"
+
+            - name: Preflight (publish mode)
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$RUNNER_TEMP/.npmrc"
+                  NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/.npmrc" node scripts/release/preflight.mjs --mode=publish --tag "${RELEASE_TAG}"
+
+            # provenance 是可选步骤：失败**不静默**——记录 outcome、写 warning 与 step summary，
+            # 然后由下一步显式降级重发（changeset publish 会跳过已发布版本，重跑安全）。
+            - name: Publish with provenance
+              id: publish_prov
+              if: inputs.provenance != false
+              continue-on-error: true
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NPM_CONFIG_PROVENANCE: "true"
+              run: pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
+
+            - name: Record provenance outcome
+              if: always() && steps.publish_prov.outcome != '' && steps.publish_prov.outcome != 'skipped'
+              run: |
+                  if [ "${{ steps.publish_prov.outcome }}" = "success" ]; then
+                    echo "provenance_failed=false" >> "$GITHUB_ENV"
+                    echo "provenance：成功（带 attestation 发布）" >> "$GITHUB_STEP_SUMMARY"
+                  else
+                    echo "provenance_failed=true" >> "$GITHUB_ENV"
+                    echo "::warning::provenance 发布失败（outcome=${{ steps.publish_prov.outcome }}），将显式降级为无 provenance 重发；这不是静默跳过"
+                    echo "provenance：失败（outcome=${{ steps.publish_prov.outcome }}），下一步降级重发" >> "$GITHUB_STEP_SUMMARY"
+                  fi
+
+            - name: Record provenance disabled
+              if: inputs.provenance == false
+              run: |
+                  echo "provenance_failed=false" >> "$GITHUB_ENV"
+                  echo "provenance：被输入显式关闭（inputs.provenance=false）——已记录，未静默跳过" >> "$GITHUB_STEP_SUMMARY"
+
+            # 只在 provenance 失败时跑：同一条命令、同一个 pack 目录，关掉 provenance。
+            # changeset publish 幂等：已发布版本会被跳过，未发布的继续发。
+            - name: Publish without provenance (fallback)
+              if: env.provenance_failed == 'true'
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NPM_CONFIG_PROVENANCE: "false"
+              run: |
+                  echo "::warning::本次发布没有 provenance attestation（见上一步的失败原因）"
+                  pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
+
+            - name: Release summary
+              if: always()
+              run: |
+                  {
+                    echo "### 发布结果"
+                    echo ""
+                    echo "- tag：\`${RELEASE_TAG:-（dispatch，无 tag）}\`"
+                    echo "- 版本：\`${{ needs.preflight.outputs.version }}\`"
+                    echo "- provenance：${{ steps.publish_prov.outcome || 'disabled' }}"
+                    echo ""
+                    echo "回滚步骤见 docs/release.md。"
+                  } >> "$GITHUB_STEP_SUMMARY"
