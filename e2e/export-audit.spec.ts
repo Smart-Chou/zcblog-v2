@@ -194,6 +194,21 @@ async function openAs(page: Page, route: string, theme: Theme, width: number, he
         },
         { value: theme },
     );
+    // 一言组件会在 fetch 回包后把 #hitokoto-* 设为 opacity:0 再 crossfade 320ms；
+    // CI 上 axe 正好撞进这段窗口，会把「透明文字」算成低对比度（假红）。
+    // 审计测的是稳态，不是淡入动画的中间帧，所以等它落定（最多 1.5s）。
+    await page
+        .waitForFunction(
+            () =>
+                Array.from(document.querySelectorAll('[id^="hitokoto"]')).every(
+                    (el) => getComputedStyle(el).opacity !== "0",
+                ),
+            null,
+            { timeout: 1500 },
+        )
+        .catch(() => {
+            /* fetch 失败时 opacity 永远不是 0；超时也继续，不掩盖真实问题 */
+        });
     return response;
 }
 
