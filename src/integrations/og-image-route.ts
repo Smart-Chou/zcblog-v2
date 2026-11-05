@@ -1,235 +1,71 @@
 /**
- * OG 图片生成 (Satori + Sharp)
+ * `/og/[...og].png` 的站点侧路由壳（渲染逻辑在 `packages/og-image`）。
+ *
+ * 本文件承担三件主题侧的事（21-m3-plan.md §3.3「由主题侧组装 options 注入」）：
+ *   1. 调色板：`OG_IMAGE_THEME` —— 原路由里的字面量，逐字搬出，出图逐字节不变；
+ *   2. `buildOgImageOptions()` —— 读站点身份（`~/config`）与文章集合
+ *      （`~/utils/article-stats`），组装成 `createOgImageRoute()` 的入参，
+ *      包内因此不再有 `~/` 依赖；
+ *   3. `getStaticPaths()` —— 枚举要预渲染的 slug（站点知识，包不该知道）。
+ *
+ * options 只组装一次（模块级 Promise），`getStaticPaths` 与 `GET` 共享，
+ * 避免每张图都重新读一遍文章集合。
  */
 import type { APIRoute } from "astro";
+import { createOgImageRoute } from "../../packages/og-image/src/index";
+import type { OgImageOptions, OgImageTheme } from "../../packages/og-image/src/types";
+import { author, site } from "~/config";
 import { getAllArticles } from "~/utils/article-stats";
-import satori from "satori";
-import sharp from "sharp";
-import { site } from "~/config";
-import fs from "node:fs";
-import path from "node:path";
 
-// 字体从 CDN 下载并缓存在 .astro/fonts/（已 gitignore）
-const FONT_CACHE = path.join(process.cwd(), ".astro", "fonts");
-const FONT_REGULAR = path.join(FONT_CACHE, "NotoSansSC-Regular.otf");
-const FONT_BOLD = path.join(FONT_CACHE, "NotoSansSC-Bold.otf");
+/** OG 图版式调色板。包不得依赖 `@marxchou/zcblog-tokens`（§3.4），颜色只能以值注入。 */
+export const OG_IMAGE_THEME: OgImageTheme = {
+    background: "#0d1117",
+    foreground: "#f0f0f0",
+    accent: "#d4a040",
+    muted: "#8b949e",
+    subtle: "#5c6370",
+    divider: "rgba(255,255,255,0.08)",
+    gradient: "linear-gradient(135deg, #0d1117 0%, #161b22 40%, #0f1419 100%)",
+};
 
-const FONT_URL_REGULAR =
-    "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf";
-const FONT_URL_BOLD =
-    "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/SC/NotoSansSC-Bold.otf";
-
-async function ensureFonts() {
-    fs.mkdirSync(FONT_CACHE, { recursive: true });
-    const downloads: Promise<void>[] = [];
-    for (const [url, dest] of [
-        [FONT_URL_REGULAR, FONT_REGULAR],
-        [FONT_URL_BOLD, FONT_BOLD],
-    ] as const) {
-        if (!fs.existsSync(dest)) {
-            downloads.push(
-                fetch(url).then(async (res) => {
-                    if (!res.ok)
-                        throw new Error(`Failed to download font: ${url} (HTTP ${res.status})`);
-                    const buf = Buffer.from(await res.arrayBuffer());
-                    fs.writeFileSync(dest, buf);
-                }),
-            );
-        }
-    }
-    await Promise.all(downloads);
+/**
+ * 组装包所需的 options。字体不传 —— 用包默认的 CDN 地址 + `.astro/fonts` 缓存；
+ * 受限网络（或 CI）下在这里补 `fonts: { regular, bold }` 指向本地文件即可覆盖。
+ */
+export async function buildOgImageOptions(): Promise<OgImageOptions> {
+    const articles = await getAllArticles();
+    return {
+        posts: articles.map((entry) => ({
+            slug: entry.id,
+            title: entry.data.title,
+            tags: entry.data.tags ?? [],
+            pubDate: entry.data.pubDate,
+            description: entry.data.description ?? "",
+        })),
+        site: {
+            title: site.title,
+            author: author.type ?? site.title,
+            url: site.url,
+            description: site.description,
+        },
+        theme: OG_IMAGE_THEME,
+    };
 }
 
-let _fontRegular: Buffer | null = null;
-let _fontBold: Buffer | null = null;
-
-function getFontRegular(): Buffer {
-    if (!_fontRegular) _fontRegular = fs.readFileSync(FONT_REGULAR);
-    return _fontRegular;
-}
-
-function getFontBold(): Buffer {
-    if (!_fontBold) _fontBold = fs.readFileSync(FONT_BOLD);
-    return _fontBold;
-}
+const prepared = (async () => {
+    const options = await buildOgImageOptions();
+    return {
+        posts: options.posts,
+        route: createOgImageRoute(options),
+    };
+})();
 
 export async function getStaticPaths() {
-    const articles = await getAllArticles();
-
-    // Download fonts from CDN if not cached, then preload
-    await ensureFonts();
-    getFontRegular();
-    getFontBold();
-
-    return articles.map((entry: { id: string }) => ({
-        params: { og: entry.id },
-        props: { entry },
-    }));
+    const { posts } = await prepared;
+    return posts.map((post) => ({ params: { og: post.slug } }));
 }
 
-export const GET: APIRoute = async ({ props }) => {
-    const { entry } = props;
-    const title = entry.data.title || "Article";
-    const description = entry.data.description || site.description;
-
-    // CJK 字符约 2x 拉丁字符宽度，1200px 容器 80px 字号约放 12-14 个 CJK 字
-    const isCJK = /[一-鿿㐀-䶿]/.test(title);
-    const maxLen = isCJK ? 14 : 42;
-    const displayTitle = title.length > maxLen ? title.slice(0, maxLen) + "…" : title;
-    const displayDesc = description.length > 100 ? description.slice(0, 100) + "…" : description;
-
-    const svg = await satori(
-        {
-            type: "div",
-            props: {
-                style: {
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    padding: "72px 88px 56px",
-                    backgroundImage:
-                        "linear-gradient(135deg, #0d1117 0%, #161b22 40%, #0f1419 100%)",
-                    borderLeftWidth: "6px",
-                    borderLeftStyle: "solid",
-                    borderLeftColor: "#d4a040",
-                    position: "relative",
-                },
-                children: [
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                position: "absolute",
-                                top: "-60px",
-                                right: "-60px",
-                                width: "280px",
-                                height: "280px",
-                                borderRadius: "50%",
-                                backgroundColor: "rgba(212, 160, 64, 0.07)",
-                            },
-                        },
-                    },
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                position: "absolute",
-                                bottom: "48px",
-                                right: "88px",
-                                width: "8px",
-                                height: "8px",
-                                borderRadius: "50%",
-                                backgroundColor: "rgba(212, 160, 64, 0.6)",
-                            },
-                        },
-                    },
-                    {
-                        type: "div",
-                        props: {
-                            children: displayTitle,
-                            style: {
-                                fontSize: "80px",
-                                fontWeight: 700,
-                                color: "#f0f0f0",
-                                letterSpacing: "-0.3px",
-                                lineHeight: "1.35",
-                            },
-                        },
-                    },
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                width: "100px",
-                                height: "4px",
-                                backgroundColor: "#d4a040",
-                                marginTop: "28px",
-                                borderRadius: "2px",
-                            },
-                        },
-                    },
-                    {
-                        type: "div",
-                        props: {
-                            children: displayDesc,
-                            style: {
-                                fontSize: "24px",
-                                fontWeight: 400,
-                                color: "#8b949e",
-                                marginTop: "24px",
-                                lineHeight: "1.55",
-                            },
-                        },
-                    },
-                    { type: "div", props: { style: { flexGrow: 1 } } },
-                    {
-                        type: "div",
-                        props: {
-                            style: {
-                                borderTopWidth: "1px",
-                                borderTopStyle: "solid",
-                                borderTopColor: "rgba(255,255,255,0.08)",
-                                paddingTop: "24px",
-                                display: "flex",
-                                flexDirection: "row",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                            },
-                            children: [
-                                {
-                                    type: "div",
-                                    props: {
-                                        children: site.url.replace("https://", ""),
-                                        style: {
-                                            fontSize: "18px",
-                                            fontWeight: 400,
-                                            color: "#5c6370",
-                                            letterSpacing: "0.2px",
-                                        },
-                                    },
-                                },
-                                {
-                                    type: "div",
-                                    props: {
-                                        children: site.title,
-                                        style: {
-                                            fontSize: "18px",
-                                            fontWeight: 400,
-                                            color: "#5c6370",
-                                        },
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
-        {
-            width: 1200,
-            height: 630,
-            fonts: [
-                {
-                    name: "Noto Sans SC",
-                    data: getFontRegular(),
-                    weight: 400,
-                },
-                {
-                    name: "Noto Sans SC",
-                    data: getFontBold(),
-                    weight: 700,
-                },
-            ],
-        },
-    );
-
-    const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
-
-    return new Response(new Uint8Array(pngBuffer), {
-        headers: {
-            "Content-Type": "image/png",
-            "Cache-Control": "public, max-age=31536000, immutable",
-        },
-    });
+export const GET: APIRoute = async (context) => {
+    const { route } = await prepared;
+    return route(context);
 };
