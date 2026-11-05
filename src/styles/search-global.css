@@ -75,7 +75,10 @@ pagefind-modal {
 html[data-theme="dark"] pagefind-modal-trigger {
     --pf-background: var(--search-modal-bg);
     --pf-border: var(--search-border);
-    --pf-text-secondary: var(--search-text-subtle);
+    /* M2-13a/13b：触发器里的 `.pf-trigger-key`（Ctrl/⌘）走 --pf-text-secondary；
+       它原先取 --search-text-subtle，在 Linux/Chromium 的 dark 下实测被 axe 判为
+       serious color-contrast。与 modal 内同一取值统一到 --search-text-muted（≥4.5）。 */
+    --pf-text-secondary: var(--search-text-muted);
     /* M2-13a：.pf-trigger-text 取的是 --pf-text-muted（pagefind 默认 #767676），
        在 #1e1e2e 上只有 3.61:1 —— 全站 546 页的搜索占位都在这一条上。
        暗色提到 #9ca3af（6.46:1），浅色不动（#767676 on #fff = 4.54 已过线）。 */

@@ -599,6 +599,11 @@ for (const component of generated.components) {
             `${component.slug}: ${stored.usage_count}/${stored.usage_tags} → ${component.usage_count}/${component.usage_tags}`,
         );
     }
+    // page-organism 是「债清单」不是使用率清单：I4 已要求 11 条全部登记，
+    // 其中允许存在暂时未接线的壳（M2-11b 的 albumscontent 即此类）。
+    // 0 引用只对 UI / layout 组件判红，否则 I4（必须 status=debt）与 I7b
+    // （0 引用必须 status=dead）互相矛盾，门禁会永远红。
+    if (component.layer === "page-organism") continue;
     if (component.usage_count === 0 && component.status !== "dead") {
         usageProblems.push(
             `${component.slug}: 0 引用（${component.file}）——删掉或把 status 标成 dead 再登记`,
