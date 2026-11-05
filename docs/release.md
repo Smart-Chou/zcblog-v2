@@ -4,7 +4,10 @@
 用 Changesets 做 **2.x lockstep**（任何一个包 bump，三个一起 bump 到同一版本），
 发布由 `.github/workflows/release.yml` 执行：**tag 推送或手动 dispatch 才会进发布链，普通 push 永远不进。**
 
-> 当前状态（M4-4 收口）：三包仍是 `"private": true`，**release workflow 的真发布路径会被 preflight 硬拦**。
+> 当前状态（M4-10 收口）：**发布范围收窄为 `tokens` + `og-image`**（M4-8 决策 D-0120），
+> 两包仍是 `"private": true`，真发布前需要在**发布清单内的包**上翻掉 private；
+> `packages/ui` 按 D-0120 保持 `private: true`（继续参与 lockstep 版本推进，但永不 publish）。
+> preflight 的 P1 只对**发布清单内**的包判 private，清单外的包 private 只报 INFO —— 不会再卡住两包首发。
 > 本手册描述的是「翻掉 private 之后该怎么发」，也是发布卡验收时要照做的清单。
 
 ---
@@ -20,7 +23,7 @@
 | `pnpm release:packages:dry`               | `node scripts/release/publish-dry-run.mjs`：真打包 + `npm publish --dry-run`，不写 registry |
 | `scripts/release/verify-versions.mjs` | 版本 lockstep、fixed 组覆盖、tag 与版本一致                                  |
 | `scripts/release/build-packages.mjs`  | 包构建（有 build 脚本就跑）+ 声明入口在磁盘上是否存在                        |
-| `scripts/release/preflight.mjs`       | 发布前总闸：版本 / private / pack 清单 / LICENSE-NOTICE / 已知阻断项 / publish-plan 空转 |
+| `scripts/release/preflight.mjs`       | 发布前总闸：版本 / private（按发布清单）/ pack 清单 / LICENSE-NOTICE / 已知阻断项 / publish-plan 空转 |
 | `scripts/release/verify-workflow.mjs` | release.yml 契约（触发面、闸门、命令字面量一致性）——CI 第一步就跑            |
 | `scripts/release/verify-guards.mjs`   | 负向自检：拿改坏的副本证明每个闸门真的会红                                    |
 | `scripts/release/verify-changeset-loop.mjs` | 临时 monorepo 里跑完整 changeset 闭环（add → version → pack → publish-plan） |
@@ -43,7 +46,7 @@
 
 真发布要同时满足：
 
-1. `preflight` 通过（版本 lockstep、tag 一致、`private !== true`、pack 清单完整、无 P1 阻断项、publish-plan 非空）；
+1. `preflight` 通过（版本 lockstep、tag 一致、**发布清单内的包** `private !== true`、pack 清单完整、无 P1 阻断项、publish-plan 非空）；
 2. `publish` job 的 `if` 命中（`needs.preflight.outputs.dry_run == 'false'`）；
 3. `npm-publish` environment 的人工批准（仓库设置里给该 environment 配 required reviewers 才生效）；
 4. `secrets.NPM_TOKEN` 存在（缺了会在「Credential gate」步骤直接失败）。
@@ -70,8 +73,10 @@
 ## 4. 一次发布的完整步骤
 
 ```bash
-# 0) 前置：三包 private 已翻成 false（发布卡负责；本链路不自动翻）
-#    检查当前状态：node scripts/release/preflight.mjs（P1 会逐个报 private/可发布）
+# 0) 前置：**发布清单内的包** private 已翻成 false（发布卡负责；本链路不自动翻）
+#    发布清单 = scripts/release/lib.mjs 的 PUBLISH_DIRS（M4 阶段 = packages/tokens + packages/og-image）
+#    packages/ui 按 D-0120 保持 private，不参与发布
+#    检查当前状态：node scripts/release/preflight.mjs（P1 逐包报 private/可发布；清单外的包报 INFO）
 pnpm preflight:release          # check 模式：先看还有哪些 WARN/阻断
 
 # 1) 写 changeset（lockstep 组只需提一个包）
@@ -202,7 +207,7 @@ npm dist-tag ls @marxchou/dogeared-tokens
 | -- | ---- | ---- | ---- |
 | `og-image` / `ui` 只发 TS 源码（`exports["."] → ./src/index.ts`，无 build 脚本） | M4-3 F1（P1） | 阻断 | 加 build 产出 `dist/*.js` + `d.ts`，exports 指 dist；或 README 明示「仅 bundler」 |
 | `tokens` 的 `exports` 没有 `"."` | M4-2 F1 | 阻断 | 补最小 CSS/JSON 入口，或明确只支持子路径 |
-| 三包 `"private": true` | M4-1 | 阻断 | 发布卡翻转 |
+| 发布清单内的包 `"private": true` | M4-1 / M4-10 | 阻断 | 发布卡翻转（M4 阶段 = tokens + og-image；ui 按 D-0120 保持 private，只报 INFO） |
 | `publish-plan` 为空（等于这次发布什么都不发） | M4-4 | 闸门 | 见上两条：private 或没有待发布 changeset 都会导致空 plan |
 | `engines` 为 `^22 \|\| ^24`，Node 26 报 EBADENGINE | M4-3 F2 / M4-2 F4 | WARN | 放宽为 `>=22` |
 | `main`/`module` 指向 `.ts`；README `@<npm-scope>` 占位 | M4-3 F3/F4 | WARN | build 方案一起改；发布后回填 scope |
@@ -227,6 +232,20 @@ node scripts/release/verify-guards.mjs        # 负向自检：闸门真的会�
 
 每个脚本都以 `RELEASE_SUMMARY {...}` 一行 JSON 结尾（便于 CI grep 与归档）。
 
+### 发布清单（PUBLISH_DIRS）
+
+「谁必须非 private 才能发」与「谁是三包 lockstep 的一员」是两件事，分别由两个常量定义（都在
+`scripts/release/lib.mjs`，**不要合并**）：
+
+| 常量 | 当前值 | 用途 |
+| ---- | ------ | ---- |
+| `PACKAGE_DIRS` | tokens / ui / og-image | lockstep 版本、构建、pack 清单、LICENSE-NOTICE、P 系列检查的口径（三包全查） |
+| `PUBLISH_DIRS` | tokens / og-image | 本次/本阶段真要进 registry 的包：只有清单内的包才必须 `private: false` |
+
+P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO（check 模式）；清单内 + 非 private → PASS；
+清单外 + private → **INFO**（按 D-0120 本阶段不发布，允许 private）；清单外 + 非 private → **WARN**（疑似误翻转）。
+要改发布范围只改 `PUBLISH_DIRS` 一处，`verify-guards.mjs` 的 G4d–G4f 会跟着新清单重算期望值。
+
 ---
 
 ## 9. 已知限制
@@ -237,5 +256,8 @@ node scripts/release/verify-guards.mjs        # 负向自检：闸门真的会�
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
 - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
   因此 publish job 用「找 `publish-plan.json`」定位目录而不是硬编码路径。
+- `verify-changeset-loop.mjs` 的 **L6（`changeset pack` 产出 3 个 tarball）当前是红的**（M4-6 给包加了
+  `prepack: node scripts/build.mjs`，而该脚本的临时 monorepo 不带 `node_modules` → `ELIFECYCLE`）。
+  这条不在 CI 的 release workflow 里（CI 有依赖，pack 正常），也不影响 preflight；待单独修。
 - `changeset publish` 是**逐包**发布：如果第三包失败，前两包已经在 registry 上了。
   lockstep 能保证版本一致，但不能保证原子性——失败后照 §6 处置。

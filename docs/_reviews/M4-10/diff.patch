@@ -1,0 +1,391 @@
+diff --git a/docs/release.md b/docs/release.md
+index 6817a7f..e6c822e 100644
+--- a/docs/release.md
++++ b/docs/release.md
+@@ -4,7 +4,10 @@
+ 用 Changesets 做 **2.x lockstep**（任何一个包 bump，三个一起 bump 到同一版本），
+ 发布由 `.github/workflows/release.yml` 执行：**tag 推送或手动 dispatch 才会进发布链，普通 push 永远不进。**
+ 
+-> 当前状态（M4-4 收口）：三包仍是 `"private": true`，**release workflow 的真发布路径会被 preflight 硬拦**。
++> 当前状态（M4-10 收口）：**发布范围收窄为 `tokens` + `og-image`**（M4-8 决策 D-0120），
++> 两包仍是 `"private": true`，真发布前需要在**发布清单内的包**上翻掉 private；
++> `packages/ui` 按 D-0120 保持 `private: true`（继续参与 lockstep 版本推进，但永不 publish）。
++> preflight 的 P1 只对**发布清单内**的包判 private，清单外的包 private 只报 INFO —— 不会再卡住两包首发。
+ > 本手册描述的是「翻掉 private 之后该怎么发」，也是发布卡验收时要照做的清单。
+ 
+ ---
+@@ -20,7 +23,7 @@
+ | `pnpm release:packages:dry`               | `node scripts/release/publish-dry-run.mjs`：真打包 + `npm publish --dry-run`，不写 registry |
+ | `scripts/release/verify-versions.mjs` | 版本 lockstep、fixed 组覆盖、tag 与版本一致                                  |
+ | `scripts/release/build-packages.mjs`  | 包构建（有 build 脚本就跑）+ 声明入口在磁盘上是否存在                        |
+-| `scripts/release/preflight.mjs`       | 发布前总闸：版本 / private / pack 清单 / LICENSE-NOTICE / 已知阻断项 / publish-plan 空转 |
++| `scripts/release/preflight.mjs`       | 发布前总闸：版本 / private（按发布清单）/ pack 清单 / LICENSE-NOTICE / 已知阻断项 / publish-plan 空转 |
+ | `scripts/release/verify-workflow.mjs` | release.yml 契约（触发面、闸门、命令字面量一致性）——CI 第一步就跑            |
+ | `scripts/release/verify-guards.mjs`   | 负向自检：拿改坏的副本证明每个闸门真的会红                                    |
+ | `scripts/release/verify-changeset-loop.mjs` | 临时 monorepo 里跑完整 changeset 闭环（add → version → pack → publish-plan） |
+@@ -43,7 +46,7 @@
+ 
+ 真发布要同时满足：
+ 
+-1. `preflight` 通过（版本 lockstep、tag 一致、`private !== true`、pack 清单完整、无 P1 阻断项、publish-plan 非空）；
++1. `preflight` 通过（版本 lockstep、tag 一致、**发布清单内的包** `private !== true`、pack 清单完整、无 P1 阻断项、publish-plan 非空）；
+ 2. `publish` job 的 `if` 命中（`needs.preflight.outputs.dry_run == 'false'`）；
+ 3. `npm-publish` environment 的人工批准（仓库设置里给该 environment 配 required reviewers 才生效）；
+ 4. `secrets.NPM_TOKEN` 存在（缺了会在「Credential gate」步骤直接失败）。
+@@ -70,8 +73,10 @@
+ ## 4. 一次发布的完整步骤
+ 
+ ```bash
+-# 0) 前置：三包 private 已翻成 false（发布卡负责；本链路不自动翻）
+-#    检查当前状态：node scripts/release/preflight.mjs（P1 会逐个报 private/可发布）
++# 0) 前置：**发布清单内的包** private 已翻成 false（发布卡负责；本链路不自动翻）
++#    发布清单 = scripts/release/lib.mjs 的 PUBLISH_DIRS（M4 阶段 = packages/tokens + packages/og-image）
++#    packages/ui 按 D-0120 保持 private，不参与发布
++#    检查当前状态：node scripts/release/preflight.mjs（P1 逐包报 private/可发布；清单外的包报 INFO）
+ pnpm preflight:release          # check 模式：先看还有哪些 WARN/阻断
+ 
+ # 1) 写 changeset（lockstep 组只需提一个包）
+@@ -202,7 +207,7 @@ npm dist-tag ls @marxchou/dogeared-tokens
+ | -- | ---- | ---- | ---- |
+ | `og-image` / `ui` 只发 TS 源码（`exports["."] → ./src/index.ts`，无 build 脚本） | M4-3 F1（P1） | 阻断 | 加 build 产出 `dist/*.js` + `d.ts`，exports 指 dist；或 README 明示「仅 bundler」 |
+ | `tokens` 的 `exports` 没有 `"."` | M4-2 F1 | 阻断 | 补最小 CSS/JSON 入口，或明确只支持子路径 |
+-| 三包 `"private": true` | M4-1 | 阻断 | 发布卡翻转 |
++| 发布清单内的包 `"private": true` | M4-1 / M4-10 | 阻断 | 发布卡翻转（M4 阶段 = tokens + og-image；ui 按 D-0120 保持 private，只报 INFO） |
+ | `publish-plan` 为空（等于这次发布什么都不发） | M4-4 | 闸门 | 见上两条：private 或没有待发布 changeset 都会导致空 plan |
+ | `engines` 为 `^22 \|\| ^24`，Node 26 报 EBADENGINE | M4-3 F2 / M4-2 F4 | WARN | 放宽为 `>=22` |
+ | `main`/`module` 指向 `.ts`；README `@<npm-scope>` 占位 | M4-3 F3/F4 | WARN | build 方案一起改；发布后回填 scope |
+@@ -227,6 +232,20 @@ node scripts/release/verify-guards.mjs        # 负向自检：闸门真的会
+ 
+ 每个脚本都以 `RELEASE_SUMMARY {...}` 一行 JSON 结尾（便于 CI grep 与归档）。
+ 
++### 发布清单（PUBLISH_DIRS）
++
++「谁必须非 private 才能发」与「谁是三包 lockstep 的一员」是两件事，分别由两个常量定义（都在
++`scripts/release/lib.mjs`，**不要合并**）：
++
++| 常量 | 当前值 | 用途 |
++| ---- | ------ | ---- |
++| `PACKAGE_DIRS` | tokens / ui / og-image | lockstep 版本、构建、pack 清单、LICENSE-NOTICE、P 系列检查的口径（三包全查） |
++| `PUBLISH_DIRS` | tokens / og-image | 本次/本阶段真要进 registry 的包：只有清单内的包才必须 `private: false` |
++
++P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO（check 模式）；清单内 + 非 private → PASS；
++清单外 + private → **INFO**（按 D-0120 本阶段不发布，允许 private）；清单外 + 非 private → **WARN**（疑似误翻转）。
++要改发布范围只改 `PUBLISH_DIRS` 一处，`verify-guards.mjs` 的 G4d–G4f 会跟着新清单重算期望值。
++
+ ---
+ 
+ ## 9. 已知限制
+@@ -237,5 +256,8 @@ node scripts/release/verify-guards.mjs        # 负向自检：闸门真的会
+   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
+ - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
+   因此 publish job 用「找 `publish-plan.json`」定位目录而不是硬编码路径。
++- `verify-changeset-loop.mjs` 的 **L6（`changeset pack` 产出 3 个 tarball）当前是红的**（M4-6 给包加了
++  `prepack: node scripts/build.mjs`，而该脚本的临时 monorepo 不带 `node_modules` → `ELIFECYCLE`）。
++  这条不在 CI 的 release workflow 里（CI 有依赖，pack 正常），也不影响 preflight；待单独修。
+ - `changeset publish` 是**逐包**发布：如果第三包失败，前两包已经在 registry 上了。
+   lockstep 能保证版本一致，但不能保证原子性——失败后照 §6 处置。
+diff --git a/scripts/release/lib.mjs b/scripts/release/lib.mjs
+index d365457..acbadf1 100644
+--- a/scripts/release/lib.mjs
++++ b/scripts/release/lib.mjs
+@@ -19,6 +19,18 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
+ // 三包 lockstep 的唯一事实源：config 里 fixed 组必须与这份清单一致（preflight 会交叉验证）。
+ export const PACKAGE_DIRS = ["packages/tokens", "packages/ui", "packages/og-image"];
+ 
++// 发布清单（**发布范围的唯一事实源**）。语义与 PACKAGE_DIRS 不同，不要合并：
++//   - PACKAGE_DIRS 是「三包 lockstep / 构建 / pack 检查」的口径 —— 三个包都算；
++//   - PUBLISH_DIRS 是「本次/本阶段真的要进 registry 的包」—— 只有在这里的包才必须 private:false。
++// 背景：M4-8 决策 D-0120 —— M4 首发只发 tokens + og-image，packages/ui 保持 private:true
++//（继续参与 fixed 组的版本推进，但永不 publish；changesets 自己会把 private 包过滤出 publish-plan）。
++// 要新增/移除发布包时只改这一处：preflight P1 与 verify-guards 的用例都从这里取范围。
++export const PUBLISH_DIRS = ["packages/tokens", "packages/og-image"];
++
++export function isPublishTarget(dir) {
++    return PUBLISH_DIRS.includes(dir);
++}
++
+ // release workflow 真正执行发布的那条命令。scripts/release/verify-workflow.mjs 会断言
+ // release.yml 里出现这同一个字面量——保证「本地 dry-run 验过的命令」和「CI 里跑的命令」是同一条。
+ export const PUBLISH_COMMAND = "changeset publish --from-pack-dir";
+diff --git a/scripts/release/preflight.mjs b/scripts/release/preflight.mjs
+index b6f82aa..0969fc9 100644
+--- a/scripts/release/preflight.mjs
++++ b/scripts/release/preflight.mjs
+@@ -11,10 +11,13 @@ import { readFileSync, mkdirSync, writeFileSync, chmodSync, rmSync } from "node:
+ import os from "node:os";
+ import path from "node:path";
+ import {
++    PACKAGE_DIRS,
++    PUBLISH_DIRS,
+     REPO_ROOT,
+     checkVersions,
+     exists,
+     fileSize,
++    isPublishTarget,
+     loadPackages,
+     makeCollector,
+     npmPackDryRun,
+@@ -52,18 +55,46 @@ const packages = loadPackages();
+ // ---------------------------------------------------------------- V: 版本 / 配置
+ checkVersions(c, { packages, tag });
+ 
+-// ---------------------------------------------------------------- P: private 闸门
++// ---------------------------------------------------------------- P1: private 闸门（按发布清单）
++// 判据只落在「发布清单」（lib.mjs 的 PUBLISH_DIRS）内的包上：
++//   - 清单内 + private:true  → 硬失败（publish 模式）/ INFO（检查模式）—— private 下 publish 会静默空转；
++//   - 清单内 + private:false → PASS；
++//   - 清单外 + private:true  → INFO（按 D-0120 本阶段不发布，允许 private；不再是阻断）；
++//   - 清单外 + private:false → WARN（疑似误翻转：清单外的包不该进 registry）。
++// 注意：清单外≠不管——版本 lockstep / 构建 / pack 仍按 PACKAGE_DIRS 三包全查。
++for (const dir of PUBLISH_DIRS) {
++    if (!PACKAGE_DIRS.includes(dir))
++        c.fail(
++            "P1",
++            `发布清单里的 ${dir} 不在 PACKAGE_DIRS 中（发布清单与三包口径不一致）`,
++            `PUBLISH_DIRS=${PUBLISH_DIRS.join(", ")}\nPACKAGE_DIRS=${PACKAGE_DIRS.join(", ")}`,
++        );
++}
+ for (const p of packages) {
+-    if (p.private) {
+-        if (isPublish)
+-            c.fail(
+-                "P1",
+-                `${p.name} 仍是 private:true，禁止发布`,
+-                "翻转 private 是发布卡的事；private 下 changeset publish 会静默空转",
+-            );
+-        else c.info("P1", `${p.name} private:true（检查模式允许；发布前需翻转）`);
++    if (isPublishTarget(p.dir)) {
++        if (p.private) {
++            if (isPublish)
++                c.fail(
++                    "P1",
++                    `${p.name} 仍是 private:true，禁止发布`,
++                    "翻转 private 是发布卡的事；private 下 changeset publish 会静默空转",
++                );
++            else c.info("P1", `${p.name} private:true（检查模式允许；发布前需翻转）`);
++        } else {
++            c.pass("P1", `${p.name} private:false，可发布`);
++        }
++    } else if (p.private) {
++        c.info(
++            "P1",
++            `${p.name} 不在发布清单内，按 D-0120 本阶段不发布，允许 private`,
++            `发布清单：${PUBLISH_DIRS.join(", ")}\n该包继续参与 fixed 组版本推进，但 changesets 会把它过滤出 publish-plan`,
++        );
+     } else {
+-        c.pass("P1", `${p.name} private:false，可发布`);
++        c.warn(
++            "P1",
++            `${p.name} 不在发布清单内却是 private:false（疑似误翻转，请复核）`,
++            `发布清单：${PUBLISH_DIRS.join(", ")}\n要么把它加进 PUBLISH_DIRS（真发），要么翻回 private:true`,
++        );
+     }
+ }
+ 
+@@ -254,7 +285,7 @@ let planJson = null;
+             if (empty)
+                 c.fail(
+                     "P5",
+-                    "changeset publish-plan 为空：这次发布不会有任何包进 registry（典型原因：三包仍 private，或没有待发布的 changeset）",
++                    "changeset publish-plan 为空：这次发布不会有任何包进 registry（典型原因：发布清单内的包仍 private，或没有待发布的 changeset）",
+                     `plan=${JSON.stringify(planJson ?? null).slice(0, 300)}\n这正是「静默空转」场景，release 链路必须在这里停住`,
+                 );
+             else
+@@ -293,6 +324,8 @@ const ok = report(
+             mode,
+             tag,
+             version: packages[0]?.version ?? null,
++            publishSet: PUBLISH_DIRS,
++            privatePackages: packages.filter((p) => p.private).map((p) => p.name),
+             pack: packResults.map((p) => ({
+                 name: p.name,
+                 version: p.version,
+diff --git a/scripts/release/verify-changeset-loop.mjs b/scripts/release/verify-changeset-loop.mjs
+index cfb66b6..fffd074 100644
+--- a/scripts/release/verify-changeset-loop.mjs
++++ b/scripts/release/verify-changeset-loop.mjs
+@@ -45,6 +45,8 @@ try {
+     }
+ 
+     // ---- 1. 造临时 monorepo（只拷 metadata + 包内容，不拷 node_modules）----
++    // 已知缺口（M4-6 引入，未在本卡修复）：包的 `prepack` 现在会真的执行 build，副本里没有 tsc/astro
++    // → `changeset pack` 报 ELIFECYCLE，L6 会红。本卡的改动范围是发布闸门（P1），不在这里动它。
+     cpSync(path.join(REPO_ROOT, "pnpm-workspace.yaml"), path.join(tmp, "pnpm-workspace.yaml"));
+     mkdirSync(path.join(tmp, ".changeset"), { recursive: true });
+     cpSync(
+diff --git a/scripts/release/verify-guards.mjs b/scripts/release/verify-guards.mjs
+index 38fc0ad..b5dbee8 100644
+--- a/scripts/release/verify-guards.mjs
++++ b/scripts/release/verify-guards.mjs
+@@ -5,10 +5,10 @@
+ //
+ // 每个用例都拿「改坏的副本」喂给同一个脚本，断言它 exit != 0。
+ // 全部在临时目录里做，真仓库只读。
+-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+ import os from "node:os";
+ import path from "node:path";
+-import { REPO_ROOT, makeCollector, report, runSync } from "./lib.mjs";
++import { PACKAGE_DIRS, PUBLISH_DIRS, REPO_ROOT, makeCollector, report, runSync } from "./lib.mjs";
+ 
+ const argv = process.argv.slice(2);
+ const json = argv.includes("--json");
+@@ -87,12 +87,13 @@ expectFail(
+     );
+ }
+ 
+-// ---- G4 publish 模式在三包 private 时必须拒绝 ----
++// ---- G4 发布清单（PUBLISH_DIRS）语义：清单内 private 必拒 / 清单外 private 放行 ----
++// 真仓库现状（M4-8 D-0120）：三包仍 private，其中 tokens/og-image 在发布清单内 → publish 模式必拒。
+ expectFail(
+     "G4a",
+-    "preflight --mode=publish（三包仍 private）",
++    "preflight --mode=publish（发布清单内的包仍 private）",
+     runSync("node", [realPreflight, "--mode=publish", "--tag", "v2.1.0"], { allowFail: true }),
+-    /private/,
++    /仍是 private:true，禁止发布/,
+ );
+ expectFail(
+     "G4b",
+@@ -111,6 +112,134 @@ expectFail(
+         );
+ }
+ 
++// ---- G4d/G4e 临时 workspace：发布态（tokens/og-image private:false + ui private:true + 有 pending changeset）----
++// 这是 M4 真正要跑发布的状态；D-0120 下它必须整体放行，且 publish-plan 里不能出现 ui。
++const p1Lines = (out) =>
++    out
++        .split("\n")
++        .filter((l) => /^\[(PASS|FAIL|WARN|INFO|SKIP)\]\s+P1\s/.test(l))
++        .map((l) => l.trim());
++
++const buildPublishWorkspace = (name, { flipPrivate = [], unflip = [] } = {}) => {
++    const ws = path.join(tmpRoot, name);
++    mkdirSync(path.join(ws, "scripts"), { recursive: true });
++    cpSync(path.join(REPO_ROOT, "scripts/release"), path.join(ws, "scripts/release"), {
++        recursive: true,
++    });
++    for (const f of ["package.json", "pnpm-workspace.yaml", "LICENSE", "NOTICE"]) {
++        cpSync(path.join(REPO_ROOT, f), path.join(ws, f));
++    }
++    mkdirSync(path.join(ws, ".changeset"), { recursive: true });
++    cpSync(path.join(REPO_ROOT, ".changeset/config.json"), path.join(ws, ".changeset/config.json"));
++    for (const dir of PACKAGE_DIRS) {
++        cpSync(path.join(REPO_ROOT, dir), path.join(ws, dir), {
++            recursive: true,
++            filter: (src) => !src.includes("/node_modules"),
++        });
++    }
++    // node_modules 走软链：副本里的 `npx changeset` 解析到本仓已装的 CLI，不联网装包
++    symlinkSync(path.join(REPO_ROOT, "node_modules"), path.join(ws, "node_modules"), "dir");
++    for (const dir of [...flipPrivate, ...unflip]) {
++        const p = path.join(ws, dir, "package.json");
++        const pkg = JSON.parse(readFileSync(p, "utf8"));
++        if (flipPrivate.includes(dir)) pkg.private = false;
++        else delete pkg.private;
++        writeFileSync(p, `${JSON.stringify(pkg, null, 4)}\n`);
++    }
++    return ws;
++};
++const flipTargets = [...PUBLISH_DIRS];
++const uiDir = PACKAGE_DIRS.find((dir) => !PUBLISH_DIRS.includes(dir));
++
++const releaseWs = buildPublishWorkspace("publish-set", { flipPrivate: flipTargets });
++writeFileSync(
++    path.join(releaseWs, ".changeset/pending-release.md"),
++    `---\n"@marxchou/dogeared-tokens": patch\n---\n\nguards: pending changeset for publish mode\n`,
++);
++const releaseWsRun = runSync(
++    "node",
++    [path.join(releaseWs, "scripts/release/preflight.mjs"), "--mode=publish"],
++    { allowFail: true },
++);
++{
++    const p1 = p1Lines(releaseWsRun.out);
++    const fails = p1.filter((l) => l.startsWith("[FAIL]"));
++    const uiLine = p1.find((l) => l.includes("@marxchou/dogeared-ui")) ?? "";
++    if (fails.length === 0 && /^\[INFO\]/.test(uiLine) && /D-0120/.test(uiLine))
++        c.pass(
++            "G4d",
++            `发布态（${flipTargets.join(" + ")} 已翻转、ui 留 private）→ P1 全绿，ui 落 INFO（${
++                p1.length
++            } 条 P1）`,
++            p1.join("\n"),
++        );
++    else
++        c.fail(
++            "G4d",
++            "发布态下 P1 仍有 FAIL，或 ui 没有落到 INFO/D-0120（ui 留 private 会重新卡住首发）",
++            `${p1.join("\n")}\n${releaseWsRun.combined.slice(-800)}`,
++        );
++
++    const summaryLine = releaseWsRun.out
++        .split("\n")
++        .reverse()
++        .find((l) => l.startsWith("RELEASE_SUMMARY "));
++    let summary = null;
++    try {
++        summary = summaryLine ? JSON.parse(summaryLine.slice("RELEASE_SUMMARY ".length)) : null;
++    } catch {
++        summary = null;
++    }
++    const planNames = (Array.isArray(summary?.publishPlan?.plan) ? summary.publishPlan.plan : [])
++        .flat()
++        .map((e) => e?.name)
++        .filter(Boolean);
++    const expectNames = flipTargets.map((dir) => {
++        const pkg = JSON.parse(readFileSync(path.join(REPO_ROOT, dir, "package.json"), "utf8"));
++        return pkg.name;
++    });
++    const uiName = JSON.parse(
++        readFileSync(path.join(REPO_ROOT, "packages/ui/package.json"), "utf8"),
++    ).name;
++    const onlyTwo =
++        planNames.length === expectNames.length && expectNames.every((n) => planNames.includes(n));
++    if (releaseWsRun.code === 0 && onlyTwo && !planNames.includes(uiName))
++        c.pass(
++            "G4e",
++            `preflight --mode=publish exit 0，publish-plan 只含 ${planNames.length} 包（不含 ui）`,
++            `plan=${JSON.stringify(planNames)}`,
++        );
++    else
++        c.fail(
++            "G4e",
++            "发布态下 preflight 没放行，或 publish-plan 不是「只含发布清单内的包」",
++            `exit=${releaseWsRun.code}\nplan=${JSON.stringify(planNames)}\nui=${uiName}\n${releaseWsRun.combined.slice(
++                -900,
++            )}`,
++        );
++}
++
++// ---- G4f 清单外的包被翻成 private:false → WARN（疑似误翻转，不能静默通过）----
++{
++    const ws = buildPublishWorkspace("misflip", { unflip: [uiDir] });
++    const run = runSync(
++        "node",
++        [path.join(ws, "scripts/release/preflight.mjs"), "--mode=publish"],
++        {
++            allowFail: true,
++        },
++    );
++    const uiLine = p1Lines(run.out).find((l) => l.includes("@marxchou/dogeared-ui")) ?? "";
++    if (/^\[WARN\]/.test(uiLine) && /疑似误翻转/.test(uiLine))
++        c.pass("G4f", `清单外的包被误翻成 private:false → WARN（${uiLine}）`);
++    else
++        c.fail(
++            "G4f",
++            "清单外的包被翻成 private:false 时没有 WARN（会静默多发一个包）",
++            `${p1Lines(run.out).join("\n")}\n${run.combined.slice(-600)}`,
++        );
++}
++
+ // ---- G5 workflow 契约的负向用例 ----
+ // 造一个「形如 token」的字符串用于变异测试：拼出来的，避免仓库里出现 token 字面量（密钥扫描会误报）
+ const fakeToken = `npm_${"A".repeat(36)}`;
+@@ -193,5 +322,5 @@ for (const m of mutations) {
+ }
+ 
+ rmSync(tmpRoot, { recursive: true, force: true });
+-report("负向自检（闸门必须真的会红）", c.results, { json, extra: { cases: mutations.length + 8 } });
++report("负向自检（闸门必须真的会红）", c.results, { json, extra: { cases: c.results.length } });
+ process.exit(c.results.some((r) => r.level === "FAIL") ? 1 : 0);

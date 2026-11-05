@@ -5,10 +5,10 @@
 //
 // 每个用例都拿「改坏的副本」喂给同一个脚本，断言它 exit != 0。
 // 全部在临时目录里做，真仓库只读。
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { REPO_ROOT, makeCollector, report, runSync } from "./lib.mjs";
+import { PACKAGE_DIRS, PUBLISH_DIRS, REPO_ROOT, makeCollector, report, runSync } from "./lib.mjs";
 
 const argv = process.argv.slice(2);
 const json = argv.includes("--json");
@@ -87,12 +87,13 @@ expectFail(
     );
 }
 
-// ---- G4 publish 模式在三包 private 时必须拒绝 ----
+// ---- G4 发布清单（PUBLISH_DIRS）语义：清单内 private 必拒 / 清单外 private 放行 ----
+// 真仓库现状（M4-8 D-0120）：三包仍 private，其中 tokens/og-image 在发布清单内 → publish 模式必拒。
 expectFail(
     "G4a",
-    "preflight --mode=publish（三包仍 private）",
+    "preflight --mode=publish（发布清单内的包仍 private）",
     runSync("node", [realPreflight, "--mode=publish", "--tag", "v2.1.0"], { allowFail: true }),
-    /private/,
+    /仍是 private:true，禁止发布/,
 );
 expectFail(
     "G4b",
@@ -108,6 +109,134 @@ expectFail(
             "G4c",
             "check 模式被 known-blocker 拦住了（会挡住 PR 门禁）",
             check.combined.slice(-600),
+        );
+}
+
+// ---- G4d/G4e 临时 workspace：发布态（tokens/og-image private:false + ui private:true + 有 pending changeset）----
+// 这是 M4 真正要跑发布的状态；D-0120 下它必须整体放行，且 publish-plan 里不能出现 ui。
+const p1Lines = (out) =>
+    out
+        .split("\n")
+        .filter((l) => /^\[(PASS|FAIL|WARN|INFO|SKIP)\]\s+P1\s/.test(l))
+        .map((l) => l.trim());
+
+const buildPublishWorkspace = (name, { flipPrivate = [], unflip = [] } = {}) => {
+    const ws = path.join(tmpRoot, name);
+    mkdirSync(path.join(ws, "scripts"), { recursive: true });
+    cpSync(path.join(REPO_ROOT, "scripts/release"), path.join(ws, "scripts/release"), {
+        recursive: true,
+    });
+    for (const f of ["package.json", "pnpm-workspace.yaml", "LICENSE", "NOTICE"]) {
+        cpSync(path.join(REPO_ROOT, f), path.join(ws, f));
+    }
+    mkdirSync(path.join(ws, ".changeset"), { recursive: true });
+    cpSync(path.join(REPO_ROOT, ".changeset/config.json"), path.join(ws, ".changeset/config.json"));
+    for (const dir of PACKAGE_DIRS) {
+        cpSync(path.join(REPO_ROOT, dir), path.join(ws, dir), {
+            recursive: true,
+            filter: (src) => !src.includes("/node_modules"),
+        });
+    }
+    // node_modules 走软链：副本里的 `npx changeset` 解析到本仓已装的 CLI，不联网装包
+    symlinkSync(path.join(REPO_ROOT, "node_modules"), path.join(ws, "node_modules"), "dir");
+    for (const dir of [...flipPrivate, ...unflip]) {
+        const p = path.join(ws, dir, "package.json");
+        const pkg = JSON.parse(readFileSync(p, "utf8"));
+        if (flipPrivate.includes(dir)) pkg.private = false;
+        else delete pkg.private;
+        writeFileSync(p, `${JSON.stringify(pkg, null, 4)}\n`);
+    }
+    return ws;
+};
+const flipTargets = [...PUBLISH_DIRS];
+const uiDir = PACKAGE_DIRS.find((dir) => !PUBLISH_DIRS.includes(dir));
+
+const releaseWs = buildPublishWorkspace("publish-set", { flipPrivate: flipTargets });
+writeFileSync(
+    path.join(releaseWs, ".changeset/pending-release.md"),
+    `---\n"@marxchou/dogeared-tokens": patch\n---\n\nguards: pending changeset for publish mode\n`,
+);
+const releaseWsRun = runSync(
+    "node",
+    [path.join(releaseWs, "scripts/release/preflight.mjs"), "--mode=publish"],
+    { allowFail: true },
+);
+{
+    const p1 = p1Lines(releaseWsRun.out);
+    const fails = p1.filter((l) => l.startsWith("[FAIL]"));
+    const uiLine = p1.find((l) => l.includes("@marxchou/dogeared-ui")) ?? "";
+    if (fails.length === 0 && /^\[INFO\]/.test(uiLine) && /D-0120/.test(uiLine))
+        c.pass(
+            "G4d",
+            `发布态（${flipTargets.join(" + ")} 已翻转、ui 留 private）→ P1 全绿，ui 落 INFO（${
+                p1.length
+            } 条 P1）`,
+            p1.join("\n"),
+        );
+    else
+        c.fail(
+            "G4d",
+            "发布态下 P1 仍有 FAIL，或 ui 没有落到 INFO/D-0120（ui 留 private 会重新卡住首发）",
+            `${p1.join("\n")}\n${releaseWsRun.combined.slice(-800)}`,
+        );
+
+    const summaryLine = releaseWsRun.out
+        .split("\n")
+        .reverse()
+        .find((l) => l.startsWith("RELEASE_SUMMARY "));
+    let summary = null;
+    try {
+        summary = summaryLine ? JSON.parse(summaryLine.slice("RELEASE_SUMMARY ".length)) : null;
+    } catch {
+        summary = null;
+    }
+    const planNames = (Array.isArray(summary?.publishPlan?.plan) ? summary.publishPlan.plan : [])
+        .flat()
+        .map((e) => e?.name)
+        .filter(Boolean);
+    const expectNames = flipTargets.map((dir) => {
+        const pkg = JSON.parse(readFileSync(path.join(REPO_ROOT, dir, "package.json"), "utf8"));
+        return pkg.name;
+    });
+    const uiName = JSON.parse(
+        readFileSync(path.join(REPO_ROOT, "packages/ui/package.json"), "utf8"),
+    ).name;
+    const onlyTwo =
+        planNames.length === expectNames.length && expectNames.every((n) => planNames.includes(n));
+    if (releaseWsRun.code === 0 && onlyTwo && !planNames.includes(uiName))
+        c.pass(
+            "G4e",
+            `preflight --mode=publish exit 0，publish-plan 只含 ${planNames.length} 包（不含 ui）`,
+            `plan=${JSON.stringify(planNames)}`,
+        );
+    else
+        c.fail(
+            "G4e",
+            "发布态下 preflight 没放行，或 publish-plan 不是「只含发布清单内的包」",
+            `exit=${releaseWsRun.code}\nplan=${JSON.stringify(planNames)}\nui=${uiName}\n${releaseWsRun.combined.slice(
+                -900,
+            )}`,
+        );
+}
+
+// ---- G4f 清单外的包被翻成 private:false → WARN（疑似误翻转，不能静默通过）----
+{
+    const ws = buildPublishWorkspace("misflip", { unflip: [uiDir] });
+    const run = runSync(
+        "node",
+        [path.join(ws, "scripts/release/preflight.mjs"), "--mode=publish"],
+        {
+            allowFail: true,
+        },
+    );
+    const uiLine = p1Lines(run.out).find((l) => l.includes("@marxchou/dogeared-ui")) ?? "";
+    if (/^\[WARN\]/.test(uiLine) && /疑似误翻转/.test(uiLine))
+        c.pass("G4f", `清单外的包被误翻成 private:false → WARN（${uiLine}）`);
+    else
+        c.fail(
+            "G4f",
+            "清单外的包被翻成 private:false 时没有 WARN（会静默多发一个包）",
+            `${p1Lines(run.out).join("\n")}\n${run.combined.slice(-600)}`,
         );
 }
 
@@ -193,5 +322,5 @@ for (const m of mutations) {
 }
 
 rmSync(tmpRoot, { recursive: true, force: true });
-report("负向自检（闸门必须真的会红）", c.results, { json, extra: { cases: mutations.length + 8 } });
+report("负向自检（闸门必须真的会红）", c.results, { json, extra: { cases: c.results.length } });
 process.exit(c.results.some((r) => r.level === "FAIL") ? 1 : 0);

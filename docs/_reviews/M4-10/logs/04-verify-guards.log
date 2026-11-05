@@ -1,0 +1,24 @@
+
+== 负向自检（闸门必须真的会红） ==
+[PASS] G1         tag v9.9.9 与三包版本 2.1.0 不一致 → exit 1（闸门生效）
+[PASS] G2         只有 ui 前进到 2.1.1（lockstep 破裂） → exit 1（闸门生效）
+[PASS] G3         .changeset/config.json 的 fixed 组被清空 → exit 1（闸门生效）
+[PASS] G4a        preflight --mode=publish（发布清单内的包仍 private） → exit 1（闸门生效）
+[PASS] G4b        preflight --mode=publish（publish-plan 为空 → 静默空转） → exit 1（闸门生效）
+[PASS] G4c        同一套判据在 check 模式下放行（exit 0），阻断项只报 WARN
+[PASS] G4d        发布态（packages/tokens + packages/og-image 已翻转、ui 留 private）→ P1 全绿，ui 落 INFO（3 条 P1）
+           [PASS] P1         @marxchou/dogeared-tokens private:false，可发布
+           [INFO] P1         @marxchou/dogeared-ui 不在发布清单内，按 D-0120 本阶段不发布，允许 private
+           [PASS] P1         @marxchou/dogeared-og-image private:false，可发布
+[PASS] G4e        preflight --mode=publish exit 0，publish-plan 只含 2 包（不含 ui）
+           plan=["@marxchou/dogeared-og-image","@marxchou/dogeared-tokens"]
+[PASS] G4f        清单外的包被误翻成 private:false → WARN（[WARN] P1         @marxchou/dogeared-ui 不在发布清单内却是 private:false（疑似误翻转，请复核））
+[PASS] G5a        给 push 加上 branches: [main]（普通 push 就能进发布链） → exit 1（闸门生效）
+[PASS] G5b        把发布命令换成 npm publish（与本地验证的字面量不一致） → exit 1（闸门生效）
+[PASS] G5c        给非 provenance 步骤加 continue-on-error（静默吞失败） → exit 1（闸门生效）
+[PASS] G5d        去掉 confirm_publish 人工确认（dispatch 可直接真发） → exit 1（闸门生效）
+[PASS] G5e        把 token 直接写进 workflow → exit 1（闸门生效）
+[PASS] G6         publish-dry-run.mjs 里 2 处 publish 调用全部带 --dry-run
+
+RELEASE_SUMMARY {"title":"负向自检（闸门必须真的会红）","ok":true,"counts":{"PASS":15,"FAIL":0,"WARN":0,"INFO":0,"SKIP":0},"cases":15}
+04 exit=0

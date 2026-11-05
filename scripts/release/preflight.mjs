@@ -11,10 +11,13 @@ import { readFileSync, mkdirSync, writeFileSync, chmodSync, rmSync } from "node:
 import os from "node:os";
 import path from "node:path";
 import {
+    PACKAGE_DIRS,
+    PUBLISH_DIRS,
     REPO_ROOT,
     checkVersions,
     exists,
     fileSize,
+    isPublishTarget,
     loadPackages,
     makeCollector,
     npmPackDryRun,
@@ -52,18 +55,46 @@ const packages = loadPackages();
 // ---------------------------------------------------------------- V: 版本 / 配置
 checkVersions(c, { packages, tag });
 
-// ---------------------------------------------------------------- P: private 闸门
+// ---------------------------------------------------------------- P1: private 闸门（按发布清单）
+// 判据只落在「发布清单」（lib.mjs 的 PUBLISH_DIRS）内的包上：
+//   - 清单内 + private:true  → 硬失败（publish 模式）/ INFO（检查模式）—— private 下 publish 会静默空转；
+//   - 清单内 + private:false → PASS；
+//   - 清单外 + private:true  → INFO（按 D-0120 本阶段不发布，允许 private；不再是阻断）；
+//   - 清单外 + private:false → WARN（疑似误翻转：清单外的包不该进 registry）。
+// 注意：清单外≠不管——版本 lockstep / 构建 / pack 仍按 PACKAGE_DIRS 三包全查。
+for (const dir of PUBLISH_DIRS) {
+    if (!PACKAGE_DIRS.includes(dir))
+        c.fail(
+            "P1",
+            `发布清单里的 ${dir} 不在 PACKAGE_DIRS 中（发布清单与三包口径不一致）`,
+            `PUBLISH_DIRS=${PUBLISH_DIRS.join(", ")}\nPACKAGE_DIRS=${PACKAGE_DIRS.join(", ")}`,
+        );
+}
 for (const p of packages) {
-    if (p.private) {
-        if (isPublish)
-            c.fail(
-                "P1",
-                `${p.name} 仍是 private:true，禁止发布`,
-                "翻转 private 是发布卡的事；private 下 changeset publish 会静默空转",
-            );
-        else c.info("P1", `${p.name} private:true（检查模式允许；发布前需翻转）`);
+    if (isPublishTarget(p.dir)) {
+        if (p.private) {
+            if (isPublish)
+                c.fail(
+                    "P1",
+                    `${p.name} 仍是 private:true，禁止发布`,
+                    "翻转 private 是发布卡的事；private 下 changeset publish 会静默空转",
+                );
+            else c.info("P1", `${p.name} private:true（检查模式允许；发布前需翻转）`);
+        } else {
+            c.pass("P1", `${p.name} private:false，可发布`);
+        }
+    } else if (p.private) {
+        c.info(
+            "P1",
+            `${p.name} 不在发布清单内，按 D-0120 本阶段不发布，允许 private`,
+            `发布清单：${PUBLISH_DIRS.join(", ")}\n该包继续参与 fixed 组版本推进，但 changesets 会把它过滤出 publish-plan`,
+        );
     } else {
-        c.pass("P1", `${p.name} private:false，可发布`);
+        c.warn(
+            "P1",
+            `${p.name} 不在发布清单内却是 private:false（疑似误翻转，请复核）`,
+            `发布清单：${PUBLISH_DIRS.join(", ")}\n要么把它加进 PUBLISH_DIRS（真发），要么翻回 private:true`,
+        );
     }
 }
 
@@ -254,7 +285,7 @@ let planJson = null;
             if (empty)
                 c.fail(
                     "P5",
-                    "changeset publish-plan 为空：这次发布不会有任何包进 registry（典型原因：三包仍 private，或没有待发布的 changeset）",
+                    "changeset publish-plan 为空：这次发布不会有任何包进 registry（典型原因：发布清单内的包仍 private，或没有待发布的 changeset）",
                     `plan=${JSON.stringify(planJson ?? null).slice(0, 300)}\n这正是「静默空转」场景，release 链路必须在这里停住`,
                 );
             else
@@ -293,6 +324,8 @@ const ok = report(
             mode,
             tag,
             version: packages[0]?.version ?? null,
+            publishSet: PUBLISH_DIRS,
+            privatePackages: packages.filter((p) => p.private).map((p) => p.name),
             pack: packResults.map((p) => ({
                 name: p.name,
                 version: p.version,

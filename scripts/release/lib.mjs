@@ -19,6 +19,18 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
 // 三包 lockstep 的唯一事实源：config 里 fixed 组必须与这份清单一致（preflight 会交叉验证）。
 export const PACKAGE_DIRS = ["packages/tokens", "packages/ui", "packages/og-image"];
 
+// 发布清单（**发布范围的唯一事实源**）。语义与 PACKAGE_DIRS 不同，不要合并：
+//   - PACKAGE_DIRS 是「三包 lockstep / 构建 / pack 检查」的口径 —— 三个包都算；
+//   - PUBLISH_DIRS 是「本次/本阶段真的要进 registry 的包」—— 只有在这里的包才必须 private:false。
+// 背景：M4-8 决策 D-0120 —— M4 首发只发 tokens + og-image，packages/ui 保持 private:true
+//（继续参与 fixed 组的版本推进，但永不 publish；changesets 自己会把 private 包过滤出 publish-plan）。
+// 要新增/移除发布包时只改这一处：preflight P1 与 verify-guards 的用例都从这里取范围。
+export const PUBLISH_DIRS = ["packages/tokens", "packages/og-image"];
+
+export function isPublishTarget(dir) {
+    return PUBLISH_DIRS.includes(dir);
+}
+
 // release workflow 真正执行发布的那条命令。scripts/release/verify-workflow.mjs 会断言
 // release.yml 里出现这同一个字面量——保证「本地 dry-run 验过的命令」和「CI 里跑的命令」是同一条。
 export const PUBLISH_COMMAND = "changeset publish --from-pack-dir";

@@ -45,6 +45,8 @@ try {
     }
 
     // ---- 1. 造临时 monorepo（只拷 metadata + 包内容，不拷 node_modules）----
+    // 已知缺口（M4-6 引入，未在本卡修复）：包的 `prepack` 现在会真的执行 build，副本里没有 tsc/astro
+    // → `changeset pack` 报 ELIFECYCLE，L6 会红。本卡的改动范围是发布闸门（P1），不在这里动它。
     cpSync(path.join(REPO_ROOT, "pnpm-workspace.yaml"), path.join(tmp, "pnpm-workspace.yaml"));
     mkdirSync(path.join(tmp, ".changeset"), { recursive: true });
     cpSync(

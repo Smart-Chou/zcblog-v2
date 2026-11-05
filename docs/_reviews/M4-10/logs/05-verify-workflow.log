@@ -1,0 +1,37 @@
+
+== release workflow 契约 ==
+[PASS] W1         release.yml YAML 可解析
+[PASS] W2         触发面只有 push + workflow_dispatch（push, workflow_dispatch）
+[PASS] W3         push 只按 tag 触发（tags: v*），无 branches 过滤
+           普通 push（分支）不会触发本 workflow
+[PASS] W4a        dispatch 的 dry_run 默认 true（默认不真发）
+[PASS] W4b        dispatch 暴露 confirm_publish 与 provenance 输入
+[PASS] W5:preflight job 存在（preflight (versions · build · gates · pack)）
+[PASS] W5:dry-run job 存在（dry-run publish (no registry write)）
+[PASS] W5:publish job 存在（publish (@marxchou/dogeared-*)）
+[PASS] W6a        publish 依赖 preflight
+[PASS] W6b        publish 只在 dry_run=false 时运行
+           needs.preflight.outputs.dry_run == 'false'
+[PASS] W6c        dispatch 真发布需要 dry_run=false && confirm_publish=PUBLISH（条件行里同时校验）
+           if [ "$EVENT_NAME" = "push" ]; then
+           elif [ "$INPUT_DRY_RUN" = "false" ] && [ "$INPUT_CONFIRM" = "PUBLISH" ]; then
+           if [ "$MODE" = "real" ]; then echo "dry_run=false" >> "$GITHUB_OUTPUT"; else echo "dry_run=true" >> "$GITHUB_OUTPUT"; fi
+[PASS] W6d        publish 走 npm-publish environment（可配 required reviewers）
+[PASS] W6e        publish 有 id-token: write（provenance 需要 OIDC）
+[PASS] W6f        workflow 默认权限只读（最小权限）
+[PASS] W7a        publish 里有 2 处 changeset publish --from-pack-dir（provenance + 降级路径），与 lib.mjs 的 PUBLISH_COMMAND 同一字面量
+           Publish with provenance: pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
+           Publish without provenance (fallback): echo "::warning::本次发布没有 provenance attestation（见上一步的失败原因）"
+           pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
+[PASS] W7b        dry-run job 跑 scripts/release/publish-dry-run.mjs（npm publish --dry-run）
+[PASS] W7c        dry-run job 里没有任何真 publish 命令（不会误发）
+[PASS] W7d        dry-run job 只在 dry_run=true 时运行
+[PASS] W8a        continue-on-error 只出现在 provenance 步骤上
+[PASS] W8b        provenance 失败会 ::warning:: + 写 step summary（显式记录）
+[PASS] W8c        provenance 失败后有显式降级重发步骤（不是静默跳过）
+[PASS] W9a        publish 前有凭据闸门（缺 NPM_TOKEN 直接失败）
+[PASS] W9b        workflow 内无硬编码 token
+[PASS] W10        preflight 顺序覆盖：pnpm install --frozen-lockfile → gates:all → build-packages.mjs → verify-versions.mjs → preflight.mjs → verify-workflow.mjs → changeset pack
+
+RELEASE_SUMMARY {"title":"release workflow 契约","ok":true,"counts":{"PASS":24,"FAIL":0,"WARN":0,"INFO":0,"SKIP":0},"triggers":["push","workflow_dispatch"],"pushTags":["v*"],"publishCommand":"changeset publish --from-pack-dir","publishIf":"needs.preflight.outputs.dry_run == 'false'","environment":"npm-publish"}
+05 exit=0

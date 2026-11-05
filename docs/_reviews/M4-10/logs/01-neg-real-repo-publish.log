@@ -1,0 +1,80 @@
+
+== 发布前检查（publish 模式） ==
+[PASS] V1         三包 lockstep 同版本 2.1.0
+[PASS] V2:@marxchou/dogeared-tokens 2.1.0 是合法 semver
+[PASS] V3:packages/tokens 名称 @marxchou/dogeared-tokens 在预期 scope
+[PASS] V2:@marxchou/dogeared-ui 2.1.0 是合法 semver
+[PASS] V3:packages/ui 名称 @marxchou/dogeared-ui 在预期 scope
+[PASS] V2:@marxchou/dogeared-og-image 2.1.0 是合法 semver
+[PASS] V3:packages/og-image 名称 @marxchou/dogeared-og-image 在预期 scope
+[PASS] V4         .changeset/config.json fixed 组覆盖三包
+           @marxchou/dogeared-tokens, @marxchou/dogeared-ui, @marxchou/dogeared-og-image
+[PASS] V5         根 package.json（站点）版本同为 2.1.0
+[PASS] V6         tag v2.1.0 与三包版本一致
+[FAIL] P1         @marxchou/dogeared-tokens 仍是 private:true，禁止发布
+           翻转 private 是发布卡的事；private 下 changeset publish 会静默空转
+[INFO] P1         @marxchou/dogeared-ui 不在发布清单内，按 D-0120 本阶段不发布，允许 private
+           发布清单：packages/tokens, packages/og-image
+           该包继续参与 fixed 组版本推进，但 changesets 会把它过滤出 publish-plan
+[FAIL] P1         @marxchou/dogeared-og-image 仍是 private:true，禁止发布
+           翻转 private 是发布卡的事；private 下 changeset publish 会静默空转
+[PASS] P2:@marxchou/dogeared-tokens LICENSE 存在（1065 B）
+[PASS] P2:@marxchou/dogeared-tokens NOTICE 存在（1788 B）
+[PASS] P2:@marxchou/dogeared-ui LICENSE 存在（1065 B）
+[PASS] P2:@marxchou/dogeared-ui NOTICE 存在（1788 B）
+[PASS] P2:@marxchou/dogeared-og-image LICENSE 存在（1065 B）
+[PASS] P2:@marxchou/dogeared-og-image NOTICE 存在（1788 B）
+[PASS] P3:@marxchou/dogeared-tokens pack 清单完整（8 文件 / 20788 B packed / 69320 B 解包）
+           LICENSE
+           NOTICE
+           README.md
+           package.json
+           scripts/build-tokens.mjs
+           tokens.css
+           tokens.json
+           variables.css
+[PASS] P3b:@marxchou/dogeared-tokens pack 清单无 node_modules/.env/测试/本机路径
+[PASS] P3c:@marxchou/dogeared-tokens packed 文本无本机绝对路径
+[PASS] P3:@marxchou/dogeared-ui pack 清单完整（11 文件 / 5463 B packed / 15243 B 解包）
+           LICENSE
+           NOTICE
+           README.md
+           dist/Badge.astro
+           dist/Button.astro
+           dist/index.d.ts
+           dist/index.js
+           package.json
+           src/Badge.astro
+           src/Button.astro
+           src/index.ts
+[PASS] P3b:@marxchou/dogeared-ui pack 清单无 node_modules/.env/测试/本机路径
+[PASS] P3c:@marxchou/dogeared-ui packed 文本无本机绝对路径
+[PASS] P3:@marxchou/dogeared-og-image pack 清单完整（13 文件 / 11994 B packed / 48829 B 解包）
+           LICENSE
+           NOTICE
+           README.md
+           dist/index.d.ts
+           dist/index.js
+           dist/route.d.ts
+           dist/route.js
+           dist/types.d.ts
+           dist/types.js
+           package.json
+           src/index.ts
+           src/route.ts
+           src/types.ts
+[PASS] P3b:@marxchou/dogeared-og-image pack 清单无 node_modules/.env/测试/本机路径
+[PASS] P3c:@marxchou/dogeared-og-image packed 文本无本机绝对路径
+[PASS] P4b:@marxchou/dogeared-tokens 入口 ./tokens.css 可被裸 Node 解析（有 build 脚本）
+[PASS] P4c:@marxchou/dogeared-tokens engines.node=">=22" 覆盖当前 Node 22
+[INFO] P4d:@marxchou/dogeared-tokens 随包 bin：dogeared-tokens-build（消费者机器上依赖仓内文件时可能直接 exit 1，M4-2 F2）
+[PASS] P4b:@marxchou/dogeared-ui 入口 ./dist/index.js 可被裸 Node 解析（有 build 脚本）
+[PASS] P4c:@marxchou/dogeared-ui engines.node=">=22" 覆盖当前 Node 22
+[PASS] P4b:@marxchou/dogeared-og-image 入口 ./dist/index.js 可被裸 Node 解析（有 build 脚本）
+[PASS] P4c:@marxchou/dogeared-og-image engines.node=">=22" 覆盖当前 Node 22
+[FAIL] P5         changeset publish-plan 为空：这次发布不会有任何包进 registry（典型原因：发布清单内的包仍 private，或没有待发布的 changeset）
+           plan={"version":1,"plan":[]}
+           这正是「静默空转」场景，release 链路必须在这里停住
+
+RELEASE_SUMMARY {"title":"发布前检查（publish 模式）","ok":false,"counts":{"PASS":31,"FAIL":3,"WARN":0,"INFO":2,"SKIP":0},"mode":"publish","tag":"v2.1.0","version":"2.1.0","publishSet":["packages/tokens","packages/og-image"],"privatePackages":["@marxchou/dogeared-tokens","@marxchou/dogeared-ui","@marxchou/dogeared-og-image"],"pack":[{"name":"@marxchou/dogeared-tokens","version":"2.1.0","filename":"marxchou-dogeared-tokens-2.1.0.tgz","size":20788,"fileCount":8},{"name":"@marxchou/dogeared-ui","version":"2.1.0","filename":"marxchou-dogeared-ui-2.1.0.tgz","size":5463,"fileCount":11},{"name":"@marxchou/dogeared-og-image","version":"2.1.0","filename":"marxchou-dogeared-og-image-2.1.0.tgz","size":11994,"fileCount":13}],"publishPlan":{"version":1,"plan":[]}}
+01 exit=1
