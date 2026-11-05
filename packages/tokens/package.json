@@ -1,14 +1,27 @@
 {
     "name": "@marxchou/dogeared-tokens",
     "version": "2.1.0",
-    "description": "设计 token 真源与编译器：tokens.json（真源）→ tokens.css（生成物，逐字节校验）；variables.css 提供原语与调色板。零运行时依赖。",
+    "description": "Design tokens for the Dogeared theme: tokens.json is the single source, tokens.css its byte-verified build output, variables.css the primitive/palette layer. Zero runtime dependencies.",
     "type": "module",
     "private": true,
+    "license": "MIT",
+    "homepage": "https://github.com/Smart-Chou/zcblog-v2/tree/main/packages/tokens#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Smart-Chou/zcblog-v2.git",
+        "directory": "packages/tokens"
+    },
+    "bugs": {
+        "url": "https://github.com/Smart-Chou/zcblog-v2/issues"
+    },
     "files": [
         "tokens.json",
         "tokens.css",
         "variables.css",
-        "scripts/build-tokens.mjs"
+        "scripts/build-tokens.mjs",
+        "README.md",
+        "LICENSE",
+        "NOTICE"
     ],
     "exports": {
         "./tokens.json": "./tokens.json",
@@ -18,6 +31,12 @@
         "./package.json": "./package.json"
     },
     "bin": {
-        "zcblog-tokens-build": "./scripts/build-tokens.mjs"
+        "dogeared-tokens-build": "./scripts/build-tokens.mjs"
+    },
+    "sideEffects": [
+        "**/*.css"
+    ],
+    "engines": {
+        "node": "^22.0.0 || ^24.0.0"
     }
 }

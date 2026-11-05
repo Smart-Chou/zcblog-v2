@@ -1,18 +1,43 @@
 {
     "name": "@marxchou/dogeared-ui",
     "version": "2.1.0",
-    "description": "零依赖 UI 原语（Astro 组件）。M3 只装 Badge（M3-3a）与 Button（M3-3b）；其余原语见 21-m3-plan.md §3.2。",
+    "description": "Zero-dependency UI primitives (Astro components) for the Dogeared theme: Badge and Button.",
     "type": "module",
     "private": true,
+    "license": "MIT",
+    "homepage": "https://github.com/Smart-Chou/zcblog-v2/tree/main/packages/ui#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Smart-Chou/zcblog-v2.git",
+        "directory": "packages/ui"
+    },
+    "bugs": {
+        "url": "https://github.com/Smart-Chou/zcblog-v2/issues"
+    },
     "files": [
-        "src"
+        "src",
+        "README.md",
+        "LICENSE",
+        "NOTICE"
     ],
+    "main": "./src/index.ts",
+    "module": "./src/index.ts",
+    "types": "./src/index.ts",
     "exports": {
-        ".": "./src/index.ts",
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts",
+            "default": "./src/index.ts"
+        },
         "./Badge.astro": "./src/Badge.astro",
+        "./Button.astro": "./src/Button.astro",
         "./package.json": "./package.json"
     },
+    "sideEffects": false,
     "peerDependencies": {
         "astro": "^7.3.6"
+    },
+    "engines": {
+        "node": "^22.0.0 || ^24.0.0"
     }
 }
