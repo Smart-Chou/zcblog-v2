@@ -63,7 +63,9 @@ else
 fi
 
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
-OUT_ROOT="${MATRIX_OUT_DIR:-${TMPDIR:-/tmp}/zcblog-deploy-matrix}"
+# TMPDIR 常以 / 结尾，先削掉再拼，免得输出里出现 // 
+OUT_ROOT="${MATRIX_OUT_DIR:-${TMPDIR:-/tmp}}"
+OUT_ROOT="${OUT_ROOT%/}/zcblog-deploy-matrix"
 
 site_url_for() {
     case "$1" in
