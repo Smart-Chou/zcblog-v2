@@ -128,7 +128,9 @@ node scripts/gates/verify-deploy-artifacts.mjs dist --target gh-pages|cloudflare
 每个 job 只跑自己那一个目标（`--target`），所以成功时打印 `1/1 target PASS`；三个 job
 全绿即「三目标矩阵成立」。`fail-fast: false`，一个平台红不影响另外两个的结论。
 
-成本：单次构建实测 ~74s，三个 job 并行 ≈ 4 分钟；`paths` 只放会改变产物的输入
+成本（本机 2026-11-05 实测，`/usr/bin/time -p`）：冷缓存单次 6m06s，热缓存 1m16s–4m02s；
+一次全矩阵 `real 445s`（255s / 102s / 88s），留档复检另计 ~3s/目标。三个 CI job 并行，
+墙钟大致等于最慢的那一个 job。`paths` 只放会改变产物的输入
 （`src/**`、`packages/**`、`apps/**`、`public/**`、`astro.config.mjs`、`vercel.json`、
 依赖清单、本卡两个脚本），纯文档改动不触发（R-49）。
 
