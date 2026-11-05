@@ -8,9 +8,9 @@
 
 ```
 pnpm-workspace.yaml   packages: ["packages/*"]        ← M3-1 新增，此前无 packages: 字段（单包仓库）
-packages/tokens/      @marxchou/zcblog-tokens@2.0.0   private · 空壳（M3-2 迁入 tokens.json / variables.css / tokens.css / build-tokens.mjs）
-packages/ui/          @marxchou/zcblog-ui@2.0.0       private · 空壳（M3-3a Badge、M3-3b Button）
-packages/og-image/    @marxchou/zcblog-og-image@2.0.0 private · 空壳（M3-4 route factory）
+packages/tokens/      @marxchou/dogeared-tokens@2.0.0   private · 空壳（M3-2 迁入 tokens.json / variables.css / tokens.css / build-tokens.mjs）
+packages/ui/          @marxchou/dogeared-ui@2.0.0       private · 空壳（M3-3a Badge、M3-3b Button）
+packages/og-image/    @marxchou/dogeared-og-image@2.0.0 private · 空壳（M3-4 route factory）
 ```
 
 `pnpm ls -r --depth -1` 输出 4 个 workspace 项目（根 + 三包），证明 `packages:` 真被 pnpm 识别，而不是只写在文件里。
@@ -23,7 +23,7 @@ packages/og-image/    @marxchou/zcblog-og-image@2.0.0 private · 空壳（M3-4 r
 |---|---|---|---|
 | **W0** | `pnpm-workspace.yaml` 有块状 `packages:`；三个包都在成员里；每个 `package.json` 的 `name` 是约定值、`version` 与主题 lockstep、`private: true`、无 `publishConfig` | FAIL | 补/改 manifest；版本与根 `package.json` 一起 bump。新增第四个包必须先走 decision-log（W0 会把它判红） |
 | **B1** | 包内不得出现 `~/` 别名 import；相对 import（`./`、`../`）不得解析到包目录之外 | FAIL | 需要站点数据时改由主题侧注入（props / options），或把纯函数搬进包里 |
-| **B2** | 包内不得出现 `marxchou` / `mcc.im` / `zcily` / `73b29141`（不区分大小写） | FAIL | 站点身份留在 `src/config/*`（overlay 侧）；包里只允许占位值。**唯一豁免**：`package.json` 里包自身的身份串（`name` 值 + 三个包名 `@marxchou/zcblog-*`）——那是 npm scope / workspace 依赖键，即包的身份，不是站点身份。`package.json` 之外的文本、以及 `description`/`author`/`repository` 里的个人串仍判红 |
+| **B2** | 包内不得出现 `marxchou` / `mcc.im` / `zcily` / `73b29141`（不区分大小写） | FAIL | 站点身份留在 `src/config/*`（overlay 侧）；包里只允许占位值。**唯一豁免**：`package.json` 里包自身的身份串（`name` 值 + 三个包名 `@marxchou/dogeared-*`）——那是 npm scope / workspace 依赖键，即包的身份，不是站点身份。`package.json` 之外的文本、以及 `description`/`author`/`repository` 里的个人串仍判红 |
 | **B3** | 每个包的 `dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` ⊆ 白名单；站内互相引用必须是 `workspace:*`；`og-image` 不得依赖 `tokens` / `ui` | FAIL | 白名单见 §3。要加依赖先改 §2 与脚本里的白名单，并在卡评论写理由（这是放宽边界，走 review） |
 | **B4** | 包内任一文件的 sha256 不得等于站点私有文件的 sha256；包内不得出现 `src/data/`、`src/config/`、`public/assets/note/`、`src/assets/qr/` 路径 | FAIL | 数据留在站点侧。样本源：`src/data/**`（整目录）、`src/config/*.ts`（整目录）、`src/assets/qr/*`（整目录）、`public/assets/note/*`（按路径排序取前 10 个） |
 

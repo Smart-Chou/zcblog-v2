@@ -42,7 +42,7 @@ import {
     tokensRel,
 } from "../../packages/tokens/scripts/build-tokens.mjs";
 
-/** token 真源与编译器都在 `@marxchou/zcblog-tokens` 包内（M3-2 起）；门禁留在仓库。 */
+/** token 真源与编译器都在 `@marxchou/dogeared-tokens` 包内（M3-2 起）；门禁留在仓库。 */
 const builderRel = "packages/tokens/scripts/build-tokens.mjs";
 const vendorManifestRel = "docs/DESIGN.vendor.json";
 

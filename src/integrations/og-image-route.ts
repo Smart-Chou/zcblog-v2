@@ -17,7 +17,7 @@ import type { OgImageOptions, OgImageTheme } from "../../packages/og-image/src/t
 import { author, site } from "~/config";
 import { getAllArticles } from "~/utils/article-stats";
 
-/** OG 图版式调色板。包不得依赖 `@marxchou/zcblog-tokens`（§3.4），颜色只能以值注入。 */
+/** OG 图版式调色板。包不得依赖 `@marxchou/dogeared-tokens`（§3.4），颜色只能以值注入。 */
 export const OG_IMAGE_THEME: OgImageTheme = {
     background: "#0d1117",
     foreground: "#f0f0f0",

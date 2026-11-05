@@ -40,9 +40,9 @@ const rel = (p) => path.relative(repoRoot, p) || ".";
 
 /** 三个包：目录名 → 期望的 package.json name。M3 §3.1–§3.3 冻结。 */
 const REQUIRED = new Map([
-    ["tokens", "@marxchou/zcblog-tokens"],
-    ["ui", "@marxchou/zcblog-ui"],
-    ["og-image", "@marxchou/zcblog-og-image"],
+    ["tokens", "@marxchou/dogeared-tokens"],
+    ["ui", "@marxchou/dogeared-ui"],
+    ["og-image", "@marxchou/dogeared-og-image"],
 ]);
 
 /**
@@ -305,7 +305,7 @@ for (const pkg of REQUIRED.keys()) {
         }
     }
     if (pkg === "og-image") {
-        for (const banned of ["@marxchou/zcblog-tokens", "@marxchou/zcblog-ui"]) {
+        for (const banned of ["@marxchou/dogeared-tokens", "@marxchou/dogeared-ui"]) {
             for (const field of DEP_FIELDS) {
                 const declared = manifest.value[field] ?? {};
                 if (declared[banned])

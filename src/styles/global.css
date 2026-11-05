@@ -3,7 +3,7 @@
 
 /* All @import rules must precede other statements */
 @import url(./reset.css) layer(reset);
-/* token 真源在 @marxchou/zcblog-tokens 包内（packages/tokens/variables.css） */
+/* token 真源在 @marxchou/dogeared-tokens 包内（packages/tokens/variables.css） */
 @import url(../../packages/tokens/variables.css) layer(variables);
 @import url(./tokens.css) layer(variables);
 @import url(./base.css) layer(base);

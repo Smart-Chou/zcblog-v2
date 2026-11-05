@@ -1,5 +1,5 @@
 {
-    "name": "@marxchou/zcblog-ui",
+    "name": "@marxchou/dogeared-ui",
     "version": "2.1.0",
     "description": "零依赖 UI 原语（Astro 组件）。M3 只装 Badge（M3-3a）与 Button（M3-3b）；其余原语见 21-m3-plan.md §3.2。",
     "type": "module",

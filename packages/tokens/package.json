@@ -1,5 +1,5 @@
 {
-    "name": "@marxchou/zcblog-tokens",
+    "name": "@marxchou/dogeared-tokens",
     "version": "2.1.0",
     "description": "设计 token 真源与编译器：tokens.json（真源）→ tokens.css（生成物，逐字节校验）；variables.css 提供原语与调色板。零运行时依赖。",
     "type": "module",

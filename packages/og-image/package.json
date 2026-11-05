@@ -1,5 +1,5 @@
 {
-    "name": "@marxchou/zcblog-og-image",
+    "name": "@marxchou/dogeared-og-image",
     "version": "2.1.0",
     "description": "OG 图 route factory：createOgImageRoute(options) 出 1200×630 PNG；不读站点配置，文章列表/站点身份/调色板/字体全部由主题侧注入（21-m3-plan.md §3.3）。",
     "type": "module",
