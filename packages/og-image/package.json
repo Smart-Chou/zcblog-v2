@@ -1,0 +1,10 @@
+{
+    "name": "@marxchou/zcblog-og-image",
+    "version": "2.0.0",
+    "description": "OG 图 route factory（不读站点配置，主题色与文章列表由 options 注入）。M3-1 空壳，由 M3-4 迁入。",
+    "type": "module",
+    "private": true,
+    "peerDependencies": {
+        "astro": "^7.3.6"
+    }
+}

@@ -88,6 +88,11 @@ jobs:
             - name: Surface token ratchet (P5)
               run: node scripts/gates/verify-surface-tokens.mjs
 
+            # M3-1：包边界（W0 + B1–B4）。判据与三条修复路径见 docs/package-boundary.md。
+            # 纯 node + 仓库内文件；packages/ 空壳今天必须 packages=3 violations=0。
+            - name: Package boundary gates (M3-1 · B1–B4)
+              run: node scripts/gates/verify-package-boundary.mjs
+
             # M2-7a：C 层实体契约（E1–E8）。依赖 src/types/entities.ts 的 ESM 转译，不读 dist；
             # dropped > 0 即 FAIL（运行时宽容、CI 严格，同一份校验器）。
             # --json 把 SUMMARY {...} 打在最后一行，grep 出来归档到 step summary。

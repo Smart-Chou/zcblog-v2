@@ -1,0 +1,7 @@
+{
+    "name": "@marxchou/zcblog-tokens",
+    "version": "2.0.0",
+    "description": "设计 token 源（tokens.json / variables.css / tokens.css 与编译器）。M3-1 空壳，内容由 M3-2 迁入。",
+    "type": "module",
+    "private": true
+}
