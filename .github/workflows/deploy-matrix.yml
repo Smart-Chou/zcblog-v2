@@ -1,0 +1,122 @@
+name: Deploy matrix
+
+# M3-7：同一份源码在三个目标上构建 + 断言产物（**不部署**）。
+# 与 .github/workflows/deploy.yml 的关系：deploy.yml 是「真的发到 GH Pages」的手动流水线，
+# 本 workflow 只回答「三个平台的产物契约是否同时成立」，因此不产出 artifact、不碰环境。
+#
+# 成本与过滤（R-49）：单次构建实测 ~74s，三个 job 并行 ≈ 4 分钟。
+# `paths` 只放会改变产物的输入，纯文档/门禁改动不触发。
+on:
+    pull_request:
+        paths:
+            - "src/**"
+            - "packages/**"
+            - "apps/**"
+            - "public/**"
+            - "astro.config.mjs"
+            - "vercel.json"
+            - "package.json"
+            - "pnpm-lock.yaml"
+            - "scripts/deploy-matrix.sh"
+            - "scripts/gates/verify-deploy-artifacts.mjs"
+            - ".github/workflows/deploy-matrix.yml"
+    push:
+        branches: [main]
+        paths:
+            - "src/**"
+            - "packages/**"
+            - "apps/**"
+            - "public/**"
+            - "astro.config.mjs"
+            - "vercel.json"
+            - "package.json"
+            - "pnpm-lock.yaml"
+            - "scripts/deploy-matrix.sh"
+            - "scripts/gates/verify-deploy-artifacts.mjs"
+            - ".github/workflows/deploy-matrix.yml"
+    workflow_dispatch:
+
+concurrency:
+    group: deploy-matrix-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+env:
+    # 三个目标的规范域名（GH Pages / CF Pages / Vercel），可在仓库 Variables 覆盖。
+    # 未配置时用占位域：断言只关心「注入是否生效」，不关心域名真假。
+    GH_PAGES_HOST: ${{ vars.MATRIX_GH_PAGES_HOST || 'example.github.io' }}
+    CF_PAGES_HOST: ${{ vars.MATRIX_CF_PAGES_HOST || 'example.pages.dev' }}
+    VERCEL_HOST: ${{ vars.MATRIX_VERCEL_HOST || 'example.vercel.app' }}
+
+jobs:
+    target:
+        name: ${{ matrix.target }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        strategy:
+            fail-fast: false
+            matrix:
+                target: [gh-pages, cloudflare, vercel]
+
+        steps:
+            - name: Checkout zcblog
+              uses: actions/checkout@v5
+
+            # 私有内容仓：三个目标共用同一步（M3-7 §5.2 的「适配层」单点）。
+            # fork PR 拿不到 ARTICLES_PAT，会在这里失败——这是已知限制，见 docs/deploy-matrix.md。
+            - name: Checkout articles (private)
+              uses: actions/checkout@v5
+              with:
+                  repository: Smart-Chou/zcblog-articles
+                  path: _articles
+                  token: ${{ secrets.ARTICLES_PAT }}
+
+            - name: Copy articles and images
+              run: |
+                  mkdir -p src/content/article src/assets
+                  cp _articles/*.md src/content/article/ 2>/dev/null || true
+                  cp _articles/*.mdx src/content/article/ 2>/dev/null || true
+                  cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  echo "📄 $(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l) 篇文章"
+
+            - name: Normalize frontmatter (v1 布尔键 → v2 features)
+              run: node scripts/normalize-frontmatter.mjs src/content/article
+
+            # sharp（og-image / 图片管线）在 ubuntu-latest 上要系统 libvips；与 deploy.yml 一致
+            - name: Install system dependencies
+              run: sudo apt-get update && sudo apt-get install -y libvips-dev
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # 构建 + 断言一次完成：scripts/deploy-matrix.sh 注入 SITE_URL 后跑
+            # `pnpm build:ci`，再跑 scripts/gates/verify-deploy-artifacts.mjs。
+            # 单目标模式只跑本 job 的 target，成功时打印 `1/1 target PASS`。
+            - name: Build & verify ${{ matrix.target }}
+              env:
+                  CI: true
+                  ARTICLE_REPO_PATH: _articles
+                  BLINKO_API_URL: https://memos.marxchou.com
+                  BLINKO_API_TOKEN: ${{ secrets.BLINKO_API_TOKEN }}
+                  UMAMI_API_URL: https://umami.marxchou.com
+                  UMAMI_WEBSITE_ID: 73b29141-fccf-4d54-9c2f-f7d0d146f86b
+                  UMAMI_USERNAME: ${{ secrets.UMAMI_USERNAME }}
+                  UMAMI_PASSWORD: ${{ secrets.UMAMI_PASSWORD }}
+                  UMAMI_SHARE_SLUG: EIlCDPZqKiANCpuO
+                  BANGUMI_USER_ID: "1246668"
+                  DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
+                  ENCRYPTION_PASSWORD: ${{ secrets.ENCRYPTION_PASSWORD }}
+                  FOREVERBLOG_RSS_URL: ${{ secrets.FOREVERBLOG_RSS_URL }}
+                  BUILD_CONCURRENCY: "1"
+              run: bash scripts/deploy-matrix.sh --target "${{ matrix.target }}"

@@ -1,8 +1,9 @@
 import { defineConfig } from "astro/config";
 import os from "node:os";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { unified } from "@astrojs/markdown-remark";
 import sitemap from "@astrojs/sitemap";
 import icon from "astro-icon";
@@ -43,6 +44,13 @@ import astroVtBot from "astro-vtbot";
 import { VitePWA } from "vite-plugin-pwa";
 import swup from "@swup/astro";
 import { collapseDist } from "./scripts/postbuild/collapse-html-whitespace.mjs";
+
+// ── 部署目标注入（M3-7）───────────────────────────────────────────────────────
+// 同一份源码要在 GH Pages / Cloudflare Pages / Vercel 三个目标上构建，构建期的差异
+// 只有规范域名：canonical / og:url / sitemap / RSS 全部从 `site` 派生。
+// 所以这里允许 `SITE_URL` 覆盖 `src/config/site.ts` 的 url——scripts/deploy-matrix.sh
+// 三目标各注入一次，产物因此可区分、可断言。不设置时行为与之前一致，生产构建不受影响。
+const SITE_URL = process.env.SITE_URL || siteCfg.url;
 
 // ── PWA ──────────────────────────────────────────────────────────────────────
 // Astro 7（Vite 7 环境模型）下，vite-plugin-pwa 自身的 closeBundle 不会在 client
@@ -184,6 +192,48 @@ const sitemapPreviewStylesheet = {
     },
 };
 
+// ── /tag/:tag → /tags/:tag/ 的静态桩（M3-7）──────────────────────────────────
+// 三个目标对 301 的能力不同：Cloudflare Pages 用 public/_redirects、Vercel 用
+// vercel.json 的 redirects，GitHub Pages **没有任何服务端跳转**（只能 meta-refresh）。
+// 标签是内容驱动的动态集合，`astro.config.redirects` 写不成静态表，所以在 build:done
+// 之后按已产出的 dist/tags/<tag>/ 反推、给每个标签补一份桩页面。
+// 语义差异（桩的 SEO 权重弱于 301）见 docs/deploy-matrix.md；三目标产物都带桩，
+// 因为它们是源码层适配层而不是平台配置。
+// 放在 htmlCollapse 之前：桩与其它 HTML 走同一套折叠，产物更小且无额外分叉。
+const tagRedirectStubs = {
+    name: "tag-redirect-stubs",
+    hooks: {
+        "astro:build:done": async ({ dir, logger }) => {
+            const root = fileURLToPath(dir);
+            const tagsDir = join(root, "tags");
+            if (!existsSync(tagsDir)) {
+                logger.warn("tag-redirect-stubs：dist/tags 不存在，跳过");
+                return;
+            }
+            const tags = readdirSync(tagsDir, { withFileTypes: true })
+                .filter((e) => e.isDirectory() && existsSync(join(tagsDir, e.name, "index.html")))
+                .map((e) => e.name);
+            for (const tag of tags) {
+                const target = `/tags/${tag}/`;
+                const file = join(root, "tag", tag, "index.html");
+                await mkdir(dirname(file), { recursive: true });
+                await writeFile(
+                    file,
+                    `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">` +
+                        `<title>Redirecting to: ${target}</title>` +
+                        `<meta http-equiv="refresh" content="0;url=${target}">` +
+                        `<meta name="robots" content="noindex">` +
+                        `<link rel="canonical" href="${SITE_URL}${target}">` +
+                        `</head><body><a href="${target}">Redirecting to <code>${target}</code></a>` +
+                        `</body></html>\n`,
+                    "utf-8",
+                );
+            }
+            logger.info(`tag-redirect-stubs：${tags.length} 个 /tag/*/ 桩`);
+        },
+    },
+};
+
 // ── HTML 冗余折叠（M2-11a）────────────────────────────────────────────────────
 // perf-budget 的 list 桶按**原始字节**算 105KB，archives 页随文章数线性增长已经贴线。
 // 实测 Astro 默认 compressHTML 已把「标签之间缩进」全去掉（产物里 0 处），
@@ -204,7 +254,7 @@ const htmlCollapse = {
 
 // https://astro.build/config
 export default defineConfig({
-    site: siteCfg.url,
+    site: SITE_URL,
     // /blog 与 /en/blog 本身无页面（规范入口为 /blog/1/）：加跳转兜底，避免历史外链 404（2026-10 审计）
     redirects: {
         "/blog": "/blog/1/",
@@ -317,7 +367,7 @@ export default defineConfig({
                     return false;
                 }
                 // 排除跳转中转页
-                if (page === `${siteCfg.url}/redirect/` || page === `${siteCfg.url}/en/redirect/`) {
+                if (page === `${SITE_URL}/redirect/` || page === `${SITE_URL}/en/redirect/`) {
                     return false;
                 }
                 // 英文文章页（/en/article/）：仅当文章确实为 lang: en 时才会生成该路由，
@@ -379,6 +429,7 @@ export default defineConfig({
         }),
         pwaServiceWorker,
         sitemapPreviewStylesheet,
+        tagRedirectStubs,
         htmlCollapse,
     ],
     image: {
