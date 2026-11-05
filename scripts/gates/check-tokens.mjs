@@ -39,9 +39,10 @@ import {
     sha256,
     structureChecks,
     tokensRel,
-} from "../../src/styles/tokens/build-tokens.mjs";
+} from "../../packages/tokens/scripts/build-tokens.mjs";
 
-const builderRel = "src/styles/tokens/build-tokens.mjs";
+/** token 真源与编译器都在 `@marxchou/zcblog-tokens` 包内（M3-2 起）；门禁留在仓库。 */
+const builderRel = "packages/tokens/scripts/build-tokens.mjs";
 const vendorManifestRel = "docs/DESIGN.vendor.json";
 
 const results = [];
@@ -193,8 +194,8 @@ function walkFiles(dir, out) {
         const st = statSync(full);
         if (st.isDirectory()) {
             if (SKIPPED_DIRS.has(entry)) continue;
-            // `src/styles/tokens/` 是 palette 唯一合法住所（生成物 + 真源），整目录跳过
-            if (path.resolve(full) === path.resolve(repoRoot, "src/styles/tokens")) continue;
+            // `packages/tokens/` 是 palette 唯一合法住所（生成物 + 真源），整目录跳过
+            if (path.resolve(full) === path.resolve(repoRoot, "packages/tokens")) continue;
             walkFiles(full, out);
         } else if (SCANNED_EXT.has(path.extname(entry).toLowerCase())) {
             out.push(full);

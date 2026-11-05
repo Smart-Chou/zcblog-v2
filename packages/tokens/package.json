@@ -1,7 +1,23 @@
 {
     "name": "@marxchou/zcblog-tokens",
     "version": "2.0.0",
-    "description": "设计 token 源（tokens.json / variables.css / tokens.css 与编译器）。M3-1 空壳，内容由 M3-2 迁入。",
+    "description": "设计 token 真源与编译器：tokens.json（真源）→ tokens.css（生成物，逐字节校验）；variables.css 提供原语与调色板。零运行时依赖。",
     "type": "module",
-    "private": true
+    "private": true,
+    "files": [
+        "tokens.json",
+        "tokens.css",
+        "variables.css",
+        "scripts/build-tokens.mjs"
+    ],
+    "exports": {
+        "./tokens.json": "./tokens.json",
+        "./tokens.css": "./tokens.css",
+        "./variables.css": "./variables.css",
+        "./scripts/build-tokens.mjs": "./scripts/build-tokens.mjs",
+        "./package.json": "./package.json"
+    },
+    "bin": {
+        "zcblog-tokens-build": "./scripts/build-tokens.mjs"
+    }
 }

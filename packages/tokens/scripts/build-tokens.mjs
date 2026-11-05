@@ -2,10 +2,13 @@
 /**
  * build-tokens.mjs — tokens.json → tokens.css（零依赖 · Node ESM）
  *
+ * 位置：本文件属 tokens 包（packages/tokens/scripts/），
+ *       tokens.json / tokens.css 同在包根，包**零运行时依赖**。
+ *
  * 用法：
- *   node src/styles/tokens/build-tokens.mjs           # 生成 / 更新 tokens.css
- *   node src/styles/tokens/build-tokens.mjs --check    # 只校验磁盘上的 tokens.css 是否与 JSON 一致
- *   node src/styles/tokens/build-tokens.mjs --help
+ *   node packages/tokens/scripts/build-tokens.mjs           # 生成 / 更新 tokens.css
+ *   node packages/tokens/scripts/build-tokens.mjs --check    # 只校验磁盘上的 tokens.css 是否与 JSON 一致
+ *   node packages/tokens/scripts/build-tokens.mjs --help
  *
  * 退出码：0 = 成功 / 一致；1 = 不一致或数据不合法；2 = 用法错误
  *
@@ -16,11 +19,14 @@
  * ── designDoc 解析规则（tokens.json.designDoc = "docs/DESIGN.md"）──────────
  *   1. 只接受**仓库内相对路径**；绝对路径或含 `..` 逃逸 → 直接报错。
  *      （不允许把博客作者本机的 blog2.0 工作区路径写进仓库来源文件）
- *   2. 默认以仓库根解析，仓库根 = 本文件向上三级（src/styles/tokens → 根）。
+ *   2. 默认以仓库根解析，仓库根 = 包根向上两级（packages/tokens → 仓库根）。
+ *      包被装进 `node_modules` 时向上两级是 `node_modules`，此时继续向上找
+ *      `pnpm-workspace.yaml`（最多 4 层）作为仓库根；`TOKENS_REPO_ROOT` 可显式指定。
  *   3. 环境变量 `TOKENS_DESIGN_DOC` 可覆盖（相对仓库根，或绝对路径），
  *      供开发机临时指向 blog2.0 工作区的真源 DESIGN.md。
  *   4. 候选路径依次为：env → <repoRoot>/docs/DESIGN.md → <repoRoot>/DESIGN.md；
  *      全都不存在则报错并列出尝试过的路径。
+ *   `DESIGN.md` 不进包（179KB 设计文档属仓库 docs/），所以解析必须落到仓库根。
  *   仓库内 `docs/DESIGN.md` 是 blog2.0 真源文档的逐字节同步快照，
  *   来源与校验值记在 `docs/DESIGN.vendor.json`（门禁 G-S6 校验 md5）。
  */
@@ -40,13 +46,36 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-/** 仓库根（src/styles/tokens → 上三级） */
-export const repoRoot = path.resolve(HERE, "../../..");
-export const tokensPath = path.join(HERE, "tokens.json");
-export const cssPath = path.join(HERE, "tokens.css");
+/** 包根（packages/tokens/scripts → packages/tokens）：tokens.json / tokens.css 的住所 */
+export const packageRoot = path.resolve(HERE, "..");
+export const tokensPath = path.join(packageRoot, "tokens.json");
+export const cssPath = path.join(packageRoot, "tokens.css");
 /** 仓库相对路径，写进生成物头部（不用绝对路径，换机器 diff 不变） */
-export const tokensRel = "src/styles/tokens/tokens.json";
-export const cssRel = "src/styles/tokens/tokens.css";
+export const tokensRel = "packages/tokens/tokens.json";
+export const cssRel = "packages/tokens/tokens.css";
+
+/**
+ * 仓库根。默认 = 包根向上两级（packages/tokens → 仓库根，计划 §3.1 口径）。
+ * 包被安装进 node_modules 时（向上两级是 node_modules），继续向上找
+ * `pnpm-workspace.yaml` 作为仓库根；`TOKENS_REPO_ROOT` 可显式覆盖。
+ * 只用于解析 `docs/DESIGN.md`（不进包）与门禁 G-T4 的站点目录扫描。
+ */
+function resolveRepoRoot() {
+    const env = (process.env.TOKENS_REPO_ROOT ?? "").trim();
+    if (env) return path.resolve(env);
+    const direct = path.resolve(packageRoot, "../..");
+    if (existsSync(path.join(direct, "pnpm-workspace.yaml"))) return direct;
+    let dir = direct;
+    for (let i = 0; i < 4; i += 1) {
+        const parent = path.dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+        if (existsSync(path.join(dir, "pnpm-workspace.yaml"))) return dir;
+    }
+    return direct;
+}
+
+export const repoRoot = resolveRepoRoot();
 
 /** v1.0 只允许这一个 token 使用 responsive 覆盖（DESIGN.md §3.12.1 约束 5） */
 const RESPONSIVE_ALLOWED_TOKENS = new Set(["--layout-header-height"]);
@@ -283,7 +312,7 @@ export function renderCss(tokens, { sourceSha = "", sourceRel = tokensRel } = {}
     out.push(`   source : ${sourceRel}`);
     out.push(`   version: ${tokens.version ?? "n/a"}`);
     out.push(`   sha256 : ${sourceSha}`);
-    out.push("   build  : node src/styles/tokens/build-tokens.mjs");
+    out.push("   build  : node packages/tokens/scripts/build-tokens.mjs");
     out.push("   order  : :root{palette} → :root{primitive} → :root{semantic.light}");
     out.push('            → [data-theme="dark"]{semantic.dark} → @media{responsive}');
     out.push("   ========================================================================== */");
@@ -456,12 +485,13 @@ export function firstDiff(expected, actual) {
 
 const USAGE = `tokens.json → tokens.css
 
-  node src/styles/tokens/build-tokens.mjs            生成 / 更新 tokens.css
-  node src/styles/tokens/build-tokens.mjs --check     校验磁盘 tokens.css 是否与 JSON 逐字节一致
-  node src/styles/tokens/build-tokens.mjs --help
+  node packages/tokens/scripts/build-tokens.mjs            生成 / 更新 tokens.css
+  node packages/tokens/scripts/build-tokens.mjs --check     校验磁盘 tokens.css 是否与 JSON 逐字节一致
+  node packages/tokens/scripts/build-tokens.mjs --help
 
 环境变量：
-  TOKENS_DESIGN_DOC   覆盖 designDoc 解析（相对仓库根或绝对路径），默认 docs/DESIGN.md`;
+  TOKENS_DESIGN_DOC   覆盖 designDoc 解析（相对仓库根或绝对路径），默认 docs/DESIGN.md
+  TOKENS_REPO_ROOT    覆盖仓库根探测（包被安装进 node_modules 时用）`;
 
 export function build({ check = false, log = console.log } = {}) {
     const { tokens, raw } = loadTokens();
@@ -513,7 +543,7 @@ export function build({ check = false, log = console.log } = {}) {
     // --check：真写临时文件再逐字节比对（走一次磁盘，连编码问题一起验）
     if (!existsSync(cssPath)) {
         log(
-            `[FAIL] G-T1 生成物一致 — ${cssRel} 不存在；先运行 node src/styles/tokens/build-tokens.mjs`,
+            `[FAIL] G-T1 生成物一致 — ${cssRel} 不存在；先运行 node packages/tokens/scripts/build-tokens.mjs`,
         );
         return 1;
     }
@@ -536,7 +566,7 @@ export function build({ check = false, log = console.log } = {}) {
         );
         log(`         生成应为: ${d.expectedLine.trim() || "(空行)"}`);
         log(`         磁盘实际: ${d.actualLine.trim() || "(空行)"}`);
-        log(`       修法：node src/styles/tokens/build-tokens.mjs`);
+        log(`       修法：node packages/tokens/scripts/build-tokens.mjs`);
         return 1;
     } finally {
         rmSync(dir, { recursive: true, force: true });
