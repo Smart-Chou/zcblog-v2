@@ -19,13 +19,13 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 
 | 类 | 含义 | 升级行为 | 今天实测文件数（`git ls-files` 口径） |
 |---|---|---|---|
-| **T · theme** | 主题代码与主题工具链 | `theme-sync --apply` 覆盖 | 674 |
-| **O · overlay** | 站点身份 / 内容 / 数据 / 资产 / 部署适配 | 永不触碰（工具不写、门禁报红） | 289 |
+| **T · theme** | 主题代码与主题工具链 | `theme-sync --apply` 覆盖 | 677 |
+| **O · overlay** | 站点身份 / 内容 / 数据 / 资产 / 部署适配 | 永不触碰（工具不写、门禁报红） | 290 |
 | **X · exclude** | 构建产物、缓存、评审档案、Agent 上下文 | 不动、不入任一清单 | 49 |
 
-合计 **1012** = `git ls-files` 当前总数；`unclassified=0`、`ambiguous=0`。
+合计 **1016** = `git ls-files` 当前总数；`unclassified=0`、`ambiguous=0`。这三个数字不是手写的：`--report` 每次重新数，写进文档的是 M3-5 收口时的那一次。
 
-### 2.1 计划基线 998 → 实测 1012（delta +14）
+### 2.1 计划基线 998 → 实测 1016（delta +18）
 
 §4.1 的 998 是**计划冻结时**的实测值。此后四张卡各自新增了 T 文件，一件没删：
 
@@ -35,8 +35,9 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 | M3-2 | `packages/tokens/{package.json,tokens.json,tokens.css}`（`variables.css`/`build-tokens.mjs` 是 rename，不计新增） |
 | M3-3a/3b | `packages/ui/{package.json,src/index.ts,src/Badge.astro,src/Button.astro}` |
 | M3-4 | `packages/og-image/{package.json,src/index.ts,src/route.ts,src/types.ts}`、`scripts/gates/verify-og.mjs` |
+| M3-5 | `site.manifest.json`（O）、`scripts/theme-sync.mjs`、`scripts/gates/verify-overlay.mjs`、`docs/overlay-contract.md`（T） |
 
-`git diff --name-status --diff-filter=A c2d894a^ HEAD | wc -l` = **14**（`--diff-filter=D` = 0），所以 998 + 14 = 1012 完全对上。门禁把这两个数字一起打印（`plan_baseline=998 delta=+14`），delta 只会因为**新增 tracked 文件**变化——那一刻正是契约需要重新确认的时刻。M3-5 自己新增的 4 个文件（`site.manifest.json`、`scripts/theme-sync.mjs`、`scripts/gates/verify-overlay.mjs`、`docs/overlay-contract.md`）提交后 delta 变成 `+18`。
+在 M3-5 开工时的 HEAD（`e857860`）上量：`git diff --name-status --diff-filter=A c2d894a^ e857860 | wc -l` = **14**（`--diff-filter=D` = 0），998 + 14 = 1012 完全对上；再加 M3-5 的 4 个新文件 = **1016**。门禁把两个数字一起打印（`plan_baseline=998 delta=+18`），delta 只会因为**新增 tracked 文件**变化——那一刻正是契约需要重新确认的时刻。
 
 ## 3. 判据表（`scripts/gates/verify-overlay.mjs`）
 
