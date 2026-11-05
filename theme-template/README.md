@@ -37,6 +37,29 @@
 - 🧩 **数据页面**（全部可选）：随笔（Blinko）、豆瓣、Bangumi、相册、友链、服务页
 - 📐 **自带设计系统**：完整的设计规范文档（Design Tokens / 组件规则）→ [`docs/design-guide.md`](docs/design-guide.md)
 
+## 这个目录是什么（M3-5 起）
+
+**它是「站点 overlay 基线」，不是可独立构建的主题。** 这里只有 40 个文件：站点配置、占位数据、法务页、默认图片，**没有组件、没有路由、没有 `astro.config.mjs`**——所以在本目录直接 `pnpm install && pnpm build` 会失败，这是预期的（D-E ①：`theme-template` 降级为示例 overlay，装配由 M3-6 的 `create-site` 负责）。
+
+目录里的每个文件都能在站点清单里查到归属：
+
+| 这里的路径 | 站点里的类 | 升级时的行为 |
+|---|---|---|
+| `src/config/{site,feature,ui,services}.ts` | **O** overlay | 永不覆盖（你的站点身份） |
+| `src/content/pages/*.md` | **O** overlay | 永不覆盖（法务文案） |
+| `src/data/*.json`、`src/data/entities/**`、`src/data/adapters/**` | **O** overlay | 永不覆盖（你的友链/相册/说说数据） |
+| `src/assets/**`（`logo.svg`、`404.svg`、`qr/*`）、`public/{cover.png,favicon.*,logo.webp}` | **O** overlay | 永不覆盖（默认值的替换品） |
+| `src/data/i18n/*.json` | **T** theme | 随主题升级（词典是主题能力） |
+| `docs/design-guide.md` | **T** theme | 随主题升级 |
+
+判据与完整规则表：[`../docs/overlay-contract.md`](../docs/overlay-contract.md)。升级预览命令：
+
+```bash
+node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run --overlay theme-template
+```
+
+`--overlay <dir>` 会把这个目录整棵当 overlay：目录里的变更一律算 `overlay_changed`，而 `overlay_changed` 必须为 0 才算一次「纯主题升级」。
+
 ## 快速开始
 
 要求：**Node 22+**、**pnpm 11+**。
