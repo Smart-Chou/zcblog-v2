@@ -264,8 +264,17 @@ async function probeFonts() {
         );
         return;
     }
-    const href = prepareProbeModule();
-    const mod = await import(href);
+    let mod;
+    try {
+        mod = await import(prepareProbeModule());
+    } catch (error) {
+        const reason = String(error?.message ?? error);
+        record("O6", "字体契约（可覆盖 / 失败明确报错）", false, "无法 import 包源码", [
+            `探针模块加载失败：${reason}`,
+        ]);
+        record("O7", "未知 slug → 404", false, "未测（探针模块加载失败）");
+        return;
+    }
     const problems = [];
     let unknownStatus = null;
 
@@ -340,6 +349,10 @@ async function probeFonts() {
 
 try {
     await probeFonts();
+} catch (error) {
+    record("O6", "字体契约（可覆盖 / 失败明确报错）", false, "探针抛出未捕获异常", [
+        String(error?.message ?? error),
+    ]);
 } finally {
     rmSync(PROBE_DIR, { recursive: true, force: true });
 }
