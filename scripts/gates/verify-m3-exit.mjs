@@ -678,10 +678,16 @@ function main() {
     const line = todo.map((id) => `${id.toLowerCase()}=${results[id]}`).join(" ");
     if (failed.length) {
         console.log(`RESULT FAIL  ${line}`);
+        console.log(`（临时目录保留在 ${WORK} 供取证；确认后自行删除）`);
         process.exit(1);
     }
+    if (!KEEP) {
+        rmSync(WORK, { recursive: true, force: true });
+        console.log("临时目录已清理（--keep 保留）");
+    } else {
+        console.log(`临时目录保留在 ${WORK}（--keep）`);
+    }
     console.log(`RESULT PASS  ${line}`);
-    if (!KEEP) console.log(`（临时目录保留在 ${WORK}；--keep 关闭自动清理提示）`);
     process.exit(0);
 }
 
