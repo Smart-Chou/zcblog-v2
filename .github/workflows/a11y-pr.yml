@@ -1,0 +1,114 @@
+name: A11y PR smoke
+
+# 全站 axe 审计（586 页）放在 a11y-nightly.yml；这里只跑固定代表路由，
+# 目标是 2–3 分钟内拦住共享 Header/Footer、文章分享浮层、分页、法务链接等回归。
+#
+# 为什么不在 PR 跑全量：
+#   - export-audit.spec.ts 单 worker 全量约 15 分钟，会把 CI 从 8 分钟拉到 20+ 分钟；
+#   - 大多数 PR 改不到所有页面族，全量属于 nightly 的职责；
+#   - PR 仍用 AUDIT_BASELINE=0（严格零容忍），不靠 axe-known.json 兜底。
+#
+# 页面分母仍由 e2e/export-audit.spec.ts 从 dist/ 读取；这里只是用 AUDIT_ROUTES 选中子集。
+
+on:
+    pull_request:
+        branches: [main, theme]
+    push:
+        branches: [main, theme]
+    workflow_dispatch:
+
+concurrency:
+    group: a11y-pr-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    a11y-smoke:
+        name: a11y smoke (11 routes · strict)
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+
+        steps:
+            - name: Checkout zcblog
+              uses: actions/checkout@v5
+
+            - name: Checkout articles (private)
+              uses: actions/checkout@v5
+              with:
+                  repository: Smart-Chou/zcblog-articles
+                  path: _articles
+                  token: ${{ secrets.ARTICLES_PAT }}
+
+            - name: Copy articles and images
+              run: |
+                  mkdir -p src/content/article src/assets
+                  if [ -d _articles ]; then
+                    cp _articles/*.md src/content/article/ 2>/dev/null || true
+                    cp _articles/*.mdx src/content/article/ 2>/dev/null || true
+                    cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  fi
+                  echo "📄 $(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l) 篇文章"
+                  echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
+
+            - name: Normalize frontmatter (v1 布尔键 → v2 features)
+              run: node scripts/normalize-frontmatter.mjs src/content/article
+
+            - name: Install system dependencies
+              run: sudo apt-get update && sudo apt-get install -y libvips-dev
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install Chromium
+              run: pnpm exec playwright install --with-deps chromium
+
+            # 默认 zh/en 构建即可（约 2 分钟）；8 个 locale 骨架由 nightly 全量覆盖。
+            - name: Build
+              run: pnpm run build:ci
+
+            - name: Select smoke routes
+              id: routes
+              run: |
+                  # 取第一篇已构建文章，避免把内容仓里某个 slug 写死在 workflow。
+                  ARTICLE_ROUTE="$(find dist/article -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1 | sed 's|^dist||; s|$|/|')"
+                  ROUTES="/ /en/ /blog/1/ /archives/ /tags/ /culture/ /bangumi/ /douban/ /cookies/ /design/components/author/ /404.html"
+                  if [ -n "$ARTICLE_ROUTE" ]; then
+                    ROUTES="$ROUTES $ARTICLE_ROUTE"
+                  fi
+                  echo "routes=$ROUTES" >> "$GITHUB_OUTPUT"
+                  echo "A11y smoke routes: $ROUTES" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Axe smoke (strict)
+              env:
+                  AUDIT_BASELINE: "0"
+                  AUDIT_ROUTES: ${{ steps.routes.outputs.routes }}
+                  AUDIT_DATA_DIR: ${{ runner.temp }}/a11y-audit-data
+                  AUDIT_SHOT_DIR: ${{ runner.temp }}/a11y-audit-shots
+              run: |
+                  mkdir -p "$AUDIT_DATA_DIR" "$AUDIT_SHOT_DIR"
+                  pnpm exec playwright test e2e/export-audit.spec.ts \
+                    --reporter=list --retries=0
+
+            - name: Upload a11y evidence on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: a11y-smoke-evidence
+                  path: |
+                      ${{ runner.temp }}/a11y-audit-data
+                      ${{ runner.temp }}/a11y-audit-shots
+                      test-results/
+                      playwright-report/
+                  retention-days: 7
+                  if-no-files-found: ignore

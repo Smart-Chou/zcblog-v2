@@ -265,7 +265,7 @@ CI 现状（HEAD `d2014df`）：`Perf` **success**（run 41899620771）、`CI` *
 | 588 页单 worker 全量约 50 分钟 | 不便进 CI | 未接 CI（§10 第 6 点）；要进 CI 需先并行化 + 只对改动路由扫 |
 | 依赖外部图床/S3 的页面在离线环境下截图可能缺图 | 截图观感与线上略异 | 本次截图在本机联网状态下生成；axe 与溢出断言不受图缺失影响 |
 
-6. **未接 CI**：`e2e/export-audit.spec.ts` 没有进 `.github/workflows/ci.yml`。原因：50 分钟 / 单 worker / 需要全 locale dist，跑在 PR 路径上会把 CI 从 ~8 分钟拉到 1 小时。接 CI 的前置是"按 diff 路由子集扫描"或"夜间全量"，属另一张卡。
+6. **未接 CI（2026-11-05 已接线，见 `a11y-ci.md`）**：`e2e/export-audit.spec.ts` 现在由 `a11y-pr.yml` 跑 11 条代表路由、`a11y-nightly.yml` 跑全量 586 页；PR 不跑全量，避免把 CI 从 ~8 分钟拉到 20+ 分钟。
 
 **回滚**：本卡只新增 `e2e/export-audit.spec.ts` + `docs/_reviews/M2-12/**`，删掉即回到审计前状态；`src/**`、`scripts/**`、`.github/**` 零改动。
 
