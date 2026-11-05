@@ -1,6 +1,6 @@
 {
     "name": "@marxchou/zcblog",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "个人博客网站，使用Astro框架构建，包含文章、标签、归档、捐赠等功能",
     "type": "module",
     "private": true,
@@ -43,6 +43,7 @@
         "gates:entities": "node scripts/gates/verify-entities.mjs",
         "gates:boundary": "node scripts/gates/verify-package-boundary.mjs",
         "gates:overlay": "node scripts/gates/verify-overlay.mjs",
+        "gates:m3-exit": "node scripts/gates/verify-m3-exit.mjs --all",
         "theme:sync": "node scripts/theme-sync.mjs --dry-run",
         "gates:all": "node scripts/gates/verify-atoms.mjs && node scripts/gates/verify-atom-docs.mjs && node scripts/gates/verify-component-inventory.mjs && node scripts/gates/verify-doc-drift.mjs && node scripts/gates/check-tokens.mjs && node scripts/gates/verify-surface-tokens.mjs && node scripts/gates/verify-entities.mjs && node scripts/gates/verify-package-boundary.mjs && node scripts/gates/verify-overlay.mjs",
         "test:unit": "vitest run",
