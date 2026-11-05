@@ -260,13 +260,16 @@ for (const file of packageFiles) {
 }
 addCheck("B1", "包内 `~/` 别名 import = 0、相对路径不越界", b1);
 
-// B2 —— 包内站点身份串（package.json 的 name 值豁免）
+// B2 —— 包内站点身份串（package.json 里包自身的身份串豁免）
 const b2 = [];
 for (const file of packageFiles) {
     if (!TEXT_EXT.test(file)) continue;
     let text = readFileSync(file, "utf8");
-    if (path.basename(file) === "package.json")
+    if (path.basename(file) === "package.json") {
         text = text.replace(/("name"\s*:\s*)"[^"]*"/, '$1"<scope-exempt>"');
+        for (const pkgName of REQUIRED.values())
+            text = text.split(pkgName).join("<pkg-identity-exempt>");
+    }
     text.split(/\r?\n/).forEach((line, index) => {
         for (const { id, re } of IDENTITY_PATTERNS) {
             if (!re.test(line)) continue;

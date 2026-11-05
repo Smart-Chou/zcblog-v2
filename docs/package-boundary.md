@@ -23,7 +23,7 @@ packages/og-image/    @marxchou/zcblog-og-image@2.0.0 private · 空壳（M3-4 r
 |---|---|---|---|
 | **W0** | `pnpm-workspace.yaml` 有块状 `packages:`；三个包都在成员里；每个 `package.json` 的 `name` 是约定值、`version` 与主题 lockstep、`private: true`、无 `publishConfig` | FAIL | 补/改 manifest；版本与根 `package.json` 一起 bump。新增第四个包必须先走 decision-log（W0 会把它判红） |
 | **B1** | 包内不得出现 `~/` 别名 import；相对 import（`./`、`../`）不得解析到包目录之外 | FAIL | 需要站点数据时改由主题侧注入（props / options），或把纯函数搬进包里 |
-| **B2** | 包内不得出现 `marxchou` / `mcc.im` / `zcily` / `73b29141`（不区分大小写） | FAIL | 站点身份留在 `src/config/*`（overlay 侧）；包里只允许占位值。**唯一豁免**：`package.json` 的 `"name"` 值——`@marxchou/` 是 npm scope，即包的身份，不是站点身份 |
+| **B2** | 包内不得出现 `marxchou` / `mcc.im` / `zcily` / `73b29141`（不区分大小写） | FAIL | 站点身份留在 `src/config/*`（overlay 侧）；包里只允许占位值。**唯一豁免**：`package.json` 里包自身的身份串（`name` 值 + 三个包名 `@marxchou/zcblog-*`）——那是 npm scope / workspace 依赖键，即包的身份，不是站点身份。`package.json` 之外的文本、以及 `description`/`author`/`repository` 里的个人串仍判红 |
 | **B3** | 每个包的 `dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` ⊆ 白名单；站内互相引用必须是 `workspace:*`；`og-image` 不得依赖 `tokens` / `ui` | FAIL | 白名单见 §3。要加依赖先改 §2 与脚本里的白名单，并在卡评论写理由（这是放宽边界，走 review） |
 | **B4** | 包内任一文件的 sha256 不得等于站点私有文件的 sha256；包内不得出现 `src/data/`、`src/config/`、`public/assets/note/`、`src/assets/qr/` 路径 | FAIL | 数据留在站点侧。样本源：`src/data/**`（整目录）、`src/config/*.ts`（整目录）、`src/assets/qr/*`（整目录）、`public/assets/note/*`（按路径排序取前 10 个） |
 
@@ -56,7 +56,7 @@ CI：`.github/workflows/ci.yml` 的 `contract` job（源码级契约，不读 `d
 3. **不管 CSS `url("/...")` 指向站点资源**：token 包迁出后的样式正确性由 `check-tokens.mjs`（G-T1–G-T4，逐字节比对）与 M3-2 的构建产物断言负责。
 4. **不检查「包有没有被站点引用」**：M3-2/M3-3a 起才存在消费者；引用有效性由 `astro check` + 构建负责。
 5. **workspace 文件用手写解析**：只支持块状序列 + `<dir>/*` glob。写成行内数组（`packages: ["packages/*"]`）或 `packages/**` 会直接 FAIL 并说明原因，而不是静默不展开。
-6. **B2 的 `name` 豁免是刻意留的口子**：如果将来包要发布到不带个人 scope 的 npm 组织，改 `name` 即可，不需要动 B2；但 `name` 之外任何位置（`description`、`author`、`repository`、代码注释）出现个人串都算泄漏。
+6. **B2 的 `package.json` 豁免是刻意留的口子**：`name` 值与三个包名（workspace 依赖键）在 `package.json` 里被屏蔽后再扫。如果将来包要发布到不带个人 scope 的 npm 组织，改 `name` 即可，不需要动 B2；但同一份 `package.json` 的 `description`、`author`、`repository`，以及任何非 `package.json` 文件（README、注释、示例数据）出现个人串都算泄漏。依赖是否允许由 B3 单独判定——B2 只管「身份串」，不管「能不能依赖」。
 
 ## 6. 锁文件为什么没有变化
 
