@@ -1,0 +1,272 @@
+{
+    "task": "t_28292288 / M4-8",
+    "repo": "/Users/chowcong/Documents/WebSiteCode/zcblog-v2",
+    "head": "fd6d76e",
+    "patterns": {
+        "scoped_name": "@marxchou/dogeared-ui",
+        "legacy_name": "zcblog-ui"
+    },
+    "counts": {
+        "scoped_name_total": 26,
+        "scoped_name_by_category": {
+            "docs": 2,
+            "package_self": 1,
+            "release_infra": 5,
+            "review_evidence": 18
+        },
+        "legacy_name_total": 0,
+        "primitive_relative_refs_total": 18,
+        "primitive_relative_refs_site_runtime": 12,
+        "primitive_relative_refs_docs_reviews": 5,
+        "external_repos_referencing_name": 0,
+        "site_runtime_name_refs": 0
+    },
+    "scoped_name_hits": {
+        "docs": [
+            {
+                "file": "docs/package-boundary.md",
+                "line": 12,
+                "text": "packages/ui/          @marxchou/dogeared-ui@2.0.0       private · 空壳（M3-3a Badge、M3-3b Button）"
+            },
+            {
+                "file": "docs/release.md",
+                "line": 3,
+                "text": "三个包 —— `@marxchou/dogeared-tokens`、`@marxchou/dogeared-ui`、`@marxchou/dogeared-og-image` ——"
+            }
+        ],
+        "package_self": [
+            {
+                "file": "packages/ui/package.json",
+                "line": 2,
+                "text": "    \"name\": \"@marxchou/dogeared-ui\","
+            }
+        ],
+        "release_infra": [
+            {
+                "file": ".changeset/config.json",
+                "line": 9,
+                "text": "        [\"@marxchou/dogeared-tokens\", \"@marxchou/dogeared-ui\", \"@marxchou/dogeared-og-image\"]"
+            },
+            {
+                "file": "scripts/gates/verify-package-boundary.mjs",
+                "line": 44,
+                "text": "    [\"ui\", \"@marxchou/dogeared-ui\"],"
+            },
+            {
+                "file": "scripts/gates/verify-package-boundary.mjs",
+                "line": 308,
+                "text": "        for (const banned of [\"@marxchou/dogeared-tokens\", \"@marxchou/dogeared-ui\"]) {"
+            },
+            {
+                "file": "scripts/release/verify-changeset-loop.mjs",
+                "line": 85,
+                "text": "    const added = runCli([\"--patch\", \"@marxchou/dogeared-ui\", \"-m\", \"M4-4 loop: lockstep smoke\"]);"
+            },
+            {
+                "file": "scripts/release/verify-changeset-loop.mjs",
+                "line": 162,
+                "text": "        \"@marxchou/dogeared-ui\","
+            }
+        ],
+        "review_evidence": [
+            {
+                "file": "docs/_reviews/M4-6/report.md",
+                "line": 206,
+                "text": "[PASS] B1:@marxchou/dogeared-ui       build 成功（node scripts/build.mjs）"
+            },
+            {
+                "file": "docs/_reviews/M4-6/report.md",
+                "line": 209,
+                "text": "[PASS] B2:@marxchou/dogeared-ui       5 个声明入口全部存在（./dist/index.d.ts, ./dist/index.js, ./dist/Badge.astro …）"
+            },
+            {
+                "file": "docs/_reviews/M4-6/report.md",
+                "line": 217,
+                "text": "[PASS] P4b:@marxchou/dogeared-ui       入口 ./dist/index.js 可被裸 Node 解析（有 build 脚本）"
+            },
+            {
+                "file": "docs/_reviews/M4-6/report.md",
+                "line": 220,
+                "text": "[FAIL] P1  @marxchou/dogeared-ui       仍是 private:true，禁止发布"
+            },
+            {
+                "file": "docs/_reviews/M4-1/report.md",
+                "line": 12,
+                "text": "| `name` | `@marxchou/dogeared-tokens` | `@marxchou/dogeared-ui` | `@marxchou/dogeared-og-image` |"
+            },
+            {
+                "file": "docs/_reviews/M4-4/report.md",
+                "line": 81,
+                "text": "| `@marxchou/dogeared-ui` | 7 | 4,707 B | 10,059 B | + src/index.ts、src/Badge.astro、src/Button.astro |"
+            },
+            {
+                "file": "docs/_reviews/M4-5/evidence.json",
+                "line": 27,
+                "text": "            \"@marxchou/dogeared-ui\": {"
+            },
+            {
+                "file": "docs/_reviews/M4-5/report.md",
+                "line": 27,
+                "text": "| `@marxchou/dogeared-ui` | `marxchou-dogeared-ui-2.1.0.tgz` | 5,342 B | 15.2 kB | 11 | `a866afcf74e2d955…4c49d3` |"
+            },
+            {
+                "file": "docs/_reviews/M4-5/report.md",
+                "line": 74,
+                "text": "- `src/pages/index.astro` —— barrel 导入 `import { Badge, Button } from \"@marxchou/dogeared-ui\"`，渲染 3 个 Badge（tip/success/warning）+ 2 个 Button（primary/secondary）"
+            },
+            {
+                "file": "docs/_reviews/M4-5/report.md",
+                "line": 130,
+                "text": "resolve OK  @marxchou/dogeared-ui                -> ./node_modules/@marxchou/dogeared-ui/dist/index.js"
+            },
+            {
+                "file": "docs/_reviews/M4-5/report.md",
+                "line": 131,
+                "text": "resolve OK  @marxchou/dogeared-ui/Badge.astro    -> …/dist/Badge.astro"
+            },
+            {
+                "file": "docs/_reviews/M4-5/report.md",
+                "line": 132,
+                "text": "resolve OK  @marxchou/dogeared-ui/Button.astro   -> …/dist/Button.astro"
+            },
+            {
+                "file": "docs/_reviews/M4-5/fixture/probe-resolve.mjs",
+                "line": 11,
+                "text": "    \"@marxchou/dogeared-ui\","
+            },
+            {
+                "file": "docs/_reviews/M4-5/fixture/probe-resolve.mjs",
+                "line": 12,
+                "text": "    \"@marxchou/dogeared-ui/Badge.astro\","
+            },
+            {
+                "file": "docs/_reviews/M4-5/fixture/probe-resolve.mjs",
+                "line": 13,
+                "text": "    \"@marxchou/dogeared-ui/Button.astro\","
+            },
+            {
+                "file": "docs/_reviews/M4-5/fixture/probe-resolve.mjs",
+                "line": 50,
+                "text": "    await import(\"@marxchou/dogeared-ui\");"
+            },
+            {
+                "file": "docs/_reviews/M4-5/fixture/package.json",
+                "line": 15,
+                "text": "        \"@marxchou/dogeared-ui\": \"file:../../../../../../../../../tmp/dogeared-pack/marxchou-dogeared-ui-2.1.0.tgz\","
+            },
+            {
+                "file": "docs/_reviews/M4-5/fixture/src/pages/index.astro",
+                "line": 4,
+                "text": "import { Badge, Button } from \"@marxchou/dogeared-ui\";"
+            }
+        ]
+    },
+    "legacy_name_hits": [],
+    "primitive_relative_refs": [
+        {
+            "file": "CHANGELOG.md",
+            "line": 36,
+            "text": "- `Badge.astro` / `Button.astro` 迁入 `packages/ui/src/`；站点侧保留同名**符号链接**（`src/components/UI/Badge.astro` → `packages/ui/src/Badge.astro`），因此页面 import 路径不变。"
+        },
+        {
+            "file": "site.manifest.json",
+            "line": 135,
+            "text": "        { \"path\": \"packages/ui/src/Button.astro\", \"class\": \"T\" },"
+        },
+        {
+            "file": "docs/surface-token-baseline.json",
+            "line": 27,
+            "text": "        \"src/components/UI/Badge.astro\": ["
+        },
+        {
+            "file": "docs/surface-token-baseline.json",
+            "line": 37,
+            "text": "        \"src/components/UI/Button.astro\": [\"#fff\", \"rgba(0,0,0,0.15)\"],"
+        },
+        {
+            "file": "docs/component-inventory.json",
+            "line": 208,
+            "text": "            \"file\": \"src/components/UI/Badge.astro\","
+        },
+        {
+            "file": "docs/component-inventory.json",
+            "line": 220,
+            "text": "            \"file\": \"src/components/UI/Button.astro\","
+        },
+        {
+            "file": "src/components/UI/ServiceCard.astro",
+            "line": 3,
+            "text": "import Badge from \"../../../packages/ui/src/Badge.astro\";"
+        },
+        {
+            "file": "src/pages/500.astro",
+            "line": 3,
+            "text": "import Button from \"../../packages/ui/src/Button.astro\";"
+        },
+        {
+            "file": "src/pages/design/_docs/data/components/ui-button.json",
+            "line": 7,
+            "text": "    \"spec\": \"packages/ui/src/Button.astro（以实现为准 · M2-10a，M3-3b 迁入 packages/ui）\","
+        },
+        {
+            "file": "src/pages/design/_docs/data/components/ui-button.json",
+            "line": 8,
+            "text": "    \"source\": \"packages/ui/src/Button.astro\","
+        },
+        {
+            "file": "src/pages/design/_docs/data/components/badge.json",
+            "line": 7,
+            "text": "    \"spec\": \"packages/ui/src/Badge.astro（以实现为准 · M2-10a，M3-3a 迁入 packages/ui）\","
+        },
+        {
+            "file": "src/pages/design/_docs/data/components/badge.json",
+            "line": 8,
+            "text": "    \"source\": \"packages/ui/src/Badge.astro\","
+        },
+        {
+            "file": "src/pages/design/components/badge.astro",
+            "line": 5,
+            "text": " * 契约：以实现为准（`packages/ui/src/Badge.astro`，M3-3a 迁入 packages/ui）。"
+        },
+        {
+            "file": "src/pages/design/components/badge.astro",
+            "line": 6,
+            "text": " * 站点侧的 src/components/UI/Badge.astro 是 git 符号链接（与包内同一份文件），"
+        },
+        {
+            "file": "src/pages/design/components/badge.astro",
+            "line": 13,
+            "text": "import Badge from \"~/components/UI/Badge.astro\";"
+        },
+        {
+            "file": "src/pages/design/components/ui-button.astro",
+            "line": 6,
+            "text": " * 契约：以实现为准（`packages/ui/src/Button.astro`，M3-3b 迁入 packages/ui）。"
+        },
+        {
+            "file": "src/pages/design/components/ui-button.astro",
+            "line": 7,
+            "text": " * 站点侧的 src/components/UI/Button.astro 是 git 符号链接（与包内同一份文件），"
+        },
+        {
+            "file": "src/pages/design/components/ui-button.astro",
+            "line": 13,
+            "text": "import Button from \"~/components/UI/Button.astro\";"
+        }
+    ],
+    "external_repos": [],
+    "registry": {
+        "@marxchou/dogeared-ui": {
+            "exit": 1,
+            "out": [
+                "npm error A complete log of this run can be found in: /Users/chowcong/.npm/_logs/2026-11-05T19_43_36_013Z-debug-0.log"
+            ]
+        },
+        "@marxchou/dogeared-tokens": {
+            "exit": 1,
+            "out": [
+                "npm error A complete log of this run can be found in: /Users/chowcong/.npm/_logs/2026-11-05T19_43_36_742Z-debug-0.log"
+            ]
+        }
+    }
+}
