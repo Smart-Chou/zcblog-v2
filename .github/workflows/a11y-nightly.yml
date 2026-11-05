@@ -129,6 +129,8 @@ jobs:
             - name: Open or comment on tracking issue
               env:
                   GH_TOKEN: ${{ github.token }}
+                  # notify job 没有 checkout，gh 无法从 .git 推断仓库；显式指定。
+                  GH_REPO: ${{ github.repository }}
                   RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
                   COMMIT_SHA: ${{ github.sha }}
                   TRIGGER: ${{ github.event_name }}
