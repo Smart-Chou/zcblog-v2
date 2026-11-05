@@ -216,6 +216,11 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                         height: "100%",
                         display: "flex",
                         flexDirection: "column",
+                        // satori 0.27+ 把默认盒模型从 border-box 改成 CSS 默认的 content-box：
+                        // 不显式声明时，1200×630 画布会被 padding(88/72/56)+borderLeft(6) 撑成
+                        // 1382×758，页脚行与右下装饰点被挤出画布裁掉。显式 border-box 在 0.26 上
+                        // 是空操作（出图与升级前逐字节一致，见 docs/_reviews/M4-9/report.md）。
+                        boxSizing: "border-box",
                         padding: "72px 88px 56px",
                         backgroundImage: background,
                         borderLeftWidth: "6px",

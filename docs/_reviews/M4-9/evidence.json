@@ -1,0 +1,158 @@
+{
+  "task": "M4-9",
+  "id": "t_cbe118f0",
+  "title": "og-image satori 依赖告警清零（GHSA-wx4j-mvgx-mqwp）",
+  "verdict": "PASS_WITH_PO_DECISION",
+  "executed_at": "2026-11-06T03:40:00+08:00/2026-11-06T04:12:00+08:00",
+  "baseline_commit": "54a1d54",
+  "env": {
+    "os": "macOS 15.7.7 x86_64",
+    "node": "v26.0.0",
+    "npm": "11.12.1",
+    "registry": "https://registry.npmjs.org/",
+    "sharp": "0.35.5",
+    "note": "同一份解包内容在 node 22.23.1 下 pack 出来是 11,290 B；本文件所有体积数字均为 node v26.0.0 + npm 11.12.1（与 M4-5 同口径）"
+  },
+  "changes": {
+    "packages/og-image/package.json": "satori ^0.26.0 -> ^0.63.2",
+    "packages/og-image/src/route.ts": "根节点 style 增加 boxSizing: \"border-box\"（satori >=0.27 默认盒模型改为 content-box 导致画布被撑成 1382x758、页脚与装饰点被裁）",
+    "packages/og-image/test/smoke.test.mjs": "GOLDEN 49283/8e6c490e… -> 49574/6b9d8762…；测试名与注释改为「固定输入 golden + 换版本必须量带宽」",
+    "packages/og-image/README.md": "新增 Dependency and audit notes（下限原因 / box-sizing / fflate 残余 + override 配方）",
+    "deviations": {
+      "package.json (root)": "satori ^0.26.0 -> ^0.63.2（站点同暴露面；不改会让 pnpm 装两份 satori）",
+      "pnpm-lock.yaml": "随根 package.json 重算：satori 0.26.0->0.63.2, +fflate@0.7.3, +harfbuzzjs@0.10.0, -yoga-layout@3.2.1（19+/13- 行，无其它漂移）"
+    }
+  },
+  "regression_root_cause": {
+    "symptom_without_fix": "48,269 B -> 42,289 B；页脚整行与右上 280px 装饰圆消失；desc 从两行变一行",
+    "root_cause": "satori >=0.27 根节点默认盒模型 = CSS 默认 content-box；width/height:100% 把 1200x630 撑成 1382x758（+padding 176/+128，+borderLeft 6）",
+    "svg_evidence": {
+      "0.63.2_without_boxSizing": "<rect x=\"0\" y=\"0\" width=\"1376\" height=\"758\">",
+      "0.63.2_with_border_box": "<rect x=\"0\" y=\"0\" width=\"1194\" height=\"630\">"
+    },
+    "not_a_absolute_positioning_bug": "abs 探针：top/right/bottom/left 四种写法在 0.26 与 0.63.2 下生成的 SVG 完全相同（5 个色点坐标一致）"
+  },
+  "png_consistency": {
+    "controller": "同一 fixture、同一字体文件（仓库 .astro/fonts 的 Noto Sans SC Regular/Bold）、同一 sharp 0.35.5，只改 satori 版本",
+    "new_code_on_0_26_is_noop": [
+      { "fixture": "package-test-pinned", "old_code": "49283/8e6c490ec799784d2270f7699491c107a683916854e91251d09461aea4f47b17", "new_code": "49283/8e6c490ec799784d2270f7699491c107a683916854e91251d09461aea4f47b17" },
+      { "fixture": "hello", "old_code": "48269/96e6b0642dd1054831266584bf08df9f0b5f8745937ad83c03185b5bc28bc3f0", "new_code": "48269/96e6b0642dd1054831266584bf08df9f0b5f8745937ad83c03185b5bc28bc3f0" }
+    ],
+    "matrix": [
+      { "fixture": "hello", "satori_0_26_0": { "bytes": 48269, "sha256": "96e6b0642dd1054831266584bf08df9f0b5f8745937ad83c03185b5bc28bc3f0" }, "satori_0_33_5": { "bytes": 48280, "sha256": "f280f3e7f4867ca43b6e0ce688ad3be2ef16446ba4987ef7fd19080541b23b10" }, "satori_0_63_2": { "bytes": 48283, "sha256": "55867f8bb39fb3141e26a5f86bc1296695202591fcbcf96e21b35e43aae8ee62" } },
+      { "fixture": "cjk-long", "satori_0_26_0": { "bytes": 49910, "sha256": "e201004c879bca2a86b0b7e1a5b138a942e90ec58f3f1d14d643941d082a2ad5" }, "satori_0_33_5": { "bytes": 49924, "sha256": "ebe8e9c7500642c62552064ad1c4f1d5cef21e251b0539e4741861db1d25cd91" }, "satori_0_63_2": { "bytes": 50293, "sha256": "b4aab448fa236810856117d0bf6005b0bb73aab8a1687fc21d3be82bc7ed6982" } },
+      { "fixture": "latin", "satori_0_26_0": { "bytes": 59723, "sha256": "c5472cc41f829b33a1bbabb9f9974287abcf86d9373524b6c221fbe1a3caf634" }, "satori_0_33_5": { "bytes": 59643, "sha256": "06c8aa75412b6d82eeb4359515fa08134c043a8c7f41e35b30590525299fa0f0" }, "satori_0_63_2": { "bytes": 59869, "sha256": "09e87accec1d32645041d8c90c93b8026d770e894fce35ad40c45d6496e8539f" } },
+      { "fixture": "package-test-pinned", "satori_0_26_0": { "bytes": 49283, "sha256": "8e6c490ec799784d2270f7699491c107a683916854e91251d09461aea4f47b17" }, "satori_0_63_2": { "bytes": 49574, "sha256": "6b9d876220aa74daa856580e668ba1ed10f397df386752a5cba000d733f38329" } }
+    ],
+    "byte_identical_verdict": "NO — 0.63.2 与 0.26.0 不再逐字节相同；包内 golden 已重定标为 6b9d8762… / 49,574 B",
+    "layout_bands_identical": {
+      "package-test-pinned": {
+        "0.26.0": [[0, 219, 69365], [244, 270, 7872], [523, 523, 1018], [554, 581, 2048]],
+        "0.63.2": [[0, 219, 69544], [244, 270, 7864], [523, 523, 1018], [554, 581, 2066]]
+      },
+      "hello": {
+        "0.26.0": [[0, 219, 68945], [245, 270, 6941], [282, 302, 431], [523, 523, 1018], [554, 581, 2200]],
+        "0.63.2": [[0, 219, 68945], [245, 270, 6941], [282, 302, 431], [523, 523, 1018], [554, 581, 2170]]
+      },
+      "note": "band = [y1, y2, 非底色像素数]，忽略左侧 6px 竖条；标题基线/下划线/分隔线/页脚基线/装饰点位置全同",
+      "decorations": {
+        "accent_underline": "y208-211 x94-193 = 396 px（两版相同）",
+        "divider": "y523 全宽 1018 px（两版相同）",
+        "gold_dot": "y574-579 x1104-1111 = 42 px（两版相同，0.33.5 亦在）"
+      }
+    },
+    "pixel_diff": [
+      { "fixture": "hello", "diff_pixels": 10125, "ratio": 0.01339, "max_channel_delta": 135, "bbox": [279, 245, 1111, 573] },
+      { "fixture": "cjk-long", "diff_pixels": 4200, "ratio": 0.00556, "max_channel_delta": 86, "bbox": [940, 96, 1111, 573] },
+      { "fixture": "latin", "diff_pixels": 35951, "ratio": 0.04755, "max_channel_delta": 227, "bbox": [158, 97, 1111, 573] },
+      { "fixture": "package-test-pinned", "diff_pixels": 5591, "ratio": 0.0074, "max_channel_delta": 227, "bbox": [189, 124, 1110, 573] }
+    ],
+    "text_advance_drift": {
+      "hello_desc_line": "x94..1067 (w=974, 0.26.0) -> x94..1060 (w=967, 0.63.2)，106 字符累计 -7px ≈ -0.066 px/字符，起点不变、换行不变",
+      "latin_desc_line": "w=951 -> w=947",
+      "cjk_title_region_pixel_identical": "hello fixture y0-219 两版均为 68,945 px"
+    },
+    "cjk_no_tofu": "人工/视觉复核两版：中文字形完整、无方框、无回退字体；1200x630 RGBA",
+    "site_theme_gradient": {
+      "fixture": "components/og-image-route.ts 的 OG_IMAGE_THEME（linear-gradient(135deg,#0d1117 0%,#161b22 40%,#0f1419 100%)）",
+      "samples_identical": { "(300,600)": "#151a21", "(900,600)": "#11161c", "(300,120)": "#f0f0f0", "(900,120)": "#141920", "(640,330)": "#141920" },
+      "diff": { "diff_pixels": 51347, "histogram": { "1-2": 45816, "3-5": 444, "6-10": 729, "11-30": 3644, "31+": 714 }, "max_channel_delta": 44, "mean_over_diff_pixels": 2.65 },
+      "verdict": "渐变未被压成纯色或反向；差异主要是 1-2 色阶的 dithering 再分布"
+    }
+  },
+  "three_paths_final_tarball": {
+    "tarball": "marxchou-dogeared-og-image-2.1.0.tgz 11,829 B / sha256 ef2116232fc4cae4ffbb6793b95ddbc541a41d373bd212d80bdaa45d08d5028e",
+    "bare_node": { "hello": "200/48283/55867f8b…", "cjk-long": "200/50293/b4aab448…", "latin": "200/59869/09e87acc…" },
+    "astro_prerender": { "hello": "48283/55867f8b…", "cjk-long": "50293/b4aab448…", "latin": "59869/09e87acc…" },
+    "esbuild_bundle": { "hello": "48283/55867f8b…", "cjk-long": "50293/b4aab448…", "latin": "59869/09e87acc…" },
+    "verdict": "三条路径逐字节相同（1200x630 RGBA）",
+    "bundle_size": { "satori_0_26_0": 907684, "satori_0_63_2": 2239330, "delta": 1331646, "note": "satori 新版把 layout WASM base64 内联" }
+  },
+  "audit": {
+    "natural_install": {
+      "command": "npm i <tarball> && npm audit",
+      "npm_ls": "satori@0.63.2 / sharp@0.35.5",
+      "result": "3 moderate（同一条 fflate 告警在 fflate / satori / @marxchou/dogeared-og-image 三级各计一次）",
+      "advisory": "GHSA-px8p-9vwx-vf98 fflate unzipSync 无限循环（ZIP64），vulnerable >=0.7.0 <0.7.5, No fix available",
+      "ghsa_wx4j_gone": true,
+      "reachability": "satori 0.63.2 只 import { inflateSync } from \"fflate\"（WOFF-1 表解压）；告警针对 unzipSync，本包路径不可达",
+      "upstream_blocker": "satori 0.33.5→0.63.2 全部精确钉 fflate@0.7.3（npm view 逐版实测），包侧无解"
+    },
+    "with_override": {
+      "consumer_package_json": { "overrides": { "fflate": "^0.7.5" } },
+      "result": "found 0 vulnerabilities",
+      "npm_ls": "satori@0.63.2 -> fflate@0.7.5 overridden",
+      "png_unchanged": "55867f8b… / b4aab448… / 09e87acc…（与未覆写逐字节相同）"
+    }
+  },
+  "package_sizes": {
+    "toolchain": "node v26.0.0 / npm 11.12.1",
+    "tokens": { "baseline": 20379, "now": 20379, "delta": 0, "files": 8 },
+    "ui": { "baseline": 5342, "now": 5342, "delta": 0, "files": 11 },
+    "og_image": {
+      "baseline": 10852,
+      "now": 11829,
+      "delta": 977,
+      "pct": 9.0,
+      "files": 13,
+      "unpacked": { "baseline": 46506, "now": 48829 },
+      "breakdown": { "README.md": 1331, "dist/route.js": 486, "src/route.ts": 506, "others": 0 }
+    }
+  },
+  "other_checks": {
+    "package_smoke": "node --test packages/og-image/test/smoke.test.mjs -> tests 10 / pass 10 / fail 0",
+    "site_typecheck": "corepack pnpm type-check (tsc --noEmit) -> exit 0",
+    "site_build": "corepack pnpm build:ci (node v26.0.0) -> exit 0, 474 pages, dist/og 85 PNG 全部 1200x630 RGBA；2 条 astro-expressive-code plantuml WARN 与本次无关",
+    "gates_all": "exit 0; RESULT PASS classified=1084 unclassified=0 theme=714 overlay=299 exclude=71 plan_baseline=998 delta=+86",
+    "preflight_publish": "PASS 30 / FAIL 3 / WARN 0 / INFO 2 / SKIP 1; FAIL = P1 tokens private:true, P1 og-image private:true, P5 publish-plan 空（均为预期）；P3 pack 清单 13 文件 / 11,829 B",
+    "private_flags": "三包仍 private:true（未翻转）",
+    "publish_or_deploy": "未做（registry 只读）",
+    "git": "未 commit / 未 push"
+  },
+  "boundary": {
+    "written": ["packages/og-image/**", "docs/_reviews/M4-9/**"],
+    "declared_deviations": ["package.json (root)", "pnpm-lock.yaml"],
+    "foreign_uncommitted_changes_seen": ["docs/release.md", "scripts/release/lib.mjs", "scripts/release/preflight.mjs", "scripts/release/verify-changeset-loop.mjs", "scripts/release/verify-guards.mjs", "docs/_reviews/M4-10/"],
+    "note": "preflight 跑在混合工作树上：publishSet 只含 tokens+og-image（ui 被 M4-10 的改动移出），因此 FAIL 计数是 3 而非 M4-5 时的 3 private + 空 plan 的另一种排列；依赖层面无新增 FAIL/WARN"
+  },
+  "po_decision": {
+    "question": "干净消费者 0 moderate 在「og-image 依赖 satori」前提下包侧不可达（satori 所有 >=0.33.5 都钉 fflate@0.7.3，GHSA 覆盖 <0.7.5）",
+    "options": [
+      { "id": "A", "desc": "保留 ^0.63.2 + README 文档化残余告警 + 消费者一行 overrides（本次已实现并实测 0 vulnerabilities、出图不变）", "recommended": true },
+      { "id": "B", "desc": "回退 ^0.26.0 并文档化风险（保留一条落在真实转义路径上的告警）", "recommended": false }
+    ],
+    "followups_out_of_scope": [
+      "pnpm-workspace.yaml overrides 增加 fflate: \">=0.7.5\"，让站点自身 pnpm audit 也清掉该条",
+      "向上游 satori 提 issue/PR 把 fflate 抬到 ^0.7.5（唯一根治）",
+      "README 补一句「依赖 satori 的 bundle 体积 +1.33 MB」"
+    ]
+  },
+  "artifacts": [
+    "docs/_reviews/M4-9/artifacts/og-pinned-satori-0.26.0.png",
+    "docs/_reviews/M4-9/artifacts/og-pinned-satori-0.63.2.png",
+    "docs/_reviews/M4-9/artifacts/og-pinned-diff-x4.png",
+    "docs/_reviews/M4-9/artifacts/og-hello-satori-0.26.0.png",
+    "docs/_reviews/M4-9/artifacts/og-hello-satori-0.63.2.png",
+    "docs/_reviews/M4-9/fixture/**"
+  ]
+}

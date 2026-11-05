@@ -42,10 +42,19 @@ const SITE = {
 };
 const THEME = { background: "#0d1117", foreground: "#f0f0f0", accent: "#d4a040" };
 
-/** M4-3 在干净消费者里量到的 PNG：字节数 + sha256。改版式/字体/依赖版本都会让它变。 */
+/**
+ * 固定输入的 PNG：字节数 + sha256。改版式/字体/依赖版本都会让它变。
+ *
+ * - 2026-11-06 M4-3/M4-6（satori 0.26.0）：49,283 B / `8e6c490e…`
+ * - 2026-11-06 M4-9（satori 0.63.2）： 49,574 B / `6b9d8762…`
+ *
+ * 换版本时不要只改数字：必须先用 `DOGEARED_OG_FONT_DIR=<仓库 .astro/fonts> node --test`
+ * 在新旧两版 satori 下各出一张，比对带宽/位置（M4-9 报告 §4 的做法），确认是
+ * 字形 advance 的亚像素漂移而不是版式塌陷（页脚、装饰圆、分隔线、换行位置）。
+ */
 const GOLDEN = {
-    bytes: 49283,
-    sha256: "8e6c490ec799784d2270f7699491c107a683916854e91251d09461aea4f47b17",
+    bytes: 49574,
+    sha256: "6b9d876220aa74daa856580e668ba1ed10f397df386752a5cba000d733f38329",
 };
 
 /**
@@ -128,7 +137,7 @@ test("route: 未知 slug 返回 404 纯文本，不抛错", async () => {
 
 /* ───────────────────────── 4. 出图（需要字体）───────────────────────── */
 
-test("route: 1200x630 PNG，与 M4-3 消费者逐字节相同", { skip: needsFonts }, async () => {
+test("route: 1200x630 PNG，与固定输入 golden 逐字节相同（M4-9 重定标）", { skip: needsFonts }, async () => {
     const res = await route({ params: { og: POST.slug } });
     assert.equal(res.status, 200);
     assert.equal(res.headers.get("content-type"), "image/png");
@@ -144,11 +153,11 @@ test("route: 1200x630 PNG，与 M4-3 消费者逐字节相同", { skip: needsFon
     assert.equal(body.subarray(12, 16).toString("latin1"), "IHDR", "首个 chunk 必须是 IHDR");
     assert.equal(body.readUInt32BE(16), 1200, "宽");
     assert.equal(body.readUInt32BE(20), 630, "高");
-    assert.equal(body.length, GOLDEN.bytes, `字节数与 M4-3 不一致（${body.length}）`);
+    assert.equal(body.length, GOLDEN.bytes, `字节数与 golden 不一致（${body.length}）`);
     assert.equal(
         createHash("sha256").update(body).digest("hex"),
         GOLDEN.sha256,
-        "PNG 与 M4-3 消费者验证不再逐字节相同（版式/字体/依赖版本有漂移）",
+        "PNG 与固定输入 golden 不再逐字节相同（版式/字体/依赖版本有漂移）",
     );
 });
 

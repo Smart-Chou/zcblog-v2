@@ -93,6 +93,27 @@ loudly rather than rendering without a font.
   `npm run build` (also wired to `prepack`), so a git/tarball install without `dist/` only needs
   one `npm run build` inside the package.
 
+## Dependency and audit notes
+
+- `satori` is pinned to `^0.63.2`. The floor matters: a `0.x` caret only allows patch bumps, so
+  the declared floor is what consumers actually install. Version 0.26.0 (the earlier floor) sits
+  inside the range of GHSA-wx4j-mvgx-mqwp (improper SVG escaping, affected `0.0.27`–`0.33.4`)
+  where npm reports **no fix available**; `0.33.5` is the first release outside it. The package
+  therefore requires `>=0.63.2` — do not override it downwards.
+- Rendering parity across that jump was verified image-by-image (layout bands, decoration
+  geometry, CJK glyph coverage). The one behavioural change satori made is that from `0.27` the
+  root box uses CSS-default `content-box`; the package sets `boxSizing: "border-box"` explicitly
+  so the 1200×630 canvas keeps its padding instead of growing to 1382×758 and clipping the footer.
+- `satori` pins `fflate@0.7.3` exactly, and GHSA-px8p-9vwx-vf98 (`unzipSync`, malformed ZIP64)
+  covers `<0.7.5`, so `npm audit` reports one **moderate** on a freshly installed project even
+  though satori only imports `inflateSync` (WOFF-1 table decompression of the font buffers you
+  pass in). To silence it, add to your app's `package.json` — nothing else changes, verified
+  byte-identical output:
+
+  ```json
+  { "overrides": { "fflate": "^0.7.5" } }
+  ```
+
 ## Usage outside Astro
 
 The factory returns a plain `(context) => Promise<Response>` handler — nothing Astro-specific
