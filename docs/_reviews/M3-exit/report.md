@@ -294,6 +294,19 @@ RESULT FAIL  theme_changed=… overlay_changed=2 …
 
 ---
 
+## 5.5 CI 实跑证据（2026-11-06，HEAD `001d7ee`）
+
+| 工作流 | 结论 | 证据 |
+| --- | --- | --- |
+| CI | success | run `42068169379` |
+| Deploy matrix（三目标） | success，3/3 target PASS | run `42068168940`；`gh-pages` / `cloudflare` / `vercel` 各 `stubs=272/272 fails=0` |
+| Perf | success | run `42068168802` |
+| A11y PR smoke | success（首次因 runner 的 `apt-get` 卡住超时被 cancelled，`gh run rerun --failed` 后通过） | run `42068168917` |
+
+说明：`pnpm-lock.yaml` 在 workspace 包加入后缺 `packages/*` importer，首个 CI 红在 `ed8662a` 修复（仅补 20 行 importer，未改依赖版本）；Deploy matrix workflow 首次推送未注册，`001d7ee` 以注释触发注册后实跑通过。
+
+---
+
 ## 6. 本卡不做
 
 - 不改任何门禁阈值（`perf-budget` / axe / tokens 判据原样）；
