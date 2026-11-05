@@ -22,7 +22,9 @@
  *   P10 客户零      `site.manifest.json` 的 `theme.ref`（发布 tag）必须存在；
  *                   ① `git diff <ref>..HEAD` 里 T 侧 0 个变更；
  *                   ② 装配产物的每个 T 文件与 `<ref>` 的 blob 逐字节相同
- *                      （package.json 例外：create-site 按设计改 name/description；符号链接按目标比不计入）。
+ *                      （例外：`package.json` 由 create-site 按设计重写 name/description；
+ *                       baseline 层 `theme-template/{src,public}` 覆盖的同名 T 文件比的是该层自己的 blob；
+ *                       符号链接不比内容）。
  *
  * 用法
  *   node scripts/gates/verify-m3-exit.mjs --all                 # 五项全跑（等价于不带参数）
@@ -586,9 +588,19 @@ function checkP10(classifier) {
             return { mode, sha, file };
         });
     const byPath = new Map(tree.map((entry) => [entry.file, entry]));
+    /* create-site 的 baseline 层（`theme-template/{src,public}` → 去前缀落盘）按设计覆盖同名 T 文件
+       （占位 logo/favicon 是示例站身份，D-E ①）。这些路径不比主题 blob，比**tag 里 theme-template 的同名文件**。 */
+    const baselineMap = new Map();
+    for (const entry of tree) {
+        if (!entry.file.startsWith("theme-template/")) continue;
+        const rel = entry.file.slice("theme-template/".length);
+        if (!rel.startsWith("src/") && !rel.startsWith("public/")) continue;
+        baselineMap.set(rel, entry);
+    }
     let compared = 0;
     let skippedSymlink = 0;
     let skippedRetag = 0;
+    let baselineOverridden = 0;
     const mismatches = [];
     for (const rel of walkFiles(outDir)) {
         const entry = byPath.get(rel);
@@ -604,13 +616,19 @@ function checkP10(classifier) {
             skippedRetag += 1;
             continue;
         }
+        const expected = baselineMap.get(rel) ?? entry;
+        if (expected !== entry) baselineOverridden += 1;
+        if (expected.mode === "120000") {
+            skippedSymlink += 1;
+            continue;
+        }
         const abs = path.join(outDir, rel);
         const actual = sha1Blob(readFileSync(abs));
         compared += 1;
-        if (actual !== entry.sha) mismatches.push(rel);
+        if (actual !== expected.sha) mismatches.push(rel);
     }
     info.push(
-        `装配产物 T 文件逐字节比对：compared=${compared} mismatch=${mismatches.length}（跳过符号链接 ${skippedSymlink}、package.json 重写 ${skippedRetag}）`,
+        `装配产物 T 文件逐字节比对：compared=${compared} mismatch=${mismatches.length}（baseline 层覆盖 ${baselineOverridden}、跳过符号链接 ${skippedSymlink}、package.json 重写 ${skippedRetag}）`,
     );
     if (compared < 100) problems.push(`比对样本只有 ${compared} 个 T 文件，装配产物不完整`);
     if (mismatches.length)

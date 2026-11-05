@@ -167,7 +167,7 @@ node scripts/gates/verify-m3-exit.mjs --all --work /tmp/x --keep   # 换临时�
 | **P2 可配置** | 改 overlay 副本的 `site.ts` 标题/域名后重新装配构建：`git status --porcelain -- src/components packages` 空行，且新标题出现在 `dist/index.html` | 25.0s · 主题侧 0 行 · 新标题命中 11 次 |
 | **P3 可升级** | ① dry-run 打印 `theme_changed>0 overlay_changed=0 unclassified_changed=0`；② 干净 clone 上 `install + --apply + build:ci + check-tokens + perf-budget + verify-overlay` 全 exit 0，墙钟 ≤ 30:00，O 侧 `git diff` 0 行，演练文案进产物；③ `git reset --hard` 后工作区 0 行 | 69.8s · `theme_changed=3 overlay_changed=0` · O 侧 0 行 · 回滚 0 行 |
 | **P7 质量** | clean clone（`git clone --depth 1 file://<repo>`，0 篇文章）`install + build:ci + verify-overlay + verify-package-boundary + check-tokens + perf-budget` 全 exit 0 | 76.3s · 0 文章 · 110 HTML · 4 条门禁全绿 |
-| **P10 客户零** | `theme.ref`（发布 tag）存在；`git diff <ref>..HEAD` 的 T 侧 0 个变更；装配产物的每个 T 文件与该 tag 的 blob **逐字节相同**（`package.json` 例外：装配按设计改 name/description；符号链接不比内容） | 见 `docs/_reviews/M3-exit/report.md` |
+| **P10 客户零** | `theme.ref`（发布 tag）存在；`git diff <ref>..HEAD` 的 T 侧 0 个变更；装配产物的每个 T 文件与该 tag 的 blob **逐字节相同**（例外：`package.json` 由装配按设计改 name/description；baseline 层 `theme-template/{src,public}` 覆盖的同名 T 文件比该层自己的 blob；符号链接不比内容） | 见 `docs/_reviews/M3-exit/report.md` |
 
 **计时口径**（P1/P3 都是 30 分钟判据，R-51）：一律「无 `node_modules` 的窄环境 → 装依赖 → 构建」，不在热缓存目录里计时。本机 `pnpm` store 已预热，所以 install 只要数秒；换机器请按同一口径重测，不要拿别人的秒数当基线。
 
