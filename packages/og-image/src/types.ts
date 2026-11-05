@@ -26,7 +26,7 @@ export interface OgImagePost {
     description?: string;
 }
 
-/** 站点身份。包内不读 `~/config`，全部由主题侧注入。 */
+/** 站点身份。包内不读站点配置，全部由主题侧注入。 */
 export interface OgImageSite {
     title: string;
     author: string;

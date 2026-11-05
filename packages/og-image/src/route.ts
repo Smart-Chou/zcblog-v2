@@ -2,7 +2,7 @@
  * OG 图 route factory（Satori → SVG → Sharp → PNG）。
  *
  * 抽取自 `src/integrations/og-image-route.ts`（M3-4）。与原实现的差别**只有依赖方向**：
- * 文章列表、站点身份、调色板不再 `import` 站点的 `~/config` / `~/utils/article-stats`，
+ * 文章列表、站点身份、调色板不再 `import` 站点代码（`src/config`、`src/utils/article-stats`），
  * 全部由主题侧以 `options` 注入（§3.3）。渲染树、字号、间距、缓存头逐字保留，
  * 抽取前后同一篇文章产出的 PNG 逐字节一致。
  *
