@@ -3,7 +3,8 @@
  * check-tokens.mjs — token 契约门禁（DESIGN.md §3.12.3 四道机器门禁 + schema 自检）
  *
  * 用法：
- *   node scripts/gates/check-tokens.mjs
+ *   node scripts/gates/check-tokens.mjs            跑全部 10 道门禁
+ *   node scripts/gates/check-tokens.mjs --check    只跑 G-T1：tokens.css 与 tokens.json 逐字节一致
  *
  * 退出码：0 = 全 PASS；1 = 有 FAIL
  *
@@ -300,6 +301,20 @@ function gateDesignDoc(tokens) {
 /* ───────────────────────── 主流程 ───────────────────────── */
 
 function main() {
+    // `--check`：只跑 G-T1（生成物逐字节一致），供卡验收 / 快速回归用
+    if (process.argv.slice(2).includes("--check")) {
+        const g = gateGenerateConsistency();
+        console.log(`  ${g.ok ? "PASS" : "FAIL"}  ${g.id} ${g.title}  —  ${g.detail}`);
+        for (const p of g.problems) console.log(`          · ${p}`);
+        console.log("");
+        if (!g.ok) {
+            console.log("  结果：tokens.css 与 tokens.json 不一致（1 FAIL）");
+            return 1;
+        }
+        console.log(`  结果：tokens.css 与 tokens.json 逐字节一致（${cssRel} · G-T1 PASS）`);
+        return 0;
+    }
+
     const { tokens, raw } = loadTokens();
     const sourceSha = sha256(raw);
     const semanticCount = Object.keys(tokens.semantic?.light ?? {}).length;

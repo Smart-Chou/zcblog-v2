@@ -22,9 +22,9 @@
  *   2. 默认以仓库根解析，仓库根 = 包根向上两级（packages/tokens → 仓库根）。
  *      包被装进 `node_modules` 时向上两级是 `node_modules`，此时继续向上找
  *      `pnpm-workspace.yaml`（最多 4 层）作为仓库根；`TOKENS_REPO_ROOT` 可显式指定。
- *   3. 环境变量 `TOKENS_DESIGN_DOC` 可覆盖（相对仓库根，或绝对路径），
- *      供开发机临时指向 blog2.0 工作区的真源 DESIGN.md。
- *   4. 候选路径依次为：env → <repoRoot>/docs/DESIGN.md → <repoRoot>/DESIGN.md；
+ *   3. 环境变量 `TOKENS_DESIGN_DOC` 是**严格覆盖**（相对仓库根或绝对路径）：设置后只认该路径，
+ *      写错立刻报错，不静默回落到仓库快照。供开发机指向 blog2.0 工作区的真源 DESIGN.md。
+ *   4. 未设 env 时候选路径依次为：<repoRoot>/docs/DESIGN.md → <repoRoot>/DESIGN.md；
  *      全都不存在则报错并列出尝试过的路径。
  *   `DESIGN.md` 不进包（179KB 设计文档属仓库 docs/），所以解析必须落到仓库根。
  *   仓库内 `docs/DESIGN.md` 是 blog2.0 真源文档的逐字节同步快照，
@@ -424,7 +424,8 @@ export function designDocCandidates(tokens, root = repoRoot) {
     }
     const candidates = [];
     const env = (process.env.TOKENS_DESIGN_DOC ?? "").trim();
-    if (env) candidates.push(path.isAbsolute(env) ? env : path.resolve(root, env));
+    // 显式覆盖：设置了就只认它（写错即报错，不静默回落到仓库快照）
+    if (env) return { candidates: [path.isAbsolute(env) ? env : path.resolve(root, env)] };
     candidates.push(path.resolve(root, raw));
     candidates.push(path.resolve(root, "DESIGN.md"));
     return { candidates };
@@ -490,7 +491,7 @@ const USAGE = `tokens.json → tokens.css
   node packages/tokens/scripts/build-tokens.mjs --help
 
 环境变量：
-  TOKENS_DESIGN_DOC   覆盖 designDoc 解析（相对仓库根或绝对路径），默认 docs/DESIGN.md
+  TOKENS_DESIGN_DOC   严格覆盖 designDoc 路径（相对仓库根或绝对路径），写错即报错；默认 docs/DESIGN.md
   TOKENS_REPO_ROOT    覆盖仓库根探测（包被安装进 node_modules 时用）`;
 
 export function build({ check = false, log = console.log } = {}) {
