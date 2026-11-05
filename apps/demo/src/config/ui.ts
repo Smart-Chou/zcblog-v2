@@ -1,4 +1,4 @@
-// UI相关配置（M3-6 示例 overlay：导航/页脚沿用主题默认，社交链接换为示例账号）
+// UI相关配置（M3-6 示例 overlay：导航沿用主题默认，社交/友链/随笔/赞赏入口换成示例值）
 
 /**
  * 主导航链接
@@ -36,6 +36,63 @@ export interface FriendsPageConfig {
     title: string; // 标题
     note: string; // 描述
     friendLinkApplyUrl?: string; // 友链申请入口（如 GitHub Issue 表单链接；留空则不显示按钮）
+    /**
+     * 友链数据槽位（注入点，P-05）：站点把自己的友链 JSON 放在 `src/data/<dataFile>`。
+     * - 留空串 = 不启用数据 → 页面走空态（构建照常通过）
+     * - 文件缺失 = 空态；文件内容坏 = 错误态（见 src/data/adapters/friends.ts）
+     * 这里只放「槽位指针」，不放任何友链内容本身。
+     */
+    dataFile?: string;
+}
+
+/**
+ * 随笔页面配置（P-06 注入点）
+ */
+export interface TalksPageConfig {
+    /**
+     * 随笔数据槽位：站点把自己的 Blinko / memos 抓取产物放在 `src/data/<dataFile>`。
+     * - 留空串 = 不启用数据 → 页面走空态（构建照常通过）
+     * - 文件缺失 = 空态；文件内容坏 = 错误态（见 src/data/adapters/talks.ts）
+     * 这里只放「槽位指针」，不放任何随笔内容本身。
+     */
+    dataFile?: string;
+    /** 随笔来源实例（hero 上的「去 Blinko 看」入口）；留空不渲染。 */
+    sourceUrl?: string;
+    /** 来源名（用于入口文案，缺省 Blinko）。 */
+    sourceName?: string;
+}
+
+/**
+ * 赞赏收款方式（P-07 注入点的一条）。
+ *
+ * 形状与 `src/data/adapters/donate.ts` 的 `DonateAccountConfig` 一致，但**故意不 import**
+ * adapter 的类型：config 是数据层的最上游，不该反向依赖数据适配层。
+ */
+export interface DonateAccountItem {
+    id?: string; // 稳定键（i18n 回退/去重）
+    label?: string; // 展示名；缺省时页面按 id 查 i18n
+    icon?: string; // iconify 图标名
+    kind?: "qr" | "link"; // 缺省按「有二维码=qr，有链接=link」推断
+    qr?: string; // 二维码文件名（src/assets/qr/ 下）
+    href?: string; // 跳转目标（绝对 http(s)）
+    account?: string; // 账号文本（如邮箱）
+    note?: string; // 一句说明
+}
+
+/**
+ * 赞赏页面配置（P-07 注入点）
+ */
+export interface DonatePageConfig {
+    /**
+     * 账本槽位：站点赞赏记录 JSON 的位置（默认 donators.json）。
+     * 留空 / 缺失 = 空态；内容坏 = 错误态；两种都是页面状态，路由永远 200。
+     */
+    dataFile?: string;
+    /**
+     * 收款方式注入。**空数组 = 一种都不渲染**（页面给「未配置」提示，不产生空 <img>）；
+     * 每条都必须是「有二维码文件 或 有 http(s) 链接」的完整方式，缺字段的会被 adapter 丢掉。
+     */
+    accounts?: DonateAccountItem[];
 }
 
 /**
@@ -57,6 +114,18 @@ export interface FooterItem {
 export const navLinks: NavLink[] = [
     { label: "首页", href: "/" },
     { label: "博客", href: "/blog/1/" },
+    // C-1（M2-7a）：项目 / 技能两页。
+    { label: "项目", href: "/projects/" },
+    { label: "技能", href: "/skills/" },
+    // C-1（M2-7b）：设备 / 游戏两页。
+    { label: "设备", href: "/devices/" },
+    { label: "游戏", href: "/games/" },
+    // C-2（M2-8a）：时间线。
+    { label: "时间线", href: "/timeline/" },
+    // C-2（M2-8b）：音乐。
+    { label: "音乐", href: "/music/" },
+    // C-2（M2-9）：文化聚合入口（番剧 / 豆瓣 / 音乐）。
+    { label: "文化", href: "/culture/" },
     { label: "随笔", href: "/talks/" },
     { label: "相册", href: "/albums/" },
     { label: "番剧", href: "/bangumi/" },
@@ -70,6 +139,13 @@ export const navLinks: NavLink[] = [
  * 导航栏配置
  */
 export const categories: CategoryItem[] = [
+    {
+        url: "//example.com/feed",
+        title: "🥳 Feed",
+        style: "color: orange",
+        target: "_blank",
+        svg: "tabler:brain",
+    },
     {
         url: "/albums/",
         title: "📷 Albums",
@@ -105,10 +181,10 @@ export const categories: CategoryItem[] = [
  */
 export const socialLinks: SocialLinkItem[] = [
     {
-        url: "//github.com/dogeared-demo",
-        title: "🔗 @dogeared-demo",
+        url: "//demo.example.com",
+        title: "🚀 Portfolio",
         style: "color: var(--color-text)",
-        svg: "mingcute:github-line",
+        svg: "mingcute:world-2-fill",
     },
     {
         url: "//x.com/dogeared_demo",
@@ -122,6 +198,12 @@ export const socialLinks: SocialLinkItem[] = [
         style: "color: #179cde",
         svg: "logos:telegram",
     },
+    {
+        url: "//github.com/dogeared-demo",
+        title: "🔗 @dogeared-demo",
+        style: "color: var(--color-text)",
+        svg: "mingcute:github-line",
+    },
 ];
 
 /**
@@ -130,8 +212,34 @@ export const socialLinks: SocialLinkItem[] = [
 export const friendsPage: FriendsPageConfig = {
     title: "Friends",
     note: "欢迎申请友链，在评论区留下你的博客信息即可。",
-    // 可选：GitHub Issue 表单形式的友链申请入口（配套 .github/ISSUE_TEMPLATE/friend-link.yml）
     friendLinkApplyUrl: "",
+    // 数据槽位指针：站点友链 JSON 的位置（src/data/friends.json）。内容不进配置。
+    dataFile: "friends.json",
+};
+
+/**
+ * 随笔页面配置（P-06）：只放槽位指针与来源入口，随笔内容在站点数据文件里
+ */
+export const talksPage: TalksPageConfig = {
+    dataFile: "talks.json",
+    sourceUrl: "",
+    sourceName: "Blinko",
+};
+
+/**
+ * 赞赏页面配置（P-07）：账本槽位 + 收款方式注入
+ *
+ * 收款方式的展示名故意留空：页面按 id 查 i18n（donate.wechatPay / donate.alipay），
+ * 只有通行全语言的（PayPal）才写死 label。二维码只写文件名，解析归页面（astro:assets）。
+ *
+ * 示例站只留二维码，不挂任何真实收款链接。
+ */
+export const donatePage: DonatePageConfig = {
+    dataFile: "donators.json",
+    accounts: [
+        { id: "wechat", icon: "mingcute:wechat-pay-line", qr: "wechat-pay.png" },
+        { id: "alipay", icon: "mingcute:alipay-line", qr: "alipay.jpg" },
+    ],
 };
 
 /**
@@ -154,7 +262,7 @@ export const footerList: FooterItem[] = [
         logo: "astro",
         logoColor: "red",
         labelColor: "cyan",
-        url: "//github.com/Smart-Chou/dogeared",
+        url: "//github.com/Smart-Chou/zcblog",
     },
 ];
 

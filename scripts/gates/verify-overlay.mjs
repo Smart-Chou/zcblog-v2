@@ -247,8 +247,13 @@ export function validateOverlay(root, overlayRel) {
             continue;
         }
         summary.configs += 1;
-        const baseline = path.join(root, "theme-template", rel);
-        if (!existsSync(baseline)) continue; // 基线缺失不是 overlay 的错
+        // 形状真值取主题当前版本（`src/config/<name>`，主题代码就是照它 import 的）；
+        // `theme-template/` 是分发快照，可能比主题代码旧（R-50 的漂移源），只在根文件缺失时兜底。
+        const baseline = [
+            path.join(root, "src/config", name),
+            path.join(root, "theme-template/src/config", name),
+        ].find((candidate) => existsSync(candidate));
+        if (!baseline) continue; // 主题侧也没有 = 不是 overlay 的错
         const want = exportNames(readFileSync(baseline, "utf8"));
         const got = new Set(exportNames(readFileSync(abs, "utf8")));
         const missing = want.filter((symbol) => !got.has(symbol));
@@ -264,7 +269,8 @@ export function validateOverlay(root, overlayRel) {
         const url = source.match(/\burl:\s*"([^"]*)"/)?.[1] ?? "";
         const domains = source.match(/\bdomains:\s*\[([^\]]*)\]/)?.[1] ?? "";
         if (!title.trim()) problems.push("src/config/site.ts 的 site.title 为空");
-        if (!/^https?:\/\/\S+$/.test(url)) problems.push(`src/config/site.ts 的 site.url 不是绝对地址：${url || "（空）"}`);
+        if (!/^https?:\/\/\S+$/.test(url))
+            problems.push(`src/config/site.ts 的 site.url 不是绝对地址：${url || "（空）"}`);
         if (!domains.trim()) problems.push("src/config/site.ts 的 site.domains 为空");
         info.push(`site: title=「${title}」 url=${url}`);
     }
@@ -307,7 +313,9 @@ export function validateOverlay(root, overlayRel) {
             problems.push(`${rel}：overlay 只允许新增 src/styles/site.css（§4.2）`);
     }
 
-    info.push(`files=${summary.files} configs=${summary.configs} articles=${summary.articles} data=${summary.data}`);
+    info.push(
+        `files=${summary.files} configs=${summary.configs} articles=${summary.articles} data=${summary.data}`,
+    );
     return { ok: problems.length === 0, problems, info, summary };
 }
 

@@ -1,4 +1,4 @@
-// 服务页面配置（M3-6 示例 overlay：服务项沿用占位内容，联系方式换成示例值）
+// 服务页面配置（M3-6 示例 overlay：服务项为示例内容，联系方式为示例值）
 
 /**
  * 定价模式
@@ -52,6 +52,9 @@ export const servicesZh: ServiceItem[] = [
 ];
 
 /**
+ * 英文服务数据
+ */
+/**
  * 联系方式配置
  */
 export interface ContactInfo {
@@ -81,9 +84,6 @@ export const contactEn: ContactInfo = {
     email: "demo@example.com",
 };
 
-/**
- * 英文服务数据
- */
 export const servicesEn: ServiceItem[] = [
     {
         id: "example-a",

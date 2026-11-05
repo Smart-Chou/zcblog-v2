@@ -72,7 +72,14 @@ const NON_RUNTIME = [
 ];
 
 /** `theme-template/` 里属于分发说明、不属于站点树的文件（装配时丢弃）。 */
-const BASELINE_DROP = ["package.json", "README.md", ".gitignore", "docs/", "screenshots/", ".github/"];
+const BASELINE_DROP = [
+    "package.json",
+    "README.md",
+    ".gitignore",
+    "docs/",
+    "screenshots/",
+    ".github/",
+];
 
 /** overlay 目录里不装配的文件：README 是 overlay 的说明，不是站点文件。 */
 const OVERLAY_DROP = ["README.md"];
@@ -102,14 +109,18 @@ const isDropped = (rel, dropList) =>
     dropList.some((drop) => (drop.endsWith("/") ? rel.startsWith(drop) : rel === drop));
 
 function slugOf(dir) {
-    return path.basename(dir).replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+    return path
+        .basename(dir)
+        .replace(/[^a-z0-9-]/gi, "-")
+        .toLowerCase();
 }
 
 /* ───────────────────────── 分层 ───────────────────────── */
 
 function buildLayers({ overlayRel }) {
     const loaded = loadManifest(scriptRoot);
-    if (!loaded.ok) die(1, [`site.manifest.json 不可用：`, ...loaded.problems.map((p) => `  ${p}`)]);
+    if (!loaded.ok)
+        die(1, [`site.manifest.json 不可用：`, ...loaded.problems.map((p) => `  ${p}`)]);
     const manifest = loaded.manifest;
     const compiled = compileManifest(manifest);
     if (compiled.overrideConflicts.length) die(1, compiled.overrideConflicts);
@@ -200,7 +211,9 @@ function retagPackageJson(outDir, { overlayRel, overlayName, manifest }) {
     const file = path.join(outDir, "package.json");
     if (!existsSync(file)) return null;
     const pkg = JSON.parse(readFileSync(file, "utf8"));
-    const themeBase = String(pkg.name ?? "site").split("/").pop();
+    const themeBase = String(pkg.name ?? "site")
+        .split("/")
+        .pop();
     const base = overlayName ? slugOf(overlayName) : slugOf(overlayRel);
     pkg.name = `${themeBase}-${base}`;
     pkg.description = `${overlayRel} 装配产物（theme ${manifest.theme?.name ?? "?"} ${manifest.theme?.version ?? "?"}）`;
@@ -239,17 +252,16 @@ function ensureDeps(outDir, { install }) {
 }
 
 function runBuild(outDir) {
-    const astro = path.join(outDir, "node_modules/astro/astro.js");
+    const astro = path.join(outDir, "node_modules/astro/bin/astro.mjs");
     if (!existsSync(astro)) die(1, `找不到 ${astro}（依赖未就绪）`);
     execFileSync(process.execPath, [astro, "build"], { cwd: outDir, stdio: "inherit" });
     const collapse = path.join(outDir, "scripts/postbuild/collapse-html-whitespace.mjs");
-    if (existsSync(collapse)) execFileSync(process.execPath, [collapse, "dist"], { cwd: outDir, stdio: "inherit" });
+    if (existsSync(collapse))
+        execFileSync(process.execPath, [collapse, "dist"], { cwd: outDir, stdio: "inherit" });
 }
 
 const countHtml = (dir) =>
-    existsSync(dir)
-        ? walkFiles(dir).filter((file) => file.endsWith(".html")).length
-        : 0;
+    existsSync(dir) ? walkFiles(dir).filter((file) => file.endsWith(".html")).length : 0;
 
 /** 从 overlay 的 site.ts 取标题（只用于「overlay 是否真的生效」的产物断言）。 */
 function overlayTitle(overlayRel) {
@@ -282,7 +294,9 @@ function main() {
     if (!validated.ok) die(1, "RESULT FAIL  overlay 字段不完整（先修 overlay 再装配）");
     if (has("--check-overlay") && !has("--out")) {
         console.log("");
-        console.log(`RESULT PASS  overlay=${overlayRel} configs=4 articles=${validated.summary.articles} data=${validated.summary.data} files=${validated.summary.files}`);
+        console.log(
+            `RESULT PASS  overlay=${overlayRel} configs=4 articles=${validated.summary.articles} data=${validated.summary.data} files=${validated.summary.files}`,
+        );
         process.exit(0);
     }
 
@@ -305,8 +319,11 @@ function main() {
 
     console.log("");
     console.log(`out: ${outDir}（${outState}）`);
-    for (const layer of layers) console.log(`  ${layer.name.padEnd(9)} ${String(stats[layer.name]).padStart(4)} 文件`);
-    console.log(`  ${"total".padEnd(9)} ${String(stats.unique).padStart(4)} 文件（覆盖 ${stats.overridden} 次）`);
+    for (const layer of layers)
+        console.log(`  ${layer.name.padEnd(9)} ${String(stats[layer.name]).padStart(4)} 文件`);
+    console.log(
+        `  ${"total".padEnd(9)} ${String(stats.unique).padStart(4)} 文件（覆盖 ${stats.overridden} 次）`,
+    );
     console.log(`  site name: ${siteName ?? "（无 package.json）"}`);
 
     if (!has("--build")) {
@@ -328,7 +345,10 @@ function main() {
     const minHtml = Number(argValue("--min-html") ?? 8);
     const title = overlayTitle(overlayRel);
     const indexHtml = path.join(dist, "index.html");
-    const hits = title && existsSync(indexHtml) ? readFileSync(indexHtml, "utf8").split(title).length - 1 : 0;
+    const hits =
+        title && existsSync(indexHtml)
+            ? readFileSync(indexHtml, "utf8").split(title).length - 1
+            : 0;
 
     console.log("");
     console.log("产物");
@@ -339,7 +359,8 @@ function main() {
     const failures = [];
     if (html < minHtml) failures.push(`dist HTML=${html} < ${minHtml}`);
     if (!existsSync(indexHtml)) failures.push("dist/index.html 不存在");
-    if (title && hits < 1) failures.push(`dist/index.html 未出现 overlay 标题「${title}」（overlay 没生效）`);
+    if (title && hits < 1)
+        failures.push(`dist/index.html 未出现 overlay 标题「${title}」（overlay 没生效）`);
 
     console.log("");
     if (failures.length) {

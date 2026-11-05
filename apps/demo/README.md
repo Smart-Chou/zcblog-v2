@@ -49,8 +49,15 @@ node scripts/create-site.mjs --check-overlay apps/demo
 3. 换 `src/content/article/`、`src/data/*.json`
 4. `node scripts/create-site.mjs --overlay apps/<你的站点> --out /tmp/mysite --build`
 
-## 已知限制（不在本卡范围）
+## 已知限制（不在本卡范围，已在本卡评论登记）
 
-- `src/data/i18n/**` 在清单里归 T，但 `zh.json` 的 `site` 块写的是主题作者的站点名；
-  示例站首页的部分文案会带上它。是否改为「i18n 站点块归 O」需 PO 拍板。
-- `src/data/{adapters,entities}/**` 清单归 O，但没有 overlay 基线副本，装配器从仓库根取一份（shim 层）。
+- **示例站会继承少量站点身份串**：`node scripts/create-site.mjs --overlay apps/demo --out /tmp/zcd --build`
+  产物 115 个 HTML 里有 8 个含 `marxchou` 字样 —— 来源两处，都不在 overlay 文件边界内：
+  ① `src/data/entities/**`（清单归 O，但没有占位副本，装配器从仓库根取 shim，`/projects/` 因此显示原作者）；
+  ② 主题自带的设计文档页 `/design/components/*`（T，页面里的演示数据写死在主题）。
+  干净化要么给 `theme-template` 补实体占位，要么把 design 页示例数据外置 —— 需要 PO 拍板。
+- **`src/data/i18n/**` 清单归 T**，但 `zh.json` 的 `site` 块写的是主题作者的站点名；
+  示例站部分文案仍会带上它。「i18n 站点块归 O」同样是待拍板项。
+- **overlay 配置的形状真值取主题当前版本**（`src/config/*.ts`），不是 `theme-template/src/config/*`：
+  后者是 2026-01 的分发快照，比主题代码旧（缺 `talksPage` / `donatePage` 等导出，照它写会构建失败）——
+  这正是 R-50「demo 与主题配置漂移」的实体。

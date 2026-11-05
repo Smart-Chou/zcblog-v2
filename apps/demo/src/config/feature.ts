@@ -1,4 +1,4 @@
-// 功能开关配置（M3-6 示例 overlay：保持模板默认——外部服务全关，开箱即用零配置）
+// 功能开关配置（M3-6 示例 overlay：外部服务全部关闭，示例站零配置即可构建）
 
 /**
  * 网站功能配置
@@ -7,7 +7,7 @@ export interface FeaturesConfig {
     lang: string; // 默认网站语言 en | zh-CN
     PageSize: number; // 文章页面上的文章数
     codeFoldingStartLines: number; // 代码折叠起始行数
-    ga: string | false; // 与Google Analytics集成：填入GA-ID即可启用；false = 关闭
+    ga: string | false; // 如果您想与Google Analytics进行集成，只需在此处输入您的GA-ID即可
     redirect: boolean; // 是否开启链接重定向
     redirectIncludeClass: string[]; // 链接重定向包含的类
     redirectExcludeClass: string[]; // 链接重定向排除的类
@@ -30,7 +30,7 @@ export interface DonateConfig {
     wechatQRCode: string; // 微信二维码图片地址, 图片地址应该放在 public 目录下
     alipayQRCode: string; // 支付宝二维码图片地址, 图片地址应该放在 public 目录下
     paypalQRCode: string; // PayPal二维码图片地址, 图片地址应该放在 public 目录下
-    paypalUrl: string; // PayPal 捐赠地址（留空则不显示 PayPal 卡片）
+    paypalUrl: string; // PayPal 捐赠地址
 }
 
 /**
@@ -38,7 +38,7 @@ export interface DonateConfig {
  */
 export interface WalineConfig {
     enable: boolean; // 是否启用
-    serverUrl: string; // 评论服务器地址（启用时必填，如 https://waline.your-domain.com）
+    serverUrl: string; // 评论服务器地址
     lang: string; // 评论语言
     pageSize: number; // 评论分页大小
     reaction: string[]; // 是否开启表情
@@ -141,7 +141,7 @@ export const postView: ViewConfig = {
  */
 export const donate: DonateConfig = {
     enable: false,
-    tip: "感谢支持！",
+    tip: "示例站点：赞赏功能默认关闭。",
     wechatQRCode: "../assets/qr/wechat-pay.png",
     alipayQRCode: "../assets/qr/alipay.jpg",
     paypalQRCode: "../assets/qr/paypal.png",
@@ -153,7 +153,7 @@ export const donate: DonateConfig = {
  */
 export const waline: WalineConfig = {
     enable: false,
-    serverUrl: "", // 例如 "https://waline.your-domain.com"
+    serverUrl: "",
     lang: "zh-CN",
     pageSize: 16,
     reaction: [],
@@ -179,21 +179,17 @@ export const umami: UmamiConfig = {
 };
 
 /**
- * 热门文章配置（可选：配置 UMAMI_* 环境变量后由 fetch 脚本生成数据，
- * 并把 enable 改为 true 即可在首页显示「近期热门」区块）
+ * 热门文章配置
  */
 export const popular: PopularConfig = {
     enable: false,
     limit: 5,
 };
 
-/**
- * 公告栏配置
- */
 export const notice: NoticeConfig = {
     enable: false,
     title: "示例公告",
-    content: "这是公告栏示例——在 src/config/feature.ts 中把 notice.enable 改为 true 即可启用。",
+    content: "这是示例站的公告栏——把 feature.ts 里的 notice.enable 改成 true 就会显示。",
     path: "",
     key: "notice-demo",
     showOnce: true,
