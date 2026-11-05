@@ -1,4 +1,5 @@
 name: Deploy matrix
+# 注册说明：workflow 文件首次推到默认分支时由 GitHub 扫描注册；之后可用 workflow_dispatch 手动重跑。
 
 # M3-7：同一份源码在三个目标上构建 + 断言产物（**不部署**）。
 # 与 .github/workflows/deploy.yml 的关系：deploy.yml 是「真的发到 GH Pages」的手动流水线，
