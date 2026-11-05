@@ -1,0 +1,18 @@
+{
+    "name": "dogeared-consumer-smoke",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Third-party clean install smoke test for the Dogeared packages (tarball install, no monorepo)",
+    "scripts": {
+        "dev": "astro dev",
+        "build": "astro build",
+        "preview": "astro preview"
+    },
+    "dependencies": {
+        "@marxchou/dogeared-og-image": "file:../../../../../../../../../tmp/dogeared-pack/marxchou-dogeared-og-image-2.1.0.tgz",
+        "@marxchou/dogeared-tokens": "file:../../../../../../../../../tmp/dogeared-pack/marxchou-dogeared-tokens-2.1.0.tgz",
+        "@marxchou/dogeared-ui": "file:../../../../../../../../../tmp/dogeared-pack/marxchou-dogeared-ui-2.1.0.tgz",
+        "astro": "^7.4.6"
+    }
+}

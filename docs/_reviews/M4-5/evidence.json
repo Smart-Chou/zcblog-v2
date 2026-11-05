@@ -1,0 +1,131 @@
+{
+    "card": "M4-5",
+    "task_id": "t_b89c4ce9",
+    "ran_at": "2026-11-06T03:30:00+08:00",
+    "verdict": "PASS",
+    "env": {
+        "os": "macOS 15.7.7",
+        "arch": "x86_64",
+        "node": "v26.0.0",
+        "npm": "11.12.1",
+        "registry": "https://registry.npmjs.org/",
+        "source_commit": "7bc2a46",
+        "repo_git_status_after": "clean (0 lines)"
+    },
+    "install_source": {
+        "kind": "local tarball (npm pack), packages stay private:true",
+        "dir": "/tmp/dogeared-pack",
+        "second_pack_dir": "/tmp/dogeared-pack-run2",
+        "tarballs": {
+            "@marxchou/dogeared-tokens": {
+                "file": "marxchou-dogeared-tokens-2.1.0.tgz",
+                "packed_bytes": 20379,
+                "unpacked_kb": 69.3,
+                "files": 8,
+                "sha256": "6ea9410daa20b0eb4715bb392fa7e90e96da4c6bcaba4f4c4e9eb9f1be5986bc"
+            },
+            "@marxchou/dogeared-ui": {
+                "file": "marxchou-dogeared-ui-2.1.0.tgz",
+                "packed_bytes": 5342,
+                "unpacked_kb": 15.2,
+                "files": 11,
+                "sha256": "a866afcf74e2d95507b90a9ea42849b947ee1c79f3b8a1e9c38a2470fa4c49d3"
+            },
+            "@marxchou/dogeared-og-image": {
+                "file": "marxchou-dogeared-og-image-2.1.0.tgz",
+                "packed_bytes": 10852,
+                "unpacked_kb": 46.5,
+                "files": 13,
+                "sha256": "e190111c0c2995d5f197cfb6e28a99355e70b9fc3be2e7d6e6df7e81b5e129f7"
+            }
+        },
+        "repack_reproducible": "two independent npm pack runs -> byte-identical sha256 for all three tarballs"
+    },
+    "runs": [
+        {
+            "id": "run1",
+            "dir": "~/.hermes/profiles/blog-qa/cache/scratch/m4-5/consumer-run1",
+            "install": [
+                "npm init -y",
+                "npm install astro@^7.3.6 (cold: 28.81s, 193 pkgs)",
+                "npm install <3 tgz> (4.23s, 25 pkgs)"
+            ],
+            "astro_version": "7.4.6",
+            "build_seconds": 6.41,
+            "og_route_seconds": 4.01,
+            "dist_sha256": {
+                "index.html": "1fac43fc23e0a714075416ceddddcc9b523db9b3e6f7e3c40af8a07e4e765002",
+                "_astro/index.DJmOVShS.css": "ad906cad9f32785f5b2ef9f95a4c3d9b71942551001f137a321e5f36ea283d7c",
+                "og/hello.png": "96e6b0642dd1054831266584bf08df9f0b5f8745937ad83c03185b5bc28bc3f0"
+            }
+        },
+        {
+            "id": "run2",
+            "dir": ".../consumer-run2",
+            "install": [
+                "npm install astro@^7.3.6 (warm: 6.69s)",
+                "npm install <3 tgz from /tmp/dogeared-pack-run2> (2.09s)"
+            ],
+            "build_seconds": 9.75,
+            "og_route_seconds": 7.23,
+            "dist_sha256_identical_to_run1": true
+        },
+        {
+            "id": "run3",
+            "dir": ".../consumer-run3-one-shot",
+            "install": [
+                "single command: npm install astro@^7.3.6 <3 tgz> (warm: 7.32s, 217 pkgs, 0 npm warn lines)"
+            ],
+            "build_seconds": 5.81,
+            "og_route_seconds": 3.23,
+            "dist_sha256_identical_to_run1": true
+        },
+        {
+            "id": "run4",
+            "dir": ".../consumer-run4-no-astro",
+            "install": ["npm install <3 tgz only> (3.74s) — no astro pulled (optional peer)"],
+            "npm_ls_whole_tree_exit": 0,
+            "unmet_count": 25,
+            "unmet_non_optional": 0
+        }
+    ],
+    "artifacts": {
+        "dist_files": [
+            "index.html (1089 B)",
+            "_astro/index.DJmOVShS.css (23161 B)",
+            "og/hello.png (48269 B)"
+        ],
+        "dist_total": "76 KB",
+        "png_geometry": "1200x630 png",
+        "css_custom_properties": 236
+    },
+    "verification": {
+        "absolute_path_in_dist": 0,
+        "absolute_path_in_installed_packages": 0,
+        "file_or_workspace_spec_in_installed_package_json": 0,
+        "absolute_path_in_tarball_payload": 0,
+        "secret_pattern_hits": 0,
+        "npm_ls_peer_missing_non_optional": 0,
+        "npm_warn_lines_single_command_install": 0,
+        "ebadengine_for_dogeared_packages": 0,
+        "component_markup": { "badge": 3, "button": 2 },
+        "bare_node_entry_probe": {
+            "tokens_root": "resolves to tokens.css",
+            "ui_badge_astro": "resolves to dist/Badge.astro",
+            "og_image_import": "OK, exports createOgImageRoute",
+            "og_route_call": "200 image/png 31895 B; unknown slug -> 404",
+            "ui_bare_node_import": "ERR_UNKNOWN_FILE_EXTENSION (documented, expected)"
+        }
+    },
+    "warnings_seen": {
+        "npm_audit": "2 moderate — satori 0.26.0 (GHSA-wx4j-mvgx-mqwp, range 0.0.27-0.33.4, no fix available inside ^0.26.0)",
+        "font_download": "16.8 MB Noto Sans SC fetched from raw.githubusercontent.com per fresh project (cached in <cwd>/.astro/fonts)",
+        "node22_subrun": "background sub-run under node 22.23.1 -> EBADENGINE only for astro/@astrojs/prism/@astrojs/telemetry (astro 7.4.6 requires >=22.23.4); no EBADENGINE for the three Dogeared packages"
+    },
+    "not_done": [
+        "no npm publish, no registry publish, no dist-tags",
+        "no changes to packages/** (only gitignored dist/ rebuild by prepack)",
+        "no changes to production site or deploy pipeline",
+        "no git commit/push"
+    ]
+}

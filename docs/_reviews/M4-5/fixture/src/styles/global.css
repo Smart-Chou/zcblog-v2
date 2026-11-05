@@ -1,0 +1,16 @@
+@layer variables;
+
+@import "@marxchou/dogeared-tokens/variables.css" layer(variables);
+@import "@marxchou/dogeared-tokens/tokens.css" layer(variables);
+
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    margin: 0;
+    padding: 2rem;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+}

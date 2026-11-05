@@ -1,0 +1,50 @@
+---
+import "@marxchou/dogeared-tokens/tokens.css";
+import "../styles/global.css";
+import { Badge, Button } from "@marxchou/dogeared-ui";
+
+const stats = [
+    { label: "tokens", value: "2.1.0" },
+    { label: "ui", value: "2.1.0" },
+    { label: "og-image", value: "2.1.0" },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Dogeared · third-party consumer smoke</title>
+        <meta property="og:image" content="/og/hello.png" />
+    </head>
+    <body>
+        <main>
+            <h1>Dogeared 第三方安装冒烟</h1>
+            <p>三个包来自本地 tarball，本页面由空目录里的 Astro 项目构建。</p>
+
+            <p>
+                <Badge variant="tip" size="sm">New</Badge>
+                <Badge variant="success" size="md">Installed</Badge>
+                <Badge variant="warning" size="lg">Private</Badge>
+            </p>
+
+            <p>
+                <Button href="/archives/" variant="primary">Archive</Button>
+                <Button href="/og/hello.png" variant="secondary">OG image</Button>
+            </p>
+
+            <ul>
+                {
+                    stats.map((s) => (
+                        <li>
+                            <code>{s.label}</code> @ {s.value}
+                        </li>
+                    ))
+                }
+            </ul>
+
+            <img src="/og/hello.png" alt="Generated OG image" width="600" height="315" />
+        </main>
+    </body>
+</html>
