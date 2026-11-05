@@ -50,3 +50,18 @@ AUDIT_BASELINE=0 pnpm exec playwright test e2e/export-audit.spec.ts --reporter=l
 - nightly 尚未接 Lark/Issue 自动通知；先依赖 GitHub 失败通知与 job summary，后续可加。
 - `export-audit.spec.ts` 全量单 worker 约 15 分钟；如果夜间窗口吃紧，再按 `--shard` 拆 4 个 job（需共享 dist artifact）。
 - `AUDIT_SHOTS` 默认关闭；CI 不写截图，截图仍由需要时手动开。
+
+## CI 实跑证据（2026-11-05，commit `6b17686`）
+
+| Run | 结果 | 说明 |
+|---|---|---|
+| [CI](https://github.com/Smart-Chou/zcblog-v2/actions/runs/41990663638) | success | lint/type/unit/contract/gates 全绿 |
+| [A11y PR smoke](https://github.com/Smart-Chou/zcblog-v2/actions/runs/41990663519) | success | 11 代表路由 + 文章，36 passed |
+| [Perf](https://github.com/Smart-Chou/zcblog-v2/actions/runs/41990663417) | success | dist 预算 0 超支 |
+| [A11y nightly](https://github.com/Smart-Chou/zcblog-v2/actions/runs/41990680450) | success | 586 页全量 strict，600+ passed |
+
+**接线时修掉的三处问题**（详见 `blog2.0/docs/decision-log.md` D-0115）：
+
+1. Linux axe 暴露 pagefind 搜索快捷键 chip 在 dark 下的低对比度 → `src/styles/search-global.css` 落 dark token。
+2. `verify-component-inventory` I7b 与 I4 规则矛盾（page-organism 必须 debt、0 引用又必须 dead）→ I7b 只判 UI/layout。
+3. 一言组件 crossfade 瞬态被 axe 撞成假红 → `export-audit.spec.ts` 拦掉 `v1.hitokoto.cn`，只测稳态。
