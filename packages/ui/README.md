@@ -33,7 +33,9 @@ Link styled as a button (`<a>`, not `<button>`).
 ## Install (after publish)
 
 The package name is declared in `package.json` (`name`); substitute its scope for
-`<npm-scope>` below.
+`<npm-scope>` below. `@<npm-scope>` is a **placeholder on purpose** — the package boundary gate
+(B2) forbids writing the organisation identity into package files, so the scope is filled in
+after the first publish.
 
 ```bash
 npm install @<npm-scope>/dogeared-ui
@@ -62,9 +64,16 @@ The components expect the theme's token variables on `:root` (`--radius-full`, `
 
 ## Requirements
 
-- Peer dependency: `astro` `^7.3.6` (the components are `.astro` files resolved by Astro's
-  Vite pipeline; they are not compiled to plain JS).
-- No runtime dependencies.
+- **Astro / Vite only.** The published API is `.astro` components: Astro's compiler turns them
+  into render functions at build time, so they **cannot** be imported by bare Node — `import`
+  of the package entry fails on the `.astro` extension. This is by design, not a broken tarball:
+  the entry (`dist/index.js`) is plain ESM, but every re-export target is an `.astro` file.
+- What ships: `dist/` (the two components + `index.js` / `index.d.ts`) and `src/` (source of
+  truth). Import them the way the Usage section shows, from inside an Astro project.
+- Peer dependency: `astro` `^7.3.6` — declared **optional** (`peerDependenciesMeta`), because
+  nothing is loaded from Astro at runtime; Astro is the compiler, not a runtime dependency.
+- No runtime dependencies, no devDependencies. Node.js `>=22` only for the maintenance scripts
+  (rebuilding `dist/` with `npm run build`).
 
 ## License
 

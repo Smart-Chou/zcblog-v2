@@ -1,5 +1,5 @@
 /**
- * 包 `zcblog-og-image` 的公开类型。
+ * 包 `dogeared-og-image` 的公开类型。
  *
  * 接口按 `blog2.0/docs/21-m3-plan.md` §3.3 冻结：
  *

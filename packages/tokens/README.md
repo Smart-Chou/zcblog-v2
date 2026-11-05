@@ -21,7 +21,9 @@ dependencies, no PostCSS/Sass build step.
 ## Install (after publish)
 
 The package name is declared in `package.json` (`name`); substitute its scope for
-`<npm-scope>` below.
+`<npm-scope>` below. `@<npm-scope>` is a **placeholder on purpose** — the package boundary gate
+(B2) forbids writing the organisation identity into package files, so the scope is filled in
+after the first publish.
 
 ```bash
 npm install @<npm-scope>/dogeared-tokens
@@ -38,6 +40,12 @@ generated token block, in the same cascade layer.
 @import "@<npm-scope>/dogeared-tokens/variables.css" layer(variables);
 @import "@<npm-scope>/dogeared-tokens/tokens.css" layer(variables);
 ```
+
+The package root (`@<npm-scope>/dogeared-tokens`) resolves to `tokens.css`, so a single
+side-effect import works in bundlers that accept a CSS entry: `import "@<npm-scope>/dogeared-tokens";`
+— it does **not** create the `variables.css` primitive layer, so load that one first (as above)
+unless you define the primitives yourself. There is no JavaScript entry: Node can only read the
+files (`./tokens.json`, `./tokens.css`), which is why everything is exported by path.
 
 Read the raw source when tooling needs the values (dashboards, docs, generators):
 
@@ -58,7 +66,7 @@ npx dogeared-tokens-build --check  # exit 1 if tokens.css drifted from tokens.js
 
 ## Requirements
 
-- Node.js 22 or 24 (for the compiler; the stylesheets themselves are plain CSS).
+- Node.js `>=22` (only for the compiler; the stylesheets themselves are plain CSS).
 - No runtime dependencies, no peer dependencies.
 
 ## License

@@ -36,7 +36,9 @@ omitting them reproduces the theme's default layout exactly.
 ## Install (after publish)
 
 The package name is declared in `package.json` (`name`); substitute its scope for
-`<npm-scope>` below.
+`<npm-scope>` below. `@<npm-scope>` is a **placeholder on purpose** — the package boundary gate
+(B2) forbids writing the organisation identity into package files, so the scope is filled in
+after the first publish.
 
 ```bash
 npm install @<npm-scope>/dogeared-og-image
@@ -80,10 +82,28 @@ loudly rather than rendering without a font.
 
 ## Requirements
 
-- Peer dependency: `astro` `^7.3.6` (route handlers are `APIRoute`).
-- Dependencies: `satori`, `sharp` (both installed automatically; `sharp` ships prebuilt
-  binaries for common platforms).
-- Node.js 22 or 24.
+- Node.js `>=22` (ESM only). No native build step on your side.
+- Dependencies: `satori`, `sharp` (both installed automatically; `sharp` ships prebuilt binaries
+  for common platforms).
+- Peer `astro` `^7.3.6` is declared **optional** (`peerDependenciesMeta`): no Astro code is
+  loaded at runtime — only the `APIRoute` return type comes from it. Install `astro` yourself if
+  you want full type checking in an Astro project; npm will not pull it in for you.
+- The published entry is **compiled ESM** (`dist/index.js` + `dist/index.d.ts`), not TypeScript
+  source: bare Node, `tsx`, bundlers and Astro all resolve it. `dist/` is rebuilt by
+  `npm run build` (also wired to `prepack`), so a git/tarball install without `dist/` only needs
+  one `npm run build` inside the package.
+
+## Usage outside Astro
+
+The factory returns a plain `(context) => Promise<Response>` handler — nothing Astro-specific
+happens at runtime, so any HTTP server or prerender script can call it:
+
+```js
+import { createOgImageRoute } from "@<npm-scope>/dogeared-og-image";
+
+const GET = createOgImageRoute({ posts, site, theme });
+const response = await GET({ params: { og: "my-post" } }); // 200 + image/png
+```
 
 ## License
 

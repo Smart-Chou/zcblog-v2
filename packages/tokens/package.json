@@ -24,11 +24,16 @@
         "NOTICE"
     ],
     "exports": {
+        ".": "./tokens.css",
         "./tokens.json": "./tokens.json",
         "./tokens.css": "./tokens.css",
         "./variables.css": "./variables.css",
         "./scripts/build-tokens.mjs": "./scripts/build-tokens.mjs",
         "./package.json": "./package.json"
+    },
+    "scripts": {
+        "build": "node scripts/build-tokens.mjs",
+        "test": "node --test test/smoke.test.mjs"
     },
     "bin": {
         "dogeared-tokens-build": "./scripts/build-tokens.mjs"
@@ -37,6 +42,6 @@
         "**/*.css"
     ],
     "engines": {
-        "node": "^22.0.0 || ^24.0.0"
+        "node": ">=22"
     }
 }
