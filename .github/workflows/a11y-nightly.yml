@@ -3,7 +3,13 @@ name: A11y nightly
 # 全站 axe 审计：586 页（含 8 个 locale 骨架）× dark，严格零容忍。
 # 每天 HKT 03:00（UTC 19:00）跑一次；不阻塞 PR。
 #
-# 当前实测：单 worker 约 15 分钟（AUDIT_SHOTS 关闭）；失败上传 audit-data 与 Playwright report。
+# 失败通知：notify-failure job 把失败落成可复用的 GitHub Issue
+# （已有同名 open issue 就追加评论，不每天刷屏）。
+#
+# 负向验证：workflow_dispatch 的 force_fail 让审计步骤直接失败，
+# 用来证明「失败 → Issue」这条链路真的会红，不需要改源码。
+#
+# 当前实测：单 worker 约 8–15 分钟（AUDIT_SHOTS 关闭）；失败上传 audit-data 与 Playwright report。
 # 候选优化（先不接）：按 --shard 拆 4 个 job + 共享 dist artifact；只有夜间时长成为问题时再做。
 
 on:
@@ -11,6 +17,12 @@ on:
         # GitHub Actions cron 是 UTC；19:00 UTC = 03:00 次日 HKT
         - cron: "0 19 * * *"
     workflow_dispatch:
+        inputs:
+            force_fail:
+                description: "负向验证：让审计步骤直接失败（用于验证失败会开 Issue）"
+                type: boolean
+                required: false
+                default: false
 
 concurrency:
     group: a11y-nightly
@@ -78,8 +90,13 @@ jobs:
                   # 不设 AUDIT_ROUTES：分母 = dist/ 里全部 HTML（当前 586 页）
                   AUDIT_DATA_DIR: ${{ runner.temp }}/a11y-audit-data
                   AUDIT_SHOT_DIR: ${{ runner.temp }}/a11y-audit-shots
+                  FORCE_FAIL: ${{ inputs.force_fail || false }}
               run: |
                   mkdir -p "$AUDIT_DATA_DIR" "$AUDIT_SHOT_DIR"
+                  if [ "$FORCE_FAIL" = "true" ]; then
+                    echo "::error::A11y nightly 负向验证：FORCE_FAIL=true，审计按设计失败"
+                    exit 1
+                  fi
                   pnpm exec playwright test e2e/export-audit.spec.ts \
                     --reporter=list --retries=0
 
@@ -95,3 +112,46 @@ jobs:
                       playwright-report/
                   retention-days: 14
                   if-no-files-found: ignore
+
+    # 失败通知：把 run 落成 GitHub Issue（复用同名 open issue，避免每天刷屏）。
+    # GITHUB_TOKEN 的 issues:write 由 job 级 permissions 授予；Issues 已在仓库开启。
+    notify-failure:
+        name: notify (open or update issue)
+        needs: a11y-full
+        if: failure()
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            contents: read
+            issues: write
+
+        steps:
+            - name: Open or comment on tracking issue
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  COMMIT_SHA: ${{ github.sha }}
+                  TRIGGER: ${{ github.event_name }}
+                  RUN_CONCLUSION: ${{ needs.a11y-full.result }}
+              run: |
+                  TITLE="A11y nightly audit failing"
+                  BODY=$(cat <<EOF
+                  ## A11y nightly 全量审计失败
+
+                  - Run: $RUN_URL
+                  - Commit: \`$COMMIT_SHA\`
+                  - 触发: $TRIGGER · job 结果: $RUN_CONCLUSION
+                  - 证据 artifact: \`a11y-nightly-evidence\`（audit-data + playwright-report）
+
+                  修复后请关闭本 Issue；复现负向验证: \`gh workflow run a11y-nightly.yml -f force_fail=true\`
+                  EOF
+                  )
+                  EXISTING=$(gh issue list --state open --limit 100 --json number,title \
+                    --jq "[.[] | select(.title == \"$TITLE\") | .number][0] // empty")
+                  if [ -n "$EXISTING" ]; then
+                    echo "已有 open issue #$EXISTING，追加本次 run 评论"
+                    gh issue comment "$EXISTING" --body "$BODY"
+                  else
+                    echo "新建 tracking issue"
+                    gh issue create --title "$TITLE" --body "$BODY"
+                  fi
