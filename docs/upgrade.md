@@ -161,13 +161,15 @@ node scripts/gates/verify-m3-exit.mjs P1 P7        # 只跑指定项
 node scripts/gates/verify-m3-exit.mjs --all --work /tmp/x --keep   # 换临时目录 / 保留取证
 ```
 
-| 项 | 判据（PASS 条件） | 本次实测（2026-11-05，多次运行区间） |
+| 项 | 判据（PASS 条件） | 本次实测（2026-11-05） |
 |---|---|---|
-| **P1 可安装** | 新 out 目录装配 `apps/demo` + **真实** `pnpm install --frozen-lockfile` + `astro build`，墙钟 ≤ 30:00，`dist` HTML ≥ 8 | 27.8–57.4s · 118 HTML · node_modules 真实安装 |
-| **P2 可配置** | 改 overlay 副本的 `site.ts` 标题/域名后重新装配构建：`git status --porcelain -- src/components packages` 空行，且新标题出现在 `dist/index.html` | 25.0–46.5s · 主题侧 0 行 · 新标题命中 11 次 |
-| **P3 可升级** | ① dry-run 打印 `theme_changed>0 overlay_changed=0 unclassified_changed=0`；② 干净 clone 上 `install + --apply + build:ci + check-tokens + perf-budget + verify-overlay` 全 exit 0，墙钟 ≤ 30:00，O 侧 `git diff` 0 行，演练文案进产物；③ `git reset --hard` 后工作区 0 行 | 33.5–69.8s · `theme_changed=3 overlay_changed=0` · O 侧 0 行 · 回滚 0 行 |
-| **P7 质量** | clean clone（`git clone --depth 1 file://<repo>`，0 篇文章）`install + build:ci + verify-overlay + verify-package-boundary + check-tokens + perf-budget` 全 exit 0 | 33.8–76.3s · 0 文章 · 110 HTML · 4 条门禁全绿 |
-| **P10 客户零** | `theme.ref`（发布 tag）存在；`git diff <ref>..HEAD` 的 T 侧 0 个变更；装配产物的每个 T 文件与该 tag 的 blob **逐字节相同**（例外：`package.json` 由装配按设计改 name/description；baseline 层 `theme-template/{src,public}` 覆盖的同名 T 文件比该层自己的 blob；符号链接不比内容） | 见 `docs/_reviews/M3-exit/report.md` |
+| **P1 可安装** | 新 out 目录装配 `apps/demo` + **真实** `pnpm install --frozen-lockfile` + `astro build`，墙钟 ≤ 30:00，`dist` HTML ≥ 8 | PASS · 118 HTML · node_modules 真实安装 |
+| **P2 可配置** | 改 overlay 副本的 `site.ts` 标题/域名后重新装配构建：`git status --porcelain -- src/components packages` 空行，且新标题出现在 `dist/index.html` | PASS · 主题侧 0 行 · 新标题命中 11 次 |
+| **P3 可升级** | ① dry-run 打印 `theme_changed>0 overlay_changed=0 unclassified_changed=0`；② 干净 clone 上 `install + --apply + build:ci + check-tokens + perf-budget + verify-overlay` 全 exit 0，墙钟 ≤ 30:00，O 侧 `git diff` 0 行，演练文案进产物；③ `git reset --hard` 后工作区 0 行 | PASS · `theme_changed=3 overlay_changed=0` · O 侧 0 行 · 回滚 0 行 |
+| **P7 质量** | clean clone（`git clone --depth 1 file://<repo>`，0 篇文章）`install + build:ci + verify-overlay + verify-package-boundary + check-tokens + perf-budget` 全 exit 0 | PASS · 0 文章 · 110 HTML · 4 条门禁全绿 |
+| **P10 客户零** | `theme.ref`（发布 tag）存在；`git diff <ref>..HEAD` 的 T 侧 0 个变更；装配产物的每个 T 文件与该 tag 的 blob **逐字节相同**（例外：`package.json` 由装配按设计改 name/description；baseline 层 `theme-template/{src,public}` 覆盖的同名 T 文件比该层自己的 blob；符号链接不比内容） | PASS · compared=453 mismatch=0 |
+
+> 墙钟不写进判据：本机多次运行每项落在 **25s–2m13s**（最长一次是 P1 的装配+install+build），判据始终是 **≤30:00**。精确数字以 `docs/_reviews/M3-exit/report.md` 里那次运行的原始输出为准 —— 单次秒数不是基线（R-51）。
 
 **计时口径**（P1/P3 都是 30 分钟判据，R-51）：一律「无 `node_modules` 的窄环境 → 装依赖 → 构建」，不在热缓存目录里计时。本机 `pnpm` store 已预热，所以 install 只要数秒；换机器请按同一口径重测，不要拿别人的秒数当基线。
 
@@ -224,8 +226,8 @@ git reset --hard drill/pre-upgrade && git status --porcelain
 | 整段墙钟 | **≈30s**（install + apply + build + 门禁）≪ 30:00 |
 | 回滚 | `reset --hard drill/pre-upgrade` 后 `git status --porcelain` 0 行、`git diff` 0 行 |
 
-> 同一段判据在出口门禁里复跑（`verify-m3-exit P3`）三次分别 69.8s / 37.6s / 33.5s（`build:ci` 65.2s → 28.8s）。
-> 同一台机器、同一条命令、不同次的差异来自磁盘与负载（R-51）；判据是 **≤30:00**，不因一次快就收窄预算，也不因一次慢就放宽。
+> 同一段判据在出口门禁里复跑（`verify-m3-exit P3`）三次分别 69.8s / 37.6s / 33.5s（`build:ci` 65.2s → 27.7s）。
+> 同一台机器、同一条命令、不同次的差异来自磁盘与负载（R-51）：本机 4 次运行每项落在 25s–2m13s。判据是 **≤30:00**，不因一次快就收窄预算，也不因一次慢就放宽。
 
 > 演练在**独立 clone** 里做（`git clone --branch drill/pre-upgrade file://<repo>`），不拿主工作区当靶子：主工作区有 92 篇被 ignore 的文章，任何 `reset/clean` 都可能误伤。clone 里 0 篇文章 → 构建 110 页；主工作区同命令是 476 页，页数差异来自内容，不是升级。
 
