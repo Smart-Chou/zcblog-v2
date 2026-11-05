@@ -15,22 +15,25 @@
  *   O4 锚点：清单里的 `anchors` 逐个存在且分类符合声明（覆盖 T/O/X 三侧的代表路径）。
  *   O5 工具一致：`scripts/theme-sync.mjs --list theme|overlay` 与门禁计数完全一致
  *       （升级工具和门禁不许各拿一份真值）。
- *   O6 探针：6 个合成路径（T / O / override / X / 未分类 / 构建目录）必须落到预期类。
+ *   O6 探针：7 个合成路径（T / O / override / X / 未分类 / 构建目录）必须落到预期类。
+ *   O7 示例 overlay：`apps/<site>/` 每个 overlay 的字段完整性（配置 4 件套导出集合与
+ *       `theme-template/src/config/*` 同构、≥1 篇 frontmatter v4 文章、≥1 个合法 JSON、
+ *       不含主题代码路径）—— 判据与 `scripts/create-site.mjs` 共用本文件的 `validateOverlay()`（R-50）。
  *
  * 用法
- *   node scripts/gates/verify-overlay.mjs              # 跑 O0–O6
+ *   node scripts/gates/verify-overlay.mjs              # 跑 O0–O7
  *   node scripts/gates/verify-overlay.mjs --report     # 额外打印分类分布与计划基线差
  *   node scripts/gates/verify-overlay.mjs --root <dir> # 对临时副本跑（负向测试）
  *
- * 导出（`scripts/theme-sync.mjs` 复用同一份分类器，避免两份口径）：
- *   loadManifest / compileManifest / classifyWith / readTrackedFiles / classifyTracked
+ * 导出（`scripts/theme-sync.mjs` 复用同一份分类器，`scripts/create-site.mjs` 复用 overlay 校验）：
+ *   loadManifest / compileManifest / classifyWith / readTrackedFiles / classifyTracked / validateOverlay
  *
  * 退出码：0 = 全 PASS；1 = 有违反。
  * 汇总行固定为 `RESULT PASS  classified=N unclassified=0`，供 CI / 卡验收直接 grep。
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -178,6 +181,134 @@ export function classifyTracked(root, manifest, compiled) {
         files: tracked.files,
         manifest,
     };
+}
+
+/* ───────────────────────── overlay 字段完整性（O7 / create-site 共用）───────────────────────── */
+
+/** 站点 overlay 必须自带的 4 个配置文件（§4.2：主题只读这 4 个对象的**值**）。 */
+export const OVERLAY_CONFIGS = ["site.ts", "feature.ts", "ui.ts", "services.ts"];
+
+/** overlay 里不许出现的主题代码路径（overlay 只放身份/内容/数据，不放实现）。 */
+const OVERLAY_FORBIDDEN = [
+    [/^src\/(?:components|layouts|pages|utils|scripts|integrations)\//, "主题实现目录"],
+    [/^src\/(?:remark-plugin|rehype-plugin)\//, "主题 markdown 管线"],
+    [/^src\/(?:schemas|types|data\/i18n)\//, "主题契约 / 词典"],
+    [/^src\/content\.config\.ts$/, "内容模型契约"],
+    [/^src\/config\/index\.ts$/, "配置聚合入口"],
+    [/^packages\//, "主题包"],
+];
+
+/** frontmatter v4 必填项（`src/content.config.ts` 里 min(1) 的那三个）。 */
+const ARTICLE_REQUIRED = ["title", "description", "pubDate"];
+
+function walkAll(root, relBase = "") {
+    const out = [];
+    let entries;
+    try {
+        entries = readdirSync(path.join(root, relBase), { withFileTypes: true });
+    } catch {
+        return out;
+    }
+    for (const entry of entries) {
+        const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) out.push(...walkAll(root, rel));
+        else if (entry.isFile()) out.push(rel);
+    }
+    return out;
+}
+
+const exportNames = (source) =>
+    [...source.matchAll(/export\s+(?:const|interface|type|function|class)\s+([A-Za-z0-9_]+)/g)].map(
+        (match) => match[1],
+    );
+
+/**
+ * 校验一个 overlay 目录是否「字段完整」：4 配置同构、≥1 篇文章、≥1 个数据 JSON、不含主题代码。
+ * 返回 { ok, problems, info, summary } —— problems 非空即不合格（退出码由调用方决定）。
+ */
+export function validateOverlay(root, overlayRel) {
+    const overlayDir = path.join(root, overlayRel);
+    const problems = [];
+    const info = [];
+    const summary = { configs: 0, articles: 0, data: 0, files: 0 };
+    if (!existsSync(overlayDir)) {
+        return { ok: false, problems: [`overlay 目录不存在：${overlayRel}`], info, summary };
+    }
+    const files = walkAll(overlayDir);
+    summary.files = files.length;
+    if (!files.length) problems.push("overlay 为空（至少要有 4 个配置文件）");
+
+    /* ① 配置 4 件套 + 与基线同构（只换值，不改 interface / export 集合） */
+    for (const name of OVERLAY_CONFIGS) {
+        const rel = `src/config/${name}`;
+        const abs = path.join(overlayDir, rel);
+        if (!existsSync(abs)) {
+            problems.push(`缺配置文件：${rel}`);
+            continue;
+        }
+        summary.configs += 1;
+        const baseline = path.join(root, "theme-template", rel);
+        if (!existsSync(baseline)) continue; // 基线缺失不是 overlay 的错
+        const want = exportNames(readFileSync(baseline, "utf8"));
+        const got = new Set(exportNames(readFileSync(abs, "utf8")));
+        const missing = want.filter((symbol) => !got.has(symbol));
+        if (missing.length)
+            problems.push(`${rel} 缺导出 ${missing.join(", ")}（主题仍会 import 它们）`);
+    }
+
+    /* ② site.ts 的身份值：标题非空、url 是绝对 http(s)、domains 非空 */
+    const siteFile = path.join(overlayDir, "src/config/site.ts");
+    if (existsSync(siteFile)) {
+        const source = readFileSync(siteFile, "utf8");
+        const title = source.match(/\btitle:\s*"([^"]*)"/)?.[1] ?? "";
+        const url = source.match(/\burl:\s*"([^"]*)"/)?.[1] ?? "";
+        const domains = source.match(/\bdomains:\s*\[([^\]]*)\]/)?.[1] ?? "";
+        if (!title.trim()) problems.push("src/config/site.ts 的 site.title 为空");
+        if (!/^https?:\/\/\S+$/.test(url)) problems.push(`src/config/site.ts 的 site.url 不是绝对地址：${url || "（空）"}`);
+        if (!domains.trim()) problems.push("src/config/site.ts 的 site.domains 为空");
+        info.push(`site: title=「${title}」 url=${url}`);
+    }
+
+    /* ③ 文章：≥1 篇，且 frontmatter 有 v4 必填项 */
+    const articles = files.filter((rel) => /^src\/content\/article\/.+\.mdx?$/.test(rel));
+    summary.articles = articles.length;
+    if (!articles.length) problems.push("src/content/article/ 下没有文章（示例站至少 1 篇）");
+    for (const rel of articles) {
+        const source = readFileSync(path.join(overlayDir, rel), "utf8");
+        const frontmatter = source.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1];
+        if (!frontmatter) {
+            problems.push(`${rel} 没有 frontmatter 区块`);
+            continue;
+        }
+        const missing = ARTICLE_REQUIRED.filter(
+            (key) => !new RegExp(`^${key}:\\s*\\S`, "m").test(frontmatter),
+        );
+        if (missing.length) problems.push(`${rel} frontmatter 缺必填项：${missing.join(", ")}`);
+    }
+
+    /* ④ 数据：≥1 个 src/data/*.json，且必须是合法 JSON */
+    const dataFiles = files.filter((rel) => /^src\/data\/[^/]+\.json$/.test(rel));
+    summary.data = dataFiles.length;
+    if (!dataFiles.length) problems.push("src/data/ 下没有 *.json（占位数据至少 1 个）");
+    for (const rel of dataFiles) {
+        try {
+            JSON.parse(readFileSync(path.join(overlayDir, rel), "utf8"));
+        } catch (error) {
+            problems.push(`${rel} 不是合法 JSON：${error.message}`);
+        }
+    }
+
+    /* ⑤ 不许把主题代码搬进 overlay（fork 而不是覆盖） */
+    for (const rel of files) {
+        for (const [re, why] of OVERLAY_FORBIDDEN) {
+            if (re.test(rel)) problems.push(`${rel} 属于${why}，overlay 只能改值不能搬实现`);
+        }
+        if (rel.startsWith("src/styles/") && rel !== "src/styles/site.css")
+            problems.push(`${rel}：overlay 只允许新增 src/styles/site.css（§4.2）`);
+    }
+
+    info.push(`files=${summary.files} configs=${summary.configs} articles=${summary.articles} data=${summary.data}`);
+    return { ok: problems.length === 0, problems, info, summary };
 }
 
 /* ───────────────────────── CLI ───────────────────────── */
@@ -359,6 +490,29 @@ function main() {
         }
     } else o6.push("跳过：清单不可用");
     addCheck("O6", "分类探针（含 override / 未分类）", o6);
+
+    /* O7 示例 overlay 字段完整性（apps/<site>/） */
+    const o7 = [];
+    const o7info = [];
+    let overlaysChecked = 0;
+    const appsDir = path.join(repoRoot, "apps");
+    if (existsSync(appsDir)) {
+        for (const entry of [...readdirSync(appsDir, { withFileTypes: true })].sort((a, b) =>
+            a.name.localeCompare(b.name),
+        )) {
+            if (!entry.isDirectory()) continue;
+            const rel = `apps/${entry.name}`;
+            if (!existsSync(path.join(repoRoot, rel, "src/config/site.ts"))) continue;
+            const result = validateOverlay(repoRoot, rel);
+            overlaysChecked += 1;
+            for (const problem of result.problems) o7.push(`${rel}：${problem}`);
+            o7info.push(
+                `${rel} files=${result.summary.files} configs=${result.summary.configs} articles=${result.summary.articles} data=${result.summary.data} → ${result.ok ? "PASS" : "FAIL"}`,
+            );
+        }
+        if (!overlaysChecked) o7info.push("apps/ 下没有 overlay 目录（跳过）");
+    } else o7info.push("apps/ 不存在（M3-6 前无示例站）");
+    addCheck("O7", `示例 overlay 字段完整（${overlaysChecked} 个）`, o7, o7info);
 
     /* 输出 */
     console.log("M3-5 overlay 契约门禁（T / O / X）");

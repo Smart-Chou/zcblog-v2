@@ -93,6 +93,7 @@
                 "public/a9c70334-a4c2-470d-872c-c60cff6c24a0.txt",
                 "vercel.json",
                 ".github/workflows/deploy.yml",
+                "apps/demo/**",
                 "site.manifest.json"
             ],
             "reserved": [".env", "deploy/**", "CHANGELOG.md", "public/_redirects"]
