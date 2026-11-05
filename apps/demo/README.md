@@ -42,6 +42,10 @@ node scripts/create-site.mjs --check-overlay apps/demo
 
 所以本目录只需要**差异**，不需要把主题里已有的占位文件复制一份。
 
+装配结果是**可加不可减**：overlay 能覆盖基线的同名文件，但删除不了基线文件。
+示例站最终是 2 篇文章 —— 基线的 `getting-started.md`（主题上手向导）+ overlay 的
+`hello-world.md`，共 115 个 HTML；要只留一篇就在 overlay 里放同名文件覆盖它。
+
 ## 加自己的站点
 
 1. 复制本目录为 `apps/<你的站点>`（`cp -r apps/demo apps/mysite`）
