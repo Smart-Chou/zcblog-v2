@@ -180,11 +180,10 @@ async function openAs(page: Page, route: string, theme: Theme, width: number, he
             /* localStorage 不可用时主题仍靠 data-theme 注入，见下 */
         }
     }, theme);
-    // 监听一言接口：有些页面的 fetch 会在 load 之前就回来，先挂 listener 再 goto 才不会漏。
-    let hitokotoSeen = false;
-    page.on("response", (res) => {
-        if (res.url().includes("v1.hitokoto.cn")) hitokotoSeen = true;
-    });
+    // 一言接口会把 #hitokoto-* 设为 opacity:0 再 crossfade 320ms；axe 撞进窗口会
+    // 把透明文字算成低对比度（CI 上的假红）。审计测的是稳态 markup/CSS/a11y，
+    // 不依赖外部内容源，所以直接拦掉这个请求：组件走 catch，元素保持可见。
+    await page.route("https://v1.hitokoto.cn/**", (route) => route.abort());
     const response = await page.goto(route, { waitUntil: "load" });
     await page.evaluate(
         async ({ value }) => {
@@ -199,34 +198,6 @@ async function openAs(page: Page, route: string, theme: Theme, width: number, he
         },
         { value: theme },
     );
-    // 一言组件会在 fetch 回包后把 #hitokoto-* 设为 opacity:0 再 crossfade 320ms；
-    // CI 上 axe 正好撞进这段窗口，会把「透明文字」算成低对比度（假红）。
-    // 审计测的是稳态，不是淡入动画的中间帧：先等接口回包，再等 opacity 落定。
-    const hasHitokoto = await page.evaluate(
-        () => document.querySelectorAll('[id^="hitokoto"]').length > 0,
-    );
-    if (hasHitokoto) {
-        if (!hitokotoSeen)
-            await page
-                .waitForResponse((res) => res.url().includes("v1.hitokoto.cn"), {
-                    timeout: 4000,
-                })
-                .catch(() => {
-                    /* 离线/接口失败时不会出现 opacity:0，直接继续 */
-                });
-        await page
-            .waitForFunction(
-                () =>
-                    Array.from(document.querySelectorAll('[id^="hitokoto"]')).every(
-                        (el) => getComputedStyle(el).opacity !== "0",
-                    ),
-                null,
-                { timeout: 2500 },
-            )
-            .catch(() => {
-                /* fetch 失败时 opacity 永远不是 0；超时也继续，不掩盖真实问题 */
-            });
-    }
     return response;
 }
 
