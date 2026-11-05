@@ -80,14 +80,14 @@ const { layout = "row", caption } = Astro.props;
         line-height: var(--leading-relaxed);
     }
 
-    /* 示例里图标链接的命中区下限（WCAG 2.2 2.5.8 / axe target-size ≥ 24px，M2-13b）。
-       组件自身的尺寸来自全局 article.css（`.author-links a` = 34px），文档页不加载那张表，
-       示例区会退化成一个 14×17 的裸 <a>。这里只兜可点区域，不参与组件视觉。 */
+    /* 示例里图标链接的命中区下限（WCAG 2.2 2.5.8 / axe target-size，M2-13b）。
+       组件自身的尺寸来自全局 article.css（`.author-links a`），文档页不加载那张表，
+       示例区会退化成一个裸 <a>。这里只兜可点区域，不参与组件视觉。 */
     .frame__stage :global(.author-links a) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 24px;
-        min-height: 24px;
+        min-width: var(--space-6);
+        min-height: var(--space-6);
     }
 </style>
