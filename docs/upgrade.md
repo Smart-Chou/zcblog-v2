@@ -229,7 +229,7 @@ git reset --hard drill/pre-upgrade && git status --porcelain
 > 同一段判据在出口门禁里复跑（`verify-m3-exit P3`）三次分别 69.8s / 37.6s / 33.5s（`build:ci` 65.2s → 27.7s）。
 > 同一台机器、同一条命令、不同次的差异来自磁盘与负载（R-51）：本机 4 次运行每项落在 25s–2m13s。判据是 **≤30:00**，不因一次快就收窄预算，也不因一次慢就放宽。
 
-> 演练在**独立 clone** 里做（`git clone --branch drill/pre-upgrade file://<repo>`），不拿主工作区当靶子：主工作区有 92 篇被 ignore 的文章，任何 `reset/clean` 都可能误伤。clone 里 0 篇文章 → 构建 110 页；主工作区同命令是 476 页，页数差异来自内容，不是升级。
+> 演练在**独立 clone** 里做（`git clone --branch drill/pre-upgrade file://<repo>`），不拿主工作区当靶子：主工作区有 89 篇文章（4 篇 draft，渲染 85 页）落在 `.gitignore` 里，任何 `reset/clean` 都可能误伤。clone 里 0 篇文章 → 构建 110 页；主工作区同命令是 **748 页**（476 页 + 272 份 `/tag/*` 桩，桩由 M3-7 引入），页数差异来自内容与桩，不是升级。
 
 **drill refs 要留着**：`verify-m3-exit P3` 靠 `drill/pre-upgrade` + `drill/v2.1.0` 复跑同一段判据。清掉它们等于清掉出口证据（`git tag -d drill/pre-upgrade && git branch -D drill/v2.1.0`）。
 
