@@ -77,8 +77,11 @@ html[data-theme="dark"] pagefind-modal-trigger {
     --pf-border: var(--search-border);
     /* M2-13a/13b：触发器里的 `.pf-trigger-key`（Ctrl/⌘）走 --pf-text-secondary；
        它原先取 --search-text-subtle，在 Linux/Chromium 的 dark 下实测被 axe 判为
-       serious color-contrast。与 modal 内同一取值统一到 --search-text-muted（≥4.5）。 */
+       serious color-contrast。与 modal 内同一取值统一到 --search-text-muted（≥4.5）。
+       --pf-hover 是快捷键 chip 的底色；pagefind 默认给的是浅色 #f5f5f5，
+       不覆盖会在 dark 下变成「浅灰底 + 浅灰字」，所以一并落到 --search-bg-stripe。 */
     --pf-text-secondary: var(--search-text-muted);
+    --pf-hover: var(--search-bg-stripe);
     /* M2-13a：.pf-trigger-text 取的是 --pf-text-muted（pagefind 默认 #767676），
        在 #1e1e2e 上只有 3.61:1 —— 全站 546 页的搜索占位都在这一条上。
        暗色提到 #9ca3af（6.46:1），浅色不动（#767676 on #fff = 4.54 已过线）。 */
