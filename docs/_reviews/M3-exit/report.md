@@ -123,7 +123,9 @@ head: 7c57b92 · checks: P1 P2 P3 P7 P10
 RESULT PASS  p1=PASS p2=PASS p3=PASS p7=PASS p10=PASS
 ```
 
-**横切基线**（同 commit，`pnpm gates:all` 9 条 + 其余）：`verify-atoms 18/18`、`verify-atom-docs`、`verify-component-inventory`、`verify-doc-drift`、`check-tokens 10/10`、`verify-surface-tokens`（pages 0 新增）、`verify-entities`、`verify-package-boundary packages=3 violations=0`、`verify-overlay classified=1032 unclassified=0`；`prettier --check .` → All matched files use Prettier code style。
+**补验**（本报告提交后，HEAD `627fc87`）：同一条命令再跑一次 → `RESULT PASS p1=PASS p2=PASS p3=PASS p7=PASS p10=PASS`（P1 28.1s / P2 27.2s / P3 57.6s / P7 31.7s / P10 0.8s）。`v2.1.0..HEAD` 之间只有本报告这 1 个 X 类文件，T 侧 0。
+
+**横切基线**（同 commit，`pnpm gates:all` 9 条 + 其余）：`verify-atoms 18/18`、`verify-atom-docs`、`verify-component-inventory`、`verify-doc-drift`、`check-tokens 10/10`、`verify-surface-tokens`（pages 0 新增）、`verify-entities`、`verify-package-boundary packages=3 violations=0`、`verify-overlay classified=1032 unclassified=0`（含本报告 1033）；`prettier --check .` → All matched files use Prettier code style。
 
 **真实站点回归**（主工作区 `pnpm build:ci`）：`748` 个 HTML、`perf-budget SUMMARY over=0`、`verify-og png==article_pages 85/85 · gates=7/7`。
 
