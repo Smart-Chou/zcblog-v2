@@ -26,7 +26,8 @@
 - `verify-changeset-loop.mjs` → `8/8 PASS`（L8：真仓库仍 `2.1.0`；ui 仍 private）
 - `preflight.mjs --tag ''`（check 模式）→ `PASS 32 / FAIL 0 / WARN 1 / INFO 2`；`publish-plan` 为空属预期（2.1.0 已上 registry）
 - `packages/og-image` 测试 → `10/10 pass`
-- 最新文档提交 `53014b5` 的 CI / Perf / A11y PR smoke 均 `success`
+- 最新文档提交 `b231d17`：CI / A11y PR smoke `success`；Perf 首次在
+  `Install system dependencies` 卡住，取消后重跑 `success`（基础设施 flake，非站点回归）
 
 ## 3. registry 消费验证
 
