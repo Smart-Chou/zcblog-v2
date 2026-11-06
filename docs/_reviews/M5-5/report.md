@@ -294,3 +294,19 @@ node scripts/release/preflight.mjs              # check 模式，不需要任何
 2. **PO 决策 1**：`0.0.0-stage` 删 or 留（§3.3，两条命令 + OTP）。
 3. **PO 决策 2**：`NPM_TOKEN` 是否接受「保留 30 天到 2026-12-06」（§4.3），以及是否批准加只读定时 workflow（§2）。
 4. **文案级后续**：`docs/release.md` §3 的 NPM_TOKEN 行、§6.6 的回滚前提、§8 的本地复现清单已按本轮结论更新；§9 见「已知限制」。
+
+## 7. PO 批准后的写操作（2026-11-06 23:48 HKT 追加）
+
+PO 决定：**`0.0.0-stage` 删除；`NPM_TOKEN` 保留 30 天**。
+
+- 已删除：
+  - `@marxchou/dogeared-tokens@0.0.0-stage`
+  - `@marxchou/dogeared-og-image@0.0.0-stage`
+- 操作方式：`npx --yes npm@11.15.0 unpublish <pkg>@0.0.0-stage`，两次均需 WebAuthn；
+  npm 11.12 的旧回调返回 `404 /-/v1/done?authId=…`，npm 11.15 正常。
+- 复核（`node scripts/release/verify-registry.mjs --min-age-hours=0`）：
+  **19 PASS / 0 FAIL / 0 WARN**，`R10` 两包均 `absent`；`latest` 均为 `2.1.2`，
+  tarball 与 integrity、SLSA v1 provenance 全部 PASS。
+- `NPM_TOKEN`：保留 30 天，退役复审 **2026-12-06**；操作单见 `docs/release.md` §12.5。
+- 24h 点检仍由 M5-5b 在 **2026-11-07 23:16 HKT** 执行；本轮删除不影响该检查。
+

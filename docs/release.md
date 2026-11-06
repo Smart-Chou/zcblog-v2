@@ -366,7 +366,7 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 ## 9. 已知限制
 
 - **已跑过两次真发布（2026-11-06）**：tokens / og-image `2.1.0` 首发，`2.1.1` 为
-  README-only patch（当前 `latest`）；ui 未发布。
+  README-only patch；`2.1.2` 为 OIDC 验证版（当前 `latest`）；ui 未发布。
   `provenance` 在两次发布时因仓库 private 显式关闭；**仓库已于 2026-11-06 转 public**，
   发布认证已切到 **npm Trusted Publishing（OIDC）**，`release.yml` 不再读取 `NPM_TOKEN`；
   下一次发布默认 `provenance=true`。`npm-publish` environment 已在 2026-11-06 补 required
@@ -374,8 +374,8 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   复现与证据见 §10。
 - `npm publish --dry-run` 不会因为 `private: true` 报 `EPRIVATE`（npm 11.12.1 实测 exit 0），
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
-- `0.0.0-stage` 占位（两包各 1 个）仍在 registry 上：无 dist-tag 指向、无下载、不影响安装。
-  M5-5 只做只读核查，删不删待 PO 决定（现状与操作命令见 §12.3）。
+- `0.0.0-stage` 占位已于 **2026-11-06** 经 PO 批准删除；两个包现在只剩 `2.1.0 / 2.1.1 / 2.1.2`
+  （删除记录见 §12.3）。
 - `npm-publish` environment 里的 `NPM_TOKEN` 仍在（惰性，workflow 不引用），
   退役日期定在 2026-12-06 复审（见 §12.5）；在那之前它是 §6.6 回滚方案的唯一凭据。
 - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
@@ -391,11 +391,10 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   purge 真实 `node_modules`；已踩过并恢复。
 - `changeset publish` 是**逐包**发布：如果第三包失败，前两包已经在 registry 上了。
   lockstep 能保证版本一致，但不能保证原子性——失败后照 §6 处置。
-- **npm 侧 Trusted Publisher 还没登记**（2026-11-06 状态）：登记需要账号 2FA 在场
-  （`npm trust …` 实测直接 `EOTP`，本地 token 是 bypass-2FA 的 granular token，但账号级
-  变更仍要求 OTP），且新建配置 48 小时不首发就过期（§3.1）。因此 M5-3 只落 workflow + 文档，
-  登记与验证一并留给下一次真发布；在那之前 publish 链会在 OIDC gate 之后被 npm 拒（403），
-  不会误发也不会退回 token。
+- **npm 侧 Trusted Publisher 已登记**（2026-11-06）：`tokens` id `10c93ae3-08a7-4256-b945-8b70c8884f65`，
+  `og-image` id `4436e077-22ce-409b-ac24-82fb15302eef`；均为 `Smart-Chou/zcblog-v2` /
+  `release.yml` / `npm-publish` / `publish, stage publish`。`2.1.2` 已用 GitHub OIDC 真发布成功
+  （run `42240709462`），两包 provenance 为 SLSA v1。
 - OIDC 发布只支持 GitHub-hosted runner；自建 runner 走不通。
 - npm 的触发白名单：`pull_request_target` / `issue_comment` 触发的 workflow 不能发布
   （2026-10-02 起）。本 workflow 只有 tag push + dispatch，不受影响。
@@ -482,7 +481,7 @@ pnpm verify:registry --min-age-hours=24    # T+24h：未到点 exit 3，到点�
 | ---- | ---- | -------- |
 | T+0（发布后立刻） | `pnpm verify:registry` | `R1–R9` 全 PASS；`R10` 只允许 INFO |
 | T+24h | `pnpm verify:registry --min-age-hours=24` | exit 0（不是 3），`R2/R3/R6` 无漂移 |
-| T+72h | `0.0.0-stage` 占位决策窗口（单版本 unpublish 的宽限判断线） | 见 §12.3：要么已删，要么登记为已接受 |
+| T+72h | `0.0.0-stage` 占位决策窗口（单版本 unpublish 的宽限判断线） | **已于 2026-11-06 删除**，见 §12.3 |
 | T+30d | `NPM_TOKEN` 退役复审 | 见 §12.5：删除 environment secret + 撤销 npm granular token |
 | 每次发版前 | `pnpm preflight:release` + §8 全量 | 与本次发布同口径 |
 
@@ -497,21 +496,21 @@ pnpm verify:registry --min-age-hours=24    # T+24h：未到点 exit 3，到点�
 | `R9` 清单外的包上架了 | `PUBLISH_DIRS` 与事实不符 | 要么更新 `PUBLISH_DIRS` + 文档，要么按 §6 回滚 |
 | `R10` 占位被 tag 指向 | `latest` 或某个 tag 指到 `0.0.0-stage` | **立刻** `npm dist-tag add <pkg>@<真实版本> latest`（这是 blocker，不是噪音） |
 
-### 12.3 `0.0.0-stage` 占位（2026-11-06 核查结论）
+### 12.3 `0.0.0-stage` 占位（2026-11-06 已删除）
 
-- 现状：`tokens` / `og-image` 各挂 1 个（347 B / 349 B，2 个文件，发布于 `2026-11-06T06:37:40Z`），
-  **没有任何 dist-tag 指向**，`stage list` 为空（不是 staged 残留），下载统计里查不到（= 0 下载）。
-- 影响：不参与版本解析（`0.0.0` 的 prerelease，`^2`/`2.x`/`*` 都命不中），不影响安装。
-- 建议：删（一次性清噪音）。单版本 unpublish 只能走 CLI、不可撤销、需 2FA OTP：
+- 原状：`tokens` / `og-image` 各挂 1 个（347 B / 349 B，2 个文件，发布于 `2026-11-06T06:37:40Z`），
+  无 dist-tag 指向，`stage list` 为空（不是 staged 残留），0 下载。
+- **PO 已批准删除，2026-11-06 执行完毕**；两个包现在只剩 `2.1.0 / 2.1.1 / 2.1.2`。
+  单版本 unpublish 不可撤销，npm 每次操作都要求 WebAuthn：
 
   ```bash
-  npm unpublish @marxchou/dogeared-tokens@0.0.0-stage --otp=<6 位码>
-  npm unpublish @marxchou/dogeared-og-image@0.0.0-stage --otp=<6 位码>
-  npm view @marxchou/dogeared-tokens versions --json   # 复核：只剩 2.1.x
+  npx --yes npm@11.15.0 unpublish @marxchou/dogeared-tokens@0.0.0-stage
+  npx --yes npm@11.15.0 unpublish @marxchou/dogeared-og-image@0.0.0-stage
   ```
 
-  **这条写操作需要 PO 单独批准**（M5-5 只做只读核查，未执行）。
-- 若选择保留：登记到 §9 已知限制，之后每次复查只当 INFO 看，不再重复讨论。
+  实操坑：npm 11.12 的旧 WebAuthn 回调会返回 `404 /-/v1/done?authId=…`；改用 npm 11.15 后正常。
+- 复核：`node scripts/release/verify-registry.mjs --min-age-hours=0` **19 PASS / 0 FAIL**，
+  `R10` 两包均为 `absent`。
 
 ### 12.4 认证面（发布后必须仍是这个形态）
 
