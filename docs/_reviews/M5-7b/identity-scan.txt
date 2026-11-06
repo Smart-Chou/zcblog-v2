@@ -1,0 +1,4 @@
+[check-personalization:dist] 扫描 224 个文件｜身份串命中 0 处｜允许的包名标识（@marxchou\/）2 行
+RESULT PASS  scanned=224 identity_hits=0 package_identity_lines=2
+[check-personalization:dist] 扫描 10 个文件｜身份串命中 0 处｜允许的包名标识（@marxchou\/）3 行
+RESULT PASS  scanned=10 identity_hits=0 package_identity_lines=3

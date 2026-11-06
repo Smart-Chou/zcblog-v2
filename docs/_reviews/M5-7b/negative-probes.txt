@@ -1,0 +1,46 @@
+# 1) changeLog 判据（7 例：6 反例 + 1 合法对照）
+✓ 空数组 → problems=1
+    - changeLog 缺失或为空（每次改清单都要留一条 decision 记录）
+✓ 缺字段 → problems=2
+    - changeLog[0] 缺字段 date
+    - changeLog[0] 缺字段 summary
+✓ decision 非 D-NNNN → problems=1
+    - changeLog[0].decision=D-13 不是 D-NNNN 形式
+✓ 日期倒序 → problems=1
+    - changeLog[1].date=2026-11-01 早于上一条 2026-11-07（按时间追加）
+✓ decision 重复 → problems=1
+    - changeLog[1].decision=D-0138 重复（decision 不可复用）
+✓ summary 太短 → problems=1
+    - changeLog[0].summary 太短，写清这次改了清单的什么
+✓ 合法 → problems=0
+
+RESULT PASS cases=7 fails=0
+
+# 2) CLI 绕过参数
+$ node scripts/gates/verify-overlay.mjs --force
+不支持参数：--force
+只接受 --report / --root <dir>。R-47：清单缺规则时先补规则，没有 --force / --skip / --allow-unclassified 之类的绕过参数。
+exit=2
+$ node scripts/gates/verify-overlay.mjs --allow-unclassified
+不支持参数：--allow-unclassified
+只接受 --report / --root <dir>。R-47：清单缺规则时先补规则，没有 --force / --skip / --allow-unclassified 之类的绕过参数。
+exit=2
+
+# 3) 真实 repo 副本删掉 changeLog（--root 负向）
+M3-5 overlay 契约门禁（T / O / X）
+root: /Users/chowcong/.hermes/kanban/boards/blog2/workspaces/t_9f6e85c1/neg-root-1
+
+O0  site.manifest.json 自洽 + 版本 lockstep      FAIL  2 项
+    - 缺字段 changeLog
+    - changeLog 缺失或为空（每次改清单都要留一条 decision 记录）
+O1  tracked 文件全覆盖（unclassified=0）           PASS  0 项
+O2  唯一归属（ambiguous=0）                        PASS  0 项
+
+# 4) 注入身份串的目录（--mode=dist 负向）
+[check-personalization:dist] 扫描 1 个文件｜身份串命中 3 处｜允许的包名标识（@marxchou\/）0 行
+  index.html:1  <p>MarxChou</p>
+  index.html:2  <a href="https://mcc.im">x</a>
+  index.html:3  MIFSH912
+
+❌ 产物/overlay 里还有 3 处站点身份串（R-50）
+exit=1

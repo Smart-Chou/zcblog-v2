@@ -1,0 +1,6 @@
+index.html: diff_bytes=15 windows=4 非时间戳窗口=0
+article/hello-world/index.html: diff_bytes=16 windows=4 非时间戳窗口=0
+projects/index.html: diff_bytes=6 windows=1 非时间戳窗口=0
+tags/index.html: diff_bytes=24 windows=4 非时间戳窗口=0
+
+RESULT PASS 时间戳之外差异=0

@@ -1,0 +1,56 @@
+M3-5 overlay 契约门禁（T / O / X）
+root: /Users/chowcong/Documents/WebSiteCode/zcblog-v2
+
+O0  site.manifest.json 自洽 + 版本 lockstep      PASS  0 项
+    · changeLog 1 条，最新 D-0138 2026-11-07
+O1  tracked 文件全覆盖（unclassified=0）           PASS  0 项
+O2  唯一归属（ambiguous=0）                        PASS  0 项
+O3  规则活性（T/O 无死规则）                       PASS  0 项
+    · reserved 未命中：O .env
+    · reserved 未命中：O deploy/**
+    · reserved 未命中：X dist/**
+    · reserved 未命中：X node_modules/**
+    · reserved 未命中：X .astro/**
+    · reserved 未命中：X .vite-cache/**
+    · reserved 未命中：X playwright-report/**
+    · reserved 未命中：X test-results/**
+    · reserved 未命中：X .git/**
+O4  锚点分类符合声明（31 个）                      PASS  0 项
+O5  theme-sync --list 与门禁同口径               PASS  0 项
+O6  分类探针（含 override / 未分类）               PASS  0 项
+O7  示例 overlay 字段完整（1 个）                  PASS  0 项
+    · apps/demo files=10 configs=4 articles=1 data=1 → PASS
+
+分类分布
+  T    723   63.4%  theme
+  O    302   26.5%  overlay
+  X    116   10.2%  exclude
+  计划基线 998（§4.1）· 实测 1141 · delta +143
+
+按目录（前 24 行，降序）
+  O public/assets                                 192
+  T e2e/__screenshots__                           144
+  T src/pages                                     141
+  X docs/_reviews                                 114
+  T src/components                                111
+  O src/assets                                     52
+  T src/styles                                     38
+  T src/utils                                      30
+  T theme-template/src                             24
+  O src/data                                       23
+  T src/scripts                                    23
+  T scripts/gates                                  19
+  T src/remark-plugin                              13
+  T packages/ui                                    12
+  T scripts/release                                12
+  T packages/og-image                              11
+  O apps/demo                                      10
+  T packages/tokens                                10
+  O public/images                                  10
+  T src/data                                       10
+  T .github/workflows                               8
+  T theme-template/screenshots                      7
+  T public/fonts                                    4
+  O src/config                                      4
+
+RESULT PASS  classified=1141 unclassified=0 theme=723 overlay=302 exclude=116 plan_baseline=998 delta=+143

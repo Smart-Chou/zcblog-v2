@@ -1,0 +1,41 @@
+
+A0 产物基本面
+  ✓ dist/index.html 存在（58103 B）
+
+A1 规范域名注入（SITE_URL）
+  ✓ canonical origin = https://demo.zcblog-v2.pages.dev
+  ✓ og:url 与 canonical 同 origin（https://demo.zcblog-v2.pages.dev）
+  ✓ canonical 与注入的 SITE_URL 一致（https://demo.zcblog-v2.pages.dev）
+  ✓ sitemap-index.xml 用同一 origin
+  ✓ 产物域名注入生效（canonical / sitemap / og:url 三处一致）
+
+A2 跳转规则（三套适配层互为镜像）
+  ✓ vercel.json 是合法 JSON
+  ✓ dist/_redirects 解析出 4 条规则
+  ✓ _redirects 无 /* 兜底行（不会盖住真实资源）
+  ✓ 两套平台规则的状态码全为 301
+  ✓ _redirects 与 vercel.json 规则逐条一致（4 条，含尾斜杠变体）
+  ✓ 无链式跳转（destination 不会再被任何 source 命中）
+
+A3 /tag/* 静态桩（GH Pages 的跳转替代品）
+  ✓ /tag/*/ 桩 3/3 全命中（url=/tags/<tag>/ + noindex + canonical）
+  ✓ 规则目标抽样 3 条均落盘（/tags/<tag>/index.html）
+
+A4 astro.config.redirects 的 meta-refresh 桩
+  ✓ blog/index.html → /blog/1/
+  ✓ en/blog/index.html → /en/blog/1/
+
+A5 缓存头
+  ✓ /assets/* immutable
+  ✓ /_astro/* immutable
+  ✓ HTML must-revalidate
+
+A6 root-only 部署前提
+  ✓ 无 <base href>（子路径部署本就不支持，见 docs/deploy-matrix.md）
+
+A7 平台契约：cloudflare
+  ✓ dist/_redirects 存在（Pages 会解释它）
+  ✓ _redirects 规则数 = 4
+  ✓ dist/_headers 存在（Pages 缓存层）
+
+RESULT PASS target=cloudflare site=https://demo.zcblog-v2.pages.dev stubs=3/3 fails=0

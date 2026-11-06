@@ -4,7 +4,7 @@
 >
 > 修订（M4-7）：补 `NOTICE` 与发布链三条路径（`.changeset/**`、`docs/release.md`、`.github/workflows/release.yml`）的归属判据；顺带把 §2 的实测计数从 M3-5 收口的 1016 推进到今天的 1046。判据脚本未改一行——只改清单与本文档。
 >
-> 修订（M5-7b）：R-47 收口——清单加 `changeLog`（每次改清单必须留一条 `D-NNNN` 记录，漏写即 O0 红）；门禁 CLI 拒绝一切未定义参数（`--force` / `--skip` / `--allow-unclassified` 不存在，退出码 2）；§2 计数推进到 1132。规则本身一条未改。
+> 修订（M5-7b）：R-47 收口——清单加 `changeLog`（每次改清单必须留一条 `D-NNNN` 记录，漏写即 O0 红）；门禁 CLI 拒绝一切未定义参数（`--force` / `--skip` / `--allow-unclassified` 不存在，退出码 2）；§2 计数推进到 1141。规则本身一条未改。
 >
 > 这一页是 §4.1「三类路径」的**可执行版本**：每条路径归属都由 `site.manifest.json` 声明，由门禁逐文件核对。没有「文档写了但没人检查」的条目；反向也成立——脚本里出现的每条检查都在这里解释为什么存在。
 
@@ -25,9 +25,9 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 |---|---|---|---|
 | **T · theme** | 主题代码与主题工具链 | `theme-sync --apply` 覆盖 | 723 |
 | **O · overlay** | 站点身份 / 内容 / 数据 / 资产 / 部署适配 | 永不触碰（工具不写、门禁报红） | 302 |
-| **X · exclude** | 构建产物、缓存、评审档案、Agent 上下文 | 不动、不入任一清单 | 107 |
+| **X · exclude** | 构建产物、缓存、评审档案、Agent 上下文 | 不动、不入任一清单 | 116 |
 
-合计 **1132** = `git ls-files` 当前总数；`unclassified=0`、`ambiguous=0`。这三个数字不是手写的：`--report` 每次重新数，写进文档的是 M5-7b 收口时的那一次（`RESULT PASS classified=1132 unclassified=0 theme=723 overlay=302 exclude=107 plan_baseline=998 delta=+134`）。M3-5 收口时是 677 / 290 / 49 = 1016，M4-7 是 694 / 299 / 53 = 1046，差异见 §2.1、§2.2、§2.3。
+合计 **1141** = `git ls-files` 当前总数；`unclassified=0`、`ambiguous=0`。这三个数字不是手写的：`--report` 每次重新数，写进文档的是 M5-7b 收口时的那一次（`RESULT PASS classified=1141 unclassified=0 theme=723 overlay=302 exclude=116 plan_baseline=998 delta=+143`）。M3-5 收口时是 677 / 290 / 49 = 1016，M4-7 是 694 / 299 / 53 = 1046，差异见 §2.1、§2.2、§2.3。
 
 ### 2.1 计划基线 998 → 实测 1016（delta +18）
 
@@ -58,7 +58,7 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 
 这 30 个里 **29 个当时就归好了类**，只有根 `NOTICE` 漏了 T 规则（`LICENSE` 在规则里、`NOTICE` 不在），于是 `gates:all` 从 `d2abf72`（M4-1）起一直红在 O1 那一行——M4-4 跑发布链门禁时把它顶出来，M4-7 补上（见 §4、§6 第 4 行）。
 
-### 2.3 M5 系列又长出来的 86 个（1046 → 1132）
+### 2.3 M5 系列又长出来的 95 个（1046 → 1141）
 
 `git diff --name-status --diff-filter=A 10cf92b..ab6e15f` = **86 个新增、0 删除**，全部落进**已有**规则，一条新规则都没加（这正是「规则收敛住了」的证据）：
 
@@ -73,7 +73,7 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 | `docs/release.md`（T `reserved`→命中）、`docs/npm-consumer.md`（T `rules`） | T | 2 |
 | 合计 | | **86** |
 
-1046 + 86 = 1132，与门禁实测一致；delta 相对计划基线 998 是 **+134**。
+1046 + 86 = 1132；M5-7b 本身再新增 9 个 `docs/_reviews/M5-7b/**`（X）→ **1141**，与门禁实测一致；delta 相对计划基线 998 是 **+143**。
 
 ## 3. 判据表（`scripts/gates/verify-overlay.mjs`）
 
