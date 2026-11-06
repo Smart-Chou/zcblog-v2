@@ -268,8 +268,12 @@ node scripts/release/preflight.mjs              # check 模式，不需要任何
 
 ## 5. 本轮没有做的事（明确边界）
 
-- 没有 publish / unpublish / deprecate / `dist-tag add`——registry 上零写入。证据：本轮所有 registry 请求都是 `GET`
-  （脚本里只有 `fetch(url)`，无 npm 认证写命令）；唯一带认证的是 `npm whoami` / `npm access list` / `npm stage list`，都是只读。
+- 没有 publish / unpublish / deprecate / `dist-tag add`——registry 上零写入。证据：
+  - 脚本里只有 `fetch(url)`（GET），没有任何 npm 认证写命令；本轮带认证的调用只有 `npm whoami` /
+    `npm access list packages` / `npm stage list`，都是只读。
+  - **`time.modified` 未被改动**（写操作必然推进该字段）：本卡运行期间
+    `tokens` 恒为 `2026-11-06T15:16:33.464Z`、`og-image` 恒为 `2026-11-06T15:15:33.902Z`，
+    而在 `2026-11-06T15:33:34Z` 复查时这两个值仍是原样。
 - 没有删除「NPM_TOKEN environment secret」（写操作，需 PO）。
 - 没有新增 CI 定时任务 / cron（基础设施变更，需 PO）。
 - 没有把 24h 点检谎报成已完成（发布后 12 分钟，`--min-age-hours=24` 明确 exit 3）。
@@ -285,7 +289,8 @@ node scripts/release/preflight.mjs              # check 模式，不需要任何
 
 ## 7. 遗留 / 交接
 
-1. **M5-5b（已建卡）**：`2026-11-07T15:16Z` 之后跑 `pnpm verify:registry --min-age-hours=24`，把输出追加到本报告。
+1. **M5-5b（已建卡 `t_330526fe`，blocked 到 2026-11-07 23:16 HKT）**：到点后跑 `pnpm verify:registry --min-age-hours=24`，
+   把输出追加到本报告 §2；`exit 3` 表示还没到点，不许改成 0 蒙过去。
 2. **PO 决策 1**：`0.0.0-stage` 删 or 留（§3.3，两条命令 + OTP）。
 3. **PO 决策 2**：`NPM_TOKEN` 是否接受「保留 30 天到 2026-12-06」（§4.3），以及是否批准加只读定时 workflow（§2）。
 4. **文案级后续**：`docs/release.md` §3 的 NPM_TOKEN 行、§6.6 的回滚前提、§8 的本地复现清单已按本轮结论更新；§9 见「已知限制」。
