@@ -1,6 +1,6 @@
 {
     "name": "@marxchou/zcblog",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "个人博客网站，使用Astro框架构建，包含文章、标签、归档、捐赠等功能",
     "type": "module",
     "private": true,

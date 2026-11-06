@@ -60,12 +60,16 @@ expectFail(
     }
     const uiPkgPath = path.join(dir, "packages/ui/package.json");
     const uiPkg = JSON.parse(readFileSync(uiPkgPath, "utf8"));
-    uiPkg.version = "2.1.1"; // 只有 ui 前进 → lockstep 破
+    const baseVersion = JSON.parse(
+        readFileSync(path.join(dir, "packages/tokens/package.json"), "utf8"),
+    ).version;
+    const [major, minor, patch] = baseVersion.split(".").map(Number);
+    uiPkg.version = `${major}.${minor}.${patch + 1}`; // 只有 ui 前进 → lockstep 破
     writeFileSync(uiPkgPath, JSON.stringify(uiPkg, null, 4));
 
     expectFail(
         "G2",
-        "只有 ui 前进到 2.1.1（lockstep 破裂）",
+        `只有 ui 前进到 ${uiPkg.version}（lockstep 破裂）`,
         runSync("node", [path.join(dir, "scripts/release/verify-versions.mjs")], {
             allowFail: true,
         }),
@@ -190,7 +194,8 @@ const uiDir = PACKAGE_DIRS.find((dir) => !PUBLISH_DIRS.includes(dir));
 
 const releaseWs = buildPublishWorkspace("publish-set", {
     flipPrivate: flipTargets,
-    version: "2.1.1",
+    // 用一个永远不会上 registry 的版本，避免真发 2.1.1 后 G4e 又因“版本已存在”变成空 plan。
+    version: "9.9.9",
 });
 writeFileSync(
     path.join(releaseWs, ".changeset/pending-release.md"),

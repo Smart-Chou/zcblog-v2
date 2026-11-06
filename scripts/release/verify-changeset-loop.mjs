@@ -216,10 +216,16 @@ try {
 
     // ---- 6. 真仓库配置未被改动（临时目录里做的一切都不回流）----
     const real = loadPackages();
-    const realVersionsOk = real.every((p) => p.version === "2.1.0");
+    const themeVersion = JSON.parse(
+        readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"),
+    ).version;
+    const realVersionsOk = real.every((p) => p.version === themeVersion);
     const uiStillPrivate = real.find((p) => p.name === "@marxchou/dogeared-ui")?.private === true;
     if (realVersionsOk && uiStillPrivate)
-        c.pass("L8", "真仓库仍 2.1.0；ui 仍 private（临时副本的改动没有回流）");
+        c.pass(
+            "L8",
+            `真仓库三包与 root 同为 ${themeVersion}；ui 仍 private（临时副本的改动没有回流）`,
+        );
     else
         c.fail(
             "L8",

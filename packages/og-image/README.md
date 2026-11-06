@@ -7,7 +7,7 @@ The package knows nothing about your site: posts, site identity, palette and fon
 passed in as options. That keeps it reusable across themes and free of imports from site
 code.
 
-> Status: **published** as `@marxchou/dogeared-og-image@2.1.0` (2026-11-06).
+> Status: **published** as `@marxchou/dogeared-og-image@2.1.1` (2026-11-06).
 
 ## API
 
@@ -34,7 +34,7 @@ omitting them reproduces the theme's default layout exactly.
 
 ## Install
 
-The package is published under the `@marxchou` scope:
+The package is published under its own npm scope:
 
 ```bash
 npm install @marxchou/dogeared-og-image

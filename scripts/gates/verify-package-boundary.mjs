@@ -10,7 +10,8 @@
  *       （tokens/og-image 可发布 + publishConfig.access=public；ui 仍 private）。
  *   B1  包内不得出现 `~/` 别名 import（包不能反向读站点代码）。
  *   B2  包内不得出现站点身份串（marxchou / mcc.im / zcily / 73b29141）。
- *       唯一豁免：`package.json` 的 `"name"` 值（npm scope 是包的身份，不是站点身份）。
+ *       唯一豁免：包自身的 npm name（`@marxchou/dogeared-*`，出现在 README 安装示例里
+ *       是包身份，不是站点身份；其他 marxchou 仍会被抓）。
  *   B3  包不得声明白名单外的 dependency；站内互相引用必须是 `workspace:*`。
  *   B4  站点私有数据不得进包：`src/data`、`src/config`、`src/assets/qr`、
  *       `public/assets/note`（抽样 10 个）逐文件 sha256，包内任一文件命中即 FAIL。
@@ -274,15 +275,15 @@ for (const file of packageFiles) {
 }
 addCheck("B1", "包内 `~/` 别名 import = 0、相对路径不越界", b1);
 
-// B2 —— 包内站点身份串（package.json 里包自身的身份串豁免）
+// B2 —— 包内站点身份串（包自身 npm name 在所有文件中豁免；其他身份串不豁免）
 const b2 = [];
 for (const file of packageFiles) {
     if (!TEXT_EXT.test(file)) continue;
     let text = readFileSync(file, "utf8");
+    for (const pkgName of REQUIRED.values())
+        text = text.split(pkgName).join("<pkg-identity-exempt>");
     if (path.basename(file) === "package.json") {
         text = text.replace(/("name"\s*:\s*)"[^"]*"/, '$1"<scope-exempt>"');
-        for (const pkgName of REQUIRED.values())
-            text = text.split(pkgName).join("<pkg-identity-exempt>");
     }
     text.split(/\r?\n/).forEach((line, index) => {
         for (const { id, re } of IDENTITY_PATTERNS) {

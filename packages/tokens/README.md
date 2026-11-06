@@ -4,7 +4,7 @@ Design tokens for the **Dogeared** (折角) Astro blog theme. One JSON source of
 byte-verified generated stylesheet, and a hand-authored primitive layer. Zero runtime
 dependencies, no PostCSS/Sass build step.
 
-> Status: **published** as `@marxchou/dogeared-tokens@2.1.0` (2026-11-06).
+> Status: **published** as `@marxchou/dogeared-tokens@2.1.1` (2026-11-06).
 
 ## What's inside
 
@@ -19,7 +19,7 @@ dependencies, no PostCSS/Sass build step.
 
 ## Install
 
-The package is published under the `@marxchou` scope:
+The package is published under its own npm scope:
 
 ```bash
 npm install @marxchou/dogeared-tokens

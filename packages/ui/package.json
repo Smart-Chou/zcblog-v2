@@ -1,6 +1,6 @@
 {
     "name": "@marxchou/dogeared-ui",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "Zero-dependency UI primitives (Astro components) for the Dogeared theme: Badge and Button.",
     "type": "module",
     "private": true,
