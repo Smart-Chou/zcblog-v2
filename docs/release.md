@@ -261,8 +261,9 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   `fflate@0.7.3`，包侧无法改；satori 只调用 `inflateSync`，该路径不可达。已在包 README 给出
   npm/pnpm/yarn 三种 override 配方；本仓 `pnpm-workspace.yaml` 也已加 `satori>fflate: "^0.7.5"`。
   这条按 **A+ 决策**接受为已知、不可达告警，不作为发布阻断；等 satori 上游放宽依赖后再移除。
-- `verify-changeset-loop.mjs` 的 **L6（`changeset pack` 产出 3 个 tarball）当前是红的**（M4-6 给包加了
-  `prepack: node scripts/build.mjs`，而该脚本的临时 monorepo 不带 `node_modules` → `ELIFECYCLE`）。
-  这条不在 CI 的 release workflow 里（CI 有依赖，pack 正常），也不影响 preflight；待单独修。
+- `verify-changeset-loop.mjs` 的 L6 已修（2026-11-06）：临时副本先确保 `dist` 存在（缺了就跑
+  `build-packages.mjs`），拷入后去掉 `prepack`，再让 `changeset pack` 打包已构建产物；L1–L8
+  8/8 PASS。**不要**用「软链根 `node_modules`」的修法——`pnpm exec` 会把软链解析回真仓并
+  purge 真实 `node_modules`；已踩过并恢复。
 - `changeset publish` 是**逐包**发布：如果第三包失败，前两包已经在 registry 上了。
   lockstep 能保证版本一致，但不能保证原子性——失败后照 §6 处置。

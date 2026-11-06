@@ -45,8 +45,37 @@ try {
     }
 
     // ---- 1. 造临时 monorepo（只拷 metadata + 包内容，不拷 node_modules）----
-    // 已知缺口（M4-6 引入，未在本卡修复）：包的 `prepack` 现在会真的执行 build，副本里没有 tsc/astro
-    // → `changeset pack` 报 ELIFECYCLE，L6 会红。本卡的改动范围是发布闸门（P1），不在这里动它。
+    // L6 只验 changesets 的 pack/publish-plan 链；包构建由 build-packages.mjs 与包自身
+    // test 覆盖。prepack 需要 workspace 根的 tsc，而副本故意不带 node_modules；因此：
+    //   1) 先在真仓确保 dist 存在（缺了就 build 一次）；
+    //   2) 拷进副本后去掉 prepack，只 pack 已构建的 dist。
+    const requiredDist = [
+        ["packages/tokens", "tokens.css"],
+        ["packages/ui", "dist/index.js"],
+        ["packages/og-image", "dist/index.js"],
+    ];
+    const missingDist = requiredDist.filter(
+        ([dir, file]) => !existsSync(path.join(REPO_ROOT, dir, file)),
+    );
+    if (missingDist.length) {
+        const built = runSync(
+            process.execPath,
+            [path.join(REPO_ROOT, "scripts/release/build-packages.mjs")],
+            {
+                cwd: REPO_ROOT,
+                allowFail: true,
+            },
+        );
+        if (built.code !== 0) {
+            c.fail(
+                "L1",
+                "包 dist 不存在且 build-packages 失败，无法验证 pack",
+                built.combined.slice(-800),
+            );
+            report("changeset 闭环", c.results, { json });
+            process.exit(1);
+        }
+    }
     cpSync(path.join(REPO_ROOT, "pnpm-workspace.yaml"), path.join(tmp, "pnpm-workspace.yaml"));
     mkdirSync(path.join(tmp, ".changeset"), { recursive: true });
     cpSync(
@@ -58,6 +87,13 @@ try {
             recursive: true,
             filter: (src) => !src.includes("/node_modules"),
         });
+        // 副本里去掉 prepack：没有 node_modules，prepack 会 ELIFECYCLE；dist 已由真仓拷入。
+        const manifestPath = path.join(tmp, dir, "package.json");
+        const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+        if (manifest.scripts?.prepack) {
+            delete manifest.scripts.prepack;
+            writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+        }
     }
     writeFileSync(
         path.join(tmp, "package.json"),
