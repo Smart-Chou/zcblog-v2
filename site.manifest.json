@@ -45,6 +45,7 @@
                 "docs/overlay-contract.md",
                 "docs/deploy-matrix.md",
                 "docs/upgrade.md",
+                "docs/npm-consumer.md",
                 ".github/workflows/ci.yml",
                 ".github/workflows/perf.yml",
                 ".github/workflows/a11y-pr.yml",

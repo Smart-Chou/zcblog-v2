@@ -47,7 +47,7 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 
 | 来源卡 | 新增 tracked 文件 | 数 |
 |---|---|---|
-| M3-6 | `apps/demo/**`（7）、`scripts/create-site.mjs` | 8 |
+| M3-6 | `apps/demo/**`（8）、`scripts/create-site.mjs` | 9 |
 | M3-7 | `.github/workflows/deploy-matrix.yml`、`docs/deploy-matrix.md`、`public/_redirects`、`scripts/deploy-matrix.sh`、`scripts/gates/verify-deploy-artifacts.mjs` | 5 |
 | M3-8 | `CHANGELOG.md`、`docs/upgrade.md`、`scripts/gates/verify-m3-exit.mjs`、`docs/_reviews/M3-exit/report.md` | 4 |
 | M4-1 | `NOTICE`、`packages/{tokens,ui,og-image}/{LICENSE,NOTICE,README.md}`（3×3）、`docs/_reviews/M4-1/report.md` | 11 |

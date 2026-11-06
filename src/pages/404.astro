@@ -41,9 +41,11 @@ const paths = {
     posts: isEn ? "/en/blog/1/" : "/blog/1/",
 };
 
+const siteHost = new URL(site.url).hostname;
+
 const terminalLines = isEn
     ? [
-          "$ ping marxchou.com",
+          `$ ping ${siteHost}`,
           "  HTTP/2 404  ·  route not found",
           "$ traceroute --to=this-path",
           "  1  edge       ok",
@@ -52,7 +54,7 @@ const terminalLines = isEn
           "  0 results  ·  this page was never built",
       ]
     : [
-          "$ ping marxchou.com",
+          `$ ping ${siteHost}`,
           "  HTTP/2 404  ·  路由未命中",
           "$ traceroute --to=this-path",
           "  1  edge       正常",
