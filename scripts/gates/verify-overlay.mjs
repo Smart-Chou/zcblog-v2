@@ -7,7 +7,8 @@
  * 既不能被漏判（unclassified），也不能被两类同时认领（ambiguous）。
  *
  *   O0 清单自洽：`site.manifest.json` 可解析；manifestVersion / theme / classes / anchors 齐；
- *       theme.version 与根 `package.json` 的 version lockstep。
+ *       theme.version 与根 `package.json` 的 version lockstep；`changeLog` 每条都是
+ *       `D-NNNN` + 合法日期 + 非空说明（清单变更留痕，R-47 的「写 decision log」判据）。
  *   O1 全覆盖：`git ls-files` 的每个文件恰好命中一类 → `classified=N unclassified=0`。
  *   O2 唯一归属：同一路径不得同时命中 T/O/X → `ambiguous=0`。
  *   O3 规则活性：T/O 的每条 `rules` 至少命中 1 个 tracked 文件（死规则 = 契约漂移，判红）；
@@ -77,13 +78,56 @@ export function loadManifest(root) {
     const problems = [];
     if (manifest.manifestVersion !== 1)
         problems.push(`manifestVersion=${manifest.manifestVersion}，判据脚本只认 1`);
-    for (const field of ["theme", "planBaseline", "classes", "overrides", "anchors"]) {
+    for (const field of ["theme", "planBaseline", "classes", "overrides", "anchors", "changeLog"]) {
         if (!(field in manifest)) problems.push(`缺字段 ${field}`);
     }
     for (const cls of CLASSES) {
         if (!(cls in (manifest.classes ?? {}))) problems.push(`classes.${cls} 不存在`);
     }
+    problems.push(...checkChangeLog(manifest.changeLog));
     return { ok: problems.length === 0, problems, manifest, file };
+}
+
+/**
+ * `changeLog` 判据（R-47）：清单是唯一真值，所以每次改清单都要在文件里留一条
+ * `{decision, date, summary}`，`decision` 指向 `blog2.0/docs/decision-log.md` 的条目。
+ * 这里只判形状（模板不能替你判断「结论是否正确」），但漏写/写错格式会直接红。
+ */
+export function checkChangeLog(entryList) {
+    const problems = [];
+    if (!Array.isArray(entryList) || entryList.length === 0) {
+        return ["changeLog 缺失或为空（每次改清单都要留一条 decision 记录）"];
+    }
+    const seen = new Set();
+    let lastDate = "";
+    entryList.forEach((entry, index) => {
+        const where = `changeLog[${index}]`;
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+            problems.push(`${where} 不是对象`);
+            return;
+        }
+        for (const field of ["decision", "date", "summary"]) {
+            if (typeof entry[field] !== "string" || !entry[field].trim())
+                problems.push(`${where} 缺字段 ${field}`);
+        }
+        if (typeof entry.decision === "string" && entry.decision.trim()) {
+            if (!/^D-\d{4}$/.test(entry.decision))
+                problems.push(`${where}.decision=${entry.decision} 不是 D-NNNN 形式`);
+            else if (seen.has(entry.decision))
+                problems.push(`${where}.decision=${entry.decision} 重复（decision 不可复用）`);
+            seen.add(entry.decision);
+        }
+        if (typeof entry.date === "string" && entry.date.trim()) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(entry.date))
+                problems.push(`${where}.date=${entry.date} 不是 YYYY-MM-DD`);
+            else if (lastDate && entry.date < lastDate)
+                problems.push(`${where}.date=${entry.date} 早于上一条 ${lastDate}（按时间追加）`);
+            else lastDate = entry.date;
+        }
+        if (typeof entry.summary === "string" && entry.summary.trim().length < 8)
+            problems.push(`${where}.summary 太短，写清这次改了清单的什么`);
+    });
+    return problems;
 }
 
 export function compileManifest(manifest) {
@@ -330,12 +374,40 @@ function pad(text, width) {
 
 function main() {
     const argv = process.argv.slice(2);
-    const argValue = (name) => {
-        const index = argv.indexOf(name);
-        return index >= 0 ? argv[index + 1] : undefined;
-    };
-    const repoRoot = path.resolve(argValue("--root") ?? scriptRoot);
-    const report = argv.includes("--report");
+    /* R-47：没有绕过参数。只认 --report / --root <dir>，其余（含 --force / --skip /
+       --allow-unclassified）一律 exit 2 —— 免得"某个参数看起来被接受"被当成通行证。 */
+    const allowedFlags = new Set(["--report"]);
+    const allowedValued = new Map([["--root", "<dir>"]]);
+    const unknown = [];
+    const parsed = new Map();
+    for (let i = 0; i < argv.length; i += 1) {
+        const token = argv[i];
+        if (allowedFlags.has(token)) {
+            parsed.set(token, true);
+            continue;
+        }
+        if (allowedValued.has(token)) {
+            const value = argv[i + 1];
+            if (!value || value.startsWith("--")) {
+                console.error(`${token} 缺少参数：${allowedValued.get(token)}`);
+                process.exit(2);
+            }
+            parsed.set(token, value);
+            i += 1;
+            continue;
+        }
+        unknown.push(token);
+    }
+    if (unknown.length) {
+        console.error(`不支持参数：${unknown.join(" ")}`);
+        console.error(
+            "只接受 --report / --root <dir>。R-47：清单缺规则时先补规则，" +
+                "没有 --force / --skip / --allow-unclassified 之类的绕过参数。",
+        );
+        process.exit(2);
+    }
+    const repoRoot = path.resolve(parsed.get("--root") ?? scriptRoot);
+    const report = parsed.get("--report") === true;
 
     const checks = [];
     const addCheck = (id, title, problems, info = []) => checks.push({ id, title, problems, info });
@@ -364,7 +436,15 @@ function main() {
         }
         if (!manifest.theme?.ref) o0.push("theme.ref 缺失（theme-sync 的默认基线）");
     }
-    addCheck("O0", `${MANIFEST_FILE} 自洽 + 版本 lockstep`, o0);
+    const o0info = [];
+    const lastEntry = Array.isArray(manifest?.changeLog)
+        ? manifest.changeLog[manifest.changeLog.length - 1]
+        : null;
+    if (lastEntry?.decision)
+        o0info.push(
+            `changeLog ${manifest.changeLog.length} 条，最新 ${lastEntry.decision} ${lastEntry.date ?? "?"}`,
+        );
+    addCheck("O0", `${MANIFEST_FILE} 自洽 + 版本 lockstep`, o0, o0info);
 
     /* O1 / O2 / O3 —— 依赖编译产物；清单坏掉时统一跳过（不隐藏 O0 的红） */
     let classification = null;

@@ -4,6 +4,8 @@
 >
 > 修订（M4-7）：补 `NOTICE` 与发布链三条路径（`.changeset/**`、`docs/release.md`、`.github/workflows/release.yml`）的归属判据；顺带把 §2 的实测计数从 M3-5 收口的 1016 推进到今天的 1046。判据脚本未改一行——只改清单与本文档。
 >
+> 修订（M5-7b）：R-47 收口——清单加 `changeLog`（每次改清单必须留一条 `D-NNNN` 记录，漏写即 O0 红）；门禁 CLI 拒绝一切未定义参数（`--force` / `--skip` / `--allow-unclassified` 不存在，退出码 2）；§2 计数推进到 1132。规则本身一条未改。
+>
 > 这一页是 §4.1「三类路径」的**可执行版本**：每条路径归属都由 `site.manifest.json` 声明，由门禁逐文件核对。没有「文档写了但没人检查」的条目；反向也成立——脚本里出现的每条检查都在这里解释为什么存在。
 
 ## 1. 一句话
@@ -21,11 +23,11 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 
 | 类 | 含义 | 升级行为 | 今天实测文件数（`git ls-files` 口径） |
 |---|---|---|---|
-| **T · theme** | 主题代码与主题工具链 | `theme-sync --apply` 覆盖 | 694 |
-| **O · overlay** | 站点身份 / 内容 / 数据 / 资产 / 部署适配 | 永不触碰（工具不写、门禁报红） | 299 |
-| **X · exclude** | 构建产物、缓存、评审档案、Agent 上下文 | 不动、不入任一清单 | 53 |
+| **T · theme** | 主题代码与主题工具链 | `theme-sync --apply` 覆盖 | 723 |
+| **O · overlay** | 站点身份 / 内容 / 数据 / 资产 / 部署适配 | 永不触碰（工具不写、门禁报红） | 302 |
+| **X · exclude** | 构建产物、缓存、评审档案、Agent 上下文 | 不动、不入任一清单 | 107 |
 
-合计 **1046** = `git ls-files` 当前总数；`unclassified=0`、`ambiguous=0`。这三个数字不是手写的：`--report` 每次重新数，写进文档的是 M4-7 收口时的那一次（`RESULT PASS classified=1046 unclassified=0 theme=694 overlay=299 exclude=53 plan_baseline=998 delta=+48`）。M3-5 收口时是 677 / 290 / 49 = 1016，差异见 §2.1、§2.2。
+合计 **1132** = `git ls-files` 当前总数；`unclassified=0`、`ambiguous=0`。这三个数字不是手写的：`--report` 每次重新数，写进文档的是 M5-7b 收口时的那一次（`RESULT PASS classified=1132 unclassified=0 theme=723 overlay=302 exclude=107 plan_baseline=998 delta=+134`）。M3-5 收口时是 677 / 290 / 49 = 1016，M4-7 是 694 / 299 / 53 = 1046，差异见 §2.1、§2.2、§2.3。
 
 ### 2.1 计划基线 998 → 实测 1016（delta +18）
 
@@ -56,19 +58,41 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
 
 这 30 个里 **29 个当时就归好了类**，只有根 `NOTICE` 漏了 T 规则（`LICENSE` 在规则里、`NOTICE` 不在），于是 `gates:all` 从 `d2abf72`（M4-1）起一直红在 O1 那一行——M4-4 跑发布链门禁时把它顶出来，M4-7 补上（见 §4、§6 第 4 行）。
 
+### 2.3 M5 系列又长出来的 86 个（1046 → 1132）
+
+`git diff --name-status --diff-filter=A 10cf92b..ab6e15f` = **86 个新增、0 删除**，全部落进**已有**规则，一条新规则都没加（这正是「规则收敛住了」的证据）：
+
+| 来源 | 新增 tracked 文件 | 数 |
+|---|---|---|
+| `docs/_reviews/**`（M4-5..M5-7a 各卡报告与数据） | X | 54 |
+| `scripts/release/**`（M4-4/M5-3/M5-5/M5-6 发布链脚本） | T `scripts/**` | 12 |
+| `packages/ui/**`（5）、`packages/og-image/**`（4）、`packages/tokens/**`（2） | T `packages/**` | 11 |
+| `apps/demo/**`（M5-6 重建示例站） | O `apps/demo/**` | 3 |
+| `.github/workflows/**`（deploy-matrix、release 相关） | T | 2 |
+| `.changeset/**` | T `reserved`→命中 | 2 |
+| `docs/release.md`（T `reserved`→命中）、`docs/npm-consumer.md`（T `rules`） | T | 2 |
+| 合计 | | **86** |
+
+1046 + 86 = 1132，与门禁实测一致；delta 相对计划基线 998 是 **+134**。
+
 ## 3. 判据表（`scripts/gates/verify-overlay.mjs`）
 
 | # | 判据 | 命中后果 | 怎么改 |
 |---|---|---|---|
-| **O0** | `site.manifest.json` 可解析；`manifestVersion=1`；`theme` / `planBaseline` / `classes` / `overrides` / `anchors` 齐；`theme.version` 与根 `package.json` 的 `version`、`theme.package` 与 `name` lockstep；`overrides` 无重复/非法类 | FAIL | 改清单；版本随主题一起 bump（M3-1 的 W0 已经在管三包 lockstep） |
+| **O0** | `site.manifest.json` 可解析；`manifestVersion=1`；`theme` / `planBaseline` / `classes` / `overrides` / `anchors` / `changeLog` 齐；`theme.version` 与根 `package.json` 的 `version`、`theme.package` 与 `name` lockstep；`overrides` 无重复/非法类；`changeLog` 每条都是 `D-NNNN` + `YYYY-MM-DD` + 说明（decision 不重复、日期不倒序） | FAIL | 改清单；版本随主题一起 bump（M3-1 的 W0 已经在管三包 lockstep）；每次改清单追加一条 changeLog |
 | **O1** | `git ls-files -z` 的每个文件恰好命中一类 → `unclassified=0` | FAIL | 见 §5：先判断归属，再往 `classes.*.rules` 加一条，不要往 T 里默认塞 |
 | **O2** | 同一路径不得同时命中 T/O/X → `ambiguous=0`（`overrides` 精确路径优先，合法） | FAIL | 收紧规则（例：`src/data/**` 会与 `src/data/i18n/**` 撞车，所以拆成 `src/data/*.json` + `entities` + `adapters`） |
 | **O3** | T/O 的每条 `rules` 至少命中 1 个 tracked 文件（死规则 = 契约漂移）；`reserved` 允许 0 命中 | FAIL（仅 `rules`） | 路径已消失就删规则；路径将出现就写进 `reserved` |
 | **O4** | `anchors` 逐个存在且分类符合声明；T/O/X 三侧都要有代表路径 | FAIL | 补锚点（锚点是「契约没被写成一段空话」的样本） |
 | **O5** | `theme-sync --list theme\|overlay\|exclude` 的行数与门禁计数完全一致 | FAIL | 说明工具和门禁各拿了一份真值——R-47 的直接成因。工具必须继续 import 门禁的分类器 |
 | **O6** | 7 个合成探针（T / O / override / X / 构建目录 / 未分类）落到预期类 | FAIL | 分类器本身坏了，先修分类器 |
+| **CLI** | 只接受 `--report` / `--root <dir>`；任何其他参数（含 `--force`、`--skip`、`--allow-unclassified`）→ 打印「没有绕过参数」并 **exit 2** | 命令直接失败 | 不许加绕过开关：`unclassified>0` 就补规则（R-47） |
 
 汇总行固定为 `RESULT PASS  classified=<N> unclassified=0 theme=… overlay=… exclude=… plan_baseline=998 delta=+D`，FAIL 时 `RESULT FAIL …`，退出码 1。
+
+> 为什么把「没有 `--force`」写成判据：R-47 的真实风险不是「门禁会漏判」，而是「有人急着合分支时把判据关掉」。
+> 门禁原先对未知参数是静默忽略——`--force` 不会改变行为，但会让人**以为**自己拿到了通行证；
+> 现在未定义参数一律 exit 2，参数面等于能力面。
 
 ## 4. 判定细则（每条都可以被追问「凭什么」）
 
@@ -114,7 +138,11 @@ node scripts/theme-sync.mjs --from v2.0.0 --to <新 tag> --dry-run   # overlay_c
    - **「已落盘但还没 commit」= 将来才出现**：门禁的真值是 `git ls-files`，工作树里存在但不在索引里的文件，写 `rules` 同样判死规则红。M4-4 的发布链就撞在这上面（`.changeset/**`、`docs/release.md`、`release.yml` 落盘但按 git 边界不 commit）→ M4-7 把它们写进 `T.reserved`，现在 `classified` 不含它们、commit 之后自动进 T（分类结果与写在 `rules` 完全相同，差别只在 O3 的活性告警）。commit 之后可以顺手把它们从 `reserved` 提到 `rules`，不提升也不会红。
    - **会长文件的目录用通配，不要逐文件列举**：`LICENSE` 写了、`NOTICE` 漏写就是这个错（M4-1 的既有红灯）。同理 `.changeset/**` 一旦逐条列举 `config.json`+`README.md`，`pnpm changeset` 写下一条建议时立刻又漏判。
 4. 精确路径优先于 glob：`src/styles/site.css`（§4.2 允许站点新增的唯一样式文件）写在 `overrides` 里归 O，否则会被 `src/styles/**` 判成 T。
-5. 重跑门禁 + `node scripts/theme-sync.mjs --list theme` 自检。
+5. **每一次改 `site.manifest.json` 都要同时做两件事**（否则 O0 红 / 评审打回）：
+   - 在 `changeLog` 末尾追加 `{decision, date, summary}`，`decision` 指向 `blog2.0/docs/decision-log.md` 的 `D-NNNN`；
+   - 在 `blog2.0/docs/decision-log.md` 写下那条 decision（为什么改、改了什么、影响了哪些计数）。
+   只加规则不写 decision = 清单变更没有留痕，`changeLog` 判据会把它当漏项。
+6. 重跑门禁 + `node scripts/theme-sync.mjs --list theme` 自检。
 
 ## 6. 需要 PO 确认的 5 条判断（不是默认值，是判断后写在清单里的）
 

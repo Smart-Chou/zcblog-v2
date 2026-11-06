@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "$comment": "站点 overlay 清单 · M3-5 产物。T = 主题代码（升级时整体替换）；O = 站点 overlay（升级永不触碰）；X = 排除（构建/缓存/评审档案，不入任一清单）。判据：node scripts/gates/verify-overlay.mjs --report → unclassified=0。契约：docs/overlay-contract.md。",
+    "$comment": "站点 overlay 清单 · M3-5 产物。T = 主题代码（升级时整体替换）；O = 站点 overlay（升级永不触碰）；X = 排除（构建/缓存/评审档案，不入任一清单）。判据：node scripts/gates/verify-overlay.mjs --report → unclassified=0。变更留痕：每改一次清单都要追加一条 changeLog（decision 指向 blog2.0/docs/decision-log.md 的 D-NNNN）。契约：docs/overlay-contract.md。",
     "theme": {
         "name": "dogeared",
         "package": "@marxchou/zcblog",
@@ -13,6 +13,13 @@
         "source": "blog2.0/docs/21-m3-plan.md §4.1（2026-11 计划冻结时的 `git ls-files` 计数）",
         "note": "998 是计划当时的实测值；之后 M3-1..M3-4 各卡新增的 T 文件会计入 classified，delta 由门禁打印。"
     },
+    "changeLog": [
+        {
+            "decision": "D-0138",
+            "date": "2026-11-07",
+            "summary": "M5-7b：新增 changeLog 字段（清单变更留痕）；T/O/X 规则一条未改，classified 相对 998 基线的 delta 全部来自后续各卡新增文件。"
+        }
+    ],
     "classes": {
         "T": {
             "label": "theme",

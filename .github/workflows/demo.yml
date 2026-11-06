@@ -18,6 +18,7 @@ on:
             - "packages/**"
             - "scripts/create-site.mjs"
             - "scripts/gates/verify-deploy-artifacts.mjs"
+            - "scripts/check-personalization.mjs"
             - "src/**"
             - "theme-template/**"
             - "site.manifest.json"
@@ -30,6 +31,7 @@ on:
             - "packages/**"
             - "scripts/create-site.mjs"
             - "scripts/gates/verify-deploy-artifacts.mjs"
+            - "scripts/check-personalization.mjs"
             - "src/**"
             - "theme-template/**"
             - "site.manifest.json"
@@ -88,15 +90,14 @@ jobs:
                   node scripts/gates/verify-deploy-artifacts.mjs "${RUNNER_TEMP}/demo/dist" \
                     --target cloudflare --expect-site "${DEMO_URL}"
 
-            - name: Scan demo identity leaks
+            - name: Scan identity leaks (dist + overlay)
               run: |
-                  # `@marxchou/dogeared-*` 是包名，允许；作者名/个人域名必须清零。
-                  if grep -rIlE 'MIFSH|mcc\.im|MarxChou' "${RUNNER_TEMP}/demo/dist"; then
-                    echo "::error::demo 产物仍包含作者身份串"
-                    exit 1
-                  fi
-                  echo "作者身份扫描：PASS"
-                  echo "marxchou 命中（仅允许 package identity）：$(grep -rIoh 'marxchou' "${RUNNER_TEMP}/demo/dist" | wc -l | tr -d ' ')"
+                  # 判据只有一份：scripts/check-personalization.mjs --mode=dist
+                  # （`@marxchou/dogeared-*` 是包名，允许并单独计数；昵称/个人域名必须清零）
+                  node scripts/check-personalization.mjs \
+                    --mode=dist --dir="${RUNNER_TEMP}/demo/dist"
+                  node scripts/check-personalization.mjs \
+                    --mode=dist --dir=apps/demo
 
             - name: Upload demo dist
               uses: actions/upload-artifact@v4

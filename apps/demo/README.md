@@ -73,11 +73,17 @@ SITE_URL="https://demo.zcblog-v2.pages.dev" \
   node scripts/create-site.mjs --overlay apps/demo --out /tmp/demo --build --install
 node scripts/gates/verify-deploy-artifacts.mjs /tmp/demo/dist \
   --target cloudflare --expect-site "https://demo.zcblog-v2.pages.dev"
+node scripts/check-personalization.mjs --mode=dist --dir=/tmp/demo/dist
+node scripts/check-personalization.mjs --mode=dist --dir=apps/demo
 npx wrangler pages deploy /tmp/demo/dist --project-name zcblog-v2 --branch demo --commit-dirty=true
 ```
 
+上面四条与 `.github/workflows/demo.yml` 的 build job 逐条对应（同一条命令、同一个判据），
+所以本地绿等于 CI 绿——R-50 的「本地与 CI 同口径」就是这一条。前两条断言产物契约，
+第三条扫产物里的站点身份串、第四条扫 overlay 源目录（README 也算，所以说明文字里也不能出现身份串）。
+
 注意 `SITE_URL` 必须和分支 alias 完全一致，否则 canonical / sitemap 会指回 `demo.example.com`。
-部署只写 `demo` 分支；`zcblog-v2.pages.dev` 生产分支和 `marxchou.com` 都不动。
+部署只写 `demo` 分支；`zcblog-v2.pages.dev` 生产分支和正式站点都不动。
 
 CI 入口是 `.github/workflows/demo.yml`：main 上会自动装配 + 构建 + 身份扫描；配置了
 仓库 secret `CF_PAGES_TOKEN`（Cloudflare API Token，Account → Cloudflare Pages → Edit）
@@ -87,11 +93,12 @@ alias 仍为 <https://demo.zcblog-v2.pages.dev>（deployment `6ca30ded`）。
 
 ## 已知限制
 
-- **站点身份串已清零（2026-11-06 实测）**：`--build --install` 产物 118 个 HTML，
-  `MIFSH` 0 次、站点作者身份 0 次；`/projects/` 已由 overlay 的
-  `src/data/entities/projects.ts` 覆盖，404 的 `ping` 行读 `site.url`，设计文档页的
-  示例值已改成 Demo Author / example.com。产物里仍有 4 次 `marxchou`，全部是
-  `@marxchou/dogeared-tokens` npm 包名链接，不是站点身份。
+- **站点身份串已清零（M5-7b 复测）**：`--build --install` 产物里的作者昵称 / 昵称缩写 / 个人域名
+  命中 **0** 次（判据 `node scripts/check-personalization.mjs --mode=dist --dir=<dist|overlay>`，
+  与 CI 同一条命令）；`/projects/` 已由 overlay 的 `src/data/entities/projects.ts` 覆盖，
+  404 的 `ping` 行读 `site.url`，设计文档页的示例值已改成 Demo Author / example.com。
+  产物里仍会有若干行 `marxchou`（全小写），全部是 `@marxchou/dogeared-*` npm 包名链接，
+  不是站点身份——dist 模式把这类命中单独计数，不判红。
 - **`src/data/i18n/**` 清单归 T**：当前示例未命中作者身份串；新增 i18n 文案时仍需复核。
 - **overlay 配置的形状真值取主题当前版本**（`src/config/*.ts`），不是 `theme-template/src/config/*`：
   后者是 2026-01 的分发快照，比主题代码旧（缺 `talksPage` / `donatePage` 等导出，照它写会构建失败）——
