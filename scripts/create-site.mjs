@@ -10,6 +10,8 @@
  *   node scripts/create-site.mjs --overlay apps/demo --out /tmp/zcd --build --install
  *   node scripts/create-site.mjs --check-overlay apps/demo
  *
+ * `--install` 会按 `pnpm` → `corepack pnpm` 探测包管理器；只有 corepack 的机器不需要手动 enable。
+ *
  * 装配分层（自下而上，后者逐文件覆盖前者，全部按相对路径落盘）
  *   1 theme     `site.manifest.json` 分类为 T 的文件，跳过 NON_RUNTIME（文档 / e2e / CI / 基线快照）
  *   2 baseline  `theme-template/{src,public}` —— 占位 overlay 基线（40 文件，D-E ①）
@@ -239,6 +241,23 @@ function writeMarker(outDir, { overlayRel, manifest, stats }) {
 
 /* ───────────────────────── 依赖 + 构建 ───────────────────────── */
 
+function pnpmInvocation() {
+    // 干净机器可能只有 corepack（pnpm 由 `corepack enable` 提供，或根本没 enable）。
+    // 直接 spawnSync("pnpm") 会 ENOENT；这里按 pnpm → corepack pnpm 顺序探测。
+    for (const [command, prefix] of [
+        ["pnpm", []],
+        ["corepack", ["pnpm"]],
+    ]) {
+        try {
+            execFileSync(command, [...prefix, "--version"], { stdio: "ignore" });
+            return { command, prefix };
+        } catch {
+            // 继续探测下一候选
+        }
+    }
+    die(1, "找不到 pnpm（也不是可用的 corepack）：先运行 `corepack enable`，或安装 pnpm 后重试。");
+}
+
 function ensureDeps(outDir, { install }) {
     const outModules = path.join(outDir, "node_modules");
     if (existsSync(outModules)) return "present";
@@ -247,8 +266,12 @@ function ensureDeps(outDir, { install }) {
         symlinkSync(repoModules, outModules, "dir");
         return "symlink → 仓库 node_modules（--install 可改为真装）";
     }
-    execFileSync("pnpm", ["install", "--frozen-lockfile"], { cwd: outDir, stdio: "inherit" });
-    return "pnpm install --frozen-lockfile";
+    const pnpm = pnpmInvocation();
+    execFileSync(pnpm.command, [...pnpm.prefix, "install", "--frozen-lockfile"], {
+        cwd: outDir,
+        stdio: "inherit",
+    });
+    return `${[pnpm.command, ...pnpm.prefix].join(" ")} install --frozen-lockfile`;
 }
 
 function runBuild(outDir) {

@@ -1,12 +1,11 @@
 # apps/demo — 最小示例 overlay
 
-这是 `Dogeared` 主题的**示例站点 overlay**：它只放站点身份（配置）、内容和数据，
-不含任何主题代码（组件、样式、页面、工具都在主题里）。
+这是 `Dogeared` 主题的**示例站点 overlay**：它只放站点身份（配置）、内容、数据和
+Cloudflare Pages 的站点层文件，不含任何主题代码（组件、样式、页面、工具都在主题里）。
 
-装配 + 构建（首次需要 `pnpm`；只用 corepack 的机器先 `corepack enable`）：
+装配 + 构建（直接跑 `--install` 时装配器会按 `pnpm` → `corepack pnpm` 探测，不需要手动 `corepack enable`）：
 
 ```bash
-corepack enable
 node scripts/create-site.mjs --overlay apps/demo --out /tmp/zcd --build
 # → RESULT PASS  out=/tmp/zcd html=<n> …  （dist 里至少 8 个 HTML）
 ```
@@ -17,7 +16,7 @@ node scripts/create-site.mjs --overlay apps/demo --out /tmp/zcd --build
 node scripts/create-site.mjs --overlay apps/demo --out /tmp/zcd --build --install
 ```
 
-实测（2026-11-06）：`--build --install` → `RESULT PASS html=118`，约 38s，overlay 7 个文件。
+实测（2026-11-06）：`--build --install` → `RESULT PASS html=118`，约 16–38s，overlay 9 个文件。
 
 只校验 overlay 字段（不装配）：
 
@@ -37,18 +36,20 @@ node scripts/create-site.mjs --check-overlay apps/demo
 | `src/content/article/hello-world.md` | 唯一一篇示例文章（frontmatter v4 必填项齐全） | **不动**（O） |
 | `src/data/typewriter.json` | 首页打字机文案（覆盖基线占位值） | **不动**（O） |
 | `src/data/entities/projects.ts` | 示例项目数据，覆盖主题作者自带项目 | **不动**（O） |
+| `public/_headers` | CF Pages 缓存头（`/assets` / `/_astro` 长缓存，HTML 回源） | **不动**（O） |
+| `public/_redirects` | CF Pages 的 4 条 `/tag/:tag` → `/tags/:tag/` 301 | **不动**（O） |
 
 契约：`site.manifest.json` 把 `apps/demo/**` 归 O（`docs/overlay-contract.md`）。
 `scripts/theme-sync.mjs --apply` 只写 T 路径，永远不碰这里。
 
-## 装配器怎么用这 7 个文件
+## 装配器怎么用这 9 个文件
 
 `scripts/create-site.mjs` 按四层自下而上覆盖，后写的赢：
 
 1. `theme` — `site.manifest.json` 里分类为 T 的文件（组件 / 页面 / 样式 / 工具 / `packages/**` / 脚本）
 2. `baseline` — `theme-template/{src,public}` 的占位 overlay 基线（4 份配置、法务页、10 个占位 JSON、默认资产）
 3. `shim` — `src/data/{adapters,entities}/**`（主题页面直接 import，缺了构建必挂）
-4. `overlay` — **本目录**：4 个配置 + 1 篇文章 + 2 个数据文件（typewriter / projects）覆盖上面三层
+4. `overlay` — **本目录**：4 个配置 + 1 篇文章 + 2 个数据文件（typewriter / projects）+ 2 个 Pages 站点层文件（`_headers` / `_redirects`）覆盖上面三层
 
 所以本目录只需要**差异**，不需要把主题里已有的占位文件复制一份。
 
@@ -62,6 +63,21 @@ node scripts/create-site.mjs --check-overlay apps/demo
 2. 改 4 个配置文件的**值**（不要改 `interface`，否则 `verify-overlay` 的 O7 会报缺导出）
 3. 换 `src/content/article/`、`src/data/*.json` 和 `src/data/entities/projects.ts`
 4. `node scripts/create-site.mjs --overlay apps/<你的站点> --out /tmp/mysite --build`
+
+## 部署到 Cloudflare Pages 预览（不动生产）
+
+`apps/demo` 的公开预览：<https://demo.zcblog-v2.pages.dev>（CF Pages 分支 `demo`；不是生产域名）。
+
+```bash
+SITE_URL="https://demo.zcblog-v2.pages.dev" \
+  node scripts/create-site.mjs --overlay apps/demo --out /tmp/demo --build --install
+node scripts/gates/verify-deploy-artifacts.mjs /tmp/demo/dist \
+  --target cloudflare --expect-site "https://demo.zcblog-v2.pages.dev"
+npx wrangler pages deploy /tmp/demo/dist --project-name zcblog-v2 --branch demo --commit-dirty=true
+```
+
+注意 `SITE_URL` 必须和分支 alias 完全一致，否则 canonical / sitemap 会指回 `demo.example.com`。
+部署只写 `demo` 分支；`zcblog-v2.pages.dev` 生产分支和 `marxchou.com` 都不动。
 
 ## 已知限制
 

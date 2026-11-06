@@ -1,0 +1,23 @@
+# Cloudflare Pages 响应头
+#
+# 背景：Pages 默认给静态资源 `max-age=0, must-revalidate`，浏览器每次打开页面都要
+# 重新验证那份 100KB+ 的 CSS。弱网/代理下这次验证失败，页面就只剩 HTML，
+# 点一次链接（swup 重新拉 HTML + CSS）才恢复——表现成「刚打开没样式，点一下才有」。
+#
+# 注意：`_headers` 里多条规则命中同一路径时是**追加**而不是覆盖（实测会得到
+# `max-age=0, must-revalidate, max-age=604800` 这种双值），所以这里只留一条
+# 通配规则，不再给 /assets/rss/styles.css 单独开例外。
+# 代价：那份 RSS 预览样式最多缓存 7 天，它极少变，可以接受。
+
+# 带内容哈希的构建产物：文件名变了才会变，可以放心长缓存
+# （/assets 是 Astro 的资源目录，/_astro 是 JS chunk 目录 —— 两个都要，
+#   之前只写了 /assets，所有 JS chunk 每次访问都回源验证一遍）
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML 每次验证，保证发版即时可见
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate

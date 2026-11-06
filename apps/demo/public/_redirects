@@ -1,0 +1,22 @@
+# Cloudflare Pages 301 适配层（M3-7）
+#
+# 为什么需要这个文件：/tag/:tag 是旧标签入口，规范地址是 /tags/:tag/。
+#   · Vercel  —— vercel.json 的 redirects（4 条，本文件必须与之逐条对齐）
+#   · CF Pages —— 本文件（Pages 在静态资源之前按行匹配，占位符 :tag 为单段通配）
+#   · GH Pages —— 无服务端跳转，只能靠构建期生成的 /tag/<tag>/index.html meta-refresh 桩
+#                 （astro.config.mjs 的 tag-redirect-stubs 集成）
+#
+# 纪律（verify-deploy-artifacts.mjs 会断言）：
+#   1. 目标必须是 /tags/:tag/ 这种**终态**地址，不能再被本文件或 vercel.json 的
+#      另一条规则命中 —— 否则浏览器吃两次 301（双跳）。
+#   2. 行数、源、目标、状态码必须与 vercel.json 的 redirects 完全一致，只允许书写形式
+#      不同（空格分隔 vs JSON）。
+#   3. 不要写 `/* /xxx 301` 之类的兜底行：会盖掉所有真实资源。
+#
+# 注意 `_redirects` 会被 public/ 原样拷进 dist，三个目标的产物里都有它；
+# 只有 Cloudflare Pages 会解释它，其它平台把它当普通静态文件（无害）。
+
+/tag/:tag /tags/:tag/ 301
+/tag/:tag/ /tags/:tag/ 301
+/en/tag/:tag /en/tags/:tag/ 301
+/en/tag/:tag/ /en/tags/:tag/ 301
