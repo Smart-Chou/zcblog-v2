@@ -62,6 +62,14 @@
 | `permissions: id-token: write` | npm provenance（OIDC） | 已在 workflow 的 publish job 里声明 |
 | GitHub App / OIDC | provenance 签名 | 需要 **public 仓库**（见 §5） |
 
+本地凭据状态（2026-11-06 实测）：
+
+- `npm whoami` = **mifsh**；账号 2FA 模式 `auth-and-writes`。
+- `@marxchou` npm org 已创建（**Unlimited public packages** 免费计划）；`npm org ls marxchou`
+  → `{"mifsh":"owner"}`，`npm access list packages @marxchou` 正常返回（当前空）。
+- 本地 token 只存在 `~/.npmrc`（`//registry.npmjs.org/:_authToken=…`），**不进仓库、不写进文档**。
+- GitHub 仓目前**没有** `NPM_TOKEN` secret，也**没有** `npm-publish` environment；真发布前需补。
+
 硬规矩：
 
 - token 只以 `${{ secrets.NPM_TOKEN }}` 形式进入步骤，**不进仓库、不进日志、不写进 npmrc 文件留存**（CI 里写到 `$RUNNER_TEMP/.npmrc`，随 runner 销毁）。
@@ -251,7 +259,8 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 ## 9. 已知限制
 
 - **没有跑过真发布**：本链路只做 dry-run；`changeset publish` 的 registry 写入、provenance 成功路径、
-  environment 审批都只在真实 CI 上才第一次生效（`act` 未安装，本机也无 npm 登录态）。
+  environment 审批都只在真实 CI 上才第一次生效（本机已有 `mifsh` 登录态，但 CI 的 `NPM_TOKEN`
+  与 `npm-publish` environment 尚未配置；口径以 §3「本地凭据状态」为准）。
 - `npm publish --dry-run` 不会因为 `private: true` 报 `EPRIVATE`（npm 11.12.1 实测 exit 0），
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
 - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
