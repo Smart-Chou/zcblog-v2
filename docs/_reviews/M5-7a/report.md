@@ -66,6 +66,15 @@ namespace 导入 + 解构导出 + `export *` 三件事叠加，Rollup 无法把�
 - page JS p95 **27.3 → 24.5KB**；**0 页超支**；A7 固定 5 页齐全（`a7_missing: []`）
 - 预算值 **未动**（`BUDGET` 保持 28KB）：卡面禁止抬预算，收紧属另一件事（见 §1.5）
 
+**首屏 JS 里到底还剩什么**（`/blog/1/` 的 9 个模块全文 grep）：
+
+| 探针串 | 命中模块 | 说明 |
+|---|---|---|
+| `深圳非科班独立开发者`（站点 description） | **0** | 站点文案彻底退出客户端 |
+| `indie developer`（站点 keywords） | **0** | 同上 |
+| `post-content`（`redirectIncludeClass`） | 2（`feature.*.js` + BaseLayout script） | 重定向配置仍在，行为不变 |
+| `modal-mask` / `friends-container` / `author`（`redirectExcludeClass`） | 1（`feature.*.js`） | 同上 |
+
 ### 1.4 行为等价验证（不是「看着没报错」）
 
 改的是 import 路径，风险全在「运行时拿到的 `config` 还是不是同一个对象」。用一个临时 e2e 探针（跑完即删，
