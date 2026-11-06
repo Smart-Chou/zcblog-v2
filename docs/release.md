@@ -7,6 +7,10 @@
 > 当前状态（2026-11-06）：`tokens` + `og-image` 已发布 `2.1.1`（`latest`），
 > `packages/ui` 按 D-0120 保持 `private: true`（继续参与 lockstep 版本推进，但永不 publish）。
 > 仓库已于 2026-11-06 转为 **public**；标准 GitHub-hosted runner 不再消耗 Free 计划分钟数。
+> 发布认证已切到 **npm Trusted Publishing（GitHub OIDC）**：publish job 不注入 `NPM_TOKEN`，
+> 两个包需在 npm package settings 登记 Trusted Publisher；`provenance` 默认开启。
+> **npm 侧的 Trusted Publisher 尚未登记**（需要账号 2FA 在场，且新配置必须在 48 小时内完成
+> 一次成功发布才算生效，见 §3.1）——登记与首次发布必须同一天做，所以这一步留到下个发布日。
 > 本文保留「翻掉 private 之后该怎么发」的完整闸门，供下一次发布直接照做。
 
 ---
@@ -47,8 +51,9 @@
 
 1. `preflight` 通过（版本 lockstep、tag 一致、**发布清单内的包** `private !== true`、pack 清单完整、无 P1 阻断项、publish-plan 非空）；
 2. `publish` job 的 `if` 命中（`needs.preflight.outputs.dry_run == 'false'`）；
-3. `npm-publish` environment 的人工批准（仓库设置里给该 environment 配 required reviewers 才生效）；
-4. `secrets.NPM_TOKEN` 存在（缺了会在「Credential gate」步骤直接失败）。
+3. `npm-publish` environment 的人工批准（required reviewer `Smart-Chou`）；
+4. OIDC gate 通过（`id-token: write` 生效 → `ACTIONS_ID_TOKEN_REQUEST_URL`+`..._TOKEN` 都在；
+   两个包的 Trusted Publisher 已登记且未过期；publish 环境里没有任何长期 token）。
 
 ---
 
@@ -56,32 +61,101 @@
 
 | 凭据 / 设置 | 用途 | 要求 |
 | ----------- | ---- | ---- |
-| `secrets.NPM_TOKEN` | `npm publish` 鉴权 | npm **granular access token**，只对 `@marxchou/dogeared-tokens`、`-ui`、`-og-image` 三个包有 Read and write，建议开启 2FA bypass 或按需轮换 |
-| `npm-publish` environment | 人工闸门 + 只允许 tag 部署 | 仓库 Settings → Environments：required reviewers + deployment branches 只放 tag |
-| `permissions: id-token: write` | npm provenance（OIDC） | 已在 workflow 的 publish job 里声明 |
-| GitHub App / OIDC | provenance 签名 | 需要 **public 仓库**（见 §5） |
+| npm **Trusted Publisher** | OIDC 发布鉴权 | 两个包分别登记：GitHub / `Smart-Chou` / `zcblog-v2` / `release.yml` / `npm-publish`，并**勾上 Allow `npm publish`**；每包最多 10 个 trust 配置；新建配置必须在 48 小时内完成一次成功发布（见 §3.1） |
+| `npm-publish` environment | 人工闸门 + 只允许 tag/审批部署 | 仓库 Settings → Environments：required reviewer `Smart-Chou`（`prevent_self_review=false`，`can_admins_bypass=false`）；**名字必须与 npm 侧填的 environment 完全一致** |
+| `permissions: id-token: write` | GitHub OIDC token | 已在 workflow 的 publish job 里声明；OIDC gate 缺它直接失败 |
+| npm CLI `>= 11.5.1` | Trusted Publishing 的硬下限 | publish job 的「Ensure npm CLI supports Trusted Publishing」会检查并用 `npm install -g npm@^11.5.1` 补足 |
+| `secrets.NPM_TOKEN` | **已不再注入发布步骤** | 仅作为过渡期紧急回滚保留在 environment secret；新版 workflow 不读取它 |
+| public 仓库 | provenance / OIDC | `Smart-Chou/zcblog-v2` 已 public（2026-11-06） |
 
 本地凭据状态（2026-11-06 实测）：
 
 - `npm whoami` = **mifsh**；账号 2FA 模式 `auth-and-writes`。
 - `@marxchou` npm org 已创建（**Unlimited public packages** 免费计划）；`npm org ls marxchou`
-  → `{"mifsh":"owner"}`，`npm access list packages @marxchou` 正常返回（当前空）。
-- 本地 token 只存在 `~/.npmrc`（`//registry.npmjs.org/:_authToken=…`），**不进仓库、不写进文档**。
-- GitHub `npm-publish` environment 已于 2026-11-06 创建；`NPM_TOKEN` 已写入该 environment
-  （值不记录）。仓库当时是 **private + GitHub Free**，环境保护规则（required reviewers /
-  deployment branch policy）API 返回 422；**2026-11-06 仓库转 public 后已配置 required reviewer
-  `Smart-Chou`**（`prevent_self_review=false`，本人可批准；`can_admins_bypass=false`），真发布仍要 `dry_run=false` +
-  `confirm_publish=PUBLISH` 并等待该环境批准。
-- 2026-11-06 本次发布：`tokens` 与 `og-image` 已 `private:false` +
-  `publishConfig.access=public`；`ui` 保持 private。首次发布在 private 仓库下无法生成
-  provenance，dispatch 时显式 `provenance=false`；**仓库现已 public，下一次发布可切回
-  `provenance=true`**，并可在 environment 上重试 required reviewers。
+  → `{"mifsh":"owner"}`。
+- 本地 CLI token 只存在 `~/.npmrc`，**不进仓库、不写进文档**；它只用于本机命令，不参与 CI。
+- GitHub `npm-publish` environment 已于 2026-11-06 创建并补 required reviewer
+  `Smart-Chou`（`prevent_self_review=false`、`can_admins_bypass=false`）；真发布仍要
+  `dry_run=false` + `confirm_publish=PUBLISH` 并等待该环境批准。
+- 2026-11-06 已完成 public 仓库切换；下一次真发布默认 `provenance=true`。Trusted Publisher
+  配置完成前，OIDC gate 会先失败，**不会回退到 NPM_TOKEN**。
 
 硬规矩：
 
-- token 只以 `${{ secrets.NPM_TOKEN }}` 形式进入步骤，**不进仓库、不进日志、不写进 npmrc 文件留存**（CI 里写到 `$RUNNER_TEMP/.npmrc`，随 runner 销毁）。
+- **不要**把 `NPM_TOKEN` / `NODE_AUTH_TOKEN` 注入 publish 步骤；OIDC gate 会拒绝。
+- token 只以 `${{ secrets.NPM_TOKEN }}` 形式存在时也不得被 workflow 读取；本地 token 不进仓库、日志或 npmrc 文件。
 - 本地跑 `pnpm release:packages:dry` **不需要任何 npm 凭据**：`npm publish --dry-run` 不鉴权、不联网写。
 - 不要把 token 贴进 issue / 聊天 / changeset 描述。
+
+### 3.1 登记 Trusted Publisher 的操作单（发布当日做，需 2FA 在场）
+
+npm 侧的登记**必须在同一次发布窗口内完成**，原因是一条硬规则：
+
+> **新建的 trusted publisher 配置如果在 48 小时内没有完成一次成功发布，就会过期，而且过期后
+> 不能编辑，只能删掉重建**（GitHub Changelog 2026-10-02 / docs.npmjs.com/trusted-publishers
+> “Trusted publisher configuration expiry”）。首次成功发布会把配置绑定到仓库的不可变身份，
+> 之后才豁免过期。
+
+提前一天配好放着 = 第二天拿到一条过期、发不出去的配置。所以流程是：**先配，紧接着发**。
+
+1. 打开包设置页（每个包各做一次）：
+   - `https://www.npmjs.com/package/@marxchou/dogeared-tokens/access`
+   - `https://www.npmjs.com/package/@marxchou/dogeared-og-image/access`
+   （也可从 Packages → 包 → Settings → **Trusted publishing** 进入。）
+2. 选 **GitHub Actions**，四个字段必须与仓库现状逐字一致：
+
+   | 字段 | 值 |
+   | ---- | -- |
+   | Organization or user | `Smart-Chou` |
+   | Repository | `zcblog-v2` |
+   | Workflow filename | `release.yml`（只写文件名，必须带 `.yml`） |
+   | Environment name | `npm-publish`（与 workflow 里的 environment 完全相同；填错 = OIDC 认不中） |
+
+3. **Allowed actions 必须勾上 `Allow npm publish`**。2026-09-03 起新建配置默认只允许
+   `npm stage publish`（走人工审批的 staged 流程）；我们的 `changeset publish` 走的是直接
+   `npm publish`，不勾这一项会在发布时被拒（`npm dist-tag` 是另一个独立开关，本项目不用）。
+4. 命令行等价物（需要账号 2FA 在场，实测会停在 WebAuthn，见下方「本机实测」）：
+
+   ```bash
+   # npm 11.12 的 npm trust 会 400；必须 11.15+ 且显式 --allow-publish（等价于网页上的 Allow npm publish）
+   npx --yes npm@11.15.0 trust github @marxchou/dogeared-tokens \
+     --file release.yml --repo Smart-Chou/zcblog-v2 --env npm-publish --allow-publish -y
+   npx --yes npm@11.15.0 trust github @marxchou/dogeared-og-image \
+     --file release.yml --repo Smart-Chou/zcblog-v2 --env npm-publish --allow-publish -y
+   npx --yes npm@11.15.0 trust list @marxchou/dogeared-tokens   # 核对登记结果
+   ```
+
+   `--dry-run` 只打印将要提交的配置（`permissions: publish`），不写 registry、不要求 2FA，
+   适合先确认四个字段没填错：
+
+   ```bash
+   npx --yes npm@11.15.0 trust github @marxchou/dogeared-tokens \
+     --file release.yml --repo Smart-Chou/zcblog-v2 --env npm-publish --allow-publish --dry-run
+   ```
+
+   **本机实测（2026-11-06）**：`--dry-run` 通过并显示 `permissions: publish`；去掉 `--dry-run`
+   后仍然 `EOTP` —— 本账号 2FA 是 **WebAuthn**，CLI 会把浏览器重定向到 `/escalate/webauthn`，
+   必须由**用户本人在本机浏览器**完成安全密钥/指纹确认；自动化浏览器过不了 Cloudflare 与
+   WebAuthn 手势，所以这一步只能人工做（或走同一浏览器的 npm 网页设置页）。
+   这也意味着「登记 + 首发」必须由同一个人在同一个窗口内完成。
+
+5. 立刻发同一个版本（见 §4），48 小时窗口以此关闭。发布后验证：
+
+   ```bash
+   npm view @marxchou/dogeared-tokens@<ver> version     # 上架
+   npm view @marxchou/dogeared-tokens@<ver> dist.integrity
+   # 消费者侧：npm audit signatures 应显示 "has a verified attestation"
+   ```
+
+   包页面出现 **Provenance** 徽章即表示 OIDC 发布 + attestation 同时成立（public 仓库 + public 包
+   是自动生成 provenance 的前提，本仓两条都满足）。
+
+其他约束（同样是踩过才有结论的那种）：
+
+- OIDC 只支持 **GitHub-hosted runner**；self-hosted 不行。
+- 触发事件白名单：`push` / `release` / `workflow_dispatch` 可以；`pull_request_target` 和
+  `issue_comment` 被 npm 直接拒绝——本 workflow 只有 tag push 与 dispatch，命中白名单。
+- npm 侧环境名一旦填写就与 workflow 绑死，改环境名 = 重建配置（配置创建后不可编辑）。
 
 ---
 
@@ -115,7 +189,7 @@ CI 侧（`release.yml`）：
 1. `preflight` job：`pnpm install --frozen-lockfile` → `verify-workflow.mjs` → `build-packages.mjs` →
    `pnpm gates:all` → `verify-versions.mjs --tag "$RELEASE_TAG"` → `preflight.mjs` → 判定发布模式 →
    `changeset pack --out-dir "$PACK_DIR"` → 上传 `changeset-pack` artifact（tarball + publish-plan.json）。
-2. `publish` job（仅在真发布模式）：下载 artifact → 定位 pack dir → 凭据闸门 →
+2. `publish` job（仅在真发布模式）：下载 artifact → 定位 pack dir → OIDC gate →
    `preflight.mjs --mode=publish`（硬闸）→ 带 provenance 发布 → 失败则显式记录 + 降级重发。
 
 ### 4.1 为什么是 `changeset publish`，不是 `npm publish --workspaces`
@@ -151,8 +225,16 @@ workflow 默认尝试带 attestation 发布（`inputs.provenance` 默认 `true`�
 **状态变化（2026-11-06）**：npm provenance 要求包从 **public 仓库**构建
 （docs.npmjs.com/generating-provenance-statements 的 prerequisites：`package.json` 的
 `repository` 要指向一个 public 仓库且大小写一致）。本仓 `Smart-Chou/zcblog-v2` 已于
-2026-11-06 转为 **public**；下一次发布可在 dispatch 时显式 `provenance=true`。`2.1.0` /
-`2.1.1` 两次首发是在 private 状态下用 `provenance=false` 发出的，不会追溯补 attestation。
+2026-11-06 转为 **public**；发布认证切到 **npm Trusted Publishing（GitHub OIDC）**，
+`release.yml` 不再注入 `NPM_TOKEN`，`provenance` 默认开启。首次 Trusted Publisher 发布前
+需在两个包的 npm package settings 里登记 `release.yml` + `npm-publish` environment（§3.1）；
+`2.1.0` / `2.1.1` 两次首发是在 private 状态下用 `provenance=false` 发出的，不会追溯补 attestation。
+
+Trusted Publishing 下 **provenance 是自动的**（npm 文档「Automatic provenance generation」：
+不需要 `--provenance`）。workflow 仍然显式设 `NPM_CONFIG_PROVENANCE=true`，原因有二：
+① changesets 是通过子进程调 `npm publish`，环境变量是最稳的传递方式；② 社区反馈（npm/cli#8730）
+里有人首次发布不加 `--provenance` 会被拒，显式打开没有副作用。若 provenance 仍失败，先看
+`repository` 字段与仓库是否逐字一致（三个包均已指向 `git+https://github.com/Smart-Chou/zcblog-v2.git`）。
 
 ---
 
@@ -215,6 +297,22 @@ npm dist-tag ls @marxchou/dogeared-tokens
 - 如果 tag 打错了（tag 与版本不一致）：删 tag 重打，不要改版本号迁就 tag。
   `git tag -d v2.1.1 && git push origin :refs/tags/v2.1.1`（已发布版本除外——那种情况只能前进版本）。
 
+### 6.6 认证回滚：临时退回 `NPM_TOKEN`（过渡方案）
+
+Trusted Publishing 出问题（配置过期、environment 名填错、npm 侧 OIDC 故障）时，发布链可以
+在**一个 revert 内**退回到旧的 token 认证——`NPM_TOKEN` 一直留在 `npm-publish` environment
+secret 里（未删除，值为 granular token，仅两包 read-write，2027-02-04 到期）：
+
+1. `git revert <M5-3 的 commit>`：把 `release.yml` 恢复成「注入 `secrets.NPM_TOKEN` + Credential gate」的版本。
+   `verify-workflow` / `verify-guards` 的 W9/G5 断言会跟着 revert 一起回到旧口径，不需要手改。
+2. npm 侧把包的 **Settings → Publishing access** 改回允许 token（若之前按 §3.1「推荐做法」
+   设成了 *Require two-factor authentication and disallow tokens*，必须先改回来，否则 token 也发不出去）。
+3. 发布完成后如果要再切回 OIDC：重新登记 Trusted Publisher，并在 **48 小时内**发一次版本。
+
+注意这条回滚**只是临时**：npm 正在限制 bypass-2FA 的 granular token（账号级通知：
+"npm tokens that bypass 2FA are being restricted for account changes and direct publishing"），
+token 路线在 2027-01 之后会越来越难走，长期方案只能是 OIDC。
+
 ---
 
 ## 7. 发布前阻断项（当前会让 `--mode=publish` 硬失败）
@@ -269,6 +367,7 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 - **已跑过两次真发布（2026-11-06）**：tokens / og-image `2.1.0` 首发，`2.1.1` 为
   README-only patch（当前 `latest`）；ui 未发布。
   `provenance` 在两次发布时因仓库 private 显式关闭；**仓库已于 2026-11-06 转 public**，
+  发布认证已切到 **npm Trusted Publishing（OIDC）**，`release.yml` 不再读取 `NPM_TOKEN`；
   下一次发布默认 `provenance=true`。`npm-publish` environment 已在 2026-11-06 补 required
   reviewer `Smart-Chou`；真发布闸门是 `dry_run=false` + `confirm_publish=PUBLISH` + 环境批准。
   复现与证据见 §10。
@@ -287,6 +386,14 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   purge 真实 `node_modules`；已踩过并恢复。
 - `changeset publish` 是**逐包**发布：如果第三包失败，前两包已经在 registry 上了。
   lockstep 能保证版本一致，但不能保证原子性——失败后照 §6 处置。
+- **npm 侧 Trusted Publisher 还没登记**（2026-11-06 状态）：登记需要账号 2FA 在场
+  （`npm trust …` 实测直接 `EOTP`，本地 token 是 bypass-2FA 的 granular token，但账号级
+  变更仍要求 OTP），且新建配置 48 小时不首发就过期（§3.1）。因此 M5-3 只落 workflow + 文档，
+  登记与验证一并留给下一次真发布；在那之前 publish 链会在 OIDC gate 之后被 npm 拒（403），
+  不会误发也不会退回 token。
+- OIDC 发布只支持 GitHub-hosted runner；自建 runner 走不通。
+- npm 的触发白名单：`pull_request_target` / `issue_comment` 触发的 workflow 不能发布
+  （2026-10-02 起）。本 workflow 只有 tag push + dispatch，不受影响。
 
 ---
 
@@ -318,4 +425,34 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 - 这次未生成 provenance（private repo 不生成）；等仓库转 public 后再切回 `provenance=true`。
 - 发布 token 是 npm granular access token（bypass 2FA、仅两包 read-write、2027-02-04 到期），
   只存在 `npm-publish` environment secret，未写入仓库/文档。
+
+---
+
+## 11. M5-3 · 迁到 Trusted Publishing（2026-11-06，未发布）
+
+本次**没有发布任何版本**，只把认证方式从长期 token 切到 GitHub OIDC，并把 npm 侧的操作单写成可执行步骤。
+
+`release.yml`（publish job）的改动：
+
+| 改动 | 之前 | 现在 |
+| ---- | ---- | ---- |
+| 认证 | `env: NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` 注入三条 publish 步骤 | 全部移除；改为 OIDC，`id-token: write` 是唯一凭据 |
+| 前置闸门 | Credential gate：没 `NPM_TOKEN` 就失败 | OIDC gate：`ACTIONS_ID_TOKEN_REQUEST_URL` **和** `..._TOKEN` 缺一即失败；出现 `NODE_AUTH_TOKEN`/`NPM_TOKEN` 环境变量即失败；`.npmrc` 里出现字面 `_authToken` 即失败（`${NODE_AUTH_TOKEN}` 占位放行） |
+| npm CLI | 无要求 | 「Ensure npm CLI supports Trusted Publishing」：`< 11.5.1` 时自动 `npm install -g npm@^11.5.1` |
+| `preflight --mode=publish` | 借 `NPM_CONFIG_USERCONFIG` 临时 .npmrc 传 token | 不再需要任何凭据 |
+| provenance | 靠 `NPM_CONFIG_PROVENANCE` + token | `NPM_CONFIG_PROVENANCE=true` 保留（OIDC 下 provenance 本来自动；显式打开防首次被拒） |
+
+门禁同步（不然改动只是「看起来对」）：
+
+- `scripts/release/verify-workflow.mjs`：`W9a` 升级为要求 URL+TOKEN 双变量；新增 `W9d`
+  （闸门必须扫 `.npmrc` 字面 token）、`W9e`（npm CLI 下限 11.5.1 必须被保证）。
+- `scripts/release/verify-guards.mjs`：新增 `G5f`（删掉 `.npmrc` 扫描 → W9d 必须红）、
+  `G5g`（把 npm 下限降到 11.0.0 → W9e 必须红）；`G5c`/`G5e` 的变异锚点跟着新步骤名调整。
+
+没做的事（下次发布日补齐）：
+
+1. 两个包的 Trusted Publisher 还没在 npm 上登记——需要 2FA 在场 + 48 小时内首发，见 §3.1。
+2. 没有发新版本：本卡的验收只到「配置与 workflow 改动落盘 + 门禁全绿」。
+
+证据与命令输出：`docs/_reviews/M5-3/report.md`。
 

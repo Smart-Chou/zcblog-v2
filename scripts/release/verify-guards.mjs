@@ -309,8 +309,8 @@ const mutations = [
         id: "G5c",
         label: "给非 provenance 步骤加 continue-on-error（静默吞失败）",
         text: wfRaw.replace(
-            "            - name: Install dependencies\n              run: pnpm install --frozen-lockfile\n\n            - name: Download pack dir",
-            "            - name: Install dependencies\n              continue-on-error: true\n              run: pnpm install --frozen-lockfile\n\n            - name: Download pack dir",
+            "            - name: Download pack dir",
+            "            - name: Download pack dir\n              continue-on-error: true",
         ),
         mustMention: /continue-on-error/,
     },
@@ -327,10 +327,22 @@ const mutations = [
         id: "G5e",
         label: "把 token 直接写进 workflow",
         text: wfRaw.replace(
-            "                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}",
-            `                  NODE_AUTH_TOKEN: ${fakeToken}`,
+            "            - name: OIDC gate",
+            `            - name: OIDC gate\n              env:\n                  LEAK_TOKEN: ${fakeToken}`,
         ),
         mustMention: /硬编码/,
+    },
+    {
+        id: "G5f",
+        label: "删掉 OIDC 闸门里对 .npmrc 字面 token 的扫描",
+        text: wfRaw.replaceAll("_authToken", "auth-token"),
+        mustMention: /没有检查 \.npmrc/,
+    },
+    {
+        id: "G5g",
+        label: "把 npm CLI 下限从 11.15.0 降下来（Trusted Publishing 会静默失效）",
+        text: wfRaw.replace("                  NEED=11.15.0", "                  NEED=11.0.0"),
+        mustMention: /11\.15\.0/,
     },
 ];
 for (const m of mutations) {

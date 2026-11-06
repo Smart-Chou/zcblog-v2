@@ -2,6 +2,11 @@ name: Release packages
 
 # M4-4 · 三包（@marxchou/dogeared-*）的发布流水线。只搭链，默认不真发。
 #
+# 发布认证：npm Trusted Publishing（GitHub OIDC），不再使用长期 NPM_TOKEN。
+# 每个包需在 npmjs.com 的 package settings → Trusted Publisher 里登记：
+#   GitHub / Smart-Chou / zcblog-v2 / release.yml / npm-publish
+# 缺失配置时 OIDC gate 明确失败，不会退回密码或 token。
+#
 # 触发面只有两条，普通 push（含 main 分支）**永远进不来**：
 #   1. push tag `v*`        —— tag 必须与三包版本一致（verify-versions 校验），视为「发布意图」
 #   2. workflow_dispatch    —— 默认真 dry-run；要真发布必须 dry_run=false + confirm_publish=PUBLISH
@@ -230,6 +235,18 @@ jobs:
                   cache: "pnpm"
                   registry-url: "https://registry.npmjs.org"
 
+            - name: Ensure npm CLI supports Trusted Publishing
+              run: |
+                  set -euo pipefail
+                  NEED=11.15.0
+                  CUR=$(npm --version)
+                  LOWEST=$(printf '%s\n%s\n' "$NEED" "$CUR" | sort -V | head -1)
+                  if [ "$LOWEST" != "$NEED" ]; then
+                    echo "npm $CUR < $NEED，升级 npm（Trusted Publishing / --allow-publish 的硬要求）"
+                    npm install --global "npm@${NEED}"
+                  fi
+                  npm --version
+
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
@@ -253,23 +270,34 @@ jobs:
                   echo "pack dir = $DIR" | tee -a "$GITHUB_STEP_SUMMARY"
                   find "$DIR" -name '*.tgz' | sort | tee -a "$GITHUB_STEP_SUMMARY"
 
-            # 凭据闸门：没配 NPM_TOKEN 就明确失败，不让后面的 publish 变成一句 ENEEDAUTH
-            - name: Credential gate
-              env:
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            # 认证闸门：Trusted Publishing 只能用 OIDC；一旦出现长期 token 反而要失败。
+            # npm 的 OIDC 分支要求 ACTIONS_ID_TOKEN_REQUEST_URL 与 ..._TOKEN 两个变量都在
+            # （npm/lib/utils/oidc.js）；少一个就**静默跳过** OIDC，退回到 token/无认证路径——
+            # 那正是这里要拦住的形态，所以两个都查。
+            - name: OIDC gate
               run: |
-                  if [ -z "${NPM_TOKEN:-}" ]; then
-                    echo "::error::缺少 secrets.NPM_TOKEN：请在仓库 secrets 里配置 npm granular token（只对 @marxchou 的 3 个包有 publish 权限）"
+                  set -euo pipefail
+                  if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+                    echo "::error::OIDC 不可用（缺 ACTIONS_ID_TOKEN_REQUEST_URL / ACTIONS_ID_TOKEN_REQUEST_TOKEN）：publish job 需要 id-token: write；本轮不会回退到 NPM_TOKEN"
                     exit 1
                   fi
-                  echo "NPM_TOKEN 已提供（值不打印）"
+                  if [ -n "${NODE_AUTH_TOKEN:-}" ] || [ -n "${NPM_TOKEN:-}" ]; then
+                    echo "::error::检测到长期 npm token 环境变量；Trusted Publishing 要求 publish 环境不注入 token"
+                    exit 1
+                  fi
+                  # setup-node 的 registry-url 会写一行 `_authToken=${NODE_AUTH_TOKEN}` 占位（npm 官方
+                  # Trusted Publishing 示例同样是这个形态，变量为空等于无 token）；这里只拦「字面 token」。
+                  for f in "$HOME/.npmrc" "$GITHUB_WORKSPACE/.npmrc" "${RUNNER_TEMP:-/nonexistent}/.npmrc" "${NPM_CONFIG_USERCONFIG:-/nonexistent}"; do
+                    [ -f "$f" ] || continue
+                    if grep -n '_authToken' "$f" | grep -v '\${[A-Z_]*}' >/dev/null; then
+                      echo "::error::$f 里配置了字面 npm token；Trusted Publishing 要求只用 OIDC"
+                      exit 1
+                    fi
+                  done
+                  echo "OIDC 可用（URL + TOKEN）；未注入长期 npm token；npmrc 里没有字面 token"
 
             - name: Preflight (publish mode)
-              env:
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-              run: |
-                  echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$RUNNER_TEMP/.npmrc"
-                  NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/.npmrc" node scripts/release/preflight.mjs --mode=publish --tag "${RELEASE_TAG}"
+              run: node scripts/release/preflight.mjs --mode=publish --tag "${RELEASE_TAG}"
 
             # provenance 是可选步骤：失败**不静默**——记录 outcome、写 warning 与 step summary，
             # 然后由下一步显式降级重发（changeset publish 会跳过已发布版本，重跑安全）。
@@ -278,7 +306,6 @@ jobs:
               if: inputs.provenance != false
               continue-on-error: true
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
                   NPM_CONFIG_PROVENANCE: "true"
               run: pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
 
@@ -305,7 +332,6 @@ jobs:
             - name: Publish without provenance (explicitly disabled)
               if: inputs.provenance == false
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
                   NPM_CONFIG_PROVENANCE: "false"
               run: pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
 
@@ -314,7 +340,6 @@ jobs:
             - name: Publish without provenance (fallback)
               if: env.provenance_failed == 'true'
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
                   NPM_CONFIG_PROVENANCE: "false"
               run: |
                   echo "::warning::本次发布没有 provenance attestation（见上一步的失败原因）"

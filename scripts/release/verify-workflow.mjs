@@ -180,14 +180,41 @@ if (
     c.pass("W8d", "provenance=false 时有显式 publish 步骤（不会只记录不发布）");
 else c.fail("W8d", "provenance=false 时缺少显式 publish 步骤");
 
-// ---- W9 凭据 ----
-const cred = stepsOf("publish").find((s) => /Credential gate/i.test(s.name));
-if (cred && /NPM_TOKEN/.test(cred.run) && /exit 1/.test(cred.run))
-    c.pass("W9a", "publish 前有凭据闸门（缺 NPM_TOKEN 直接失败）");
-else c.fail("W9a", "缺少 NPM_TOKEN 凭据闸门");
+// ---- W9 认证（Trusted Publishing / OIDC）----
+const oidc = stepsOf("publish").find((s) => /OIDC gate/i.test(s.name));
+if (
+    oidc &&
+    /ACTIONS_ID_TOKEN_REQUEST_URL/.test(oidc.run) &&
+    /ACTIONS_ID_TOKEN_REQUEST_TOKEN/.test(oidc.run) &&
+    /NODE_AUTH_TOKEN/.test(oidc.run) &&
+    /NPM_TOKEN/.test(oidc.run) &&
+    /exit 1/.test(oidc.run)
+)
+    c.pass("W9a", "publish 前有 OIDC 闸门（URL+TOKEN 缺一即失败，且拒绝长期 token 环境变量）");
+else c.fail("W9a", "缺少完整的 Trusted Publishing OIDC 闸门（URL/TOKEN 任一缺失都不算）");
+const tokenRefsOutsideOidc = raw.replace(oidc?.run ?? "", "");
+if (
+    !/secrets\.NPM_TOKEN/.test(tokenRefsOutsideOidc) &&
+    !/NODE_AUTH_TOKEN:\s*\$\{\{/.test(tokenRefsOutsideOidc)
+)
+    c.pass("W9b", "workflow 不再引用长期 NPM_TOKEN（Trusted Publishing 走 OIDC）");
+else c.fail("W9b", "workflow 仍引用 NPM_TOKEN/NODE_AUTH_TOKEN，未完成 OIDC 迁移");
 if (!/npm_[A-Za-z0-9]{20,}/.test(raw) && !/ghp_[A-Za-z0-9]{20,}/.test(raw))
-    c.pass("W9b", "workflow 内无硬编码 token");
-else c.fail("W9b", "workflow 里疑似硬编码了 token");
+    c.pass("W9c", "workflow 内无硬编码 token");
+else c.fail("W9c", "workflow 里疑似硬编码了 token");
+// setup-node 的 registry-url 写的是 ${NODE_AUTH_TOKEN} 占位（官方示例同样形态）；字面 token 必须被拦。
+if (oidc && /_authToken/.test(oidc.run) && /\.npmrc/.test(oidc.run))
+    c.pass("W9d", "OIDC 闸门会扫描 .npmrc 里的字面 _authToken（占位符放行）");
+else c.fail("W9d", "OIDC 闸门没有检查 .npmrc 里的字面 token");
+const npmFloor = stepsOf("publish").find((s) =>
+    /npm CLI supports Trusted Publishing/i.test(s.name),
+);
+if (npmFloor && /11\.15\.0/.test(npmFloor.run))
+    c.pass(
+        "W9e",
+        "publish job 保证 npm CLI >= 11.15.0（Trusted Publishing / --allow-publish 的硬要求）",
+    );
+else c.fail("W9e", "publish job 没有保证 npm CLI >= 11.15.0");
 
 // ---- W10 preflight job 的实质步骤 ----
 const pfRun = runText("preflight");
