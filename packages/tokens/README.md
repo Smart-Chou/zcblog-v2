@@ -4,8 +4,7 @@ Design tokens for the **Dogeared** (折角) Astro blog theme. One JSON source of
 byte-verified generated stylesheet, and a hand-authored primitive layer. Zero runtime
 dependencies, no PostCSS/Sass build step.
 
-> Status: **private, not published yet.** Install instructions below are forward-looking;
-> the package stays `"private": true` until the release card flips it.
+> Status: **published** as `@marxchou/dogeared-tokens@2.1.0` (2026-11-06).
 
 ## What's inside
 
@@ -18,15 +17,12 @@ dependencies, no PostCSS/Sass build step.
 
 `tokens.css` is generated — never edit it by hand. Change `tokens.json`, then rebuild.
 
-## Install (after publish)
+## Install
 
-The package name is declared in `package.json` (`name`); substitute its scope for
-`<npm-scope>` below. `@<npm-scope>` is a **placeholder on purpose** — the package boundary gate
-(B2) forbids writing the organisation identity into package files, so the scope is filled in
-after the first publish.
+The package is published under the `@marxchou` scope:
 
 ```bash
-npm install @<npm-scope>/dogeared-tokens
+npm install @marxchou/dogeared-tokens
 ```
 
 ## Usage
@@ -37,12 +33,12 @@ generated token block, in the same cascade layer.
 ```css
 @layer variables;
 
-@import "@<npm-scope>/dogeared-tokens/variables.css" layer(variables);
-@import "@<npm-scope>/dogeared-tokens/tokens.css" layer(variables);
+@import "@marxchou/dogeared-tokens/variables.css" layer(variables);
+@import "@marxchou/dogeared-tokens/tokens.css" layer(variables);
 ```
 
-The package root (`@<npm-scope>/dogeared-tokens`) resolves to `tokens.css`, so a single
-side-effect import works in bundlers that accept a CSS entry: `import "@<npm-scope>/dogeared-tokens";`
+The package root (`@marxchou/dogeared-tokens`) resolves to `tokens.css`, so a single
+side-effect import works in bundlers that accept a CSS entry: `import "@marxchou/dogeared-tokens";`
 — it does **not** create the `variables.css` primitive layer, so load that one first (as above)
 unless you define the primitives yourself. There is no JavaScript entry: Node can only read the
 files (`./tokens.json`, `./tokens.css`), which is why everything is exported by path.
@@ -54,7 +50,7 @@ import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const tokens = JSON.parse(await readFile(require.resolve("@<npm-scope>/dogeared-tokens/tokens.json"), "utf8"));
+const tokens = JSON.parse(await readFile(require.resolve("@marxchou/dogeared-tokens/tokens.json"), "utf8"));
 ```
 
 ## Regenerate / verify

@@ -1,7 +1,7 @@
 # M4 出口验收（Dogeared 2.1.0）
 
 - 日期：2026-11-06
-- 结论：**PASS（发布日验收）**
+- 结论：**PASS（功能与发布链）；有 1 项文档债**（registry 上的 2.1.0 tarball README 仍是发布前占位，源码已回填，需下一次 patch release 才能更新 npm 页面）
 - 范围：`@marxchou/dogeared-tokens@2.1.0` + `@marxchou/dogeared-og-image@2.1.0`
 - 不发布：`@marxchou/dogeared-ui@2.1.0`（D-0120，保持 `private:true`）
 - 生产站：**不切换**（D-0125；`Smart-Chou/zcblog` `origin/main` = `1d6843b`）
@@ -41,22 +41,27 @@
 
 ## 4. 残余风险与后续
 
-1. **24h 复查**：发布日已即时验证安装；24 小时后需再查一次 registry 可安装性与 404/权限。
-2. **`0.0.0-stage` 占位**：npm staged publishing 产生的占位版本仍可查询；`npm stage list` 为空，
+1. **2.1.0 的 registry README 仍是旧占位**：tokens / og-image 源码 README 已回填
+   `@marxchou` 与“已发布”状态，但 npm 页面来自已发布的 2.1.0 tarball；要更新页面
+   必须发下一个 patch（2.1.1）。本次未擅自改版本/重发。
+2. **24h 复查**：发布日已即时验证安装；24 小时后需再查一次 registry 可安装性与 404/权限。
+3. **`0.0.0-stage` 占位**：npm staged publishing 产生的占位版本仍可查询；`npm stage list` 为空，
    `latest=2.1.0`，不影响安装。清理需要 `npm unpublish` + OTP/单独审批，本次未执行。
-3. **provenance 缺失**：repository 为 private，发布时显式关闭；转 public 后可切回。
-4. **token 生命周期**：`NPM_TOKEN` 为 granular token，`2027-02-04` 到期；npm 的 bypass-2FA
+4. **provenance 缺失**：repository 为 private，发布时显式关闭；转 public 后可切回。
+5. **token 生命周期**：`NPM_TOKEN` 为 granular token，`2027-02-04` 到期；npm 的 bypass-2FA
    直发限制在 `2027-01` 生效，需在此之前迁移 trusted publishing / staged publishing。
-5. **environment 无保护规则**：仓库 private + GitHub Free，required reviewers / branch policy
+6. **environment 无保护规则**：仓库 private + GitHub Free，required reviewers / branch policy
    不可用；当前真发布闸门是 workflow input `confirm_publish=PUBLISH`。转 public 后应补审批。
-6. **生产站不切换**：D-0125；本报告不包含生产合并、DNS 或 CF 缓存操作。
+7. **生产站不切换**：D-0125；本报告不包含生产合并、DNS 或 CF 缓存操作。
 
 ## 5. Exit checklist
 
 - [x] 发布 workflow 真跑通过（非 dry-run）
 - [x] 首发两包在 registry 可安装（npm 10 / 11）
 - [x] 第三方干净安装 + 公开导出验证
-- [x] LICENSE / NOTICE / README / 文件白名单通过
+- [x] tarball 含 LICENSE / NOTICE / README，文件白名单通过
+- [x] 源码 README 已回填实际 scope 与发布状态
+- [ ] registry 页面 README 回填（需 2.1.1 patch release）
 - [x] ui 未发布且保持 private
 - [x] 生产站未变（`1d6843b`）
 - [ ] 发布后 24h registry 复查（发布后运维项，不阻塞本次发布日 PASS）

@@ -7,8 +7,7 @@ The package knows nothing about your site: posts, site identity, palette and fon
 passed in as options. That keeps it reusable across themes and free of imports from site
 code.
 
-> Status: **private, not published yet.** Install instructions below are forward-looking;
-> the package stays `"private": true` until the release card flips it.
+> Status: **published** as `@marxchou/dogeared-og-image@2.1.0` (2026-11-06).
 
 ## API
 
@@ -33,23 +32,20 @@ createOgImageRoute(options: {
 All four top-level keys are required. Optional fields only change the parts they name —
 omitting them reproduces the theme's default layout exactly.
 
-## Install (after publish)
+## Install
 
-The package name is declared in `package.json` (`name`); substitute its scope for
-`<npm-scope>` below. `@<npm-scope>` is a **placeholder on purpose** — the package boundary gate
-(B2) forbids writing the organisation identity into package files, so the scope is filled in
-after the first publish.
+The package is published under the `@marxchou` scope:
 
 ```bash
-npm install @<npm-scope>/dogeared-og-image
+npm install @marxchou/dogeared-og-image
 ```
 
 ## Usage
 
 ```ts
 // src/pages/og/[...slug].png.ts
-import { createOgImageRoute } from "@<npm-scope>/dogeared-og-image";
-import type { OgImageTheme } from "@<npm-scope>/dogeared-og-image";
+import { createOgImageRoute } from "@marxchou/dogeared-og-image";
+import type { OgImageTheme } from "@marxchou/dogeared-og-image";
 
 const theme: OgImageTheme = {
     background: "#0d1117",
@@ -151,7 +147,7 @@ The factory returns a plain `(context) => Promise<Response>` handler — nothing
 happens at runtime, so any HTTP server or prerender script can call it:
 
 ```js
-import { createOgImageRoute } from "@<npm-scope>/dogeared-og-image";
+import { createOgImageRoute } from "@marxchou/dogeared-og-image";
 
 const GET = createOgImageRoute({ posts, site, theme });
 const response = await GET({ params: { og: "my-post" } }); // 200 + image/png
