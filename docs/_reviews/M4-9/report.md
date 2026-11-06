@@ -292,5 +292,6 @@ golden 不变；`gates:all` 保持 PASS。真正的 `npm publish` 仍等 npm 登
 - README 扩充后 tarball：**12,410 B / 49,732 B unpacked / 13 files**（README 6,369 B；+581 B vs 11,829 B）；
 - 干净 npm 消费者实测：`"overrides": { "satori": { "fflate": "^0.7.5" } }` → `npm ls` 只有
   `fflate@0.7.5`，`npm audit` total 0。
+- 代码提交：`6362314`（A+）+ `e673d5b`（prettier 修正 evidence/smoke）；CI `42162859124`、Perf `42162859037`、A11y `42162859043`、Deploy matrix `42162858990` 全绿；release workflow dry-run `42163759166` 成功，publish job skipped。
 
 
