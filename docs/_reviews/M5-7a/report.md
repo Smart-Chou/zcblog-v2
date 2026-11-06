@@ -121,6 +121,7 @@ structure / axe light+dark / 390px），耗时约 12s，job 结论 success。
 
 ```yaml
 - name: Docs a11y · atom docs + atoms (R-41)
+  shell: bash          # 容器任务默认 sh(dash)，不认 set -o pipefail
   run: |
       set -o pipefail
       corepack pnpm exec playwright test \
@@ -150,7 +151,7 @@ structure / axe light+dark / 390px），耗时约 12s，job 结论 success。
 |---|---|---|---|
 | 1 | 性能预算 | `python3 scripts/gates/perf-budget.py dist` | **PASS**，746 页 0 超支，list JS p95 **24.5** |
 | 2 | docs e2e（本地） | `playwright test e2e/design-atom-docs.a11y.spec.ts e2e/design-atoms.a11y.spec.ts` | **48 passed (37.6s)** |
-| 3 | docs e2e（CI） | 见 §4（run id + 逐条日志） | 待填 |
+| 3 | docs e2e（CI） | run `42254206711` · job `visual` `128016931831` · commit `22bc830` | **success**，`48 passed (20.7s)`（docs 36 + atoms 12），step 21s |
 | 4 | 视觉基线（本机 macOS 套） | `playwright test e2e/design-atoms.visual.spec.ts` | **72 passed**，0 张 diff |
 | 5 | 门禁束 | `gates:all` | **PASS**，`unclassified=0`，classified=1126 |
 | 6 | 类型 | `tsc --noEmit` | PASS |
@@ -162,7 +163,30 @@ structure / axe light+dark / 390px），耗时约 12s，job 结论 success。
 
 ## 4. CI run 证据
 
-（待 CI 完成后填写：run id / job / docs step 日志尾 / perf job summary）
+**代码 commit**：`64ad348`（R-44 + R-41 断言）→ `22bc830`（修 step 的 shell 声明）
+
+| workflow | run | 结论 | 关键点 |
+|---|---|---|---|
+| **CI** | [`42254206711`](https://github.com/Smart-Chou/zcblog-v2/actions/runs/42254206711) | **success** | job `test` / `contract` / `gates` / `visual` 全绿 |
+| └ `visual` · docs a11y step | job `128016931831` | success | `48 passed (20.7s)`，18:38:54→18:39:15（HKT 00:39），逐条见 `ci-docs-a11y.log` |
+| └ `visual` · 视觉基线 ×2 | 同上 | success | Linux 基线 72×2 全过，重试 0 |
+| **Perf** | [`42254206540`](https://github.com/Smart-Chou/zcblog-v2/actions/runs/42254206540) | **success** | `扫描 746 页 \| 超预算 0 页`；list JS p95 **24.5** / 最大 25.2；article 38.5；page 24.5 |
+| A11y PR smoke | [`42254206458`](https://github.com/Smart-Chou/zcblog-v2/actions/runs/42254206458) | success | 11 路由 strict |
+| Demo site | [`42253181686`](https://github.com/Smart-Chou/zcblog-v2/actions/runs/42253181686) | success | `create-site` 重建（含本次 `src/**` 改动） |
+
+**CI 上跑出来的 p95 与本地一致**（同一内容口径：CI 拉了 86 篇文章，本地 89 篇；两边的 p95 都是 24.5）：
+说明 24.5 不是本机特权数值。
+
+### 4.1 过程中的两个真问题（都已修，不是「重跑一次就好了」）
+
+1. **`sh -e` 不认 `set -o pipefail`**：run `42253181658` 的 `visual` job 在 docs step 第一行
+   `set: Illegal option -o pipefail` → exit 2。GitHub 的**容器任务默认 shell 是 `sh`(dash)**，
+   而本机是 bash，所以本地复跑永远看不到这个错。修法：step 显式 `shell: bash`（commit `22bc830`）。
+   —— 这正是「接线了」和「接牢了」的差别：旧 step 没有 pipefail，所以它连「playwright 挂了没挂」都不关心。
+2. **`ubuntu-latest` 换到 26.04 后 apt 源 403**：run `42253181618`（A11y PR smoke）在
+   `Install system dependencies` 失败——`packages.microsoft.com/ubuntu/26.04/prod … 403 Forbidden` /
+   `no longer signed`。这是 runner 镜像侧问题，与本次改动无关：同一个 workflow 在 `22bc830` 上 success
+   （run `42254206458`），CI/Perf 的同类步骤也没红。记为**偶发基础设施噪声**，未改 workflow。
 
 ---
 
