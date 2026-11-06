@@ -82,6 +82,8 @@ npx wrangler pages deploy /tmp/demo/dist --project-name zcblog-v2 --branch demo 
 CI 入口是 `.github/workflows/demo.yml`：main 上会自动装配 + 构建 + 身份扫描；配置了
 仓库 secret `CF_PAGES_TOKEN`（Cloudflare API Token，Account → Cloudflare Pages → Edit）
 才部署到 `demo` 分支；未配置时 build 仍通过，deploy 明确 warning 后跳过。
+2026-11-06 已配置该 secret；dispatch run `42204813058` 已完成真实部署，
+alias 仍为 <https://demo.zcblog-v2.pages.dev>（deployment `6ca30ded`）。
 
 ## 已知限制
 
