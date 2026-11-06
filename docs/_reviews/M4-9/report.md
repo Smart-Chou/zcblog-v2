@@ -277,8 +277,8 @@ PO 选择 **A+**：保留 `satori@^0.63.2`，接受残余 fflate 告警为「已
 
 1. 仓内 `pnpm-workspace.yaml` 增加 `satori>fflate: "^0.7.5"`，让站点自身依赖图也清掉这条；
 2. `packages/og-image/README.md` 补齐 npm / pnpm / Yarn 三种 override 配方与 CI 提示；
-3. 起上游 `vercel/satori` issue 草稿，请求把 `fflate` 抬到 `^0.7.5`（草稿见
-   `docs/_reviews/M4-9/upstream-satori-fflate-issue.md`，未提交）。
+3. 上游 `vercel/satori` issue 草稿，请求把 `fflate` 抬到 `^0.7.5`（草稿见
+   `docs/_reviews/M4-9/upstream-satori-fflate-issue.md`）；**PO 决定不提交**，保留作记录。
 
 验收要求：仓内 `pnpm install --frozen-lockfile` 后 `pnpm audit` 不再报 fflate；三路径出图
 golden 不变；`gates:all` 保持 PASS。真正的 `npm publish` 仍等 npm 登录/2FA。

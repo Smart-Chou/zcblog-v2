@@ -1,7 +1,7 @@
 # Upstream issue draft — vercel/satori: bump `fflate` from `0.7.3` to `^0.7.5`
 
 - 目标仓库：<https://github.com/vercel/satori>
-- 状态：**草稿，未提交**（PO 已同意写草稿；真正开 issue 前确认措辞/是否由本账号提交）
+- 状态：**不提交（PO 决定，2026-11-06）**；保留草稿仅作记录，不再开 issue
 - 关联：`GHSA-px8p-9vwx-vf98` / `CVE-2026-45820`；M4-9、M4-10、A+ 决策
 
 ## Title
