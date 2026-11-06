@@ -36,6 +36,7 @@
         "changeset": "changeset",
         "version-packages": "changeset version",
         "verify:versions": "node scripts/release/verify-versions.mjs",
+        "verify:registry": "node scripts/release/verify-registry.mjs",
         "preflight:release": "node scripts/release/preflight.mjs",
         "release:selftest": "node scripts/release/verify-workflow.mjs && node scripts/release/verify-guards.mjs && node scripts/release/verify-changeset-loop.mjs",
         "format": "prettier -w .",

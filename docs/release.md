@@ -65,7 +65,7 @@
 | `npm-publish` environment | 人工闸门 + 只允许 tag/审批部署 | 仓库 Settings → Environments：required reviewer `Smart-Chou`（`prevent_self_review=false`，`can_admins_bypass=false`）；**名字必须与 npm 侧填的 environment 完全一致** |
 | `permissions: id-token: write` | GitHub OIDC token | 已在 workflow 的 publish job 里声明；OIDC gate 缺它直接失败 |
 | npm CLI `>= 11.5.1` | Trusted Publishing 的硬下限 | publish job 的「Ensure npm CLI supports Trusted Publishing」会检查并用 `npm install -g npm@^11.5.1` 补足 |
-| `secrets.NPM_TOKEN` | **已不再注入发布步骤** | 仅作为过渡期紧急回滚保留在 environment secret；新版 workflow 不读取它 |
+| `secrets.NPM_TOKEN` | **已不再注入发布步骤，且 workflow 不引用** | 2026-11-06 实测：`grep -n "secrets\." .github/workflows/release.yml` **0 条**；值仍留在 `npm-publish` environment secret（granular、仅两包 read-write、2027-02-04 到期），只作为 §6.6 紧急回滚的备用凭据。**退役计划：2026-12-06 复审后删除**（M5-5 结论，操作单见 §12.5） |
 | public 仓库 | provenance / OIDC | `Smart-Chou/zcblog-v2` 已 public（2026-11-06） |
 
 本地凭据状态（2026-11-06 实测）：
@@ -311,7 +311,7 @@ secret 里（未删除，值为 granular token，仅两包 read-write，2027-02-
 
 注意这条回滚**只是临时**：npm 正在限制 bypass-2FA 的 granular token（账号级通知：
 "npm tokens that bypass 2FA are being restricted for account changes and direct publishing"），
-token 路线在 2027-01 之后会越来越难走，长期方案只能是 OIDC。
+token 路线在 2027-01 之后会越来越难走，长期方案只能是 OIDC。退役时间表见 §12.5（2026-12-06 复审后撤销）。
 
 ---
 
@@ -338,6 +338,7 @@ node scripts/release/verify-workflow.mjs      # release.yml 契约
 node scripts/release/build-packages.mjs       # 包构建 + 入口存在性
 pnpm gates:all                                # 契约门禁
 node scripts/release/verify-versions.mjs      # 版本 lockstep
+node scripts/release/verify-registry.mjs      # 发布后 registry 复查（只读；24h 点检加 --min-age-hours=24）
 node scripts/release/preflight.mjs            # 发布前检查（check 模式）
 node scripts/release/publish-dry-run.mjs      # ⚠ 只 dry-run，不写 registry
 node scripts/release/verify-changeset-loop.mjs # 临时 monorepo 跑 changeset 闭环
@@ -373,6 +374,10 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   复现与证据见 §10。
 - `npm publish --dry-run` 不会因为 `private: true` 报 `EPRIVATE`（npm 11.12.1 实测 exit 0），
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
+- `0.0.0-stage` 占位（两包各 1 个）仍在 registry 上：无 dist-tag 指向、无下载、不影响安装。
+  M5-5 只做只读核查，删不删待 PO 决定（现状与操作命令见 §12.3）。
+- `npm-publish` environment 里的 `NPM_TOKEN` 仍在（惰性，workflow 不引用），
+  退役日期定在 2026-12-06 复审（见 §12.5）；在那之前它是 §6.6 回滚方案的唯一凭据。
 - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
   因此 publish job 用「找 `publish-plan.json`」定位目录而不是硬编码路径。
 - `@marxchou/dogeared-og-image` 的 consumers 在**不加 override** 时会看到 1 条 moderate
@@ -455,4 +460,95 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 2. 没有发新版本：本卡的验收只到「配置与 workflow 改动落盘 + 门禁全绿」。
 
 证据与命令输出：`docs/_reviews/M5-3/report.md`。
+
+---
+
+## 12. 发布后运维清单（每次发布都跑，别让它变成暗债）
+
+一次性把「发布完了」变成可复查的状态。命令只有一条，判据写在脚本里（`R1`–`R11`，见
+`docs/_reviews/M5-5/report.md` §1.3），不靠人肉核对：
+
+```bash
+cd ~/Documents/WebSiteCode/zcblog-v2
+pnpm verify:registry                       # T+0：刚发完立刻查一遍
+pnpm verify:registry --min-age-hours=24    # T+24h：未到点 exit 3，到点才是真正的 24h 复查
+```
+
+退出码：`0` 通过 / `1` drift（下表的处置列） / `3` 距发布不足 24h（不是失败）。
+
+### 12.1 时点与动作
+
+| 时点 | 动作 | 通过标准 |
+| ---- | ---- | -------- |
+| T+0（发布后立刻） | `pnpm verify:registry` | `R1–R9` 全 PASS；`R10` 只允许 INFO |
+| T+24h | `pnpm verify:registry --min-age-hours=24` | exit 0（不是 3），`R2/R3/R6` 无漂移 |
+| T+72h | `0.0.0-stage` 占位决策窗口（单版本 unpublish 的宽限判断线） | 见 §12.3：要么已删，要么登记为已接受 |
+| T+30d | `NPM_TOKEN` 退役复审 | 见 §12.5：删除 environment secret + 撤销 npm granular token |
+| 每次发版前 | `pnpm preflight:release` + §8 全量 | 与本次发布同口径 |
+
+### 12.2 drift 处置（`verify:registry` 红了怎么办）
+
+| 红在哪 | 含义 | 处置 |
+| ------ | ---- | ---- |
+| `R2` version 不一致 | registry `latest` 与仓库 `package.json` 不同 | 本地产出没发 / 发了没回写版本 → 补一次发布或补版本提交，**不要改 registry** |
+| `R3` 多出 dist-tag | 有人手工 `npm dist-tag add` | 确认来源；要回退 `latest` 走 §6.4 |
+| `R4/R5` tarball 或 integrity | CDN 取不到 / 字节与 integrity 不符 | 先重试；持续不符按 §6 回滚（不要本地重算 integrity 去迁就） |
+| `R6` provenance 缺失 | 那次发布没走 OIDC 或降级重发过 | 记录并前进版本；provenance 不可补写 |
+| `R9` 清单外的包上架了 | `PUBLISH_DIRS` 与事实不符 | 要么更新 `PUBLISH_DIRS` + 文档，要么按 §6 回滚 |
+| `R10` 占位被 tag 指向 | `latest` 或某个 tag 指到 `0.0.0-stage` | **立刻** `npm dist-tag add <pkg>@<真实版本> latest`（这是 blocker，不是噪音） |
+
+### 12.3 `0.0.0-stage` 占位（2026-11-06 核查结论）
+
+- 现状：`tokens` / `og-image` 各挂 1 个（347 B / 349 B，2 个文件，发布于 `2026-11-06T06:37:40Z`），
+  **没有任何 dist-tag 指向**，`stage list` 为空（不是 staged 残留），下载统计里查不到（= 0 下载）。
+- 影响：不参与版本解析（`0.0.0` 的 prerelease，`^2`/`2.x`/`*` 都命不中），不影响安装。
+- 建议：删（一次性清噪音）。单版本 unpublish 只能走 CLI、不可撤销、需 2FA OTP：
+
+  ```bash
+  npm unpublish @marxchou/dogeared-tokens@0.0.0-stage --otp=<6 位码>
+  npm unpublish @marxchou/dogeared-og-image@0.0.0-stage --otp=<6 位码>
+  npm view @marxchou/dogeared-tokens versions --json   # 复核：只剩 2.1.x
+  ```
+
+  **这条写操作需要 PO 单独批准**（M5-5 只做只读核查，未执行）。
+- 若选择保留：登记到 §9 已知限制，之后每次复查只当 INFO 看，不再重复讨论。
+
+### 12.4 认证面（发布后必须仍是这个形态）
+
+| 事实 | 复查命令 | 期望 |
+| ---- | -------- | ---- |
+| workflow 不读任何 secret | `grep -n "secrets\." .github/workflows/release.yml` | 0 条 |
+| 仓库 secrets 里没有 npm token | `gh secret list -R Smart-Chou/zcblog-v2` | 无 `NPM_TOKEN` / `NODE_AUTH_TOKEN` |
+| environment 闸门还在 | `gh api repos/Smart-Chou/zcblog-v2/environments` | `npm-publish` 有 `required_reviewers`、`can_admins_bypass=false` |
+| 两包 provenance 在场 | `pnpm verify:registry` | `R6` PASS（SLSA v1） |
+
+### 12.5 `NPM_TOKEN` 退役操作单（2026-12-06 复审，本清单不自动执行）
+
+M5-5 结论：**保留 30 天到 2026-12-06**，理由 = OIDC 只成功过 1 次（`2.1.2`），§6.6 的一键回滚还依赖它；
+且它目前是惰性 secret（workflow 不引用）。到期无条件撤销：
+
+```bash
+# 1) 确认最近一次发布是 OIDC + provenance 在场
+pnpm verify:registry                                  # R6 必须 PASS
+
+# 2) 删 GitHub environment secret（等价网页：Settings → Environments → npm-publish → Secrets）
+gh api -X DELETE repos/Smart-Chou/zcblog-v2/environments/npm-publish/secrets/NPM_TOKEN
+gh api repos/Smart-Chou/zcblog-v2/environments/npm-publish/secrets       # 期望 total_count: 0
+
+# 3) 撤销 npm 侧 granular token（网页，需 2FA）
+#    https://www.npmjs.com/settings/mifsh/tokens → 「仅两包 read-write、2027-02-04 到期」那条 → Revoke
+
+# 4) 复核发布链不受影响 + 回写文档
+node scripts/release/verify-workflow.mjs               # W9 系列 PASS
+node scripts/release/preflight.mjs                     # check 模式，无需凭据
+```
+
+删完之后 §6.6 的「1 个 revert 退回 token」方案随之失效：届时唯一回滚路径是 §6.2/§6.3
+（deprecate 或前进版本），文档需同步改。
+
+### 12.6 记录位置
+
+每次 24h 复查把输出贴进当期的 `docs/_reviews/M5-*/report.md`，不新建散落文件：
+`RELEASE_SUMMARY` 那行就是可 grep 的结论行。
+
 
