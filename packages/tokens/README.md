@@ -4,7 +4,10 @@ Design tokens for the **Dogeared** (折角) Astro blog theme. One JSON source of
 byte-verified generated stylesheet, and a hand-authored primitive layer. Zero runtime
 dependencies, no PostCSS/Sass build step.
 
-> Status: **published** as `@marxchou/dogeared-tokens@2.1.1` (2026-11-06).
+> Status: **published** as `@marxchou/dogeared-tokens@2.1.2` (2026-11-06; `latest` dist-tag).
+> Authoritative version is the registry — check with `npm view @marxchou/dogeared-tokens version`
+> or, in the theme repo, `pnpm verify:registry`. Upgrade/rollback steps live in
+> [`docs/npm-consumer.md`](../../docs/npm-consumer.md) 的 §5（升级）/ §6（回滚）。
 
 ## What's inside
 

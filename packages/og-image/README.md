@@ -7,7 +7,10 @@ The package knows nothing about your site: posts, site identity, palette and fon
 passed in as options. That keeps it reusable across themes and free of imports from site
 code.
 
-> Status: **published** as `@marxchou/dogeared-og-image@2.1.1` (2026-11-06).
+> Status: **published** as `@marxchou/dogeared-og-image@2.1.2` (2026-11-06; `latest` dist-tag).
+> Authoritative version is the registry — check with `npm view @marxchou/dogeared-og-image version`
+> or, in the theme repo, `pnpm verify:registry`. Upgrade/rollback steps live in
+> [`docs/npm-consumer.md`](../../docs/npm-consumer.md) 的 §5（升级）/ §6（回滚）。
 
 ## API
 

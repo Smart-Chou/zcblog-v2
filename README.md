@@ -20,10 +20,11 @@ SITE_URL="https://your-site.example.com" \
 `apps/demo` 只是示例，不是你的站点身份。升级主题时 overlay 不会被覆盖。
 
 - 主题装配/overlay 契约：`docs/overlay-contract.md`
-- 只消费 npm 包：`docs/npm-consumer.md`
+- 只消费 npm 包：`docs/npm-consumer.md`（接入 §1–§4，升级 §5，回滚 §6，Node 22/24 × macOS/Linux 矩阵 §7）
 - 升级与版本：`docs/upgrade.md`
 - 示例站部署：`apps/demo/README.md`
 - 外部消费者验收记录：`docs/_reviews/M5-2/report.md`
+- npm `latest`（2026-11-06）：`@marxchou/dogeared-tokens@2.1.2`、`@marxchou/dogeared-og-image@2.1.2`；`ui` 仍 private
 
 ## 参考站点：Marx's Blog
 
@@ -305,6 +306,11 @@ pnpm run preview
 | ---- | ---- |
 | `pnpm release` | 使用 standard-version 生成 changelog 并 bump 版本 |
 | `pnpm release:dry` | 预览版本 bump（不实际执行） |
+| `pnpm release:packages` | `changeset publish`（真实发布 npm 包，需 PO 批准） |
+| `pnpm verify:versions` | 校验四处版本 lockstep（根 + 三个包 + manifest） |
+| `pnpm verify:registry` | 只读复查 registry：版本 / dist-tag / tarball / integrity / provenance / 归属 |
+| `pnpm verify:consumer-matrix` | 消费者矩阵：Node 22/24 的安装 → 升级 → 回滚全生命周期（`--docker=true` 跑 Linux 格） |
+| `pnpm fixture:next-minor` | 把仓库里的包打成「下一 minor」本地预演 tarball（不发布、不改源码） |
 | `pnpm seo:indexnow` | 向 IndexNow 网络手动提交 URL（默认近 26 小时窗口内发布的文章；`--all` 全量、`--dry-run` 预览，见「部署」） |
 
 ## 环境变量

@@ -2,9 +2,11 @@
 
 > 本文是**站点维护者**的升级手册：怎么从 `v2.0.0` / 上一个 tag 升到 `v2.1.0`，升级时哪些文件会被覆盖、哪些绝对不动，以及怎么用一条命令证明自己没搞坏。
 >
-> **版本说明（2026-11-06）**：npm 包 `@marxchou/dogeared-tokens` / `-og-image` 已发 `2.1.1`
-> （README-only patch，不改运行时）；主题代码/升级基线仍是 `v2.1.0` tag，所以本文命令保留
-> `v2.1.0`。只消费 npm 包、不 fork 主题的读者看 [`npm-consumer.md`](./npm-consumer.md)。
+> **版本说明（2026-11-06）**：npm 包 `@marxchou/dogeared-tokens` / `-og-image` 当前 `latest` 是
+> `2.1.2`（M5-4 用 GitHub OIDC 发布，带 provenance；`2.1.1` 是 README-only patch，不改运行时）；
+> 主题代码/升级基线仍是 `v2.1.0` tag，所以本文命令保留
+> `v2.1.0`。只消费 npm 包、不 fork 主题的读者看 [`npm-consumer.md`](./npm-consumer.md)
+> ——包级升级与回滚（含 Node 22/24 × macOS/Linux 矩阵）在那篇的 §5–§7。
 >
 > 依据：`blog2.0/docs/21-m3-plan.md` §3.5（版本规则）、§4（overlay 契约）、§6.2–§6.4（出口判据与演练）。
 > 相关文档：`docs/overlay-contract.md`（T/O/X 契约正文）、`docs/package-boundary.md`（三包边界）、`docs/deploy-matrix.md`（三目标部署）。

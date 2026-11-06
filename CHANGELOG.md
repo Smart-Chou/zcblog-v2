@@ -11,6 +11,16 @@
 
 （M4：公开发布 npm / Changesets、`🔧` 六组件去 config 化、子路径部署、12 个 ✅ 原语迁移，均未开始。）
 
+### Added（M5 · 消费者维护面）
+
+- `docs/npm-consumer.md` 增加 `2.1.x → 下一 minor` 升级步骤（§5）、三种回滚方式（§6）、
+  Node 22/24 × macOS/Linux 消费者矩阵（§7）；版本号刷新到 `2.1.2`。
+- `scripts/release/consumer-probe.mjs`（单格生命周期探针：安装 → 升级 → minor 预演 → pin 回滚 → 锁文件回滚，
+  每步 `astro build` + 产物断言）、`scripts/release/prepare-next-minor-fixture.mjs`（本地下一 minor
+  预演 tarball）、`scripts/release/verify-consumer-matrix.mjs`（矩阵汇总，`--docker=true` 跑 Linux 格）；
+  对应 `pnpm verify:consumer-matrix` / `pnpm fixture:next-minor`。
+- `packages/{tokens,og-image}/README.md` 的发布状态行改为从 registry 读版本（消除 README 版本漂移）。
+
 ---
 
 ## [2.1.0] — 2026-11-05 · 双仓产品化（M3）

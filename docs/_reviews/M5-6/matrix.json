@@ -1,0 +1,1037 @@
+{
+    "card": "M5-6",
+    "generatedAt": "2026-11-06T15:56:18.786Z",
+    "registry": {
+        "base": "2.1.1",
+        "current": "2.1.2",
+        "nextMinorRehearsal": "2.2.0",
+        "note": "registry 上不存在 2.2.0：该列用本地打包的同源 tarball 预演"
+    },
+    "fixture": {
+        "version": "2.2.0",
+        "tarballs": {
+            "tokens": {
+                "package": "@marxchou/dogeared-tokens",
+                "from": "2.1.2",
+                "file": "/tmp/m56-fx/marxchou-dogeared-tokens-2.2.0.tgz",
+                "bytes": 20347
+            },
+            "og-image": {
+                "package": "@marxchou/dogeared-og-image",
+                "from": "2.1.2",
+                "file": "/tmp/m56-fx/marxchou-dogeared-og-image-2.2.0.tgz",
+                "bytes": 12414
+            }
+        }
+    },
+    "ok": true,
+    "problems": [],
+    "cells": [
+        {
+            "cell": "node22-darwin",
+            "node": "22.22.0",
+            "npm": "10.9.4",
+            "platform": "darwin",
+            "arch": "x64",
+            "osRelease": "24.6.0",
+            "registry": "https://registry.npmjs.org/",
+            "nextMinorFixture": {
+                "tokens": "/var/folders/d1/vxsbt7qj33ggygyw8w3d944m0000gn/T/m56-next-minor-fixture/marxchou-dogeared-tokens-2.2.0.tgz",
+                "ogImage": "/var/folders/d1/vxsbt7qj33ggygyw8w3d944m0000gn/T/m56-next-minor-fixture/marxchou-dogeared-og-image-2.2.0.tgz"
+            },
+            "startedAt": "2026-11-06T15:45:14.018Z",
+            "ok": true,
+            "failures": 0,
+            "installMs": {
+                "install-2.1.1": 14583,
+                "upgrade-2.1.2": 1989,
+                "next-minor-rehearsal": 1369,
+                "rollback-pin-2.1.2": 1673,
+                "rollback-lockfile-ci": 6838
+            },
+            "peerWarnings": [],
+            "deprecationWarnings": [],
+            "otherWarnings": [],
+            "stages": [
+                {
+                    "name": "install-2.1.1",
+                    "kind": "install",
+                    "command": "npm install astro@^7.3.6 …@2.1.1",
+                    "ok": true,
+                    "ms": 14583,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.1",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 7870,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "upgrade-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 1989,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.2",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 5344,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "next-minor-rehearsal",
+                    "kind": "install",
+                    "command": "npm install <tokens-2.2.0.tgz> <og-image-2.2.0.tgz>",
+                    "ok": true,
+                    "ms": 1369,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "note": "本地打包的下一 minor 预演包；registry 上不存在该版本"
+                },
+                {
+                    "name": "build-next-minor",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 4354,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-pin-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 1673,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-rollback-pin",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 3881,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-lockfile-ci",
+                    "kind": "install",
+                    "command": "npm ci（还原升级前的 package.json + lock）",
+                    "ok": true,
+                    "ms": 6838,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-rollback-lock",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 3172,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.1"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                }
+            ],
+            "workDir": null
+        },
+        {
+            "cell": "node24-darwin",
+            "node": "24.13.0",
+            "npm": "11.16.0",
+            "platform": "darwin",
+            "arch": "x64",
+            "osRelease": "24.6.0",
+            "registry": "https://registry.npmjs.org/",
+            "nextMinorFixture": {
+                "tokens": "/var/folders/d1/vxsbt7qj33ggygyw8w3d944m0000gn/T/m56-next-minor-fixture/marxchou-dogeared-tokens-2.2.0.tgz",
+                "ogImage": "/var/folders/d1/vxsbt7qj33ggygyw8w3d944m0000gn/T/m56-next-minor-fixture/marxchou-dogeared-og-image-2.2.0.tgz"
+            },
+            "startedAt": "2026-11-06T15:46:29.869Z",
+            "ok": true,
+            "failures": 0,
+            "installMs": {
+                "install-2.1.1": 37255,
+                "upgrade-2.1.2": 2233,
+                "next-minor-rehearsal": 2256,
+                "rollback-pin-2.1.2": 1318,
+                "rollback-lockfile-ci": 5891
+            },
+            "peerWarnings": [],
+            "deprecationWarnings": [],
+            "otherWarnings": [
+                {
+                    "stage": "upgrade-2.1.2",
+                    "line": "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:"
+                },
+                {
+                    "stage": "upgrade-2.1.2",
+                    "line": "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))"
+                },
+                {
+                    "stage": "upgrade-2.1.2",
+                    "line": "npm warn allow-scripts"
+                },
+                {
+                    "stage": "upgrade-2.1.2",
+                    "line": "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                },
+                {
+                    "stage": "next-minor-rehearsal",
+                    "line": "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:"
+                },
+                {
+                    "stage": "next-minor-rehearsal",
+                    "line": "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))"
+                },
+                {
+                    "stage": "next-minor-rehearsal",
+                    "line": "npm warn allow-scripts"
+                },
+                {
+                    "stage": "next-minor-rehearsal",
+                    "line": "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                },
+                {
+                    "stage": "rollback-pin-2.1.2",
+                    "line": "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:"
+                },
+                {
+                    "stage": "rollback-pin-2.1.2",
+                    "line": "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))"
+                },
+                {
+                    "stage": "rollback-pin-2.1.2",
+                    "line": "npm warn allow-scripts"
+                },
+                {
+                    "stage": "rollback-pin-2.1.2",
+                    "line": "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                },
+                {
+                    "stage": "rollback-lockfile-ci",
+                    "line": "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:"
+                },
+                {
+                    "stage": "rollback-lockfile-ci",
+                    "line": "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))"
+                },
+                {
+                    "stage": "rollback-lockfile-ci",
+                    "line": "npm warn allow-scripts"
+                },
+                {
+                    "stage": "rollback-lockfile-ci",
+                    "line": "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                }
+            ],
+            "stages": [
+                {
+                    "name": "install-2.1.1",
+                    "kind": "install",
+                    "command": "npm install astro@^7.3.6 …@2.1.1",
+                    "ok": true,
+                    "ms": 37255,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.1",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 11186,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "upgrade-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 2233,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [
+                        "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:",
+                        "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))",
+                        "npm warn allow-scripts",
+                        "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                    ]
+                },
+                {
+                    "name": "build-2.1.2",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 3812,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "next-minor-rehearsal",
+                    "kind": "install",
+                    "command": "npm install <tokens-2.2.0.tgz> <og-image-2.2.0.tgz>",
+                    "ok": true,
+                    "ms": 2256,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [
+                        "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:",
+                        "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))",
+                        "npm warn allow-scripts",
+                        "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                    ],
+                    "note": "本地打包的下一 minor 预演包；registry 上不存在该版本"
+                },
+                {
+                    "name": "build-next-minor",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 4477,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-pin-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 1318,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [
+                        "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:",
+                        "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))",
+                        "npm warn allow-scripts",
+                        "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                    ]
+                },
+                {
+                    "name": "build-rollback-pin",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 2519,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-lockfile-ci",
+                    "kind": "install",
+                    "command": "npm ci（还原升级前的 package.json + lock）",
+                    "ok": true,
+                    "ms": 5891,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [
+                        "npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:",
+                        "npm warn allow-scripts   fsevents@2.3.3 (install: (install scripts present))",
+                        "npm warn allow-scripts",
+                        "npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow."
+                    ]
+                },
+                {
+                    "name": "build-rollback-lock",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 2727,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                }
+            ],
+            "workDir": null
+        },
+        {
+            "cell": "node22-linux",
+            "node": "22.23.4",
+            "npm": "10.9.9",
+            "platform": "linux",
+            "arch": "x64",
+            "osRelease": "6.12.107+deb13-amd64",
+            "registry": "https://registry.npmjs.org/",
+            "nextMinorFixture": {
+                "tokens": "/m56/fx/marxchou-dogeared-tokens-2.2.0.tgz",
+                "ogImage": "/m56/fx/marxchou-dogeared-og-image-2.2.0.tgz"
+            },
+            "startedAt": "2026-11-06T15:53:13.082Z",
+            "ok": true,
+            "failures": 0,
+            "installMs": {
+                "install-2.1.1": 86393,
+                "upgrade-2.1.2": 20190,
+                "next-minor-rehearsal": 766,
+                "rollback-pin-2.1.2": 748,
+                "rollback-lockfile-ci": 3848
+            },
+            "peerWarnings": [],
+            "deprecationWarnings": [],
+            "otherWarnings": [],
+            "stages": [
+                {
+                    "name": "install-2.1.1",
+                    "kind": "install",
+                    "command": "npm install astro@^7.3.6 …@2.1.1",
+                    "ok": true,
+                    "ms": 86393,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.1",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 5083,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "upgrade-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 20190,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.2",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1665,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "next-minor-rehearsal",
+                    "kind": "install",
+                    "command": "npm install <tokens-2.2.0.tgz> <og-image-2.2.0.tgz>",
+                    "ok": true,
+                    "ms": 766,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "note": "本地打包的下一 minor 预演包；registry 上不存在该版本"
+                },
+                {
+                    "name": "build-next-minor",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1633,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-pin-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 748,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-rollback-pin",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1655,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-lockfile-ci",
+                    "kind": "install",
+                    "command": "npm ci（还原升级前的 package.json + lock）",
+                    "ok": true,
+                    "ms": 3848,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-rollback-lock",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1736,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                }
+            ],
+            "workDir": null
+        },
+        {
+            "cell": "node24-linux",
+            "node": "24.22.2",
+            "npm": "11.19.1",
+            "platform": "linux",
+            "arch": "x64",
+            "osRelease": "6.12.107+deb13-amd64",
+            "registry": "https://registry.npmjs.org/",
+            "nextMinorFixture": {
+                "tokens": "/m56/fx/marxchou-dogeared-tokens-2.2.0.tgz",
+                "ogImage": "/m56/fx/marxchou-dogeared-og-image-2.2.0.tgz"
+            },
+            "startedAt": "2026-11-06T15:55:48.342Z",
+            "ok": true,
+            "failures": 0,
+            "installMs": {
+                "install-2.1.1": 131393,
+                "upgrade-2.1.2": 1706,
+                "next-minor-rehearsal": 709,
+                "rollback-pin-2.1.2": 625,
+                "rollback-lockfile-ci": 3460
+            },
+            "peerWarnings": [],
+            "deprecationWarnings": [],
+            "otherWarnings": [],
+            "stages": [
+                {
+                    "name": "install-2.1.1",
+                    "kind": "install",
+                    "command": "npm install astro@^7.3.6 …@2.1.1",
+                    "ok": true,
+                    "ms": 131393,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.1",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 3923,
+                    "versions": {
+                        "tokens": "2.1.1",
+                        "ogImage": "2.1.1",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "upgrade-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 1706,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-2.1.2",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1581,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "next-minor-rehearsal",
+                    "kind": "install",
+                    "command": "npm install <tokens-2.2.0.tgz> <og-image-2.2.0.tgz>",
+                    "ok": true,
+                    "ms": 709,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "note": "本地打包的下一 minor 预演包；registry 上不存在该版本"
+                },
+                {
+                    "name": "build-next-minor",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1563,
+                    "versions": {
+                        "tokens": "2.2.0",
+                        "ogImage": "2.2.0",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-pin-2.1.2",
+                    "kind": "install",
+                    "command": "npm install …@2.1.2",
+                    "ok": true,
+                    "ms": 625,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-rollback-pin",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1588,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                },
+                {
+                    "name": "rollback-lockfile-ci",
+                    "kind": "install",
+                    "command": "npm ci（还原升级前的 package.json + lock）",
+                    "ok": true,
+                    "ms": 3460,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": []
+                },
+                {
+                    "name": "build-rollback-lock",
+                    "kind": "build",
+                    "command": "npm run build",
+                    "ok": true,
+                    "ms": 1604,
+                    "versions": {
+                        "tokens": "2.1.2",
+                        "ogImage": "2.1.2",
+                        "astro": "7.4.7"
+                    },
+                    "peerWarnings": [],
+                    "deprecationWarnings": [],
+                    "otherWarnings": [],
+                    "verify": {
+                        "html": 277,
+                        "cssVars": ["--color-bg", "--color-accent", "--color-fg"],
+                        "og": {
+                            "isPng": true,
+                            "width": 1200,
+                            "height": 630
+                        },
+                        "ok": true
+                    }
+                }
+            ],
+            "workDir": null
+        }
+    ],
+    "markdown": "| Cell | Node | npm | OS | 首装 `2.1.1` (s) | 升级 `2.1.2` (s) | minor 预演 (s) | pin 回滚 (s) | lockfile 回滚 (s) | peer 警告 | 其它 npm 警告 | 结果 |\n| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n| `node22-darwin` | 22.22.0 | 10.9.4 | darwin 24.6.0 | 14.6 | 2.0 | 1.4 | 1.7 | 6.8 | 0 | 0 | PASS |\n| `node24-darwin` | 24.13.0 | 11.16.0 | darwin 24.6.0 | 37.3 | 2.2 | 2.3 | 1.3 | 5.9 | 0 | 16 | PASS |\n| `node22-linux` | 22.23.4 | 10.9.9 | linux 6.12.107+deb13-amd64 | 86.4 | 20.2 | 0.8 | 0.7 | 3.8 | 0 | 0 | PASS |\n| `node24-linux` | 24.22.2 | 11.19.1 | linux 6.12.107+deb13-amd64 | 131.4 | 1.7 | 0.7 | 0.6 | 3.5 | 0 | 0 | PASS |"
+}
