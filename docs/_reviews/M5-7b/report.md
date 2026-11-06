@@ -129,7 +129,9 @@ Scan identity leaks (dist+overlay) dist:  scanned=224 identity_hits=0 package_id
 | CI | `42261057484` | `0d24ca7` | **success** — `test`（prettier / type-check / unit）/ `gates`（含 `gates:all`）/ `visual (design/atoms · linux baselines)` / `contract` 四 job 全绿 |
 | Perf | `42261057543` | `0d24ca7` | **success**（M5-7a 的 list p95 24.5KB 未被打破） |
 | A11y PR smoke | `42261057685` | `0d24ca7` | **success** |
-| Deploy matrix | `42259005664` | `1b8d309` | 由 `apps/**` 触发（只构建断言，不部署）：`vercel` job success；`gh-pages` / `cloudflare` 两个 job 自 17:09Z 起卡在 **`Install system dependencies`**（apt/字体下载），与本次 diff 无关（该 step 在构建之前，M5-7a 已记录过 runner 侧 apt 源抖动）。它不在本卡验收项内，也不产出部署。 |
+| Deploy matrix | `42259005664` | `1b8d309` | 由 `apps/**` 触发（只构建断言，不部署）：`vercel` job success；`gh-pages` / `cloudflare` 两个 job 自 17:09Z 起卡在 **`Install system dependencies`**（apt/字体下载），最终 `cancelled`。该 step 在构建之前，与本次 diff 无关（M5-7a 已记录过 runner 侧 apt 源抖动）；它不在本卡验收项内，也不产出部署。 |
+
+补记（最终 HEAD `ad4065b`，仍为 docs-only）：CI `42261766754` success、A11y `42261766775` success、Perf `42261766672` success。
 
 `0d24ca7` 只加 `docs/_reviews/**` 与 `docs/overlay-contract.md`，不在 demo workflow 的 `paths` 里，所以没有第二次 demo run——运行时输入与 `1b8d309` 完全相同，上面那次 demo 绿即当前状态。
 
