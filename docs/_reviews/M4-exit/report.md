@@ -52,8 +52,8 @@
    2026-11-06 仓库已转 public，下一次发布可切回 `provenance=true`。
 5. **token 生命周期**：`NPM_TOKEN` 为 granular token，`2027-02-04` 到期；npm 的 bypass-2FA
    直发限制在 `2027-01` 生效，需在此之前迁移 trusted publishing / staged publishing。
-6. **environment 无保护规则（历史）**：private 时期 required reviewers / branch policy 失败；
-   仓库已 public，可重试配置，当前仍未加；真发布闸门仍是 `confirm_publish=PUBLISH`。
+6. **environment 保护规则已补（2026-11-06）**：转 public 后已配置 required reviewer
+   `Smart-Chou`（`prevent_self_review=false`）；真发布仍要 `confirm_publish=PUBLISH` 并等待环境批准。
 7. **生产站不切换**：D-0125；本报告不包含生产合并、DNS 或 CF 缓存操作。
 
 ## 5. Exit checklist

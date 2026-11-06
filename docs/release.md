@@ -69,8 +69,9 @@
 - 本地 token 只存在 `~/.npmrc`（`//registry.npmjs.org/:_authToken=…`），**不进仓库、不写进文档**。
 - GitHub `npm-publish` environment 已于 2026-11-06 创建；`NPM_TOKEN` 已写入该 environment
   （值不记录）。仓库当时是 **private + GitHub Free**，环境保护规则（required reviewers /
-  deployment branch policy）API 返回 422，因此 environment 目前**可能仍无保护规则**；真发布闸门
-  仍依赖 `workflow_dispatch` 的 `dry_run=false` + `confirm_publish=PUBLISH`。
+  deployment branch policy）API 返回 422；**2026-11-06 仓库转 public 后已配置 required reviewer
+  `Smart-Chou`**（`prevent_self_review=false`，本人可批准），真发布仍要 `dry_run=false` +
+  `confirm_publish=PUBLISH` 并等待该环境批准。
 - 2026-11-06 本次发布：`tokens` 与 `og-image` 已 `private:false` +
   `publishConfig.access=public`；`ui` 保持 private。首次发布在 private 仓库下无法生成
   provenance，dispatch 时显式 `provenance=false`；**仓库现已 public，下一次发布可切回
@@ -268,8 +269,8 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 - **已跑过两次真发布（2026-11-06）**：tokens / og-image `2.1.0` 首发，`2.1.1` 为
   README-only patch（当前 `latest`）；ui 未发布。
   `provenance` 在两次发布时因仓库 private 显式关闭；**仓库已于 2026-11-06 转 public**，
-  下一次发布可开启 `provenance=true`。`npm-publish` environment 在 private 时期无法加
-  required reviewers，当前实际闸门仍是 `workflow_dispatch` 的 `confirm_publish=PUBLISH`。
+  下一次发布默认 `provenance=true`。`npm-publish` environment 已在 2026-11-06 补 required
+  reviewer `Smart-Chou`；真发布闸门是 `dry_run=false` + `confirm_publish=PUBLISH` + 环境批准。
   复现与证据见 §10。
 - `npm publish --dry-run` 不会因为 `private: true` 报 `EPRIVATE`（npm 11.12.1 实测 exit 0），
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
