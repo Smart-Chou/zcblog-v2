@@ -300,6 +300,15 @@ jobs:
                   echo "provenance_failed=false" >> "$GITHUB_ENV"
                   echo "provenance：被输入显式关闭（inputs.provenance=false）——已记录，未静默跳过" >> "$GITHUB_STEP_SUMMARY"
 
+            # provenance=false 时上面的 publish_prov 被跳过；这里必须显式发布，否则整条链
+            # 只会“记录已关闭”而根本不写 registry。
+            - name: Publish without provenance (explicitly disabled)
+              if: inputs.provenance == false
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NPM_CONFIG_PROVENANCE: "false"
+              run: pnpm exec changeset publish --from-pack-dir "$PACK_DIR" --no-git-tag
+
             # 只在 provenance 失败时跑：同一条命令、同一个 pack 目录，关掉 provenance。
             # changeset publish 幂等：已发布版本会被跳过，未发布的继续发。
             - name: Publish without provenance (fallback)

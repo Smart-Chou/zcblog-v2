@@ -163,14 +163,22 @@ if (provRecord && /::warning::/.test(provRecord.run) && /GITHUB_STEP_SUMMARY/.te
     c.pass("W8b", "provenance 失败会 ::warning:: + 写 step summary（显式记录）");
 else c.fail("W8b", "provenance 失败没有显式记录步骤");
 
-const fallback = stepsOf("publish").find((s) => /without provenance/i.test(s.name));
-if (
-    fallback &&
-    /provenance_failed/.test(String(fallback.if ?? "")) &&
-    /changeset publish/.test(fallback.run)
-)
+const fallbackSteps = stepsOf("publish").filter((s) => /without provenance/i.test(s.name));
+const fallback = fallbackSteps.find((s) => /provenance_failed/.test(String(s.if ?? "")));
+if (fallback && /changeset publish/.test(fallback.run))
     c.pass("W8c", "provenance 失败后有显式降级重发步骤（不是静默跳过）");
 else c.fail("W8c", "缺少 provenance 失败后的降级重发步骤");
+
+// provenance=false 时主发布步骤被 if 跳过，必须有另一条显式 publish 步骤；
+// 否则 workflow 会“记录已关闭”但不写 registry（M4 真发布前实测踩到）。
+const disabledPublish = stepsOf("publish").find((s) => /explicitly disabled/i.test(s.name));
+if (
+    disabledPublish &&
+    /inputs\.provenance == false/.test(String(disabledPublish.if ?? "")) &&
+    /changeset publish/.test(disabledPublish.run)
+)
+    c.pass("W8d", "provenance=false 时有显式 publish 步骤（不会只记录不发布）");
+else c.fail("W8d", "provenance=false 时缺少显式 publish 步骤");
 
 // ---- W9 凭据 ----
 const cred = stepsOf("publish").find((s) => /Credential gate/i.test(s.name));
