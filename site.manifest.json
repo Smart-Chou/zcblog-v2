@@ -4,8 +4,8 @@
     "theme": {
         "name": "dogeared",
         "package": "@marxchou/zcblog",
-        "version": "2.1.1",
-        "ref": "pkg-v2.1.1",
+        "version": "2.1.2",
+        "ref": "pkg-v2.1.2",
         "repository": "https://github.com/Smart-Chou/zcblog"
     },
     "planBaseline": {
@@ -77,7 +77,11 @@
                 "LICENSE",
                 "NOTICE"
             ],
-            "reserved": [".changeset/**", "docs/release.md", ".github/workflows/release.yml"]
+            "reserved": [
+                ".changeset/**",
+                "docs/release.md",
+                ".github/workflows/release.yml"
+            ]
         },
         "O": {
             "label": "overlay",
@@ -102,12 +106,20 @@
                 "apps/demo/**",
                 "site.manifest.json"
             ],
-            "reserved": [".env", "deploy/**", "CHANGELOG.md", "public/_redirects"]
+            "reserved": [
+                ".env",
+                "deploy/**",
+                "CHANGELOG.md",
+                "public/_redirects"
+            ]
         },
         "X": {
             "label": "exclude",
             "upgrade": "ignore",
-            "rules": ["docs/_reviews/**", ".claude/**"],
+            "rules": [
+                "docs/_reviews/**",
+                ".claude/**"
+            ],
             "reserved": [
                 "dist/**",
                 "node_modules/**",
@@ -127,36 +139,129 @@
         }
     ],
     "anchors": [
-        { "path": "astro.config.mjs", "class": "T" },
-        { "path": "NOTICE", "class": "T" },
-        { "path": "package.json", "class": "T" },
-        { "path": "src/config/index.ts", "class": "T" },
-        { "path": "src/components/Article/PostCard.astro", "class": "T" },
-        { "path": "src/styles/global.css", "class": "T" },
-        { "path": "src/data/i18n/zh.json", "class": "T" },
-        { "path": "packages/ui/src/Button.astro", "class": "T" },
-        { "path": "packages/tokens/tokens.json", "class": "T" },
-        { "path": "scripts/gates/verify-overlay.mjs", "class": "T" },
-        { "path": "scripts/theme-sync.mjs", "class": "T" },
-        { "path": "e2e/smoke.spec.ts", "class": "T" },
-        { "path": "theme-template/README.md", "class": "T" },
-        { "path": ".github/workflows/ci.yml", "class": "T" },
-        { "path": "public/fonts/dm-sans-latin-wght-normal.woff2", "class": "T" },
-        { "path": "src/config/site.ts", "class": "O" },
-        { "path": "src/config/feature.ts", "class": "O" },
-        { "path": "src/config/ui.ts", "class": "O" },
-        { "path": "src/config/services.ts", "class": "O" },
-        { "path": "src/content/pages/privacy-policy.md", "class": "O" },
-        { "path": "src/data/friends.json", "class": "O" },
-        { "path": "src/data/adapters/friends.ts", "class": "O" },
-        { "path": "src/assets/logo.svg", "class": "O" },
-        { "path": "public/assets/note/000823-556005.png", "class": "O" },
-        { "path": "public/images/douban/30385142.webp", "class": "O" },
-        { "path": "public/cover.png", "class": "O" },
-        { "path": "public/_headers", "class": "O" },
-        { "path": "vercel.json", "class": "O" },
-        { "path": "site.manifest.json", "class": "O" },
-        { "path": "docs/_reviews/M2-13/report.md", "class": "X" },
-        { "path": ".claude/PRODUCT.md", "class": "X" }
+        {
+            "path": "astro.config.mjs",
+            "class": "T"
+        },
+        {
+            "path": "NOTICE",
+            "class": "T"
+        },
+        {
+            "path": "package.json",
+            "class": "T"
+        },
+        {
+            "path": "src/config/index.ts",
+            "class": "T"
+        },
+        {
+            "path": "src/components/Article/PostCard.astro",
+            "class": "T"
+        },
+        {
+            "path": "src/styles/global.css",
+            "class": "T"
+        },
+        {
+            "path": "src/data/i18n/zh.json",
+            "class": "T"
+        },
+        {
+            "path": "packages/ui/src/Button.astro",
+            "class": "T"
+        },
+        {
+            "path": "packages/tokens/tokens.json",
+            "class": "T"
+        },
+        {
+            "path": "scripts/gates/verify-overlay.mjs",
+            "class": "T"
+        },
+        {
+            "path": "scripts/theme-sync.mjs",
+            "class": "T"
+        },
+        {
+            "path": "e2e/smoke.spec.ts",
+            "class": "T"
+        },
+        {
+            "path": "theme-template/README.md",
+            "class": "T"
+        },
+        {
+            "path": ".github/workflows/ci.yml",
+            "class": "T"
+        },
+        {
+            "path": "public/fonts/dm-sans-latin-wght-normal.woff2",
+            "class": "T"
+        },
+        {
+            "path": "src/config/site.ts",
+            "class": "O"
+        },
+        {
+            "path": "src/config/feature.ts",
+            "class": "O"
+        },
+        {
+            "path": "src/config/ui.ts",
+            "class": "O"
+        },
+        {
+            "path": "src/config/services.ts",
+            "class": "O"
+        },
+        {
+            "path": "src/content/pages/privacy-policy.md",
+            "class": "O"
+        },
+        {
+            "path": "src/data/friends.json",
+            "class": "O"
+        },
+        {
+            "path": "src/data/adapters/friends.ts",
+            "class": "O"
+        },
+        {
+            "path": "src/assets/logo.svg",
+            "class": "O"
+        },
+        {
+            "path": "public/assets/note/000823-556005.png",
+            "class": "O"
+        },
+        {
+            "path": "public/images/douban/30385142.webp",
+            "class": "O"
+        },
+        {
+            "path": "public/cover.png",
+            "class": "O"
+        },
+        {
+            "path": "public/_headers",
+            "class": "O"
+        },
+        {
+            "path": "vercel.json",
+            "class": "O"
+        },
+        {
+            "path": "site.manifest.json",
+            "class": "O"
+        },
+        {
+            "path": "docs/_reviews/M2-13/report.md",
+            "class": "X"
+        },
+        {
+            "path": ".claude/PRODUCT.md",
+            "class": "X"
+        }
     ]
 }

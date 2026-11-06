@@ -1,6 +1,6 @@
 {
     "name": "@marxchou/dogeared-og-image",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "OG image route factory for the Dogeared theme: createOgImageRoute(options) renders 1200x630 PNGs. No site config is read; posts, site identity, palette and fonts are injected by the theme.",
     "type": "module",
     "private": false,

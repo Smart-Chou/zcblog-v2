@@ -1,5 +1,11 @@
 # @marxchou/dogeared-tokens
 
+## 2.1.2
+
+### Patch Changes
+
+- 验证 GitHub OIDC Trusted Publishing 的发布链；无功能变更。
+
 ## 2.1.1
 
 ### Patch Changes

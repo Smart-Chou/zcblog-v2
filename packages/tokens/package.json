@@ -1,6 +1,6 @@
 {
     "name": "@marxchou/dogeared-tokens",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "Design tokens for the Dogeared theme: tokens.json is the single source, tokens.css its byte-verified build output, variables.css the primitive/palette layer. Zero runtime dependencies.",
     "type": "module",
     "private": false,
