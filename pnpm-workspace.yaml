@@ -20,3 +20,7 @@ overrides:
     postcss-selector-parser: ">=7.1.6"
     katex: "^0.19.0"
     http-cache-semantics: ">=4.3.0"
+    # satori 全系精确钉 fflate@0.7.3（GHSA-px8p-9vwx-vf98，<0.7.5）。
+    # 只对 satori 的子依赖覆写到同 minor 的 0.7.5；不要写全局 `fflate`，
+    # 否则会把 @iconify/tools 要求的 ^0.8.3 错误降级。
+    satori>fflate: "^0.7.5"

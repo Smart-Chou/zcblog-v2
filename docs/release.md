@@ -256,6 +256,11 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
 - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
   因此 publish job 用「找 `publish-plan.json`」定位目录而不是硬编码路径。
+- `@marxchou/dogeared-og-image` 的 consumers 在**不加 override** 时会看到 1 条 moderate
+  `GHSA-px8p-9vwx-vf98`（`fflate`，`unzipSync` + 畸形 ZIP64 无限循环）。satori 全系精确钉
+  `fflate@0.7.3`，包侧无法改；satori 只调用 `inflateSync`，该路径不可达。已在包 README 给出
+  npm/pnpm/yarn 三种 override 配方；本仓 `pnpm-workspace.yaml` 也已加 `satori>fflate: "^0.7.5"`。
+  这条按 **A+ 决策**接受为已知、不可达告警，不作为发布阻断；等 satori 上游放宽依赖后再移除。
 - `verify-changeset-loop.mjs` 的 **L6（`changeset pack` 产出 3 个 tarball）当前是红的**（M4-6 给包加了
   `prepack: node scripts/build.mjs`，而该脚本的临时 monorepo 不带 `node_modules` → `ELIFECYCLE`）。
   这条不在 CI 的 release workflow 里（CI 有依赖，pack 正常），也不影响 preflight；待单独修。

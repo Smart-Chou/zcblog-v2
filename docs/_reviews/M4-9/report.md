@@ -249,7 +249,7 @@ $ node --test packages/og-image/test/smoke.test.mjs
 
 若 PO 选 A，建议顺带决定两件小事（本次未擅自做，均在边界外）：
 
-1. 仓内 `pnpm-workspace.yaml` 的 `overrides` 增加 `fflate: ">=0.7.5"`（已有 `yaml`/`source-map-js` 等同类条目），可让站点自身 `pnpm audit` 也清掉这条；
+1. 仓内 `pnpm-workspace.yaml` 的 `overrides` 增加 `satori>fflate: "^0.7.5"`（已有 `yaml`/`source-map-js` 等同类条目），可让站点自身 `pnpm audit` 也清掉这条；
 2. 在上游 satori 提 issue/PR 把 `fflate` 抬到 `^0.7.5`（唯一根治路径），并在 README 注明「依赖 satori 的 bundle 体积 +1.33 MB」。
 
 ---
@@ -268,3 +268,29 @@ $ node --test packages/og-image/test/smoke.test.mjs
 | `evidence.json` | 全部命令、sha256、带宽、audit 输出、体积对账的机器可读版本 |
 
 复现要点：出图对比必须固定字体文件（仓库 `.astro/fonts` 的两张 Noto Sans SC）与 `sharp` 版本；只换 satori 版本才可归因。
+
+---
+
+## 10. PO 决策：A+（2026-11-06）
+
+PO 选择 **A+**：保留 `satori@^0.63.2`，接受残余 fflate 告警为「已知、不可达」，并额外做三件事：
+
+1. 仓内 `pnpm-workspace.yaml` 增加 `satori>fflate: "^0.7.5"`，让站点自身依赖图也清掉这条；
+2. `packages/og-image/README.md` 补齐 npm / pnpm / Yarn 三种 override 配方与 CI 提示；
+3. 起上游 `vercel/satori` issue 草稿，请求把 `fflate` 抬到 `^0.7.5`（草稿见
+   `docs/_reviews/M4-9/upstream-satori-fflate-issue.md`，未提交）。
+
+验收要求：仓内 `pnpm install --frozen-lockfile` 后 `pnpm audit` 不再报 fflate；三路径出图
+golden 不变；`gates:all` 保持 PASS。真正的 `npm publish` 仍等 npm 登录/2FA。
+
+实测结果（2026-11-06）：
+
+- `pnpm why fflate` → satori 分支 `0.7.5`，`@iconify/tools` 分支仍 `0.8.3`（没有被全局降级）；
+- `pnpm audit --json` 中 `fflate` 告警 **0** 条（仓内其它 29 条为既有依赖，不在本决策范围）；
+- `@marxchou/dogeared-og-image` 10/10 tests PASS，golden `6b9d8762…` 不变；
+- `build:ci` → 748 HTML；`verify-guards` 15/15；`gates:all` PASS（classified=1105，unclassified=0）；
+- README 扩充后 tarball：**12,410 B / 49,732 B unpacked / 13 files**（README 6,369 B；+581 B vs 11,829 B）；
+- 干净 npm 消费者实测：`"overrides": { "satori": { "fflate": "^0.7.5" } }` → `npm ls` 只有
+  `fflate@0.7.5`，`npm audit` total 0。
+
+

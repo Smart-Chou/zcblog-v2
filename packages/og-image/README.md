@@ -111,8 +111,39 @@ loudly rather than rendering without a font.
   byte-identical output:
 
   ```json
-  { "overrides": { "fflate": "^0.7.5" } }
+  {
+    "overrides": {
+      "satori": { "fflate": "^0.7.5" }
+    }
+  }
   ```
+
+  The override only affects `fflate` under `satori`; do **not** override it globally — other
+  dependencies (e.g. `@iconify/tools`) legitimately require `fflate@^0.8.3`, and a global
+  override would downgrade them. `fflate` 0.7.5 is a patch release in the same minor line as
+  satori's 0.7.3; the package's rendered PNGs are byte-identical with and without it.
+
+  For pnpm, put the scoped override in `package.json`:
+
+  ```json
+  { "pnpm": { "overrides": { "satori>fflate": "^0.7.5" } } }
+  ```
+
+  or in `pnpm-workspace.yaml` for a workspace root:
+
+  ```yaml
+  overrides:
+      satori>fflate: "^0.7.5"
+  ```
+
+  For Yarn:
+
+  ```json
+  { "resolutions": { "satori/fflate": "^0.7.5" } }
+  ```
+
+  If your CI runs `npm audit --audit-level=moderate`, add one of the overrides above; otherwise
+  the install will report this known, unreachable advisory on every clean install.
 
 ## Usage outside Astro
 
