@@ -265,9 +265,10 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 
 ## 9. 已知限制
 
-- **没有跑过真发布**：本链路只做 dry-run；`changeset publish` 的 registry 写入、provenance 成功路径、
-  environment 审批都只在真实 CI 上才第一次生效（本机已有 `mifsh` 登录态，但 CI 的 `NPM_TOKEN`
-  与 `npm-publish` environment 尚未配置；口径以 §3「本地凭据状态」为准）。
+- **已跑过一次真发布（2026-11-06）**：tokens / og-image `2.1.0` 已上线；ui 未发布。
+  `provenance` 因仓库 private 显式关闭；`npm-publish` environment 因 GitHub Free/private
+  无法加 required reviewers，实际闸门是 `workflow_dispatch` 的 `confirm_publish=PUBLISH`。
+  复现与证据见 §10。
 - `npm publish --dry-run` 不会因为 `private: true` 报 `EPRIVATE`（npm 11.12.1 实测 exit 0），
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。
 - pack dir 通过 artifact 传递；artifact 对单个目录的落盘层级依赖 upload/download-artifact 行为，
@@ -283,3 +284,24 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   purge 真实 `node_modules`；已踩过并恢复。
 - `changeset publish` 是**逐包**发布：如果第三包失败，前两包已经在 registry 上了。
   lockstep 能保证版本一致，但不能保证原子性——失败后照 §6 处置。
+
+---
+
+## 10. 首发记录（2026-11-06）
+
+- 触发：`workflow_dispatch`（`dry_run=false`、`confirm_publish=PUBLISH`、`provenance=false`）
+- 提交：`5ccc00b`；run：<https://github.com/Smart-Chou/zcblog-v2/actions/runs/42175493474>
+- 发布：`@marxchou/dogeared-tokens@2.1.0`、`@marxchou/dogeared-og-image@2.1.0`
+- 未发布：`@marxchou/dogeared-ui`（保持 `private: true`，D-0120）
+- 验证：
+  - `npm view @marxchou/dogeared-tokens@2.1.0 version` → `2.1.0`
+  - `npm view @marxchou/dogeared-og-image@2.1.0 version` → `2.1.0`
+  - 在空目录用 npm 10.9.8 / 11.15.0 安装两包成功；`createOgImageRoute` 可 import，
+    `tokens.css` 11,384 B
+  - 两个包 `npm access get status` → `public`
+- 已知现象：包首次出现过 npm staged publishing 的 `0.0.0-stage` 占位版本（stage list 已为空，
+  `latest` 指向 `2.1.0`）；不影响安装。若后续确认需要清理，单独走 unpublish 审批。
+- 这次未生成 provenance（private repo 不生成）；等仓库转 public 后再切回 `provenance=true`。
+- 发布 token 是 npm granular access token（bypass 2FA、仅两包 read-write、2027-02-04 到期），
+  只存在 `npm-publish` environment secret，未写入仓库/文档。
+
