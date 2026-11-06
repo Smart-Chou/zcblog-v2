@@ -151,6 +151,9 @@ jobs:
             # docs 12 slug × 3 组（structure / axe light+dark / 390px）= 36，atoms 12 → 合计 48。
             # 实测：runner 上 docs 36 条约 12s，本 step 合计约 14s（旧 run 42246582062 证据）。
             - name: Docs a11y · atom docs + atoms (R-41)
+              # 容器任务的默认 shell 是 `sh -e`（dash），不认 `set -o pipefail`；
+              # 显式用 bash，否则这条 step 在启动第一行就 exit 2。
+              shell: bash
               run: |
                   set -o pipefail
                   corepack pnpm exec playwright test \
