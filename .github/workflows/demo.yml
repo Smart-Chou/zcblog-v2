@@ -1,0 +1,154 @@
+name: Demo site
+
+# M5-1 · 消费者示例回归 + Cloudflare Pages 预览
+#
+# 目的：每次主题/装配器/overlay 变化都真实跑一遍 `create-site --build --install`，
+# 证明「消费者拿到主题 + overlay 能构建」；main 上再尝试发布到 CF Pages 的 `demo`
+# 预览分支（不是生产）。
+#
+# 部署凭据：仓库 secret `CF_PAGES_TOKEN`（Cloudflare API Token，权限至少
+# Account → Cloudflare Pages → Edit）。没有配置时 build 仍然通过，deploy 步骤明确
+# warning 后跳过；不会把预览失败误报成构建失败。
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "apps/demo/**"
+            - "packages/**"
+            - "scripts/create-site.mjs"
+            - "scripts/gates/verify-deploy-artifacts.mjs"
+            - "src/**"
+            - "theme-template/**"
+            - "site.manifest.json"
+            - "package.json"
+            - "pnpm-lock.yaml"
+            - ".github/workflows/demo.yml"
+    pull_request:
+        paths:
+            - "apps/demo/**"
+            - "packages/**"
+            - "scripts/create-site.mjs"
+            - "scripts/gates/verify-deploy-artifacts.mjs"
+            - "src/**"
+            - "theme-template/**"
+            - "site.manifest.json"
+            - "package.json"
+            - "pnpm-lock.yaml"
+            - ".github/workflows/demo.yml"
+    workflow_dispatch:
+        inputs:
+            deploy:
+                description: "部署到 demo 预览分支（需要 CF_PAGES_TOKEN）"
+                type: boolean
+                default: true
+
+concurrency:
+    group: demo-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+env:
+    DEMO_URL: https://demo.zcblog-v2.pages.dev
+    # Account ID 不是密钥；Pages 项目 `zcblog-v2` 在这个账号下。
+    CLOUDFLARE_ACCOUNT_ID: 06096af32bcdfc655f5076b224b32c00
+
+jobs:
+    build:
+        name: assemble + build + verify
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Assemble demo (real install)
+              env:
+                  SITE_URL: ${{ env.DEMO_URL }}
+              run: |
+                  node scripts/create-site.mjs --overlay apps/demo \
+                    --out "${RUNNER_TEMP}/demo" --build --install
+
+            - name: Verify Cloudflare artifacts
+              run: |
+                  node scripts/gates/verify-deploy-artifacts.mjs "${RUNNER_TEMP}/demo/dist" \
+                    --target cloudflare --expect-site "${DEMO_URL}"
+
+            - name: Scan demo identity leaks
+              run: |
+                  # `@marxchou/dogeared-*` 是包名，允许；作者名/个人域名必须清零。
+                  if grep -rIlE 'MIFSH|mcc\.im|MarxChou' "${RUNNER_TEMP}/demo/dist"; then
+                    echo "::error::demo 产物仍包含作者身份串"
+                    exit 1
+                  fi
+                  echo "作者身份扫描：PASS"
+                  echo "marxchou 命中（仅允许 package identity）：$(grep -rIoh 'marxchou' "${RUNNER_TEMP}/demo/dist" | wc -l | tr -d ' ')"
+
+            - name: Upload demo dist
+              uses: actions/upload-artifact@v4
+              with:
+                  name: demo-dist
+                  path: ${{ runner.temp }}/demo/dist
+                  retention-days: 7
+
+    deploy:
+        name: deploy preview (demo branch)
+        needs: build
+        if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.deploy)
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+
+            - name: Download demo dist
+              uses: actions/download-artifact@v4
+              with:
+                  name: demo-dist
+                  path: dist
+
+            - name: Check Pages token
+              id: token
+              env:
+                  CF_PAGES_TOKEN: ${{ secrets.CF_PAGES_TOKEN }}
+              run: |
+                  if [ -z "${CF_PAGES_TOKEN:-}" ]; then
+                    echo "has=false" >> "$GITHUB_OUTPUT"
+                    echo "::warning::未配置 secrets.CF_PAGES_TOKEN，跳过 CF Pages 预览部署"
+                  else
+                    echo "has=true" >> "$GITHUB_OUTPUT"
+                    echo "CF_PAGES_TOKEN 已提供（值不打印）"
+                  fi
+
+            - name: Deploy demo preview
+              if: steps.token.outputs.has == 'true'
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CF_PAGES_TOKEN }}
+              run: |
+                  npx --yes wrangler@4.158.0 pages deploy dist \
+                    --project-name zcblog-v2 --branch demo --commit-dirty=true
+
+            - name: Summary
+              if: always()
+              run: |
+                  {
+                    echo "### Demo site"
+                    echo ""
+                    echo "- build：已通过"
+                    echo "- deploy：${{ steps.token.outputs.has == 'true' && '已执行' || '跳过（CF_PAGES_TOKEN 未配置）' }}"
+                    echo "- preview：${DEMO_URL}"
+                  } >> "$GITHUB_STEP_SUMMARY"

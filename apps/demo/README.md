@@ -79,6 +79,10 @@ npx wrangler pages deploy /tmp/demo/dist --project-name zcblog-v2 --branch demo 
 注意 `SITE_URL` 必须和分支 alias 完全一致，否则 canonical / sitemap 会指回 `demo.example.com`。
 部署只写 `demo` 分支；`zcblog-v2.pages.dev` 生产分支和 `marxchou.com` 都不动。
 
+CI 入口是 `.github/workflows/demo.yml`：main 上会自动装配 + 构建 + 身份扫描；配置了
+仓库 secret `CF_PAGES_TOKEN`（Cloudflare API Token，Account → Cloudflare Pages → Edit）
+才部署到 `demo` 分支；未配置时 build 仍通过，deploy 明确 warning 后跳过。
+
 ## 已知限制
 
 - **站点身份串已清零（2026-11-06 实测）**：`--build --install` 产物 118 个 HTML，
