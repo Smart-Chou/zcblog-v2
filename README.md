@@ -1,4 +1,31 @@
-# Marx's Blog
+# Dogeared（折角）
+
+> 可发布的 Astro 博客主题：原生 CSS + design tokens、M3E 组件、10 locale、64 atoms、
+> 独立文档站，以及 `create-site` 装配器。`marxchou.com` 是第一个客户，不是唯一客户。
+
+## 消费者入口
+
+```bash
+git clone https://github.com/Smart-Chou/zcblog-v2.git dogeared
+cd dogeared
+corepack enable
+pnpm install --frozen-lockfile
+
+# 用 apps/demo 作为最小 overlay 基线，输出到独立目录
+SITE_URL="https://your-site.example.com" \
+  node scripts/create-site.mjs --overlay apps/demo --out ../my-site --build --install
+```
+
+真实站点请复制一个 overlay，替换 `src/config/{site,feature,ui,services}.ts`、内容和数据；
+`apps/demo` 只是示例，不是你的站点身份。升级主题时 overlay 不会被覆盖。
+
+- 主题装配/overlay 契约：`docs/overlay-contract.md`
+- 只消费 npm 包：`docs/npm-consumer.md`
+- 升级与版本：`docs/upgrade.md`
+- 示例站部署：`apps/demo/README.md`
+- 外部消费者验收记录：`docs/_reviews/M5-2/report.md`
+
+## 参考站点：Marx's Blog
 
 [marxchou.com](https://marxchou.com) — 基于 Astro 构建的个人博客网站，支持文章、标签、归档、相册、番剧追踪、随笔、友链、豆瓣书影音、捐赠等功能。
 
@@ -43,7 +70,7 @@
 | 类别 | 技术 |
 | ---- | ---- |
 | **框架** | Astro 7.x（静态站点生成，Vite 7） |
-| **CSS** | Tailwind CSS 4.x + 自定义 CSS 变量系统 |
+| **CSS** | 原生 CSS + design tokens（无 Tailwind） |
 | **语言** | TypeScript（严格模式） |
 | **内容** | MDX + Remark/Rehype 插件流水线 |
 | **图标** | Astro Icon（Iconify JSON: Logos / MingCute / Tabler） |
@@ -58,7 +85,7 @@
 | **灯箱** | Fancybox UI |
 | **性能** | Partytown（第三方脚本卸载到 Web Worker） |
 | **视图过渡** | astro-vtbot |
-| **部署** | GitHub Pages（生产）· Vercel（可选备用） |
+| **部署** | Cloudflare Pages（demo/预览）· GitHub Pages / Vercel（可选目标） |
 | **CI/CD** | GitHub Actions |
 | **单元测试** | Vitest |
 | **E2E 测试** | Playwright |
