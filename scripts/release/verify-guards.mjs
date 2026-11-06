@@ -88,19 +88,8 @@ expectFail(
 }
 
 // ---- G4 发布清单（PUBLISH_DIRS）语义：清单内 private 必拒 / 清单外 private 放行 ----
-// 真仓库现状（M4-8 D-0120）：三包仍 private，其中 tokens/og-image 在发布清单内 → publish 模式必拒。
-expectFail(
-    "G4a",
-    "preflight --mode=publish（发布清单内的包仍 private）",
-    runSync("node", [realPreflight, "--mode=publish", "--tag", "v2.1.0"], { allowFail: true }),
-    /仍是 private:true，禁止发布/,
-);
-expectFail(
-    "G4b",
-    "preflight --mode=publish（publish-plan 为空 → 静默空转）",
-    runSync("node", [realPreflight, "--mode=publish", "--tag", "v2.1.0"], { allowFail: true }),
-    /publish-plan 为空/,
-);
+// 用临时 workspace 造状态，不依赖真仓库当前是 private 还是已经发布过；
+// 否则真发布完成后（版本已在 registry）这些负向用例会失效。
 {
     const check = runSync("node", [realPreflight], { allowFail: true });
     if (check.code === 0) c.pass("G4c", "同一套判据在 check 模式下放行（exit 0），阻断项只报 WARN");
@@ -120,7 +109,10 @@ const p1Lines = (out) =>
         .filter((l) => /^\[(PASS|FAIL|WARN|INFO|SKIP)\]\s+P1\s/.test(l))
         .map((l) => l.trim());
 
-const buildPublishWorkspace = (name, { flipPrivate = [], unflip = [] } = {}) => {
+const buildPublishWorkspace = (
+    name,
+    { flipPrivate = [], unflip = [], privatize = [], version = null } = {},
+) => {
     const ws = path.join(tmpRoot, name);
     mkdirSync(path.join(ws, "scripts"), { recursive: true });
     cpSync(path.join(REPO_ROOT, "scripts/release"), path.join(ws, "scripts/release"), {
@@ -139,19 +131,67 @@ const buildPublishWorkspace = (name, { flipPrivate = [], unflip = [] } = {}) => 
     }
     // node_modules 走软链：副本里的 `npx changeset` 解析到本仓已装的 CLI，不联网装包
     symlinkSync(path.join(REPO_ROOT, "node_modules"), path.join(ws, "node_modules"), "dir");
-    for (const dir of [...flipPrivate, ...unflip]) {
+    for (const dir of [...flipPrivate, ...unflip, ...privatize]) {
         const p = path.join(ws, dir, "package.json");
         const pkg = JSON.parse(readFileSync(p, "utf8"));
         if (flipPrivate.includes(dir)) pkg.private = false;
-        else delete pkg.private;
+        else if (unflip.includes(dir)) delete pkg.private;
+        else pkg.private = true;
         writeFileSync(p, `${JSON.stringify(pkg, null, 4)}\n`);
+    }
+    // publish-plan 会按 registry 上的现有版本过滤；真实发布态要模拟「下一版尚未上 registry」。
+    if (version) {
+        for (const p of [
+            path.join(ws, "package.json"),
+            ...PACKAGE_DIRS.map((dir) => path.join(ws, dir, "package.json")),
+        ]) {
+            const pkg = JSON.parse(readFileSync(p, "utf8"));
+            pkg.version = version;
+            writeFileSync(p, `${JSON.stringify(pkg, null, 4)}\n`);
+        }
     }
     return ws;
 };
 const flipTargets = [...PUBLISH_DIRS];
 const uiDir = PACKAGE_DIRS.find((dir) => !PUBLISH_DIRS.includes(dir));
 
-const releaseWs = buildPublishWorkspace("publish-set", { flipPrivate: flipTargets });
+// G4a：清单内的包仍 private → publish 模式必拒（用副本，不依赖真仓状态）。
+{
+    const ws = buildPublishWorkspace("private-block", {
+        privatize: flipTargets,
+        version: "2.1.1",
+    });
+    expectFail(
+        "G4a",
+        "preflight --mode=publish（发布清单内的包仍 private）",
+        runSync("node", [path.join(ws, "scripts/release/preflight.mjs"), "--mode=publish"], {
+            allowFail: true,
+        }),
+        /仍是 private:true，禁止发布/,
+    );
+}
+
+// G4b：清单内已翻转，但版本已经在 registry（2.1.0）且没有待发布 changeset
+// → publish-plan 为空，必须停住，避免「看起来成功、其实没发包」。
+{
+    const ws = buildPublishWorkspace("empty-plan", {
+        flipPrivate: flipTargets,
+        version: "2.1.0",
+    });
+    expectFail(
+        "G4b",
+        "preflight --mode=publish（publish-plan 为空 → 静默空转）",
+        runSync("node", [path.join(ws, "scripts/release/preflight.mjs"), "--mode=publish"], {
+            allowFail: true,
+        }),
+        /publish-plan 为空/,
+    );
+}
+
+const releaseWs = buildPublishWorkspace("publish-set", {
+    flipPrivate: flipTargets,
+    version: "2.1.1",
+});
 writeFileSync(
     path.join(releaseWs, ".changeset/pending-release.md"),
     `---\n"@marxchou/dogeared-tokens": patch\n---\n\nguards: pending changeset for publish mode\n`,
