@@ -40,20 +40,20 @@ const withoutSource: TalkEntry = {
         layout="stack"
         caption="完整形态：头像 + 作者 + 时间 + 两个话题标签 + 正文（保留换行）+ 右上角原文入口"
     >
-        <EssayItem item={entry} author="MarxChou" avatar="/logo.webp" />
+        <EssayItem item={entry} author="Demo Author" avatar="/logo.webp" />
     </DemoFrame>
 
     <DemoFrame
         layout="stack"
         caption="缺数据的形态：无 url（不渲染原文入口）、ts=null（时间原样输出）、无 tags（标签列表整块不渲染）"
     >
-        <EssayItem item={withoutSource} author="MarxChou" avatar="/logo.webp" />
+        <EssayItem item={withoutSource} author="Demo Author" avatar="/logo.webp" />
     </DemoFrame>
 
     <DemoFrame
         layout="stack"
         caption="英文形态：locale=en 时时间走 en-US 月份缩写，原文入口与配图的 alt 也换英文"
     >
-        <EssayItem item={entry} author="MarxChou" avatar="/logo.webp" locale="en" />
+        <EssayItem item={entry} author="Demo Author" avatar="/logo.webp" locale="en" />
     </DemoFrame>
 </ComponentDoc>
