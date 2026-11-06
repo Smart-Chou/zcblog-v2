@@ -68,7 +68,14 @@
 - `@marxchou` npm org 已创建（**Unlimited public packages** 免费计划）；`npm org ls marxchou`
   → `{"mifsh":"owner"}`，`npm access list packages @marxchou` 正常返回（当前空）。
 - 本地 token 只存在 `~/.npmrc`（`//registry.npmjs.org/:_authToken=…`），**不进仓库、不写进文档**。
-- GitHub 仓目前**没有** `NPM_TOKEN` secret，也**没有** `npm-publish` environment；真发布前需补。
+- GitHub 仓目前**没有** `NPM_TOKEN` secret；`npm-publish` environment 在 2026-11-06 已创建。
+  但仓库是 **private + GitHub Free**，环境保护规则（required reviewers / deployment branch
+  policy）API 返回 422，当前该 environment **没有保护规则**；真发布闸门依赖
+  `workflow_dispatch` 的 `dry_run=false` + `confirm_publish=PUBLISH`。
+- 本次发布准备（2026-11-06）：`tokens` 与 `og-image` 已翻 `private:false` +
+  `publishConfig.access=public`；`ui` 保持 private。`NPM_TOKEN` 已写入 `npm-publish`
+  environment（值不记录）。仓库 private 无法生成 provenance，dispatch 时显式
+  `provenance=false`；要 provenance 需先把仓库转为 public。
 
 硬规矩：
 

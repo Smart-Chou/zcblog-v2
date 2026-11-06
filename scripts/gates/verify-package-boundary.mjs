@@ -6,7 +6,8 @@
  * 外加 W0（骨架前提）：workspace 声明、三个包的 manifest 与版本 lockstep。
  *
  *   W0  workspace 骨架：`pnpm-workspace.yaml` 有 `packages:`；三个包目录都在成员里；
- *       `package.json` 的 name / version（与主题 lockstep）/ private / 无 publishConfig 合规。
+ *       `package.json` 的 name / version（与主题 lockstep）/ 发布状态合规
+ *       （tokens/og-image 可发布 + publishConfig.access=public；ui 仍 private）。
  *   B1  包内不得出现 `~/` 别名 import（包不能反向读站点代码）。
  *   B2  包内不得出现站点身份串（marxchou / mcc.im / zcily / 73b29141）。
  *       唯一豁免：`package.json` 的 `"name"` 值（npm scope 是包的身份，不是站点身份）。
@@ -44,6 +45,9 @@ const REQUIRED = new Map([
     ["ui", "@marxchou/dogeared-ui"],
     ["og-image", "@marxchou/dogeared-og-image"],
 ]);
+
+/** M4 首发发布清单（D-0120）：其余包保持 private。 */
+const RELEASE_PACKAGES = new Set(["tokens", "og-image"]);
 
 /**
  * B3 白名单：来自 §3.4 的依赖方向（tokens 叶节点零依赖；ui 只把 astro 当 peer；
@@ -227,8 +231,18 @@ for (const pkg of REQUIRED.keys()) {
         w0.push(`packages/${pkg} name=${value.name}，期望 ${REQUIRED.get(pkg)}`);
     if (themeVersion && value.version !== themeVersion)
         w0.push(`packages/${pkg} version=${value.version}，与主题 ${themeVersion} 不 lockstep`);
-    if (value.private !== true) w0.push(`packages/${pkg} 未声明 "private": true（M3 不发布）`);
-    if ("publishConfig" in value) w0.push(`packages/${pkg} 声明了 publishConfig（M3 不发布）`);
+    // M4 发布口径（D-0120）：tokens/og-image 可发布，ui 仍 private。
+    // M3 的「三包一律 private / 不得有 publishConfig」已随发布卡失效，不能继续当门禁。
+    if (RELEASE_PACKAGES.has(pkg)) {
+        if (value.private !== false)
+            w0.push(`packages/${pkg} 应声明 "private": false（M4 首发发布清单）`);
+        if (value.publishConfig?.access !== "public")
+            w0.push(`packages/${pkg} 缺少 publishConfig.access="public"`);
+    } else {
+        if (value.private !== true)
+            w0.push(`packages/${pkg} 应声明 "private": true（D-0120 暂不发布）`);
+        if ("publishConfig" in value) w0.push(`packages/${pkg} 不应声明 publishConfig（暂不发布）`);
+    }
 }
 
 addCheck("W0", "workspace 骨架（packages: / 三包 manifest / lockstep）", w0);

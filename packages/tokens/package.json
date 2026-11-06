@@ -3,7 +3,10 @@
     "version": "2.1.0",
     "description": "Design tokens for the Dogeared theme: tokens.json is the single source, tokens.css its byte-verified build output, variables.css the primitive/palette layer. Zero runtime dependencies.",
     "type": "module",
-    "private": true,
+    "private": false,
+    "publishConfig": {
+        "access": "public"
+    },
     "license": "MIT",
     "homepage": "https://github.com/Smart-Chou/zcblog-v2/tree/main/packages/tokens#readme",
     "repository": {

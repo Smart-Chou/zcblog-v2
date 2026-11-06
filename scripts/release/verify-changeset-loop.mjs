@@ -4,8 +4,8 @@
 //   node scripts/release/verify-changeset-loop.mjs [--keep] [--json]
 //
 // 验的是：changeset 配置能驱动「加 changeset → status → version（三包 lockstep）→ pack（private 常开后）→ publish-plan（三包齐）」
-// 这一整条链。真仓库里三包仍是 private，changeset publish/pack 会静默空转，
-// 所以这里在**临时副本**里把 private 翻成 false，证明翻转后链路能真正产出 tarball 与发布计划。
+// 这一整条链。临时副本里会把三包 private 翻成 false，证明翻转后链路能真正产出 tarball 与发布计划；
+// 真仓库是否 public 由发布卡决定（当前 tokens/og-image 可发布、ui 仍 private）。
 import {
     cpSync,
     existsSync,
@@ -216,12 +216,14 @@ try {
 
     // ---- 6. 真仓库配置未被改动（临时目录里做的一切都不回流）----
     const real = loadPackages();
-    if (real.every((p) => p.version === "2.1.0" && p.private))
-        c.pass("L8", "真仓库三包仍是 2.1.0 / private（临时副本的改动没有回流）");
+    const realVersionsOk = real.every((p) => p.version === "2.1.0");
+    const uiStillPrivate = real.find((p) => p.name === "@marxchou/dogeared-ui")?.private === true;
+    if (realVersionsOk && uiStillPrivate)
+        c.pass("L8", "真仓库仍 2.1.0；ui 仍 private（临时副本的改动没有回流）");
     else
         c.fail(
             "L8",
-            "真仓库版本/private 被改动",
+            "真仓库版本或 ui 的 private 状态被改动",
             real.map((p) => `${p.name}@${p.version} private=${p.private}`).join("\n"),
         );
 

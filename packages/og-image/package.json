@@ -3,7 +3,10 @@
     "version": "2.1.0",
     "description": "OG image route factory for the Dogeared theme: createOgImageRoute(options) renders 1200x630 PNGs. No site config is read; posts, site identity, palette and fonts are injected by the theme.",
     "type": "module",
-    "private": true,
+    "private": false,
+    "publishConfig": {
+        "access": "public"
+    },
     "license": "MIT",
     "homepage": "https://github.com/Smart-Chou/zcblog-v2/tree/main/packages/og-image#readme",
     "repository": {
