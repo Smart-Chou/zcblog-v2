@@ -1,6 +1,6 @@
 # M5-7b · overlay 清单 + demo 漂移收口（R-47 / R-50）
 
-> 卡：`blog2.0/docs/24-m5-plan.md` §M5-7b · 依赖 M5-7a（`ab6e15f`）· decision：D-0138 · HEAD：`1b8d309`
+> 卡：`blog2.0/docs/24-m5-plan.md` §M5-7b · 依赖 M5-7a（`ab6e15f`）· decision：D-0138 · 代码提交 `1b8d309` / 报告提交 `0d24ca7`
 > 日期：2026-11-07 · 执行：blog-platform
 
 ## 0. 结论
@@ -119,15 +119,19 @@ Scan identity leaks (dist+overlay) dist:  scanned=224 identity_hits=0 package_id
 
 分类脚本结论：`RESULT PASS 时间戳之外差异=0`（`live-vs-local-diff.txt`）。凡是 build 时钟决定的字段之外，线上与本地一致——没有「线上还挂着旧产物」的漂移。
 
-## 6. CI 实跑（HEAD `1b8d309`）
+## 6. CI 实跑
 
-| workflow | run | 结果 |
-|---|---|---|
-| Demo site | `42259005676` | success（`assemble + build + verify` / `deploy preview (demo branch)` 两个 job 全绿，新部署 `f3c234cb`） |
-| CI | `42259005639` | success（`test` / `gates` / `visual (design/atoms)` / `contract` 全绿，含 prettier / type-check / unit / `gates:all`） |
-| Perf | `42259005627` | success（M5-7a 的 list p95 24.5KB 保持） |
-| A11y PR smoke | `42259005755` | success |
-| Deploy matrix | `42259005664` | 由 `apps/**` 触发（只构建断言三平台产物，**不部署**）；vercel job success，gh-pages / cloudflare 两个 job 在报告落盘时仍在跑 |
+代码提交 `1b8d309`（判据改动）与报告提交 `0d24ca7`（仅 `docs/**`）：
+
+| workflow | run | HEAD | 结果 |
+|---|---|---|---|
+| Demo site | `42259005676` | `1b8d309` | **success** — `assemble + build + verify` / `deploy preview (demo branch)` 两个 job 全绿，产出部署 `f3c234cb`（source `1b8d309`） |
+| CI | `42261057484` | `0d24ca7` | **success** — `test`（prettier / type-check / unit）/ `gates`（含 `gates:all`）/ `visual (design/atoms · linux baselines)` / `contract` 四 job 全绿 |
+| Perf | `42261057543` | `0d24ca7` | **success**（M5-7a 的 list p95 24.5KB 未被打破） |
+| A11y PR smoke | `42261057685` | `0d24ca7` | **success** |
+| Deploy matrix | `42259005664` | `1b8d309` | 由 `apps/**` 触发（只构建断言，不部署）：`vercel` job success；`gh-pages` / `cloudflare` 两个 job 自 17:09Z 起卡在 **`Install system dependencies`**（apt/字体下载），与本次 diff 无关（该 step 在构建之前，M5-7a 已记录过 runner 侧 apt 源抖动）。它不在本卡验收项内，也不产出部署。 |
+
+`0d24ca7` 只加 `docs/_reviews/**` 与 `docs/overlay-contract.md`，不在 demo workflow 的 `paths` 里，所以没有第二次 demo run——运行时输入与 `1b8d309` 完全相同，上面那次 demo 绿即当前状态。
 
 Deploy（生产）workflow 本次未触发：它只有 `workflow_dispatch`，最近一次 run 是 2026-10-31。
 
