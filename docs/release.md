@@ -4,11 +4,10 @@
 用 Changesets 做 **2.x lockstep**（任何一个包 bump，三个一起 bump 到同一版本），
 发布由 `.github/workflows/release.yml` 执行：**tag 推送或手动 dispatch 才会进发布链，普通 push 永远不进。**
 
-> 当前状态（M4-10 收口）：**发布范围收窄为 `tokens` + `og-image`**（M4-8 决策 D-0120），
-> 两包仍是 `"private": true`，真发布前需要在**发布清单内的包**上翻掉 private；
+> 当前状态（2026-11-06）：`tokens` + `og-image` 已发布 `2.1.1`（`latest`），
 > `packages/ui` 按 D-0120 保持 `private: true`（继续参与 lockstep 版本推进，但永不 publish）。
-> preflight 的 P1 只对**发布清单内**的包判 private，清单外的包 private 只报 INFO —— 不会再卡住两包首发。
-> 本手册描述的是「翻掉 private 之后该怎么发」，也是发布卡验收时要照做的清单。
+> 仓库已于 2026-11-06 转为 **public**；标准 GitHub-hosted runner 不再消耗 Free 计划分钟数。
+> 本文保留「翻掉 private 之后该怎么发」的完整闸门，供下一次发布直接照做。
 
 ---
 
@@ -68,14 +67,14 @@
 - `@marxchou` npm org 已创建（**Unlimited public packages** 免费计划）；`npm org ls marxchou`
   → `{"mifsh":"owner"}`，`npm access list packages @marxchou` 正常返回（当前空）。
 - 本地 token 只存在 `~/.npmrc`（`//registry.npmjs.org/:_authToken=…`），**不进仓库、不写进文档**。
-- GitHub 仓目前**没有** `NPM_TOKEN` secret；`npm-publish` environment 在 2026-11-06 已创建。
-  但仓库是 **private + GitHub Free**，环境保护规则（required reviewers / deployment branch
-  policy）API 返回 422，当前该 environment **没有保护规则**；真发布闸门依赖
-  `workflow_dispatch` 的 `dry_run=false` + `confirm_publish=PUBLISH`。
-- 本次发布准备（2026-11-06）：`tokens` 与 `og-image` 已翻 `private:false` +
-  `publishConfig.access=public`；`ui` 保持 private。`NPM_TOKEN` 已写入 `npm-publish`
-  environment（值不记录）。仓库 private 无法生成 provenance，dispatch 时显式
-  `provenance=false`；要 provenance 需先把仓库转为 public。
+- GitHub `npm-publish` environment 已于 2026-11-06 创建；`NPM_TOKEN` 已写入该 environment
+  （值不记录）。仓库当时是 **private + GitHub Free**，环境保护规则（required reviewers /
+  deployment branch policy）API 返回 422，因此 environment 目前**可能仍无保护规则**；真发布闸门
+  仍依赖 `workflow_dispatch` 的 `dry_run=false` + `confirm_publish=PUBLISH`。
+- 2026-11-06 本次发布：`tokens` 与 `og-image` 已 `private:false` +
+  `publishConfig.access=public`；`ui` 保持 private。首次发布在 private 仓库下无法生成
+  provenance，dispatch 时显式 `provenance=false`；**仓库现已 public，下一次发布可切回
+  `provenance=true`**，并可在 environment 上重试 required reviewers。
 
 硬规矩：
 
@@ -148,10 +147,11 @@ workflow 默认尝试带 attestation 发布（`inputs.provenance` 默认 `true`�
   关掉 provenance 重发（`changeset publish` 幂等：已发布版本会被跳过）。
 - 被显式关闭（`inputs.provenance=false`）：也会写一条 summary 记录，不算静默跳过。
 
-**当前阻断事实**：npm provenance 要求包从 **public 仓库**构建（docs.npmjs.com/generating-provenance-statements
-的 prerequisites：`package.json` 的 `repository` 要指向一个 public 仓库且大小写一致）。
-本仓 `Smart-Chou/zcblog-v2` 目前是 **private**，因此第一次真发布会走「provenance 失败 → 显式降级」这条路径。
-两个选择：发布前把仓库转 public，或在 dispatch 时显式 `provenance=false` 并接受 summary 里的记录。
+**状态变化（2026-11-06）**：npm provenance 要求包从 **public 仓库**构建
+（docs.npmjs.com/generating-provenance-statements 的 prerequisites：`package.json` 的
+`repository` 要指向一个 public 仓库且大小写一致）。本仓 `Smart-Chou/zcblog-v2` 已于
+2026-11-06 转为 **public**；下一次发布可在 dispatch 时显式 `provenance=true`。`2.1.0` /
+`2.1.1` 两次首发是在 private 状态下用 `provenance=false` 发出的，不会追溯补 attestation。
 
 ---
 
@@ -267,8 +267,9 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 
 - **已跑过两次真发布（2026-11-06）**：tokens / og-image `2.1.0` 首发，`2.1.1` 为
   README-only patch（当前 `latest`）；ui 未发布。
-  `provenance` 因仓库 private 显式关闭；`npm-publish` environment 因 GitHub Free/private
-  无法加 required reviewers，实际闸门是 `workflow_dispatch` 的 `confirm_publish=PUBLISH`。
+  `provenance` 在两次发布时因仓库 private 显式关闭；**仓库已于 2026-11-06 转 public**，
+  下一次发布可开启 `provenance=true`。`npm-publish` environment 在 private 时期无法加
+  required reviewers，当前实际闸门仍是 `workflow_dispatch` 的 `confirm_publish=PUBLISH`。
   复现与证据见 §10。
 - `npm publish --dry-run` 不会因为 `private: true` 报 `EPRIVATE`（npm 11.12.1 实测 exit 0），
   所以「private 挡误发」这件事**只能靠 preflight 显式检查**，不能靠 dry-run。

@@ -48,11 +48,12 @@
 2. **24h 复查**：发布日已即时验证安装；24 小时后需再查一次 registry 可安装性与 404/权限。
 3. **`0.0.0-stage` 占位**：npm staged publishing 产生的占位版本仍可查询；`npm stage list` 为空，
    `latest=2.1.1`，不影响安装。清理需要 `npm unpublish` + OTP/单独审批，本次未执行。
-4. **provenance 缺失**：repository 为 private，发布时显式关闭；转 public 后可切回。
+4. **provenance 缺失（历史）**：`2.1.0` / `2.1.1` 发布时 repository 为 private，显式关闭；
+   2026-11-06 仓库已转 public，下一次发布可切回 `provenance=true`。
 5. **token 生命周期**：`NPM_TOKEN` 为 granular token，`2027-02-04` 到期；npm 的 bypass-2FA
    直发限制在 `2027-01` 生效，需在此之前迁移 trusted publishing / staged publishing。
-6. **environment 无保护规则**：仓库 private + GitHub Free，required reviewers / branch policy
-   不可用；当前真发布闸门是 workflow input `confirm_publish=PUBLISH`。转 public 后应补审批。
+6. **environment 无保护规则（历史）**：private 时期 required reviewers / branch policy 失败；
+   仓库已 public，可重试配置，当前仍未加；真发布闸门仍是 `confirm_publish=PUBLISH`。
 7. **生产站不切换**：D-0125；本报告不包含生产合并、DNS 或 CF 缓存操作。
 
 ## 5. Exit checklist
