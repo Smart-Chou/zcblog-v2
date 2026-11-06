@@ -1,0 +1,87 @@
+
+Running 48 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › button · 7 sections / no empty table / 0 JS (707ms)
+  ✓   2 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › link · 7 sections / no empty table / 0 JS (410ms)
+  ✓   3 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › tag · 7 sections / no empty table / 0 JS (489ms)
+  ✓   4 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › input · 7 sections / no empty table / 0 JS (466ms)
+  ✓   5 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › card · 7 sections / no empty table / 0 JS (469ms)
+  ✓   6 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › icon · 7 sections / no empty table / 0 JS (465ms)
+  ✓   7 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › avatar · 7 sections / no empty table / 0 JS (531ms)
+  ✓   8 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › divider · 7 sections / no empty table / 0 JS (396ms)
+  ✓   9 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › breadcrumb · 7 sections / no empty table / 0 JS (557ms)
+  ✓  10 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › pagination · 7 sections / no empty table / 0 JS (478ms)
+  ✓  11 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › alert · 7 sections / no empty table / 0 JS (466ms)
+  ✓  12 [chromium] › e2e/design-atom-docs.a11y.spec.ts:103:9 › atom docs · structure › skeleton · 7 sections / no empty table / 0 JS (390ms)
+[axe] button light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] button dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  13 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › button · axe light + dark (1.2s)
+[axe] link light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] link dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  14 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › link · axe light + dark (1.2s)
+[axe] tag light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] tag dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  15 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › tag · axe light + dark (1.2s)
+[axe] input light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] input dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  16 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › input · axe light + dark (1.4s)
+[axe] card light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] card dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  17 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › card · axe light + dark (1.2s)
+[axe] icon light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] icon dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  18 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › icon · axe light + dark (1.2s)
+[axe] avatar light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] avatar dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  19 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › avatar · axe light + dark (1.2s)
+[axe] divider light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] divider dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  20 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › divider · axe light + dark (1.2s)
+[axe] breadcrumb light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] breadcrumb dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  21 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › breadcrumb · axe light + dark (1.0s)
+[axe] pagination light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] pagination dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  22 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › pagination · axe light + dark (1.2s)
+[axe] alert light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] alert dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  23 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › alert · axe light + dark (1.3s)
+[axe] skeleton light: violations=0 serious=0 incomplete=0 contrast=0
+[axe] skeleton dark: violations=0 serious=0 incomplete=0 contrast=0
+  ✓  24 [chromium] › e2e/design-atom-docs.a11y.spec.ts:155:9 › atom docs · axe (WCAG 2.x A/AA) › skeleton · axe light + dark (989ms)
+  ✓  25 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › button · 无横向溢出 (444ms)
+  ✓  26 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › link · 无横向溢出 (394ms)
+  ✓  27 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › tag · 无横向溢出 (481ms)
+  ✓  28 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › input · 无横向溢出 (365ms)
+  ✓  29 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › card · 无横向溢出 (400ms)
+  ✓  30 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › icon · 无横向溢出 (383ms)
+  ✓  31 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › avatar · 无横向溢出 (363ms)
+  ✓  32 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › divider · 无横向溢出 (387ms)
+  ✓  33 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › breadcrumb · 无横向溢出 (408ms)
+  ✓  34 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › pagination · 无横向溢出 (495ms)
+  ✓  35 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › alert · 无横向溢出 (497ms)
+  ✓  36 [chromium] › e2e/design-atom-docs.a11y.spec.ts:195:9 › atom docs · 390px › skeleton · 无横向溢出 (568ms)
+[axe] light@390: serious/critical=0 moderate=0 minor=0 incomplete=0 (contrast=0)
+  ✓  37 [chromium] › e2e/design-atoms.a11y.spec.ts:120:17 › design/atoms axe (WCAG 2.x A/AA) › viewport 390 › axe-light-390 (686ms)
+[axe] dark@390: serious/critical=0 moderate=0 minor=0 incomplete=0 (contrast=0)
+  ✓  38 [chromium] › e2e/design-atoms.a11y.spec.ts:120:17 › design/atoms axe (WCAG 2.x A/AA) › viewport 390 › axe-dark-390 (796ms)
+[axe] light@768: serious/critical=0 moderate=0 minor=0 incomplete=0 (contrast=0)
+  ✓  39 [chromium] › e2e/design-atoms.a11y.spec.ts:120:17 › design/atoms axe (WCAG 2.x A/AA) › viewport 768 › axe-light-768 (781ms)
+[axe] dark@768: serious/critical=0 moderate=0 minor=0 incomplete=0 (contrast=0)
+  ✓  40 [chromium] › e2e/design-atoms.a11y.spec.ts:120:17 › design/atoms axe (WCAG 2.x A/AA) › viewport 768 › axe-dark-768 (794ms)
+[axe] light@1440: serious/critical=0 moderate=0 minor=0 incomplete=0 (contrast=0)
+  ✓  41 [chromium] › e2e/design-atoms.a11y.spec.ts:120:17 › design/atoms axe (WCAG 2.x A/AA) › viewport 1440 › axe-light-1440 (750ms)
+[axe] dark@1440: serious/critical=0 moderate=0 minor=0 incomplete=0 (contrast=0)
+  ✓  42 [chromium] › e2e/design-atoms.a11y.spec.ts:120:17 › design/atoms axe (WCAG 2.x A/AA) › viewport 1440 › axe-dark-1440 (804ms)
+[axe] runs light@390=0v/0i light@768=0v/0i light@1440=0v/0i dark@390=0v/0i dark@768=0v/0i dark@1440=0v/0i · moderate total=0
+  ✓  43 [chromium] › e2e/design-atoms.a11y.spec.ts:166:5 › design/atoms axe (WCAG 2.x A/AA) › axe-moderate-summary (1ms)
+[kbd] 67 focusable elements, ring samples=16
+  ✓  44 [chromium] › e2e/design-atoms.a11y.spec.ts:245:5 › design/atoms keyboard › tab order + visible focus ring (747ms)
+  ✓  45 [chromium] › e2e/design-atoms.a11y.spec.ts:328:5 › design/atoms keyboard › Enter / Space / Esc on real controls (548ms)
+[aria] current=7 label=25 busy=12
+  ✓  46 [chromium] › e2e/design-atoms.a11y.spec.ts:363:5 › design/atoms keyboard › aria-current / aria-label / aria-busy (451ms)
+[motion] running=0 animated=0 transitioning=0
+  ✓  47 [chromium] › e2e/design-atoms.a11y.spec.ts:430:5 › design/atoms prefers-reduced-motion: reduce › no animation, no transition, no active-state shift (1.0s)
+  ✓  48 [chromium] › e2e/design-atoms.a11y.spec.ts:481:1 › fixture exposes all 12 specimens (479ms)
+
+  48 passed (37.6s)

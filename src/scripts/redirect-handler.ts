@@ -1,5 +1,8 @@
 import { onPageReady } from "../utils/page-lifecycle";
-import { config } from "~/config";
+// 只取功能开关子模块，不走 ~/config 桶文件：桶文件里的 `export const {site, author, …}` 与
+// `export * from "./site"` 会让站点文案（title/description/keywords…）落进客户端 chunk，
+// 每个列表页首屏多背 3.9KB gz（R-44）。这里真正需要的只有 redirect / 两个 class 名单。
+import { config } from "~/config/feature";
 import {
     REDIRECT_PAGE,
     toUrlSafeBase64,

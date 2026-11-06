@@ -146,11 +146,21 @@ jobs:
               run: corepack pnpm exec astro build
 
             # M2-1 / R-41：12 份 atom 文档页 + /design/atoms 的 a11y 与结构门禁。
-            # 之前只在本地跑；M2-1 起进 CI，未接线不算完成。
+            # 之前只在本地跑；M2-1 起进 CI，M5-7a 补上「用例数」硬断言：
+            # Playwright 对 skip 的用例仍然返回 0，只跑 3 条也会“绿”。所以不看退出码看条数：
+            # docs 12 slug × 3 组（structure / axe light+dark / 390px）= 36，atoms 12 → 合计 48。
+            # 实测：runner 上 docs 36 条约 12s，本 step 合计约 14s（旧 run 42246582062 证据）。
             - name: Docs a11y · atom docs + atoms (R-41)
               run: |
-                  corepack pnpm exec playwright test e2e/design-atom-docs.a11y.spec.ts e2e/design-atoms.a11y.spec.ts --reporter=list --retries=0
-                  echo "Docs a11y · atom docs 36 passed + atoms 12 passed"
+                  set -o pipefail
+                  corepack pnpm exec playwright test \
+                    e2e/design-atom-docs.a11y.spec.ts e2e/design-atoms.a11y.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/docs-a11y.log"
+                  if ! grep -qE "^ +48 passed" "$RUNNER_TEMP/docs-a11y.log"; then
+                    echo "::error::docs a11y 用例数不是 48（docs 36 + atoms 12）——被 skip 也算绿，必须看条数"
+                    tail -30 "$RUNNER_TEMP/docs-a11y.log"
+                    exit 1
+                  fi
 
             - name: Visual regression · pass 1/2
               run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0

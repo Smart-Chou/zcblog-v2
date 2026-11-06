@@ -1,0 +1,43 @@
+
+Running 1 test using 1 worker
+
+REDIRECT {
+ "ext1": {
+  "href": "/redirect/?url=aHR0cHM6Ly9leGFtcGxlLmNvbS9hP2I9MQ",
+  "original": "https://example.com/a?b=1",
+  "target": "_blank",
+  "rel": "noopener noreferrer",
+  "icon": true
+ },
+ "int1": {
+  "href": "/about/",
+  "original": null,
+  "target": null,
+  "rel": null,
+  "icon": false
+ },
+ "img1": {
+  "href": "https://example.com/pic.png",
+  "original": null,
+  "target": null,
+  "rel": null,
+  "icon": false
+ },
+ "ext2": {
+  "href": "https://example.com/author",
+  "original": null,
+  "target": null,
+  "rel": null,
+  "icon": false
+ },
+ "ext3": {
+  "href": "https://example.com/modal",
+  "original": null,
+  "target": null,
+  "rel": null,
+  "icon": false
+ }
+}
+  ✓  1 [chromium] › e2e/zz-tmp-redirect-check.spec.ts:15:1 › redirect handler · 外链改写仍然生效 (515ms)
+
+  1 passed (4.4s)
