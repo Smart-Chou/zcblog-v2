@@ -225,7 +225,7 @@ npm dist-tag ls @marxchou/dogeared-tokens
 | 发布清单内的包 `"private": true` | M4-1 / M4-10 | 阻断 | 发布卡翻转（M4 阶段 = tokens + og-image；ui 按 D-0120 保持 private，只报 INFO） |
 | `publish-plan` 为空（等于这次发布什么都不发） | M4-4 | 闸门 | 见上两条：private 或没有待发布 changeset 都会导致空 plan |
 | `engines` 为 `^22 \|\| ^24`，Node 26 报 EBADENGINE | M4-3 F2 / M4-2 F4 | WARN | 放宽为 `>=22` |
-| `main`/`module` 指向 `.ts`；README `@<npm-scope>` 占位 | M4-3 F3/F4 | WARN | build 方案一起改；tokens/og-image 源码已回填 `@marxchou`，registry 2.1.0 tarball 仍是旧占位，随下一次 patch release 生效；ui 仍占位 |
+| `main`/`module` 指向 `.ts`；README `@<npm-scope>` 占位 | M4-3 F3/F4 | WARN | build 方案一起改；tokens/og-image 已在 `2.1.1` 回填 `@marxchou` 与安装说明；ui 仍占位 |
 
 前两条与 private 的修复在包卡（M4-6），本链路只负责**发现并拦住**，不改 `packages/**`。
 
@@ -265,7 +265,8 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
 
 ## 9. 已知限制
 
-- **已跑过一次真发布（2026-11-06）**：tokens / og-image `2.1.0` 已上线；ui 未发布。
+- **已跑过两次真发布（2026-11-06）**：tokens / og-image `2.1.0` 首发，`2.1.1` 为
+  README-only patch（当前 `latest`）；ui 未发布。
   `provenance` 因仓库 private 显式关闭；`npm-publish` environment 因 GitHub Free/private
   无法加 required reviewers，实际闸门是 `workflow_dispatch` 的 `confirm_publish=PUBLISH`。
   复现与证据见 §10。
@@ -299,10 +300,19 @@ P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO�
   - 在空目录用 npm 10.9.8 / 11.15.0 安装两包成功；`createOgImageRoute` 可 import，
     `tokens.css` 11,384 B
   - 两个包 `npm access get status` → `public`
-- 已知现象：包首次出现过 npm staged publishing 的 `0.0.0-stage` 占位版本（stage list 已为空，
-  `latest` 指向 `2.1.0`）；不影响安装。若后续确认需要清理，单独走 unpublish 审批。
-- **README 文档债**：tokens / og-image 源码 README 已回填 `@marxchou` 与“已发布”状态，但
-  registry 页面来自 2.1.0 tarball，仍显示旧占位；需要下一次 patch release（2.1.1）才会更新。
+- 已知现象：包首次出现过 npm staged publishing 的 `0.0.0-stage` 占位版本（stage list 已为空；
+  `2.1.0` 首发时 `latest` 指向 `2.1.0`，`2.1.1` 发布后指向 `2.1.1`）；不影响安装。
+  若后续确认需要清理，单独走 unpublish 审批。
+
+### 2.1.1 · README-only patch
+
+- 提交：`5191ccf`；run：<https://github.com/Smart-Chou/zcblog-v2/actions/runs/42189584179>；tag `pkg-v2.1.1`
+- 发布：`@marxchou/dogeared-tokens@2.1.1`、`@marxchou/dogeared-og-image@2.1.1`（当前 `latest`）
+- 未发布：ui `2.1.1` 仍 private（lockstep 升版但不发）
+- 验证：`npm view …@2.1.1 readme` 已显示 “published” 与 `@marxchou` 安装说明；
+  空目录 npm 11.15.0 安装成功，`tokens.css` 11,384 B，`createOgImageRoute` 可 import
+- 2.1.0 的 README 文档债关闭；本版本不改代码，只回填包 README 与门禁适配
+
 - 这次未生成 provenance（private repo 不生成）；等仓库转 public 后再切回 `provenance=true`。
 - 发布 token 是 npm granular access token（bypass 2FA、仅两包 read-write、2027-02-04 到期），
   只存在 `npm-publish` environment secret，未写入仓库/文档。
