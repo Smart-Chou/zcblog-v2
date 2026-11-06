@@ -233,7 +233,6 @@ jobs:
               with:
                   node-version: "24"
                   cache: "pnpm"
-                  registry-url: "https://registry.npmjs.org"
 
             - name: Ensure npm CLI supports Trusted Publishing
               run: |
@@ -281,7 +280,13 @@ jobs:
                     echo "::error::OIDC 不可用（缺 ACTIONS_ID_TOKEN_REQUEST_URL / ACTIONS_ID_TOKEN_REQUEST_TOKEN）：publish job 需要 id-token: write；本轮不会回退到 NPM_TOKEN"
                     exit 1
                   fi
-                  if [ -n "${NODE_AUTH_TOKEN:-}" ] || [ -n "${NPM_TOKEN:-}" ]; then
+                  if [ -n "${NPM_TOKEN:-}" ]; then
+                    echo "::error::检测到 npm token 环境变量；Trusted Publishing 要求 publish 环境不注入 token"
+                    exit 1
+                  fi
+                  # setup-node 在没有传 token 时会注入占位符 XXXXX-XXXXX-XXXXX-XXXXX（actions/setup-node#1440）；
+                  # 它不是凭证，放开；任何其他非空 NODE_AUTH_TOKEN 都视为长期 token。
+                  if [ -n "${NODE_AUTH_TOKEN:-}" ] && [ "${NODE_AUTH_TOKEN}" != "XXXXX-XXXXX-XXXXX-XXXXX" ]; then
                     echo "::error::检测到长期 npm token 环境变量；Trusted Publishing 要求 publish 环境不注入 token"
                     exit 1
                   fi
@@ -289,7 +294,7 @@ jobs:
                   # Trusted Publishing 示例同样是这个形态，变量为空等于无 token）；这里只拦「字面 token」。
                   for f in "$HOME/.npmrc" "$GITHUB_WORKSPACE/.npmrc" "${RUNNER_TEMP:-/nonexistent}/.npmrc" "${NPM_CONFIG_USERCONFIG:-/nonexistent}"; do
                     [ -f "$f" ] || continue
-                    if grep -n '_authToken' "$f" | grep -v '\${[A-Z_]*}' >/dev/null; then
+                    if grep -n '_authToken' "$f" | grep -v '\${[A-Z_]*}' | grep -v 'XXXXX-XXXXX-XXXXX-XXXXX' >/dev/null; then
                       echo "::error::$f 里配置了字面 npm token；Trusted Publishing 要求只用 OIDC"
                       exit 1
                     fi
