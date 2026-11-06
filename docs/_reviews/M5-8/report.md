@@ -176,7 +176,7 @@ npm 的 Trusted Publisher 配置挂在 **package settings** 下，只能给**已
 | --- | --- | --- |
 | `gates:all`（9 个 gate 逐个跑） | 9/9 PASS | `logs/06-gates-all.log` |
 | `verify-package-boundary`（W0/B1–B4） | `RESULT PASS packages=3 violations=0 theme_version=2.1.2` | 同上 |
-| `verify-overlay` | `RESULT PASS classified=1142 unclassified=0 theme=723 overlay=302 exclude=117 plan_baseline=998 delta=+144` | 同上 |
+| `verify-overlay` | `RESULT PASS classified=1157 unclassified=0 theme=723 overlay=302 exclude=132 plan_baseline=998 delta=+159` | 同上 |
 | `preflight --mode=publish` | exit 0，34 PASS / 0 FAIL，plan = `[[ui@2.1.2]]` | `logs/07-preflight-publish-mode.log` |
 | `verify-guards` | 18/18 PASS | `logs/08-verify-guards.log` |
 | `verify-changeset-loop` | 8/8 PASS（L7 plan 三包齐、L8 private 与清单一致） | `logs/09-changeset-loop.log` |
@@ -185,10 +185,11 @@ npm 的 Trusted Publisher 配置挂在 **package settings** 下，只能给**已
 | `packages/ui` 自带测试 | 12/12 PASS | `logs/12-ui-smoke-test.log` |
 | `publish-dry-run` | `ok:true`，5 PASS / 4 SKIP（跳过的是两个已发布包） | `logs/04-publish-dryrun.log` |
 
-计数口径说明：本卡**没有新增任何 tracked 文件**（`git status` 13 条全是 `M`），所以
-`classified` 相对当前 HEAD（`f532117`，含 M5-9 的 `options.md`）保持不变 = 1142/117。
-`docs/_reviews/M5-7b/report.md` 记的 1141/116 是 `de4a795` 那一版的读数；之后 M5-9 提交了 1 个
-`docs/_reviews/M5-9/**` 文件（X 类），所以现在是 1142/117。分类规则一条未改。
+计数口径说明：本卡**没有改动分类规则**，新增文件只有 `docs/_reviews/M5-8/**`（15 个：报告 + 消费者
+断言脚本 + 13 份日志），全部落在 X 类（评审档案）——所以 `classified 1142 → 1157`、`exclude 117 → 132`、
+`unclassified` 仍是 0。1142 是当前 HEAD 的读数（含 M5-9 在 `de4a795` 之后提交的
+`docs/_reviews/M5-9/options.md`，也是 X）；`docs/_reviews/M5-7b/report.md` 记的 1141/116 是
+`de4a795` 那一刻的读数。
 
 `verify-registry` 本轮**没跑**：ui 上 registry 之前，`R1/R2` 必然红（404 / latest 不一致）。
 这不是回归，是「还没发」的如实读数；发完之后应当 0 FAIL（`docs/release.md` §13.3 写明）。

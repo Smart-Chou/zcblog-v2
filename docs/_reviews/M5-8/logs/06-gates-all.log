@@ -68,5 +68,5 @@ O6  分类探针（含 override / 未分类）               PASS  0 项
 O7  示例 overlay 字段完整（1 个）                  PASS  0 项
     · apps/demo files=10 configs=4 articles=1 data=1 → PASS
 
-RESULT PASS  classified=1142 unclassified=0 theme=723 overlay=302 exclude=117 plan_baseline=998 delta=+144
+RESULT PASS  classified=1157 unclassified=0 theme=723 overlay=302 exclude=132 plan_baseline=998 delta=+159
 
