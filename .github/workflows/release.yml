@@ -39,7 +39,7 @@ permissions:
 env:
     # changeset pack 的产物目录（tarball + publish-plan.json）。放 workspace 下的临时目录，
     # 不污染工作树；workflow 级 env 不能引用 runner context（actionlint 会报）。
-    PACK_DIR: ${{ github.workspace }}/.release-pack
+    PACK_DIR: ${{ github.workspace }}/release-pack
     # tag 推送时等于 ref 名（如 v2.1.0）；dispatch 时为空 → 只校验 lockstep，不校验 tag
     RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
 

@@ -62,4 +62,4 @@ theme-snapshot/
 # Python 门禁脚本的字节码缓存
 __pycache__/
 *.pyc
-.release-pack/
+release-pack/
