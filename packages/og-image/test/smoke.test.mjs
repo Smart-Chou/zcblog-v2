@@ -137,29 +137,33 @@ test("route: 未知 slug 返回 404 纯文本，不抛错", async () => {
 
 /* ───────────────────────── 4. 出图（需要字体）───────────────────────── */
 
-test("route: 1200x630 PNG，与固定输入 golden 逐字节相同（M4-9 重定标）", { skip: needsFonts }, async () => {
-    const res = await route({ params: { og: POST.slug } });
-    assert.equal(res.status, 200);
-    assert.equal(res.headers.get("content-type"), "image/png");
-    assert.match(res.headers.get("cache-control") ?? "", /immutable/);
+test(
+    "route: 1200x630 PNG，与固定输入 golden 逐字节相同（M4-9 重定标）",
+    { skip: needsFonts },
+    async () => {
+        const res = await route({ params: { og: POST.slug } });
+        assert.equal(res.status, 200);
+        assert.equal(res.headers.get("content-type"), "image/png");
+        assert.match(res.headers.get("cache-control") ?? "", /immutable/);
 
-    const body = Buffer.from(await res.arrayBuffer());
-    // PNG 签名 + IHDR 尺寸（不引第三方图像库）
-    assert.deepEqual(
-        [...body.subarray(0, 8)],
-        [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-        "PNG 签名",
-    );
-    assert.equal(body.subarray(12, 16).toString("latin1"), "IHDR", "首个 chunk 必须是 IHDR");
-    assert.equal(body.readUInt32BE(16), 1200, "宽");
-    assert.equal(body.readUInt32BE(20), 630, "高");
-    assert.equal(body.length, GOLDEN.bytes, `字节数与 golden 不一致（${body.length}）`);
-    assert.equal(
-        createHash("sha256").update(body).digest("hex"),
-        GOLDEN.sha256,
-        "PNG 与固定输入 golden 不再逐字节相同（版式/字体/依赖版本有漂移）",
-    );
-});
+        const body = Buffer.from(await res.arrayBuffer());
+        // PNG 签名 + IHDR 尺寸（不引第三方图像库）
+        assert.deepEqual(
+            [...body.subarray(0, 8)],
+            [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+            "PNG 签名",
+        );
+        assert.equal(body.subarray(12, 16).toString("latin1"), "IHDR", "首个 chunk 必须是 IHDR");
+        assert.equal(body.readUInt32BE(16), 1200, "宽");
+        assert.equal(body.readUInt32BE(20), 630, "高");
+        assert.equal(body.length, GOLDEN.bytes, `字节数与 golden 不一致（${body.length}）`);
+        assert.equal(
+            createHash("sha256").update(body).digest("hex"),
+            GOLDEN.sha256,
+            "PNG 与固定输入 golden 不再逐字节相同（版式/字体/依赖版本有漂移）",
+        );
+    },
+);
 
 test("route: rest 参数为数组时同样解析", { skip: needsFonts }, async () => {
     const res = await route({ params: { og: [POST.slug] } });
