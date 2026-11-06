@@ -5,7 +5,7 @@
 //
 // 验的是：changeset 配置能驱动「加 changeset → status → version（三包 lockstep）→ pack（private 常开后）→ publish-plan（三包齐）」
 // 这一整条链。临时副本里会把三包 private 翻成 false，证明翻转后链路能真正产出 tarball 与发布计划；
-// 真仓库是否 public 由发布卡决定（当前 tokens/og-image 可发布、ui 仍 private）。
+// 真仓库的 private 状态由发布清单（lib.mjs 的 PUBLISH_DIRS，M5-8 起为三包）决定，L8 会核对。
 import {
     cpSync,
     existsSync,
@@ -17,7 +17,15 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { REPO_ROOT, loadPackages, makeCollector, pnpmEnv, report, runSync } from "./lib.mjs";
+import {
+    PUBLISH_DIRS,
+    REPO_ROOT,
+    loadPackages,
+    makeCollector,
+    pnpmEnv,
+    report,
+    runSync,
+} from "./lib.mjs";
 
 const argv = process.argv.slice(2);
 const json = argv.includes("--json");
@@ -220,17 +228,20 @@ try {
         readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"),
     ).version;
     const realVersionsOk = real.every((p) => p.version === themeVersion);
-    const uiStillPrivate = real.find((p) => p.name === "@marxchou/dogeared-ui")?.private === true;
-    if (realVersionsOk && uiStillPrivate)
+    // 真仓库的 private 状态必须与发布清单一致（M5-8 起清单是三包）
+    const publishStateOk = real.every((p) =>
+        PUBLISH_DIRS.includes(p.dir) ? !p.private : p.private,
+    );
+    if (realVersionsOk && publishStateOk)
         c.pass(
             "L8",
-            `真仓库三包与 root 同为 ${themeVersion}；ui 仍 private（临时副本的改动没有回流）`,
+            `真仓库三包与 root 同为 ${themeVersion}；private 状态与发布清单（${PUBLISH_DIRS.join(", ")}）一致，临时副本的改动没有回流`,
         );
     else
         c.fail(
             "L8",
-            "真仓库版本或 ui 的 private 状态被改动",
-            real.map((p) => `${p.name}@${p.version} private=${p.private}`).join("\n"),
+            "真仓库版本或 private 状态被改动",
+            `${real.map((p) => `${p.name}@${p.version} private=${p.private}`).join("\n")}\n发布清单：${PUBLISH_DIRS.join(", ")}`,
         );
 
     report("changeset 闭环（临时 monorepo）", c.results, {

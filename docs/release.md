@@ -4,14 +4,24 @@
 用 Changesets 做 **2.x lockstep**（任何一个包 bump，三个一起 bump 到同一版本），
 发布由 `.github/workflows/release.yml` 执行：**tag 推送或手动 dispatch 才会进发布链，普通 push 永远不进。**
 
-> 当前状态（2026-11-06）：`tokens` + `og-image` 已发布 `2.1.1`（`latest`），
-> `packages/ui` 按 D-0120 保持 `private: true`（继续参与 lockstep 版本推进，但永不 publish）。
+> 当前状态（2026-11-07）：
+>
+> | 包 | 版本 | registry | private |
+> | --- | --- | --- | --- |
+> | `@marxchou/dogeared-tokens` | `2.1.2` | 已发布（`latest`，SLSA provenance） | `false` |
+> | `@marxchou/dogeared-og-image` | `2.1.2` | 已发布（`latest`，SLSA provenance） | `false` |
+> | `@marxchou/dogeared-ui` | `2.1.2` | **未发布**（404）；元数据已发布就绪 | `false`（M5-8 / D-0139 翻的） |
+>
+> `packages/ui` 已按 D-0139 从 `private: true` 翻成可发布（`publishConfig.access=public`），
+> 首发范围仍只有 Badge / Button。**它还没有上 registry**，所以还有两道门没过：
+> ① 真发布需 PO 明确批准；② 新包走 Trusted Publisher 有「鸡生蛋」顺序问题——
+> npm 只允许给**已存在**的包登记 Trusted Publisher，首个版本必须先用短时 token 发出去
+> （或先发一个占位版本），详见 §13。
+>
 > 仓库已于 2026-11-06 转为 **public**；标准 GitHub-hosted runner 不再消耗 Free 计划分钟数。
 > 发布认证已切到 **npm Trusted Publishing（GitHub OIDC）**：publish job 不注入 `NPM_TOKEN`，
-> 两个包需在 npm package settings 登记 Trusted Publisher；`provenance` 默认开启。
-> **npm 侧的 Trusted Publisher 尚未登记**（需要账号 2FA 在场，且新配置必须在 48 小时内完成
-> 一次成功发布才算生效，见 §3.1）——登记与首次发布必须同一天做，所以这一步留到下个发布日。
-> 本文保留「翻掉 private 之后该怎么发」的完整闸门，供下一次发布直接照做。
+> 两个已存在包已在 npm package settings 登记 Trusted Publisher；`provenance` 默认开启。
+> 新登记的 Trusted Publisher 必须在 48 小时内完成一次成功发布才算生效（见 §3.1）。
 
 ---
 
@@ -355,18 +365,21 @@ node scripts/release/verify-guards.mjs        # 负向自检：闸门真的会�
 | 常量 | 当前值 | 用途 |
 | ---- | ------ | ---- |
 | `PACKAGE_DIRS` | tokens / ui / og-image | lockstep 版本、构建、pack 清单、LICENSE-NOTICE、P 系列检查的口径（三包全查） |
-| `PUBLISH_DIRS` | tokens / og-image | 本次/本阶段真要进 registry 的包：只有清单内的包才必须 `private: false` |
+| `PUBLISH_DIRS` | tokens / ui / og-image | 本次/本阶段真要进 registry 的包：只有清单内的包才必须 `private: false`（M5-8 / D-0139 起三包齐） |
 
 P1 的四种组合：清单内 + private → **FAIL**（publish 模式）/ INFO（check 模式）；清单内 + 非 private → PASS；
-清单外 + private → **INFO**（按 D-0120 本阶段不发布，允许 private）；清单外 + 非 private → **WARN**（疑似误翻转）。
-要改发布范围只改 `PUBLISH_DIRS` 一处，`verify-guards.mjs` 的 G4d–G4f 会跟着新清单重算期望值。
+清单外 + private → **INFO**（按 D-0120 口径允许，但当前没有清单外的包）；清单外 + 非 private → **WARN**（疑似误翻转）。
+当前清单是三包，仓库里已经没有「清单外」样本，所以后两种组合由 `verify-guards.mjs` 的
+G4f / G4g 用「把副本的 `PUBLISH_DIRS` 缩回 M4 两包口径」的方式继续真跑，而不是留在代码里当死分支。
+要改发布范围只改 `PUBLISH_DIRS` 一处（G4a–G4e 会跟着新清单重算期望值）。
 
 ---
 
 ## 9. 已知限制
 
 - **已跑过两次真发布（2026-11-06）**：tokens / og-image `2.1.0` 首发，`2.1.1` 为
-  README-only patch；`2.1.2` 为 OIDC 验证版（当前 `latest`）；ui 未发布。
+  README-only patch；`2.1.2` 为 OIDC 验证版（当前 `latest`）；ui 未发布（元数据已就绪，
+  首发顺序与鸡生蛋问题见 §13）。
   `provenance` 在两次发布时因仓库 private 显式关闭；**仓库已于 2026-11-06 转 public**，
   发布认证已切到 **npm Trusted Publishing（OIDC）**，`release.yml` 不再读取 `NPM_TOKEN`；
   下一次发布默认 `provenance=true`。`npm-publish` environment 已在 2026-11-06 补 required
@@ -549,5 +562,67 @@ node scripts/release/preflight.mjs                     # check 模式，无需�
 
 每次 24h 复查把输出贴进当期的 `docs/_reviews/M5-*/report.md`，不新建散落文件：
 `RELEASE_SUMMARY` 那行就是可 grep 的结论行。
+
+---
+
+## 13. 新包首发：Trusted Publisher 的鸡生蛋问题（M5-8 / D-0139）
+
+`@marxchou/dogeared-ui` 是第一个**从零**上线的新包（`@marxchou/dogeared-tokens` 与
+`-og-image` 在 M4 时代先用 token 发过 `2.1.0`，之后才登记 Trusted Publisher）。新包会撞上：
+
+> npm 只允许给**已经存在于 registry 的包**登记 Trusted Publisher；而 OIDC 首发又必须先有
+> Trusted Publisher。→ 首个版本无法用 OIDC 自动发布。
+
+这不是本仓的配置问题，是 npm 侧的既定约束（`docs.npmjs.com/trusted-publishers`：
+Trusted Publisher 配置挂在 package settings 下；GitHub 社区 discussion #176761 记录同一现象）。
+另外，新登记的 Trusted Publisher **必须在 48 小时内完成一次成功发布**才生效，否则配置过期作废。
+
+### 13.1 两条可行路径（都需要 PO 批准 + npm 登录态）
+
+| 路径 | 步骤 | 首发版本有无 provenance | 代价 |
+| ---- | ---- | --- | ---- |
+| **A · 占位引导（推荐）** | ① 用短时 token 发 `0.0.0-stage`（`--tag stage`，**不动 `latest`**）→ ② 给包登记 Trusted Publisher（同 D-0131 的两包配方）→ ③ `release.yml` dispatch 走 OIDC 发 `2.1.2` → ④ 72h 内 unpublish 占位（同 D-0135 的流程） | **有**（SLSA v1） | 需要一次占位发布 + 一次清理；registry 上会短暂出现 `0.0.0-stage` |
+| **B · 直接 token 首发** | ① 用短时 token 直接发 `2.1.2` → ② 再登记 Trusted Publisher（后续版本走 OIDC） | **无**（同 `2.1.0`/`2.1.1` 的历史状态） | 首发版本缺 provenance；无需清理 |
+
+两条路径都**不能**在没登录态的情况下做：`npm trust` 与 token 首发分别需要
+「账号 2FA 在场」的登录态。本地 `~/.npmrc` 里的 granular token 当前已失效
+（`GET /-/whoami` → 401，M5-8 实测），所以这一步必须由 PO 重新登录（`npm login --auth-type=web`）
+或换一条新的 granular token。
+
+### 13.2 路径 A 的具体命令（照抄，第一条会真写 registry）
+
+```bash
+# 0) 前置：npm 登录态在（npm whoami 必须回 mifsh）；PO 已批准首发
+npm whoami
+
+# 1) 占位版本：只为「让包存在」，不进 latest
+cd packages/ui
+npm version 0.0.0-stage --no-git-tag-version --allow-same-version   # 注意：先备份 package.json
+npm publish --tag stage --access public
+git checkout -- package.json                                        # 立刻把版本改回 2.1.2
+
+# 2) 登记 Trusted Publisher（npm >= 11.15.0 是硬要求，见 D-0131 的坑）
+npx --yes npm@11.15.0 trust github @marxchou/dogeared-ui \
+  --file release.yml --repo Smart-Chou/zcblog-v2 --env npm-publish --allow-publish --yes
+npx --yes npm@11.15.0 trust list @marxchou/dogeared-ui     # 期望 publish, stage publish
+
+# 3) 48h 内用 OIDC 发真实版本（release.yml：dry_run=false + confirm_publish=PUBLISH + 环境批准）
+gh workflow run release.yml -f dry_run=false -f confirm_publish=PUBLISH
+
+# 4) 发完 72h 内清掉占位（D-0135 的口径；先查有没有 tag 指向它）
+npm dist-tag ls @marxchou/dogeared-ui
+npm unpublish @marxchou/dogeared-ui@0.0.0-stage
+```
+
+### 13.3 现在的状态（M5-8 收尾时）
+
+- `packages/ui` 已 `private: false` + `publishConfig.access=public`：**发布已上膛**。
+  任何 `v*` tag push 或 `release.yml` dispatch（`dry_run=false` + `confirm_publish=PUBLISH`）
+  都会把它算进 publish-plan（`preflight` 实测：`plan=[[ui@2.1.2]]`，tokens/og-image 因版本已在
+  registry 而不进 plan）。
+- 但 ui 还没有 Trusted Publisher 配置，OIDC 首发会失败（`ENEEDAUTH`/404）。所以在走完 §13.1
+  之前，**不要**推 `v2.1.2` tag，也不要用 `--mode=publish` 跑 release.yml。
+- `verify-registry.mjs` 会把 ui 当发布清单内成员查 `R1/R2`，在它上 registry 之前必然红 R1
+  （404）——这是「还没发」的如实读数，不是回归。发完之后应当 0 FAIL。
 
 

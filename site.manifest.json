@@ -18,6 +18,11 @@
             "decision": "D-0138",
             "date": "2026-11-07",
             "summary": "M5-7b：新增 changeLog 字段（清单变更留痕）；T/O/X 规则一条未改，classified 相对 998 基线的 delta 全部来自后续各卡新增文件。"
+        },
+        {
+            "decision": "D-0139",
+            "date": "2026-11-07",
+            "summary": "M5-8：packages/ui 元数据转为可发布（private:false + publishConfig.access=public），发布清单扩成三包；T/O/X 规则未改，新增文件按既有规则分类。"
         }
     ],
     "classes": {

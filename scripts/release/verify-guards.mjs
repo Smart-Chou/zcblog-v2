@@ -105,8 +105,11 @@ expectFail(
         );
 }
 
-// ---- G4d/G4e 临时 workspace：发布态（tokens/og-image private:false + ui private:true + 有 pending changeset）----
-// 这是 M4 真正要跑发布的状态；D-0120 下它必须整体放行，且 publish-plan 里不能出现 ui。
+// ---- G4d–G4g 临时 workspace：发布态（发布清单内的包 private:false + 有 pending changeset）----
+// M5-8（D-0139）起发布清单是三包，仓库里已经没有「清单外」的包了。旧用例里
+// 「清单外 private → INFO + D-0120」「清单外非 private → WARN 疑似误翻转」这两条分支
+// 仍然是 P1 的语义，不能因为当下没有真实样本就变成死代码：负向用例用 publishSet 参数
+// 把副本的 PUBLISH_DIRS 改回 M4 的两包口径，再把这些组合跑一遍。
 const p1Lines = (out) =>
     out
         .split("\n")
@@ -115,7 +118,7 @@ const p1Lines = (out) =>
 
 const buildPublishWorkspace = (
     name,
-    { flipPrivate = [], unflip = [], privatize = [], version = null } = {},
+    { flipPrivate = [], unflip = [], privatize = [], version = null, publishSet = null } = {},
 ) => {
     const ws = path.join(tmpRoot, name);
     mkdirSync(path.join(ws, "scripts"), { recursive: true });
@@ -135,6 +138,18 @@ const buildPublishWorkspace = (
     }
     // node_modules 走软链：副本里的 `npx changeset` 解析到本仓已装的 CLI，不联网装包
     symlinkSync(path.join(REPO_ROOT, "node_modules"), path.join(ws, "node_modules"), "dir");
+    // 把副本的发布清单换成指定口径（只改副本，真仓库只读）
+    if (publishSet) {
+        const libPath = path.join(ws, "scripts/release/lib.mjs");
+        const before = readFileSync(libPath, "utf8");
+        const after = before.replace(
+            /export const PUBLISH_DIRS = \[[^\]]*\];/,
+            `export const PUBLISH_DIRS = ${JSON.stringify(publishSet)};`,
+        );
+        if (after === before)
+            throw new Error(`副本 ${libPath} 里没找到 PUBLISH_DIRS 声明（publishSet 失效）`);
+        writeFileSync(libPath, after);
+    }
     for (const dir of [...flipPrivate, ...unflip, ...privatize]) {
         const p = path.join(ws, dir, "package.json");
         const pkg = JSON.parse(readFileSync(p, "utf8"));
@@ -157,7 +172,10 @@ const buildPublishWorkspace = (
     return ws;
 };
 const flipTargets = [...PUBLISH_DIRS];
-const uiDir = PACKAGE_DIRS.find((dir) => !PUBLISH_DIRS.includes(dir));
+const nameOf = (dir) =>
+    JSON.parse(readFileSync(path.join(REPO_ROOT, dir, "package.json"), "utf8")).name;
+// M4 的两包口径（D-0120）：只给负向用例当「清单外的包」样本用，不代表当前发布范围。
+const LEGACY_PUBLISH_SET = ["packages/tokens", "packages/og-image"];
 
 // G4a：清单内的包仍 private → publish 模式必拒（用副本，不依赖真仓状态）。
 {
@@ -177,9 +195,13 @@ const uiDir = PACKAGE_DIRS.find((dir) => !PUBLISH_DIRS.includes(dir));
 
 // G4b：清单内已翻转，但版本已经在 registry（2.1.0）且没有待发布 changeset
 // → publish-plan 为空，必须停住，避免「看起来成功、其实没发包」。
+// ui 从没在 registry 上出现过（D-0139 起才可发布），所以这里把它留在清单外+private，
+// 否则 plan 里永远有 ui，就造不出「空 plan」这个状态。
 {
     const ws = buildPublishWorkspace("empty-plan", {
-        flipPrivate: flipTargets,
+        flipPrivate: LEGACY_PUBLISH_SET,
+        privatize: ["packages/ui"],
+        publishSet: LEGACY_PUBLISH_SET,
         version: "2.1.0",
     });
     expectFail(
@@ -209,19 +231,21 @@ const releaseWsRun = runSync(
 {
     const p1 = p1Lines(releaseWsRun.out);
     const fails = p1.filter((l) => l.startsWith("[FAIL]"));
-    const uiLine = p1.find((l) => l.includes("@marxchou/dogeared-ui")) ?? "";
-    if (fails.length === 0 && /^\[INFO\]/.test(uiLine) && /D-0120/.test(uiLine))
+    const missing = flipTargets
+        .map((dir) => ({ dir, name: nameOf(dir) }))
+        .filter(({ name }) => !p1.some((l) => l.startsWith("[PASS]") && l.includes(name)));
+    if (fails.length === 0 && missing.length === 0)
         c.pass(
             "G4d",
-            `发布态（${flipTargets.join(" + ")} 已翻转、ui 留 private）→ P1 全绿，ui 落 INFO（${
-                p1.length
-            } 条 P1）`,
+            `发布态（${flipTargets.join(" + ")} 全部 private:false）→ P1 全绿，清单内 ${flipTargets.length} 包均 PASS（${p1.length} 条 P1）`,
             p1.join("\n"),
         );
     else
         c.fail(
             "G4d",
-            "发布态下 P1 仍有 FAIL，或 ui 没有落到 INFO/D-0120（ui 留 private 会重新卡住首发）",
+            fails.length
+                ? "发布态下 P1 仍有 FAIL"
+                : `清单内的包没有落到 PASS：${missing.map((m) => m.name).join(", ")}`,
             `${p1.join("\n")}\n${releaseWsRun.combined.slice(-800)}`,
         );
 
@@ -239,34 +263,33 @@ const releaseWsRun = runSync(
         .flat()
         .map((e) => e?.name)
         .filter(Boolean);
-    const expectNames = flipTargets.map((dir) => {
-        const pkg = JSON.parse(readFileSync(path.join(REPO_ROOT, dir, "package.json"), "utf8"));
-        return pkg.name;
-    });
-    const uiName = JSON.parse(
-        readFileSync(path.join(REPO_ROOT, "packages/ui/package.json"), "utf8"),
-    ).name;
-    const onlyTwo =
+    const expectNames = flipTargets.map(nameOf);
+    const sameSet =
         planNames.length === expectNames.length && expectNames.every((n) => planNames.includes(n));
-    if (releaseWsRun.code === 0 && onlyTwo && !planNames.includes(uiName))
+    if (releaseWsRun.code === 0 && sameSet)
         c.pass(
             "G4e",
-            `preflight --mode=publish exit 0，publish-plan 只含 ${planNames.length} 包（不含 ui）`,
+            `preflight --mode=publish exit 0，publish-plan 恰好含发布清单的 ${planNames.length} 包`,
             `plan=${JSON.stringify(planNames)}`,
         );
     else
         c.fail(
             "G4e",
-            "发布态下 preflight 没放行，或 publish-plan 不是「只含发布清单内的包」",
-            `exit=${releaseWsRun.code}\nplan=${JSON.stringify(planNames)}\nui=${uiName}\n${releaseWsRun.combined.slice(
+            "发布态下 preflight 没放行，或 publish-plan 不等于「发布清单内的包」",
+            `exit=${releaseWsRun.code}\nplan=${JSON.stringify(planNames)}\nexpect=${JSON.stringify(expectNames)}\n${releaseWsRun.combined.slice(
                 -900,
             )}`,
         );
 }
 
 // ---- G4f 清单外的包被翻成 private:false → WARN（疑似误翻转，不能静默通过）----
+// 当前清单是三包，所以把副本的 PUBLISH_DIRS 缩回 M4 两包口径，制造一个「清单外」样本。
 {
-    const ws = buildPublishWorkspace("misflip", { unflip: [uiDir] });
+    const ws = buildPublishWorkspace("misflip", {
+        publishSet: LEGACY_PUBLISH_SET,
+        unflip: ["packages/ui"],
+        version: "9.9.9",
+    });
     const run = runSync(
         "node",
         [path.join(ws, "scripts/release/preflight.mjs"), "--mode=publish"],
@@ -274,13 +297,39 @@ const releaseWsRun = runSync(
             allowFail: true,
         },
     );
-    const uiLine = p1Lines(run.out).find((l) => l.includes("@marxchou/dogeared-ui")) ?? "";
+    const uiLine = p1Lines(run.out).find((l) => l.includes(nameOf("packages/ui"))) ?? "";
     if (/^\[WARN\]/.test(uiLine) && /疑似误翻转/.test(uiLine))
         c.pass("G4f", `清单外的包被误翻成 private:false → WARN（${uiLine}）`);
     else
         c.fail(
             "G4f",
             "清单外的包被翻成 private:false 时没有 WARN（会静默多发一个包）",
+            `${p1Lines(run.out).join("\n")}\n${run.combined.slice(-600)}`,
+        );
+}
+
+// ---- G4g 清单外的包仍 private → INFO + D-0120（不是 FAIL，也不静默）----
+{
+    const ws = buildPublishWorkspace("out-of-set-private", {
+        publishSet: LEGACY_PUBLISH_SET,
+        privatize: ["packages/ui"],
+        flipPrivate: LEGACY_PUBLISH_SET,
+        version: "9.9.9",
+    });
+    const run = runSync(
+        "node",
+        [path.join(ws, "scripts/release/preflight.mjs"), "--mode=publish"],
+        {
+            allowFail: true,
+        },
+    );
+    const uiLine = p1Lines(run.out).find((l) => l.includes(nameOf("packages/ui"))) ?? "";
+    if (/^\[INFO\]/.test(uiLine) && /D-0120/.test(uiLine))
+        c.pass("G4g", `清单外 private 的包 → INFO 且注明 D-0120（${uiLine}）`);
+    else
+        c.fail(
+            "G4g",
+            "清单外 private 的包没有落到 INFO/D-0120（要么被误拦，要么静默）",
             `${p1Lines(run.out).join("\n")}\n${run.combined.slice(-600)}`,
         );
 }

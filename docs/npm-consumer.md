@@ -1,17 +1,21 @@
-# 只消费 Dogeared npm 包（tokens / og-image）
+# 只消费 Dogeared npm 包（tokens / ui / og-image）
 
 这篇是给**不 fork 主题仓库**的消费者用的接入与升级说明。完整的主题站点装配（页面、内容、
-配置 overlay）仍走 `docs/upgrade.md` 的 `theme-sync` / `create-site` 链路；这里只覆盖两个
+配置 overlay）仍走 `docs/upgrade.md` 的 `theme-sync` / `create-site` 链路；这里只覆盖三个
 已发布到 npm 的包。
 
-> 当前版本（2026-11-06 实测）：`@marxchou/dogeared-tokens@2.1.2`、`@marxchou/dogeared-og-image@2.1.2`
-> （registry `latest`）。`@marxchou/dogeared-ui` 仍是 private，未发布；不要在消费者项目里依赖它。
+> 当前版本（2026-11-07 实测）：`@marxchou/dogeared-tokens@2.1.2`、
+> `@marxchou/dogeared-og-image@2.1.2`（registry `latest`）。
+> `@marxchou/dogeared-ui@2.1.2` 的元数据已按 M5-8 / D-0139 发布就绪（`private: false`、
+> `publishConfig.access=public`），但**它在 registry 上是否可用要以查询为准**——首发受 PO 批准
+> 与新包引导顺序约束（见 `docs/release.md` §13）：
 >
 > **版本以 registry 为准**，本文的版本号只是写作时快照：
 >
 > ```bash
 > npm view @marxchou/dogeared-tokens version
 > npm view @marxchou/dogeared-og-image version
+> npm view @marxchou/dogeared-ui version     # 404 = ui 首发还没执行
 > ```
 
 | 版本            | 状态       | 说明                                                                 |
@@ -20,6 +24,9 @@
 | `2.1.1`         | 可用       | README-only patch，运行时与 `2.1.0` 相同                              |
 | `2.1.0`         | 可用       | 首发版本                                                             |
 | `2.1.3+` / `2.2.x` | 未发布  | 升级到下一 minor 的步骤见 §5；本轮用本地 2.2.0 预演包验证过同一条路径  |
+
+> `2.1.2` 对 `ui` 是**首发版本**（tokens / og-image 的 `2.1.2` 早于它上线）。三包同号，但不必然
+> 同时进 registry —— 判断某个包某个版本能不能装，永远用 `npm view <pkg>@<version> version`。
 
 > 早期发布留下的 `0.0.0-stage` 占位已于 2026-11-06 删除（D-0135），registry 上现在只有
 > `2.1.0 / 2.1.1 / 2.1.2` 三个版本；`versions` 列表可直接 `npm view <pkg> versions` 复核。
@@ -132,6 +139,46 @@ export const GET = createOgImageRoute({
 离线构建请传本地字体（包会明确报错，不会静默渲染无字体图）。实际生成 PNG
 需要 satori + sharp，首次运行会稍慢。
 
+## 3.5 接 ui（Badge / Button）
+
+`@marxchou/dogeared-ui` 只出两个零依赖原语：`Badge`（状态/标签胶囊）与 `Button`（长得像按钮的
+链接）。首发范围就这两个，不含其它组件。
+
+```bash
+npm i @marxchou/dogeared-ui@2.1.2      # registry 上没有这个版本时先别装（见页首的 npm view 自查）
+```
+
+```astro
+---
+import "@marxchou/dogeared-tokens/variables.css";
+import "@marxchou/dogeared-tokens/tokens.css";
+import { Badge, Button } from "@marxchou/dogeared-ui";
+---
+
+<Badge variant="tip" size="sm">New</Badge>
+<Badge variant="danger">Breaking</Badge>
+<Button href="/archives/" variant="secondary">Archive</Button>
+```
+
+子路径导出也能单独引（不走 barrel）：
+
+```astro
+import Badge from "@marxchou/dogeared-ui/Badge.astro";
+import Button from "@marxchou/dogeared-ui/Button.astro";
+```
+
+几条必须知道的约束：
+
+- **只能在 Astro/Vite 里用**。包的 API 就是 `.astro` 组件，Astro 编译器在构建期把它们变成渲染
+  函数；裸 Node `import` 会因 `.astro` 扩展名失败（`dist/index.js` 是纯 ESM，但每个再导出目标
+  都是 `.astro`）。这不是坏包，包 README 的 Requirements 段写明了。
+- **视觉值全部来自 CSS 变量**：`--radius-full`、`--text-sm`、`--color-accent`、
+  `--color-on-accent`、`--duration-slow`、`--ease-out` 等。先加载 `@marxchou/dogeared-tokens`
+  （推荐），或自己定义同名变量。包**不依赖** tokens，所以不会替你锁版本。
+- `astro` 是 **optional peer**（`^7.3.6`）；组件不 import Astro 运行时，Astro 只是编译器。
+  这个 range 与主题自身的 `dependencies.astro` 保持一致（`packages/ui/test/smoke.test.mjs`
+  会断言两者相等）。
+
 ## 4. 验证
 
 ```bash
@@ -152,7 +199,7 @@ npm view @marxchou/dogeared-tokens@2.2.0 dist.integrity # 目标版本是否已�
 ```
 
 语义承诺：`minor` 内不 breaking，breaking 只随 `minor` 一起发并写在 `CHANGELOG` 的
-`Breaking` 段。两个包**同版本 lockstep**（`tokens` 与 `og-image` 永远同号），升级时一起升。
+`Breaking` 段。三个包**同版本 lockstep**（`tokens` / `ui` / `og-image` 永远同号），升级时一起升。
 
 > 现在跑第二条会得到 `E404`——`2.2.0` 还没发布。这不是命令写错：它正是「目标版本不存在，
 > 先别改 `package.json`」的判据。
@@ -302,7 +349,8 @@ node scripts/release/verify-consumer-matrix.mjs --docker=true --majors=22,24 --o
   消费者可按 `packages/og-image/README.md` 的 npm / pnpm / Yarn 作用域 override 配方处理；
   上游 issue 草稿在 `docs/_reviews/M4-9/upstream-satori-fflate-issue.md`，当前不提交。
 - 本页只验证包接入，不包含 Dogeared 的页面/组件/内容 schema；完整主题消费请走
-  `docs/upgrade.md`，并注意 `@marxchou/dogeared-ui` 尚未发布。
+  `docs/upgrade.md`，并注意 `@marxchou/dogeared-ui` 是否已上 registry 要以
+  `npm view @marxchou/dogeared-ui version` 为准（M5-8 起元数据就绪，但首发需 PO 批准）。
 - `2.2.x` 尚无 registry 版本：§5 的 minor 升级路径由本地预演包验证（§5.5），发布后需把 §5.1
   的 `npm view ...@2.2.0` 换成真实查询重跑一次。
 - 生产站是否切换与 npm 消费无关；`marxchou.com` 保持旧版（D-0125）。示例站

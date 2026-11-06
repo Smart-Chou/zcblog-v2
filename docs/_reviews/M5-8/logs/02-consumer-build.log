@@ -1,0 +1,19 @@
+01:51:39 [types] Generated 137ms
+01:51:39 [build] output: "static"
+01:51:39 [build] mode: "static"
+01:51:39 [build] directory: /Users/chowcong/.hermes/kanban/boards/blog2/workspaces/t_c1865d9d/consumer/dist/
+01:51:39 [build] Collecting build info...
+01:51:39 [build] ✓ Completed in 162ms.
+01:51:39 [build] Building static entrypoints...
+01:51:39 [vite] ✓ built in 261ms
+01:51:39 [vite] ✓ built in 23ms
+01:51:39 [build] Rearranging server assets...
+
+ generating static routes 
+01:51:39   ├─ /subpath/index.html (+13ms) 
+01:51:39   ├─ /index.html (+3ms) 
+01:51:39 ✓ Completed in 32ms.
+
+01:51:39 [build] ✓ Completed in 368ms.
+01:51:39 [build] 2 page(s) built in 532ms
+01:51:39 [build] Complete!

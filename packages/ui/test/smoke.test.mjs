@@ -121,3 +121,45 @@ test("package: engines 覆盖当前 Node（不再 EBADENGINE）", () => {
     assert.equal(pkgJson.engines.node, ">=22");
     assert.ok(Number(process.versions.node.split(".")[0]) >= 22);
 });
+
+/* ───────────────────────── 5. 发布就绪（M5-8）───────────────────────── */
+// 发布状态从「口头决定」变成判据：一旦有人把 private 翻回去、或把 publishConfig 删掉，
+// 这些用例会先红，而不是等到 release.yml 的 preflight 才发现。
+
+test("publish: private:false + publishConfig.access=public（可进 public registry）", () => {
+    assert.equal(pkgJson.private, false, "发布包必须是 private:false");
+    assert.equal(pkgJson.publishConfig?.access, "public", "scoped 包必须显式 access=public");
+});
+
+test("publish: files 清单覆盖发布所需的全部文件", () => {
+    const files = pkgJson.files ?? [];
+    for (const entry of ["dist", "src", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"]) {
+        assert.ok(files.includes(entry), `files 缺 ${entry}`);
+    }
+    for (const entry of ["dist", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"]) {
+        assert.ok(existsSync(path.join(pkgRoot, entry)), `files 声明的 ${entry} 在磁盘上不存在`);
+    }
+});
+
+test("publish: peer astro 与主题自身 astro 版本收敛在同一 range", () => {
+    const themePkg = JSON.parse(readFileSync(path.join(pkgRoot, "../../package.json"), "utf8"));
+    // 主题把 astro 放在 dependencies（站点运行时/构建器），不是 devDependencies
+    const themeAstro = themePkg.dependencies?.astro ?? themePkg.devDependencies?.astro;
+    assert.ok(themeAstro, "根 package.json 没有声明 astro");
+    assert.equal(
+        pkgJson.peerDependencies.astro,
+        themeAstro,
+        `peer astro=${pkgJson.peerDependencies.astro} 与主题 ${themeAstro} 不一致：组件只在这个 Astro 版本上被真实构建过`,
+    );
+    const installed = JSON.parse(
+        readFileSync(path.join(pkgRoot, "../../node_modules/astro/package.json"), "utf8"),
+    ).version;
+    const floor = String(themeAstro).replace(/^[\^~>=]+/, "");
+    const cmp = (a, b) => {
+        const pa = a.split(".").map(Number);
+        const pb = b.split(".").map(Number);
+        for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+        return 0;
+    };
+    assert.ok(cmp(installed, floor) >= 0, `已安装 astro ${installed} 低于 ${themeAstro}`);
+});

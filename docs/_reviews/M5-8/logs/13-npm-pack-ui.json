@@ -1,0 +1,76 @@
+[
+    {
+        "id": "@marxchou/dogeared-ui@2.1.2",
+        "name": "@marxchou/dogeared-ui",
+        "version": "2.1.2",
+        "size": 6233,
+        "unpackedSize": 17243,
+        "shasum": "c594bf04eb7c3bba5a8f5dfaffe0b308b4efea90",
+        "integrity": "sha512-vsa6BZZok8gbKY5CZe/C5YhbrGxULmWMq//mIDMbDYWP8w7XlqIxOFfEVbglTFoCx6QlIXRIqt5y16i147nnaw==",
+        "filename": "marxchou-dogeared-ui-2.1.2.tgz",
+        "files": [
+            {
+                "path": "CHANGELOG.md",
+                "size": 1032,
+                "mode": 420
+            },
+            {
+                "path": "LICENSE",
+                "size": 1065,
+                "mode": 420
+            },
+            {
+                "path": "NOTICE",
+                "size": 1788,
+                "mode": 420
+            },
+            {
+                "path": "README.md",
+                "size": 4221,
+                "mode": 420
+            },
+            {
+                "path": "dist/Badge.astro",
+                "size": 1527,
+                "mode": 420
+            },
+            {
+                "path": "dist/Button.astro",
+                "size": 1634,
+                "mode": 420
+            },
+            {
+                "path": "dist/index.d.ts",
+                "size": 415,
+                "mode": 420
+            },
+            {
+                "path": "dist/index.js",
+                "size": 415,
+                "mode": 420
+            },
+            {
+                "path": "package.json",
+                "size": 1570,
+                "mode": 420
+            },
+            {
+                "path": "src/Badge.astro",
+                "size": 1527,
+                "mode": 420
+            },
+            {
+                "path": "src/Button.astro",
+                "size": 1634,
+                "mode": 420
+            },
+            {
+                "path": "src/index.ts",
+                "size": 415,
+                "mode": 420
+            }
+        ],
+        "entryCount": 12,
+        "bundled": []
+    }
+]

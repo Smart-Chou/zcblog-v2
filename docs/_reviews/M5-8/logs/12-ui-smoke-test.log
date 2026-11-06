@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: package: 入口全部指向 dist，没有一个指向 .ts
+ok 1 - package: 入口全部指向 dist，没有一个指向 .ts
+  ---
+  duration_ms: 2.496961
+  type: 'test'
+  ...
+# Subtest: package: 包自引用解析到 dist/index.js
+ok 2 - package: 包自引用解析到 dist/index.js
+  ---
+  duration_ms: 2.940283
+  type: 'test'
+  ...
+# Subtest: package: 两个组件本体都在 dist 与 src 里（不多不少）
+ok 3 - package: 两个组件本体都在 dist 与 src 里（不多不少）
+  ---
+  duration_ms: 0.582926
+  type: 'test'
+  ...
+# Subtest: package: 桶文件重导出全部组件（且是纯 ESM，没有 TS 语法）
+ok 4 - package: 桶文件重导出全部组件（且是纯 ESM，没有 TS 语法）
+  ---
+  duration_ms: 0.418594
+  type: 'test'
+  ...
+# Subtest: components: 每个 .astro 有 Props 接口 + scoped style
+ok 5 - components: 每个 .astro 有 Props 接口 + scoped style
+  ---
+  duration_ms: 0.802977
+  type: 'test'
+  ...
+# Subtest: 限制: 裸 Node import 桶文件因 .astro 失败（README 已写明，不是坏包）
+ok 6 - 限制: 裸 Node import 桶文件因 .astro 失败（README 已写明，不是坏包）
+  ---
+  duration_ms: 2.233805
+  type: 'test'
+  ...
+# Subtest: 限制: README「Requirements」明确写了只在 Astro/Vite 里可用
+ok 7 - 限制: README「Requirements」明确写了只在 Astro/Vite 里可用
+  ---
+  duration_ms: 0.446059
+  type: 'test'
+  ...
+# Subtest: package: 零运行期依赖，astro 是 optional peer，无 devDependencies
+ok 8 - package: 零运行期依赖，astro 是 optional peer，无 devDependencies
+  ---
+  duration_ms: 0.982481
+  type: 'test'
+  ...
+# Subtest: package: engines 覆盖当前 Node（不再 EBADENGINE）
+ok 9 - package: engines 覆盖当前 Node（不再 EBADENGINE）
+  ---
+  duration_ms: 0.498013
+  type: 'test'
+  ...
+# Subtest: publish: private:false + publishConfig.access=public（可进 public registry）
+ok 10 - publish: private:false + publishConfig.access=public（可进 public registry）
+  ---
+  duration_ms: 0.402992
+  type: 'test'
+  ...
+# Subtest: publish: files 清单覆盖发布所需的全部文件
+ok 11 - publish: files 清单覆盖发布所需的全部文件
+  ---
+  duration_ms: 0.293703
+  type: 'test'
+  ...
+# Subtest: publish: peer astro 与主题自身 astro 版本收敛在同一 range
+ok 12 - publish: peer astro 与主题自身 astro 版本收敛在同一 range
+  ---
+  duration_ms: 1.707679
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 156.669354

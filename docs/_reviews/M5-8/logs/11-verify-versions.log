@@ -1,0 +1,15 @@
+
+== 版本 lockstep / tag 一致性 ==
+[PASS] V1         三包 lockstep 同版本 2.1.2
+[PASS] V2:@marxchou/dogeared-tokens 2.1.2 是合法 semver
+[PASS] V3:packages/tokens 名称 @marxchou/dogeared-tokens 在预期 scope
+[PASS] V2:@marxchou/dogeared-ui 2.1.2 是合法 semver
+[PASS] V3:packages/ui 名称 @marxchou/dogeared-ui 在预期 scope
+[PASS] V2:@marxchou/dogeared-og-image 2.1.2 是合法 semver
+[PASS] V3:packages/og-image 名称 @marxchou/dogeared-og-image 在预期 scope
+[PASS] V4         .changeset/config.json fixed 组覆盖三包
+           @marxchou/dogeared-tokens, @marxchou/dogeared-ui, @marxchou/dogeared-og-image
+[PASS] V5         根 package.json（站点）版本同为 2.1.2
+[SKIP] V6         未提供 tag，跳过 tag=version 一致性检查
+
+RELEASE_SUMMARY {"title":"版本 lockstep / tag 一致性","ok":true,"counts":{"PASS":9,"FAIL":0,"WARN":0,"INFO":0,"SKIP":1},"version":"2.1.2","tag":null}

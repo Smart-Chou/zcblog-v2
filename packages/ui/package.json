@@ -3,7 +3,10 @@
     "version": "2.1.2",
     "description": "Zero-dependency UI primitives (Astro components) for the Dogeared theme: Badge and Button.",
     "type": "module",
-    "private": true,
+    "private": false,
+    "publishConfig": {
+        "access": "public"
+    },
     "license": "MIT",
     "homepage": "https://github.com/Smart-Chou/zcblog-v2/tree/main/packages/ui#readme",
     "repository": {
@@ -18,6 +21,7 @@
         "dist",
         "src",
         "README.md",
+        "CHANGELOG.md",
         "LICENSE",
         "NOTICE"
     ],

@@ -24,8 +24,9 @@ export const PACKAGE_DIRS = ["packages/tokens", "packages/ui", "packages/og-imag
 //   - PUBLISH_DIRS 是「本次/本阶段真的要进 registry 的包」—— 只有在这里的包才必须 private:false。
 // 背景：M4-8 决策 D-0120 —— M4 首发只发 tokens + og-image，packages/ui 保持 private:true
 //（继续参与 fixed 组的版本推进，但永不 publish；changesets 自己会把 private 包过滤出 publish-plan）。
+// M5-8（D-0139）：PO 授权发布 ui，清单扩成三包；首发范围仍只有 Badge/Button。
 // 要新增/移除发布包时只改这一处：preflight P1 与 verify-guards 的用例都从这里取范围。
-export const PUBLISH_DIRS = ["packages/tokens", "packages/og-image"];
+export const PUBLISH_DIRS = ["packages/tokens", "packages/ui", "packages/og-image"];
 
 export function isPublishTarget(dir) {
     return PUBLISH_DIRS.includes(dir);

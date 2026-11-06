@@ -1,0 +1,31 @@
+consumer root: /Users/chowcong/.hermes/kanban/boards/blog2/workspaces/t_c1865d9d/consumer
+  PASS  installed version = 2.1.2
+  PASS  installed private = false
+  PASS  installed publishConfig.access = public
+  PASS  tarball 内含 dist/Badge.astro
+  PASS  tarball 内含 dist/Button.astro
+  PASS  tarball 内含 dist/index.js
+  PASS  tarball 内含 LICENSE
+  PASS  tarball 内含 NOTICE
+  PASS  tarball 内含 CHANGELOG.md
+  PASS  index 渲染 badge--default
+  PASS  index 渲染 badge--note
+  PASS  index 渲染 badge--tip
+  PASS  index 渲染 badge--danger
+  PASS  index 渲染 badge--success
+  PASS  index 渲染 badge--warning
+  PASS  index 渲染 badge--sm
+  PASS  index 渲染 badge--md
+  PASS  index 渲染 badge--lg
+  PASS  index 渲染 btn-primary
+  PASS  index 渲染 btn-secondary
+  PASS  Button 透传 href/target
+  PASS  subpath 页用子路径导出渲染成功
+  PASS  产物 CSS 含 .badge[data-astro-cid
+  PASS  产物 CSS 含 .badge--tip
+  PASS  产物 CSS 含 .btn-primary[data-astro-cid
+  PASS  产物 CSS 含 .btn-secondary
+  PASS  产物 CSS 含 tokens 变量 --radius-full
+  PASS  产物 CSS 含 tokens 变量 --color-accent
+
+RESULT PASS  checks=28 fails=0

@@ -82,15 +82,29 @@ for (const p of packages) {
         variants: [],
     };
     let anyOk = false;
+    let allAlreadyPublished = true;
     for (const v of variants) {
         const ok = v.r.code === 0 && !/npm (err|ERR)/i.test(v.r.combined);
+        // "You cannot publish over the previously published versions" = 这个版本已经在 registry 上。
+        // 那不是包坏了，也不是命令坏了——是本轮没有新版本可发（例如仓库版本刚发过、只等新包首发）。
+        const alreadyPublished =
+            v.r.code !== 0 &&
+            /cannot publish over the previously published version/i.test(v.r.combined);
+        if (!alreadyPublished) allAlreadyPublished = false;
         const publishLine =
             (v.r.combined.match(/npm notice Publishing to .*/g) ?? []).join("\n") ||
             (v.r.combined.match(/^\+ .*/gm) ?? []).join("\n") ||
             "";
-        record.variants.push({ variant: v.variant, cmd: v.cmd, exit: v.r.code, ok, publishLine });
+        record.variants.push({
+            variant: v.variant,
+            cmd: v.cmd,
+            exit: v.r.code,
+            ok,
+            alreadyPublished,
+            publishLine,
+        });
         if (ok) anyOk = true;
-        else
+        else if (!alreadyPublished)
             c.warn(
                 `D1:${p.name}:${v.variant}`,
                 `${v.cmd} exit ${v.r.code}（该变体不可作为发布证据）`,
@@ -115,6 +129,14 @@ for (const p of packages) {
                 )
                 .join("\n"),
         );
+    else if (allAlreadyPublished)
+        c.skip(
+            `D1:${p.name}`,
+            `${p.name}@${p.version} 已在 registry 上：同一版本无法重新发布，本包本轮不产生 dry-run 发布证据（版本没 bump 时的正常结果）`,
+            record.variants
+                .map((v) => `${v.variant}: exit ${v.exit}（already published）`)
+                .join("\n"),
+        );
     else c.fail(`D1:${p.name}`, "所有 publish --dry-run 变体都失败，发布命令不可用");
 
     // 3) 证明「没有真的发出去」：dry-run 输出里必须出现 dry-run 字样，且不存在真实上传成功的 201/200 回执
@@ -124,6 +146,8 @@ for (const p of packages) {
             `D2:${p.name}`,
             "输出含 dry-run 回执（+ pkg@version + dry-run 标记），无 registry 写入",
         );
+    else if (allAlreadyPublished)
+        c.skip(`D2:${p.name}`, `${p.name}@${p.version} 已在 registry，dry-run 回执不存在（同 D1）`);
     else
         c.info(
             `D2:${p.name}`,

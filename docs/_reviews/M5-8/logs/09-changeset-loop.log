@@ -1,0 +1,25 @@
+
+== changeset 闭环（临时 monorepo） ==
+[PASS] L1         临时 monorepo 就绪（/var/folders/d1/vxsbt7qj33ggygyw8w3d944m0000gn/T/dogeared-changeset-loop-94384）
+[PASS] L2         changeset add 产出 calm-ads-accept.md
+[PASS] L3         changeset status 可运行
+           Packages to be bumped:
+           - patch
+             - @marxchou/dogeared-og-image -> 2.1.3
+             - @marxchou/dogeared-tokens -> 2.1.3
+             - @marxchou/dogeared-ui -> 2.1.3
+               - .changeset/calm-ads-accept.md
+[PASS] L4         version 后三包仍 lockstep，一起到 2.1.3
+           @marxchou/dogeared-tokens@2.1.3
+           @marxchou/dogeared-ui@2.1.3
+           @marxchou/dogeared-og-image@2.1.3
+[PASS] L5         三包都生成了 CHANGELOG.md（3/3）
+[PASS] L6         changeset pack 产出 3 个 tarball
+           packages/marxchou-dogeared-og-image-2.1.3.tgz
+           packages/marxchou-dogeared-tokens-2.1.3.tgz
+           packages/marxchou-dogeared-ui-2.1.3.tgz
+[PASS] L7         publish-plan 列出全部 3 个待发布包（含 registry 存在性检查）
+           [{"kind":"publish","name":"@marxchou/dogeared-og-image","version":"2.1.3","access":"public","tag":"latest"},{"kind":"publish","name":"@marxchou/dogeared-tokens","version":"2.1.3","access":"public","tag":"latest"},{"kind":"publish","name":"@marxchou/dogeared-ui","version":"2.1.3","access":"public","tag":"latest"}]
+[PASS] L8         真仓库三包与 root 同为 2.1.2；private 状态与发布清单（packages/tokens, packages/ui, packages/og-image）一致，临时副本的改动没有回流
+
+RELEASE_SUMMARY {"title":"changeset 闭环（临时 monorepo）","ok":true,"counts":{"PASS":8,"FAIL":0,"WARN":0,"INFO":0,"SKIP":0},"tmp":"/var/folders/d1/vxsbt7qj33ggygyw8w3d944m0000gn/T/dogeared-changeset-loop-94384","bumpedTo":"2.1.3","packages":["@marxchou/dogeared-tokens","@marxchou/dogeared-ui","@marxchou/dogeared-og-image"],"tarballs":["packages/marxchou-dogeared-og-image-2.1.3.tgz","packages/marxchou-dogeared-tokens-2.1.3.tgz","packages/marxchou-dogeared-ui-2.1.3.tgz"],"publishPlanEntries":3,"planNames":["@marxchou/dogeared-og-image","@marxchou/dogeared-tokens","@marxchou/dogeared-ui"]}

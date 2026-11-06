@@ -17,11 +17,18 @@ packages/og-image/    @marxchou/dogeared-og-image@2.0.0 private · 空壳（M3-4
 
 三包**均为空壳**：没有 `src/`、没有依赖、没有 `exports`。M3-1 只立 seam，不搬任何组件或样式。
 
+> **发布状态口径（2026-11-07 更新）**：上面三行的 `private · 空壳` 描述的是 M3-1 当时的形态。
+> 现在三包都已填实现，且 **M5-8 / D-0139 起发布清单是三包**（tokens / ui / og-image 均为
+> `private: false` + `publishConfig.access = "public"`）；`ui` 的元数据已就绪，但它还没有上
+> registry（首发的顺序问题见 `docs/release.md` §13）。判据在
+> `scripts/gates/verify-package-boundary.mjs` 的 `RELEASE_PACKAGES`，与
+> `scripts/release/lib.mjs` 的 `PUBLISH_DIRS` 必须一致。
+
 ## 2. 判据表
 
 | # | 判据 | 命中后果 | 怎么改 |
 |---|---|---|---|
-| **W0** | `pnpm-workspace.yaml` 有块状 `packages:`；三个包都在成员里；每个 `package.json` 的 `name` 是约定值、`version` 与主题 lockstep、`private: true`、无 `publishConfig` | FAIL | 补/改 manifest；版本与根 `package.json` 一起 bump。新增第四个包必须先走 decision-log（W0 会把它判红） |
+| **W0** | `pnpm-workspace.yaml` 有块状 `packages:`；三个包都在成员里；每个 `package.json` 的 `name` 是约定值、`version` 与主题 lockstep；发布状态按**发布清单**判定（M5-8 / D-0139 起三包全部发布 → `private: false` + `publishConfig.access="public"`） | FAIL | 补/改 manifest；版本与根 `package.json` 一起 bump。新增第四个包必须先走 decision-log（W0 会把它判红） |
 | **B1** | 包内不得出现 `~/` 别名 import；相对 import（`./`、`../`）不得解析到包目录之外 | FAIL | 需要站点数据时改由主题侧注入（props / options），或把纯函数搬进包里 |
 | **B2** | 包内不得出现 `marxchou` / `mcc.im` / `zcily` / `73b29141`（不区分大小写） | FAIL | 站点身份留在 `src/config/*`（overlay 侧）；包里只允许占位值。**唯一豁免**：`package.json` 里包自身的身份串（`name` 值 + 三个包名 `@marxchou/dogeared-*`）——那是 npm scope / workspace 依赖键，即包的身份，不是站点身份。`package.json` 之外的文本、以及 `description`/`author`/`repository` 里的个人串仍判红 |
 | **B3** | 每个包的 `dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` ⊆ 白名单；站内互相引用必须是 `workspace:*`；`og-image` 不得依赖 `tokens` / `ui` | FAIL | 白名单见 §3。要加依赖先改 §2 与脚本里的白名单，并在卡评论写理由（这是放宽边界，走 review） |

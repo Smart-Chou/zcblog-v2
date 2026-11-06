@@ -1,0 +1,21 @@
+
+== publish --dry-run（不写 registry） ==
+[PASS] D0:@marxchou/dogeared-tokens npm pack 产出 marxchou-dogeared-tokens-2.1.2.tgz（20346 B, sha256 91c9abb94a51…）
+[SKIP] D1:@marxchou/dogeared-tokens @marxchou/dogeared-tokens@2.1.2 已在 registry 上：同一版本无法重新发布，本包本轮不产生 dry-run 发布证据（版本没 bump 时的正常结果）
+           in-dir: exit 1（already published）
+           tarball: exit 1（already published）
+[SKIP] D2:@marxchou/dogeared-tokens @marxchou/dogeared-tokens@2.1.2 已在 registry，dry-run 回执不存在（同 D1）
+[PASS] D0:@marxchou/dogeared-ui npm pack 产出 marxchou-dogeared-ui-2.1.2.tgz（6111 B, sha256 0751db712fb8…）
+[PASS] D1:@marxchou/dogeared-ui 至少一个 publish --dry-run 变体成功（in-dir, tarball）
+           in-dir: exit 0 | npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access (dry-run)
+           tarball: exit 0 | npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access (dry-run)
+[PASS] D2:@marxchou/dogeared-ui 输出含 dry-run 回执（+ pkg@version + dry-run 标记），无 registry 写入
+[PASS] D0:@marxchou/dogeared-og-image npm pack 产出 marxchou-dogeared-og-image-2.1.2.tgz（12412 B, sha256 30f56c756596…）
+[SKIP] D1:@marxchou/dogeared-og-image @marxchou/dogeared-og-image@2.1.2 已在 registry 上：同一版本无法重新发布，本包本轮不产生 dry-run 发布证据（版本没 bump 时的正常结果）
+           in-dir: exit 1（already published）
+           tarball: exit 1（already published）
+[SKIP] D2:@marxchou/dogeared-og-image @marxchou/dogeared-og-image@2.1.2 已在 registry，dry-run 回执不存在（同 D1）
+
+RELEASE_SUMMARY {"title":"publish --dry-run（不写 registry）","ok":true,"counts":{"PASS":5,"FAIL":0,"WARN":0,"INFO":0,"SKIP":4},"outDir":"/Users/chowcong/.hermes/kanban/boards/blog2/workspaces/t_c1865d9d/dryrun","evidence":[{"name":"@marxchou/dogeared-tokens","version":"2.1.2","tgz":"marxchou-dogeared-tokens-2.1.2.tgz","bytes":20346,"sha256":"91c9abb94a51a0c7576d5e75919eb656856c775c00ec63fa77a26ede093836c4","sha512":"YlXjjH/6sRKJmt0flpHlnfuWw8Ec+FTCbuGHnrJT4nlmByOJDKhF2GC/XeYE+yJ8dK2RVn6lDRT0da183d/qmQ==","variants":[{"variant":"in-dir","cmd":"npm publish --dry-run","exit":1,"ok":false,"alreadyPublished":true,"publishLine":""},{"variant":"tarball","cmd":"npm publish <tgz> --dry-run --access public --tag latest","exit":1,"ok":false,"alreadyPublished":true,"publishLine":""}]},{"name":"@marxchou/dogeared-ui","version":"2.1.2","tgz":"marxchou-dogeared-ui-2.1.2.tgz","bytes":6111,"sha256":"0751db712fb88f9d6c875efd4858c63a7bdca2443f9136165e9490871f50ceac","sha512":"6eHerRnnYnUTY1SxMcn7WJJYG+z9jXRr2QiPLzKpUsS6jB4IhkMTXCBKCR7UrWxaBgUB05QXjrYNS3Pg1bepUQ==","variants":[{"variant":"in-dir","cmd":"npm publish --dry-run","exit":0,"ok":true,"alreadyPublished":false,"publishLine":"npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access (dry-run)"},{"variant":"tarball","cmd":"npm publish <tgz> --dry-run --access public --tag latest","exit":0,"ok":true,"alreadyPublished":false,"publishLine":"npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access (dry-run)"}]},{"name":"@marxchou/dogeared-og-image","version":"2.1.2","tgz":"marxchou-dogeared-og-image-2.1.2.tgz","bytes":12412,"sha256":"30f56c756596bd22eac79dcb336aa1b71f20f532ca5a18dffc6b334e70151a89","sha512":"zLCyXjyw/d39nv4EGQGfH8vM+gSksoeQoG638DJIH/knIzhgt7YVRbNt73YiBOHRCEH5QzCypUob6+3IefY0JQ==","variants":[{"variant":"in-dir","cmd":"npm publish --dry-run","exit":1,"ok":false,"alreadyPublished":true,"publishLine":""},{"variant":"tarball","cmd":"npm publish <tgz> --dry-run --access public --tag latest","exit":1,"ok":false,"alreadyPublished":true,"publishLine":""}]}]}
+
+证据落盘：/Users/chowcong/.hermes/kanban/boards/blog2/workspaces/t_c1865d9d/dryrun/dry-run-evidence.json

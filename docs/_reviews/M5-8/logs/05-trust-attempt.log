@@ -1,0 +1,52 @@
+## M5-8 · 尝试登记 @marxchou/dogeared-ui 的 GitHub Trusted Publisher
+
+date: 2026-11-07T01:54:00+08:00
+
+### 1) 本地凭据现状（~/.npmrc 里的 token）
+npm error code E401
+npm error 401 Unauthorized - GET https://registry.npmjs.org/-/whoami
+npm error A complete log of this run can be found in: /Users/chowcong/.npm/_logs/2026-11-06T17_54_01_000Z-debug-0.log
+token_len=40 whoami_http=401
+
+### 2) npm trust list（npm 11.15.0）
+npm notice npm tokens that bypass 2FA are being restricted for account changes and direct publishing. Learn how to prepare: https://gh.io/npm-gat-bypass2fa-deprecation
+npm error code E401
+npm error 401 Unauthorized - GET https://registry.npmjs.org/-/package/@marxchou%2fdogeared-tokens/trust - {"success":false,"error":"You must be logged in to publish packages."}
+npm error A complete log of this run can be found in: /Users/chowcong/.npm/_logs/2026-11-06T17_54_06_536Z-debug-0.log
+
+### 3) npm trust github @marxchou/dogeared-ui
+Establishing trust between @marxchou/dogeared-ui package and GitHub Actions
+Anyone with GitHub repository write access can publish to @marxchou/dogeared-ui
+Two-factor authentication is required for this operation
+
+package: @marxchou/dogeared-ui
+file: release.yml
+repository: Smart-Chou/zcblog-v2
+environment: npm-publish
+
+### 4) 已登记的 trust（D-0131，两包）不可读的原因同上：本地无有效登录态
+npm warn Unknown project config "minimum-release-age". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "onlyBuiltDependencies". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "onlybuiltdependencies". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "minimum-release-age". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "minimum-release-age". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "onlyBuiltDependencies". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Establishing trust between @marxchou/dogeared-ui package and GitHub Actions
+Anyone with GitHub repository write access can publish to @marxchou/dogeared-ui
+Two-factor authentication is required for this operation
+
+package: @marxchou/dogeared-ui
+file: release.yml
+repository: Smart-Chou/zcblog-v2
+environment: npm-publish
+permissions: publish
+
+https://www.npmjs.com/package/@marxchou/dogeared-ui
+https://github.com/Smart-Chou/zcblog-v2/blob/HEAD/.github/workflows/release.yml
+https://github.com/Smart-Chou/zcblog-v2
+
+npm notice npm tokens that bypass 2FA are being restricted for account changes and direct publishing. Learn how to prepare: https://gh.io/npm-gat-bypass2fa-deprecation
+npm error code E401
+npm error 401 Unauthorized - POST https://registry.npmjs.org/-/package/@marxchou%2fdogeared-ui/trust - {"success":false,"error":"You must be logged in to publish packages."}
+npm error A complete log of this run can be found in: /Users/chowcong/.npm/_logs/2026-11-06T17_54_28_497Z-debug-0.log
+EXIT=1

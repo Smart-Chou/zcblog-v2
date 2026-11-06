@@ -47,8 +47,8 @@ const REQUIRED = new Map([
     ["og-image", "@marxchou/dogeared-og-image"],
 ]);
 
-/** M4 首发发布清单（D-0120）：其余包保持 private。 */
-const RELEASE_PACKAGES = new Set(["tokens", "og-image"]);
+/** 发布清单（D-0120 → D-0139）：M5-8 起三包全部发布。 */
+const RELEASE_PACKAGES = new Set(["tokens", "ui", "og-image"]);
 
 /**
  * B3 白名单：来自 §3.4 的依赖方向（tokens 叶节点零依赖；ui 只把 astro 当 peer；
