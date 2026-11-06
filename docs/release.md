@@ -70,7 +70,7 @@
 - GitHub `npm-publish` environment 已于 2026-11-06 创建；`NPM_TOKEN` 已写入该 environment
   （值不记录）。仓库当时是 **private + GitHub Free**，环境保护规则（required reviewers /
   deployment branch policy）API 返回 422；**2026-11-06 仓库转 public 后已配置 required reviewer
-  `Smart-Chou`**（`prevent_self_review=false`，本人可批准），真发布仍要 `dry_run=false` +
+  `Smart-Chou`**（`prevent_self_review=false`，本人可批准；`can_admins_bypass=false`），真发布仍要 `dry_run=false` +
   `confirm_publish=PUBLISH` 并等待该环境批准。
 - 2026-11-06 本次发布：`tokens` 与 `og-image` 已 `private:false` +
   `publishConfig.access=public`；`ui` 保持 private。首次发布在 private 仓库下无法生成
