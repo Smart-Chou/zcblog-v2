@@ -1,40 +1,41 @@
-# M4 出口验收（Dogeared 2.1.0）
+# M4 出口验收（Dogeared 2.1.0 / 2.1.1）
 
 - 日期：2026-11-06
 - 结论：**PASS（功能与发布链）**；`2.1.1` README-only patch 已关闭 registry 文档债
-- 范围：`@marxchou/dogeared-tokens@2.1.0` + `@marxchou/dogeared-og-image@2.1.0`
-- 不发布：`@marxchou/dogeared-ui@2.1.0`（D-0120，保持 `private:true`）
+- 范围：`@marxchou/dogeared-tokens` + `@marxchou/dogeared-og-image` `2.1.0` 首发、`2.1.1` 文档补丁
+- 不发布：`@marxchou/dogeared-ui`（保持 `private:true`，D-0120）
 - 生产站：**不切换**（D-0125；`Smart-Chou/zcblog` `origin/main` = `1d6843b`）
 
 ## 1. 发布事实
 
 | 项 | 结果 |
 | --- | --- |
-| release run | `42175493474`，`success` |
-| 发布提交 | `5ccc00b` |
+| 首发 release run | `42175493474`，`success`；提交 `5ccc00b` |
+| 2.1.1 release run | `42189584179`，`success`；提交 `5191ccf`；tag `pkg-v2.1.1` |
 | 发布方式 | `workflow_dispatch`：`dry_run=false` / `confirm_publish=PUBLISH` / `provenance=false` |
-| tokens | `2.1.0`，npm access = `public`，integrity `sha512-se9TRe+…` |
-| og-image | `2.1.0`，npm access = `public`，integrity `sha512-Kjw4tduy…` |
+| tokens | `2.1.1`（当前 latest），npm access = `public` |
+| og-image | `2.1.1`（当前 latest），npm access = `public` |
 | ui | registry 查询 404，未发布 |
 | GitHub secret | `npm-publish` environment 内有 `NPM_TOKEN`（值不记录） |
 
 ## 2. 门禁证据
 
-- `pnpm gates:all` → `RESULT PASS classified=1107 unclassified=0`
-- `verify-guards.mjs` → `15/15 PASS`（G4a/G4b 已改为临时 workspace，发布后不再依赖真仓 `private` 状态）
+- `pnpm gates:all` → `RESULT PASS classified=1108 unclassified=0`
+- `verify-guards.mjs` → `15/15 PASS`（G4a/G4b 用临时 workspace；G4e 用 9.9.9 防“已发布版本”导致空 plan）
 - `verify-workflow.mjs` → `25/25 PASS`
-- `verify-changeset-loop.mjs` → `8/8 PASS`（L8：真仓库仍 `2.1.0`；ui 仍 private）
-- `preflight.mjs --tag ''`（check 模式）→ `PASS 32 / FAIL 0 / WARN 1 / INFO 2`；`publish-plan` 为空属预期（2.1.0 已上 registry）
+- `verify-changeset-loop.mjs` → `8/8 PASS`（L8：真仓库三包与 root 同为 `2.1.1`；ui 仍 private）
+- `preflight.mjs --mode=publish` → `PASS 33 / FAIL 0 / WARN 0 / INFO 2`；publish-plan 只含
+  tokens + og-image（2.1.1）
 - `packages/og-image` 测试 → `10/10 pass`
-- 最新文档提交 `b231d17`：CI / A11y PR smoke `success`；Perf 首次在
-  `Install system dependencies` 卡住，取消后重跑 `success`（基础设施 flake，非站点回归）
+- 最新文档提交 `b7c3a35`：CI / Perf / A11y PR smoke 均 `success`（A11y 首次 apt 卡住，取消重跑成功）
 
 ## 3. registry 消费验证
 
 - 空目录安装（npm **10.9.8** 与 **11.15.0** 都验证）：
-  `npm i @marxchou/dogeared-tokens@2.1.0 @marxchou/dogeared-og-image@2.1.0` → 成功
+  `npm i @marxchou/dogeared-tokens@2.1.1 @marxchou/dogeared-og-image@2.1.1` → 成功
+- `npm view …@2.1.1 readme` 已显示 `published` 与 `@marxchou` 安装说明（2.1.0 的旧占位已消失）
 - `tokens.css` = **11,384 B**；`createOgImageRoute` 可 import
-- `npm pack` 产物：tokens **20,954 B / 8 files**；og-image **12,456 B / 13 files**
+- 2.1.0 `npm pack` 产物：tokens **20,954 B / 8 files**；og-image **12,456 B / 13 files**
 - 两个 tarball 均含 `LICENSE`、`NOTICE`、`README.md`；无本机绝对路径、无私钥/token 字面量
 - consumer `npm audit` 仍有 **3 moderate**（satori → fflate），属 D-0121 A+ 的已知口径；
   `packages/og-image/README.md` 已提供 npm / pnpm / Yarn 作用域 override 配方
