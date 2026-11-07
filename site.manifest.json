@@ -23,6 +23,11 @@
             "decision": "D-0139",
             "date": "2026-11-07",
             "summary": "M5-8：packages/ui 元数据转为可发布（private:false + publishConfig.access=public），发布清单扩成三包；T/O/X 规则未改，新增文件按既有规则分类。"
+        },
+        {
+            "decision": "D-0144",
+            "date": "2026-11-07",
+            "summary": "M5-10：新增 public/icons.svg（构建期生成的图标 sprite）归 T；T/O/X 其余规则未改。"
         }
     ],
     "classes": {
@@ -69,6 +74,7 @@
                 ".github/ISSUE_TEMPLATE/friend-link.yml",
                 "public/fonts/**",
                 "public/favicon.*",
+                "public/icons.svg",
                 "public/logo.webp",
                 "public/assets/rss/**",
                 "astro.config.mjs",

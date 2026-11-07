@@ -115,6 +115,17 @@ $ pnpm exec playwright test e2e/pages.visual.spec.ts
 
 两棵树构建出的 6 个页面 HTML 长度逐字节相同、差异只出现在 asset hash 字符串上（`/assets/*.{hash}.css|js`、`?v=<sprite hash>`），因此像素不受影响——CI 上跑的是与本地生成基线时同一份渲染。
 
+### 2.5 CI 实测（run 42382418907 · `main` @ `8ae4629`）
+
+```text
+visual (atoms 72 + pages 36 · linux baselines)                         success  3m05s
+  › Visual regression · atoms 72                                     72 passed
+  › Visual regression · pages 36 (pass 1/2)                          36 passed
+  › Visual regression · pages 36 (pass 2/2 · stability)              36 passed (58.2s)
+```
+
+CI 的 pages 两遍跑的是**干净 checkout + job 内 `build-pages-baseline.mjs` 构建**（不 checkout 私有文章仓），阈值 `maxDiffPixels: 0`——即 Linux 基线在非本地工作树上也是 0 像素可复现，这是验收第 1、2 条的平台侧证据。同一次 run 的 `contract` job 红了，原因是 DESIGN 快照指针未同步，不涉及基线本身，见 §7.1。
+
 ## 3. 发现（未修，按卡边界「不改页面视觉」）
 
 **375px 下文章页横向溢出 16px**：宽表格（`thead/tr/th` 实测 `right=426` vs `clientWidth=375`）把文档撑出画布；390px（其它所有 spec 用的宽度）不触发，所以此前没人发现。按卡边界未动样式，spec 里以 `KNOWN_OVERFLOW = { "article@375": 16 }` 记录当前值 —— 其它页/视口仍要求 ≤1px，因此新增溢出照样会红。修掉表格溢出后把该条改成 0 并重生成两平台基线即可。
@@ -144,4 +155,69 @@ $ pnpm type-check            # tsc --noEmit
 （0 error）
 ```
 
+本机 shell 里没有 pnpm（只有 corepack），复验时直接跑 `package.json` 里 `gates:all` 的同一条命令链（10 个 `node scripts/gates/*.mjs`，与 CI 完全同源）：
+
+```text
+verify-atoms               18/18 PASS
+verify-atom-docs           PASS            （12 份文档 D1–D7）
+verify-component-inventory PASS            atoms=12 ui=23 page-organisms=11 layout=1 dup=0 total=47
+verify-doc-drift           PASS            mismatch=0 · 文档=12 · 对比度行=49
+check-tokens               10/10 PASS
+verify-surface-tokens      PASS            new_hits=0 · baseline=41/84
+verify-entities            9/9 PASS · 0 WARN
+verify-package-boundary    PASS            packages=3 violations=0
+verify-overlay             PASS            classified=1244 unclassified=0
+verify-icon-sprite         PASS
+```
+
 npm 只读窗口内：本卡无任何 registry 写操作（只读 `node_modules`、未新增依赖）。
+
+## 7. 收口
+
+### 7.1 `contract` job 初红：DESIGN 快照指针漏同步（已修）
+
+`8ae4629` 的 CI 里 `contract (tokens · surfaces · entities)` **失败**，只有一条：
+
+```text
+FAIL  G-S6  designDoc 指针  —  docs/DESIGN.md · 2624 行 · md5 250f223dc23a…
+        · 快照 md5 不符：清单 d681e87164ff6cdc9b9905167b1b8448 / 实际 250f223dc23ae4e07371ec694a94f92b
+        · 快照行数不符：清单 2622 / 实际 2624
+```
+
+根因：本轮改了 `docs/DESIGN.md`（E4 行 + §8.4 页面级基线说明，+2 行），但没同步 `docs/DESIGN.vendor.json` 的 `md5/bytes/lines`。**G-S6 校验的是字节级指针（md5 + 行数），不是 §3.4 键集合**，所以「只写文档、不动 token」同样会红；`resyncWhen` 那句「只改数值不需要重同步」容易被误读成「改文档不用管清单」，实际正确口径是：**任何一次 `docs/DESIGN.md` 的写操作都要更新 `DESIGN.vendor.json`**。
+
+修法（本提交）：更新清单 `md5/bytes/lines` + `syncedBy/syncedAt/previousMd5` 记账，并把真源 `blog2.0/docs/DESIGN.md` 同步为同一份字节；`node scripts/gates/check-tokens.mjs` 回到 10/10。
+
+### 7.2 顺带补齐 M5-10 的 overlay 清单（已修）
+
+M5-10 新增的 `public/icons.svg` 没有登记进 `site.manifest.json`：CI 的 `gates` job 看不到它（该文件构建期生成、干净 checkout 时不存在），但**本地工作树里有**，于是 `verify-overlay` 报 `classified=1243 unclassified=1 violations=1`。已补一条 D-0144 变更记录 + T 类规则 `public/icons.svg`，`verify-overlay` 回到 `unclassified=0`。
+
+教训：新增构建期生成的受管文件后，必须在**同一张卡**里登记 `site.manifest.json`，否则只在有产物的工作树上红，CI 绿——这类「本地红/CI 绿」的漂移比反过来更难发现。
+
+### 7.3 macOS 复验与假红陷阱
+
+清掉残留 preview server 后，本机连跑两遍：
+
+```text
+$ ./node_modules/.bin/playwright test e2e/pages.visual.spec.ts     # pass 1
+36 passed (1.6m)
+$ ./node_modules/.bin/playwright test e2e/pages.visual.spec.ts     # pass 2
+36 passed (1.4m)
+```
+
+复验过程中踩到一个**会伪装成 flaky 的假红**，已写进 README：`playwright.config.ts` 的 `reuseExistingServer: !CI` 会复用 4321 端口上残留的 `astro preview`（上一轮被中断、或正在 `--force` 重启的时间窗），表现为 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，而不是像素 diff。跑页面级基线前先 `pkill -f "astro preview --port 4321"` 并确认 `pnpm visual:build:pages` 跑过；失败信息里出现 `ERR_CONNECTION_REFUSED` 时先怀疑服务器，不要 `--update-snapshots`。
+
+
+
+### 7.4 本地假红第二根因：`astro preview` 只监听 `::1`
+
+清掉残留 server 后仍出现 `net::ERR_CONNECTION_REFUSED`（21–33/36），不是像素问题：`astro preview` 在本机只监听 IPv6 `[::1]:4321`，而 Chromium/curl 有时先解析 `localhost` 到 `127.0.0.1`。把 `playwright.config.ts` 的 `baseURL`/webServer URL 固定为 `http://127.0.0.1:4321`，并给 preview 命令加 `--host 127.0.0.1` 后，连跑两遍均 **36/36**：
+
+```text
+$ pnpm exec playwright test e2e/pages.visual.spec.ts   # pass 1
+36 passed (1.4m)
+$ pnpm exec playwright test e2e/pages.visual.spec.ts   # pass 2
+36 passed (1.3m)
+```
+
+这样本地与 CI 都走 IPv4 显式地址，不再依赖 `localhost` 的解析顺序；同时避免复用任意 IPv6 旧 server。
