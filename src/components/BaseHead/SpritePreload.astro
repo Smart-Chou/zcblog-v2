@@ -1,0 +1,12 @@
+---
+/**
+ * 图标 sprite 预加载
+ *
+ * 图标从「每页内联 SVG」改成外部 sprite 后，首屏多了一个请求（22KB / 6.3KB gz，
+ * 之后 immutable 缓存命中）。把它在 <head> 里 preload，避免顶部导航图标在
+ * HTML 之后才逐个绘制出来（图标闪烁）。
+ */
+import { spriteDocUrl } from "~/components/Icons/icon-markup";
+---
+
+<link rel="preload" href={spriteDocUrl} as="image" type="image/svg+xml" />

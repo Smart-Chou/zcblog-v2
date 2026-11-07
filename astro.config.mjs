@@ -454,6 +454,14 @@ export default defineConfig({
     // 构建输出配置
     build: {
         concurrency: Number(process.env.BUILD_CONCURRENCY) || os.cpus().length,
+        // M5-10（N-3）：组件样式一律外链，不再内联进 HTML。
+        //
+        // 每页原本有两段恒定的内联 <style>（组件 scoped 样式 + Astro 图片样式），
+        // 合计约 8KB 原始字节、在 748 页里逐页重复。文章页 HTML 预算（195→150KB）逼着
+        // 我们把「逐页重复的常量」挪出去：外链文件带内容哈希、走 immutable 缓存，
+        // 第二次访问起是 0 字节 0 往返。Astro 默认 'auto'（<4KB 内联）会继续内联，
+        // 所以这里显式 'never'。
+        inlineStylesheets: "never",
     },
     vite: {
         plugins: [...pwaPlugins],

@@ -6,9 +6,8 @@
  * - 交互增强见 ~/scripts/share.ts（弹层 / 复制 / 系统分享 / 微信内提示 / Umami）
  */
 import { share } from "~/config";
-import { getIconSvg } from "~/components/Icons";
+import { iconMarkup } from "~/components/Icons/icon-markup";
 import { t, getLocale, contentLocaleOf } from "~/utils/i18n";
-import { renderSVG } from "uqr";
 // M2-5：分享 sheet 的表皮（[data-overlay="share"] 规则在 overlays.css）
 import "~/styles/pages/overlays.css";
 
@@ -89,9 +88,6 @@ const items = (share.enable ? share.sites : []).flatMap((id) => {
 
 const shareToLabel = t(locale, "article.shareTo");
 const closeLabel = locale === "en" ? "Close" : "关闭";
-const qrSvg = items.some((item) => item.action === "wechat")
-    ? renderSVG(canonicalUrl, { ecc: "M", border: 4 })
-    : "";
 ---
 
 {
@@ -108,7 +104,7 @@ const qrSvg = items.some((item) => item.action === "wechat")
                 {items.map((item) => {
                     const label = item[contentLocaleOf(locale)] ?? item.zh;
                     const aria = `${shareToLabel} ${label}`;
-                    const icon = getIconSvg(item.icon);
+                    const icon = iconMarkup(item.icon);
                     if (item.action === "wechat") {
                         return (
                             <span class="share-wechat-wrap">
@@ -131,12 +127,10 @@ const qrSvg = items.some((item) => item.action === "wechat")
                                             data-ovl-close
                                             aria-label={closeLabel}
                                         >
-                                            <Fragment set:html={getIconSvg("tabler:x")} />
+                                            <Fragment set:html={iconMarkup("tabler:x")} />
                                         </button>
                                         <div class="share-qr">
-                                            <div class="share-qr-img">
-                                                <Fragment set:html={qrSvg} />
-                                            </div>
+                                            <div class="share-qr-img" data-share-qr />
                                             <p class="share-qr-title">
                                                 {t(locale, "article.qrcode")}
                                             </p>

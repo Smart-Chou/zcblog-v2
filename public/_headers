@@ -18,6 +18,12 @@
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 
+# 图标 sprite（构建期由 scripts/generate-icons.js 生成）：
+# 内容变了文件名不变，所以引用方用 `/icons.svg?v=<内容哈希#id>` 破缓存；
+# 这里给长缓存 + immutable，让第二次访问起 0 字节、0 往返。
+/icons.svg
+  Cache-Control: public, max-age=31536000, immutable
+
 # HTML 每次验证，保证发版即时可见
 /*.html
   Cache-Control: public, max-age=0, must-revalidate

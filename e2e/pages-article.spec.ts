@@ -508,17 +508,20 @@ test("CLS ≤ 0.05（load 后 2s）", async ({ page }) => {
 
 /* ───────────────────────── 8. 关闭态 0 额外请求 ───────────────────────── */
 
-test("分享弹层关闭态：0 额外网络请求（二维码构建期内联）", async ({ page }) => {
+test("分享弹层关闭态：0 额外网络请求（二维码点击时本地生成）", async ({ page }) => {
     const requests: string[] = [];
     page.on("request", (request) => requests.push(request.url()));
     await page.goto(ARTICLE, { waitUntil: "load" });
     await page.waitForTimeout(600);
 
-    // 二维码/分享图都不该走第三方接口：只有构建期 <svg>，没有任何 QR 服务请求
-    const qrRequests = requests.filter((url) =>
-        /qr|qrcode|chart\.googleapis|api\.qrserver/i.test(url),
+    // 二维码不再内联进 HTML（单篇 10.4KB），改成点「微信」时 await import("uqr") 本地渲染。
+    // 判据仍是「零第三方 QR 服务」：任何 qr 服务请求都是失败（本地 chunk 是同源 /_astro/*.js）。
+    const qrRequests = requests.filter(
+        (url) =>
+            !url.startsWith("http://localhost:4321") &&
+            /qr|qrcode|chart\.googleapis|api\.qrserver/i.test(url),
     );
-    expect(qrRequests, "分享二维码必须构建期生成，不能请求第三方 QR 服务").toEqual([]);
+    expect(qrRequests, "分享二维码必须本地生成，不能请求第三方 QR 服务").toEqual([]);
 
     // 微信弹层默认关闭：aria-hidden，且视觉上完全透明（opacity:0 不算 hidden，这里量计算值）
     const pop = page.locator(".share-wechat-wrap .share-pop").first();
@@ -530,6 +533,12 @@ test("分享弹层关闭态：0 额外网络请求（二维码构建期内联）
         });
         expect(style.opacity, "未点击时二维码弹层必须透明").toBe(0);
         expect(style.pointerEvents, "未点击时弹层不吃鼠标事件").toBe("none");
+
+        // 关闭态二维码容器必须是空的：HTML 里不再携带 QR path 数据
+        const qrItems = await pop
+            .locator("[data-share-qr]")
+            .evaluateAll((nodes) => nodes.map((node) => node.childElementCount));
+        expect(qrItems, "关闭态 HTML 不应内联二维码").toEqual(qrItems.map(() => 0));
     }
 
     // 站外分享链接在构建期就写进 href（无 JS 也能用）
@@ -539,11 +548,65 @@ test("分享弹层关闭态：0 额外网络请求（二维码构建期内联）
     expect(hrefs.length).toBeGreaterThan(0);
     for (const href of hrefs) expect(href.startsWith("http")).toBe(true);
 
-    console.log(`[share] 关闭态请求 ${requests.length} 个，QR 相关 0`);
+    console.log(`[share] 关闭态请求 ${requests.length} 个，第三方 QR 相关 0`);
+});
+
+test("徽标 sprite：图标走 /icons.svg 且全部解析出图形（无缺图）", async ({ page }) => {
+    const spriteRequests: { url: string; status: number }[] = [];
+    page.on("response", (response) => {
+        if (response.url().includes("/icons.svg")) {
+            spriteRequests.push({ url: response.url(), status: response.status() });
+        }
+    });
+
+    await page.goto(ARTICLE, { waitUntil: "load" });
+    await page.waitForTimeout(800);
+
+    // head 里有 preload，实际请求必须 200（404 会让所有图标静默消失）
+    expect(spriteRequests.length, "文章页必须请求一次 /icons.svg").toBeGreaterThan(0);
+    for (const req of spriteRequests) expect(req.status, req.url).toBe(200);
+    expect(spriteRequests[0].url, "sprite URL 必须带内容哈希查询串").toMatch(/\?v=[0-9a-f]{8}#?/);
+
+    const report = await page.evaluate(async () => {
+        const spriteHref = document
+            .querySelector('link[rel="preload"][as="image"]')
+            ?.getAttribute("href");
+        const doc = await fetch(spriteHref ?? "/icons.svg").then((r) => r.text());
+        const ids = new Set([...doc.matchAll(/<g id="([^"]+)"/g)].map((m) => m[1]));
+        const uses = [...document.querySelectorAll("svg > use")]
+            .map((u) => u.getAttribute("href") ?? "")
+            // 只统计跨文档 sprite 引用；内联回退图标（logos:telegram / mingcute:github-line）
+            // 自带同文档 `<use href="#...">`，那不是 sprite 缺图，不能误判。
+            .filter((href) => href.includes("/icons.svg"));
+        const missing: string[] = [];
+        const invisible: string[] = [];
+        let zeroBox = 0;
+        for (const href of uses) {
+            const id = href.split("#")[1] ?? "";
+            if (!ids.has(id)) missing.push(id);
+            const use = document.querySelector(`use[href="${CSS.escape(href)}"]`);
+            // 主题切换 / 分享抽屉里的图标默认隐藏，零尺寸是预期；只对可见图标要求非零。
+            if (use && !use.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+                invisible.push(id);
+                continue;
+            }
+            const box = use?.getBoundingClientRect();
+            if (!box || box.width < 1 || box.height < 1) zeroBox++;
+        }
+        return { total: uses.length, missing, zeroBox, invisible, spriteG: ids.size };
+    });
+
+    console.log(
+        `[sprite] ${report.total} 个 <use> 实例，sprite 内 ${report.spriteG} 个 <g>，缺 id ${report.missing.length}，零尺寸 ${report.zeroBox}（隐藏 ${report.invisible.length}）`,
+    );
+    expect(report.total, "文章页图标实例数应 > 20").toBeGreaterThan(20);
+    expect(report.missing, "所有 <use> 的 id 都必须在 sprite 里（缺一个 = 少一个图标）").toEqual(
+        [],
+    );
+    expect(report.zeroBox, "所有图标都必须渲染出非零尺寸").toBe(0);
 });
 
 /* ───────────────────────── D-0082 · TOC 构建产物 ───────────────────────── */
-
 test("D-0082：TOC 目录写在构建产物里", async () => {
     expect(existsSync(ARTICLE_FILE), `missing build artifact ${ARTICLE_FILE}`).toBe(true);
     const html = readFileSync(ARTICLE_FILE, "utf8");

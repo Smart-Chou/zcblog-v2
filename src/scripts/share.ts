@@ -14,6 +14,30 @@ type OverlayModule = typeof import("./overlay");
 let overlayModule: OverlayModule | null = null;
 const loadOverlay = () => import("./overlay").then((mod) => (overlayModule = mod));
 
+/**
+ * 二维码改成按需渲染（HTML 减重）
+ *
+ * 原来 uqr 在构建期把 QR 内联进每篇文章的 HTML —— 单篇 10.4KB（410×410 的 path 数据），
+ * 占文章页 HTML 的 6%，而弹层在没点「微信」之前根本不可见。现在按需 `import("uqr")`：
+ * 关闭态 0 请求、0 字节 HTML；点击时才拉一个约 2KB(gz) 的懒加载 chunk。
+ * 不引入第三方 QR 服务（e2e 有断言）。
+ */
+type UqrModule = typeof import("uqr");
+let uqrModule: UqrModule | null = null;
+
+async function renderQr(pop: HTMLElement, root: HTMLElement) {
+    const box = pop.querySelector<HTMLElement>("[data-share-qr]");
+    if (!box || box.dataset.qrReady === "1") return;
+    const url = root.dataset.shareUrl || location.href;
+    try {
+        uqrModule ??= await import("uqr");
+        box.innerHTML = uqrModule.renderSVG(url, { ecc: "M", border: 4 });
+        box.dataset.qrReady = "1";
+    } catch {
+        /* 二维码是增强：拉不到 chunk 时弹层仍可用（复制链接/系统分享/关闭） */
+    }
+}
+
 const isWeChatBrowser = /MicroMessenger/i.test(navigator.userAgent);
 
 type UmamiTracker = { track: (name: string, data?: Record<string, unknown>) => void };
@@ -120,6 +144,7 @@ function handleAction(actionEl: Element, root: HTMLElement) {
         pop?.setAttribute("aria-hidden", String(!open));
         if (open && pop) {
             track("wechat");
+            void renderQr(pop, root);
             void loadOverlay().then((mod) => {
                 // 下载期间用户可能已经收起：只在仍打开时挂载
                 if (wrap.classList.contains("open"))

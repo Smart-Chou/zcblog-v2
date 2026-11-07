@@ -11,6 +11,7 @@ import Scripts from "~/components/BaseHead/Scripts.astro";
 import KatexManager from "~/components/Layout/KatexManager.astro";
 import SeoLinks from "~/components/BaseHead/SeoLinks.astro";
 import FontPreload from "~/components/BaseHead/FontPreload.astro";
+import SpritePreload from "~/components/BaseHead/SpritePreload.astro";
 import ExternalResources from "~/components/BaseHead/ExternalResources.astro";
 import ContentSecurityPolicy from "~/components/BaseHead/ContentSecurityPolicy.astro";
 
@@ -141,6 +142,7 @@ const {
 
     <SeoLinks prevUrl={prevUrl} nextUrl={nextUrl} noEnAlternate={noEnAlternate} />
     <FontPreload />
+    <SpritePreload />
     <ExternalResources />
     <ContentSecurityPolicy />
 </head>

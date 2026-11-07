@@ -1,5 +1,13 @@
 ---
-import { getIconSvg } from "~/components/Icons";
+/**
+ * DynamicIcon — 图标实例（sprite 引用）
+ *
+ * 图形本体在构建期生成的 public/icons.svg 里（scripts/generate-icons.js），这里只输出
+ * `<svg viewBox><use href="/icons.svg?v=<hash>#id"></use></svg>`，每页 HTML 因此不再重复
+ * 携带几百字节的 path 数据。class/width/height/style 语义与原内联版本一致；
+ * 少数自带内部引用的图标（logos:telegram / mingcute:github-line）自动回退内联。
+ */
+import { iconMarkup } from "~/components/Icons/icon-markup";
 
 interface Props {
     name: string;
@@ -11,26 +19,7 @@ interface Props {
 
 const { name, class: className, width, height, style } = Astro.props;
 
-const svg = getIconSvg(name);
-
-let result = svg;
-if (svg) {
-    result = svg.replace(/<svg([^>]*)>/, (_full: string, attrs: string) => {
-        let cleanAttrs = attrs;
-        if (width) {
-            cleanAttrs = cleanAttrs.replace(/\s+width="[^"]*"/g, "");
-        }
-        if (height) {
-            cleanAttrs = cleanAttrs.replace(/\s+height="[^"]*"/g, "");
-        }
-        const additions: string[] = [];
-        if (className) additions.push(`class="${className}"`);
-        if (width) additions.push(`width="${typeof width === "number" ? width : width}"`);
-        if (height) additions.push(`height="${typeof height === "number" ? height : height}"`);
-        if (style) additions.push(`style="${style}"`);
-        return `<svg${cleanAttrs}${additions.length ? " " + additions.join(" ") : ""}>`;
-    });
-}
+const markup = iconMarkup(name, { class: className, width, height, style });
 ---
 
-{svg ? <Fragment set:html={result} /> : <span>?</span>}
+{markup ? <Fragment set:html={markup} /> : <span>?</span>}

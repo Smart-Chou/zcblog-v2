@@ -8,12 +8,16 @@
 import { readFileSync, writeFileSync, readdirSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { createHash } from "crypto";
+import { gzipSync } from "zlib";
 import { getIconData, iconToSVG, iconToHTML, replaceIDs } from "@iconify/utils";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, "..");
 const SRC_DIR = join(ROOT_DIR, "src");
 const OUTPUT_FILE = join(SRC_DIR, "components", "Icons", "index.ts");
+const SPRITE_FILE = join(ROOT_DIR, "public", "icons.svg");
+const MANIFEST_FILE = join(SRC_DIR, "components", "Icons", "sprite.ts");
 
 // 支持的图标集及其包名
 const ICON_SETS = {
@@ -152,6 +156,116 @@ async function getIconSvg(iconName) {
 }
 
 /**
+ * 生成图标 sprite（public/icons.svg）+ 清单（src/components/Icons/sprite.ts）
+ *
+ * 为什么是 `<g id>` 而不是 `<symbol viewBox>`：`<symbol>` 会给 `<use>` 引入一层
+ * 嵌套 viewport，Chrome 在那一层做的 preserveAspectRatio 变换与「外层 <svg> 直接
+ * 带 viewBox」不是逐像素一致的（实测 24 单位图标差 11~59 像素，256 单位图标更明显）。
+ * 用 `<g id>` + 外层 `<svg viewBox>` 复刻原来的坐标系数，像素差 0（实测 0/2304）。
+ *
+ * 少数图标自身带 `id` 且内部用 `url(#id)` / `href="#id"` 互相引用（渐变、<use> 自引），
+ * 跨文档 `<use>` 时这些引用在宿主文档里解析不到 —— 标记成 inlineOnly，由
+ * icon-markup.ts 回退成内联 SVG（代价只有那几个图标）。
+ */
+function buildSprite(iconsMap) {
+    const names = Array.from(iconsMap.keys()).sort((a, b) => a.localeCompare(b));
+    const entries = [];
+    const manifest = {};
+    const inlineOnly = [];
+    const seen = new Map();
+
+    for (const name of names) {
+        const svg = iconsMap.get(name);
+        const match = svg.match(/^<svg\b([^>]*)>([\s\S]*)<\/svg>$/);
+        if (!match) {
+            console.warn(`⚠️  无法解析 SVG: ${name}`);
+            continue;
+        }
+        const [, rawAttrs, body] = match;
+        const viewBox = (rawAttrs.match(/viewBox="([^"]+)"/) || [])[1];
+        if (!viewBox) {
+            console.warn(`⚠️  图标缺少 viewBox，跳过 sprite: ${name}`);
+            continue;
+        }
+
+        const id = name.replace(/[:/]/g, "-");
+        if (seen.has(id)) {
+            console.warn(`⚠️  sprite id 冲突: ${name} / ${seen.get(id)}`);
+            continue;
+        }
+        seen.set(id, name);
+        manifest[name] = viewBox;
+
+        // 根元素上的表现属性（fill/stroke/…）搬到 <g>：子元素继承链不变
+        const rest = rawAttrs
+            .replace(/\s*(xmlns|width|height|viewBox|version)="[^"]*"/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        if (/\b(?:url\(#|href="#)/.test(body)) {
+            inlineOnly.push(name);
+            continue;
+        }
+        entries.push(`<g id="${id}"${rest ? " " + rest : ""}>${body}</g>`);
+    }
+
+    const sprite = `<svg xmlns="http://www.w3.org/2000/svg">${entries.join("")}</svg>\n`;
+    return { sprite, manifest, inlineOnly };
+}
+
+/**
+ * 生成 sprite 清单模块（构建期/服务端使用，不进客户端包）
+ */
+function generateSpriteManifest(manifest, version, inlineOnly) {
+    const rows = Object.entries(manifest)
+        .map(([name, viewBox]) => `\t"${name}": "${viewBox}",`)
+        .join("\n");
+    const inlineRows = inlineOnly.map((name) => `\t"${name}",`).join("\n");
+
+    return `/**
+ * 自动生成的图标 sprite 清单
+ * 由 scripts/generate-icons.js 在构建时生成
+ * 请勿手动编辑此文件
+ *
+ * SPRITE_VERSION = public/icons.svg 的内容哈希（前 8 位）。它拼进 <use> 的 href 查询串，
+ * 让 _headers 里的 immutable 缓存不会把旧 sprite 钉在浏览器里。
+ */
+
+export const SPRITE_URL = "/icons.svg";
+
+export const SPRITE_VERSION = "${version}";
+
+/** 图标名 → viewBox；键集合同时是「这个图标存在」的闭集。 */
+export const ICON_VIEWBOXES: Record<string, string> = {
+${rows}
+};
+
+/**
+ * 图标自带 url(#id) / href("#id") 内部引用，跨文档 <use> 在宿主文档里解析不到，
+ * 因此这几个图标继续内联输出（见 icon-markup.ts）。
+ */
+export const ICON_INLINE_ONLY: string[] = [
+${inlineRows}
+];
+`;
+}
+
+/**
+ * 用项目自己的 prettier 配置格式化生成物（生成器产出的文件必须过 format:check）
+ */
+async function format(content, filepath) {
+    writeFileSync(filepath, content, "utf-8");
+    const { spawnSync } = await import("node:child_process");
+    const res = spawnSync(
+        join(ROOT_DIR, "node_modules", ".bin", "prettier"),
+        ["--write", filepath],
+        { encoding: "utf-8" },
+    );
+    if (res.status !== 0) console.warn(`⚠️  prettier 格式化失败: ${res.stderr || res.stdout}`);
+    return readFileSync(filepath, "utf-8");
+}
+
+/**
  * 生成 icons.ts 文件
  */
 function generateIconsFile(iconsMap) {
@@ -247,12 +361,35 @@ async function main() {
         console.log(`❌ 失败 ${failCount} 个图标`);
     }
 
-    // 生成输出文件
-    const output = generateIconsFile(iconsMap);
+    // 生成输出文件（统一过一遍 prettier：CI 的 format:check 会逐字比对生成物）
+    const output = await format(generateIconsFile(iconsMap), OUTPUT_FILE);
     writeFileSync(OUTPUT_FILE, output, "utf-8");
 
     console.log(`\n📝 已生成: ${OUTPUT_FILE}`);
     console.log(`📦 文件大小: ${(Buffer.byteLength(output, "utf-8") / 1024).toFixed(2)} KB\n`);
+
+    // 生成 sprite（public/icons.svg）+ 清单（sprite.ts）
+    const { sprite, manifest, inlineOnly } = buildSprite(iconsMap);
+    const version = createHash("sha256").update(sprite).digest("hex").slice(0, 8);
+    writeFileSync(SPRITE_FILE, sprite, "utf-8");
+    writeFileSync(
+        MANIFEST_FILE,
+        await format(generateSpriteManifest(manifest, version, inlineOnly), MANIFEST_FILE),
+        "utf-8",
+    );
+
+    console.log(
+        `🧩 sprite: ${SPRITE_FILE}（${Object.keys(manifest).length} 个图标，v=${version}）`,
+    );
+    console.log(
+        `   gzip 后 ${(gzipSync(Buffer.from(sprite, "utf-8"), { level: 9 }).length / 1024).toFixed(2)} KB`,
+    );
+    if (inlineOnly.length > 0) {
+        console.log(
+            `   ⚠️  保持内联（图标自带 url(#)/href(#) 引用，跨文档 <use> 解析不到）: ${inlineOnly.join(", ")}`,
+        );
+    }
+    console.log(`📝 已生成: ${MANIFEST_FILE}\n`);
 }
 
 main().catch(console.error);
