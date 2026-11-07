@@ -218,7 +218,7 @@ $ ./node_modules/.bin/playwright test e2e/pages.visual.spec.ts     # pass 2
 36 passed (1.4m)
 ```
 
-复验过程中踩到一个**会伪装成 flaky 的假红**，已写进 README：`playwright.config.ts` 的 `reuseExistingServer: !CI` 会复用 4321 端口上残留的 `astro preview`（上一轮被中断、或正在 `--force` 重启的时间窗），表现为 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，而不是像素 diff。跑页面级基线前先 `pkill -f "astro preview --port 4321"` 并确认 `pnpm visual:build:pages` 跑过；失败信息里出现 `ERR_CONNECTION_REFUSED` 时先怀疑服务器，不要 `--update-snapshots`。
+复验过程中踩到一个**会伪装成 flaky 的假红**，已写进 README：旧配置的 `reuseExistingServer: !process.env.CI` 会复用 4321 端口上残留的 `astro preview`（上一轮被中断、或正在 `--force` 重启的时间窗），表现为 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，而不是像素 diff。收口时改为 `reuseExistingServer: false` + `--host 127.0.0.1`（见 §7.4）：端口被占时直接失败而不是静默复用，本机/CI 都只跑本次 runner 起的 server。跑页面级基线前仍建议先 `pkill -f "astro preview"` 并确认 `pnpm visual:build:pages` 跑过；失败信息里出现 `ERR_CONNECTION_REFUSED` 时先怀疑服务器，不要 `--update-snapshots`。
 
 
 
