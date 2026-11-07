@@ -28,9 +28,15 @@ interface Props {
     prevUrl?: string | null;
     nextUrl?: string | null;
     noEnAlternate?: boolean;
+    /**
+     * M5-12：反向开关。`noEnAlternate` 管的是「中文页没有英文对照」，
+     * 系列页还会出现「英文页没有中文对照」（英文系列只由英文文章构成）。
+     * 两者都是「对侧没有这一页」，所以输出侧共用一条规则：null = 不输出 alternate。
+     */
+    noZhAlternate?: boolean;
 }
 
-const { prevUrl, nextUrl, noEnAlternate = false } = Astro.props;
+const { prevUrl, nextUrl, noEnAlternate = false, noZhAlternate = false } = Astro.props;
 
 const siteUrl = (Astro.site?.toString() || "").replace(/\/$/, "");
 const currentPath = Astro.url.pathname;
@@ -44,7 +50,7 @@ const basePath = stripLocalePrefix(currentPath) || "/";
  * `en` 不做存在性判断：它是既有手写路由，历史上就按路径直接加前缀。
  */
 const hrefOf = (locale: Locale): string | null => {
-    if (locale === defaultLocale) return siteUrl + basePath;
+    if (locale === defaultLocale) return noZhAlternate ? null : siteUrl + basePath;
     if (locale === "en") {
         return noEnAlternate ? null : siteUrl + "/en" + basePath;
     }

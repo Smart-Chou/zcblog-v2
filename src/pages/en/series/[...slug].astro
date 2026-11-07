@@ -1,0 +1,84 @@
+---
+/**
+ * P-05 系列（英文）· `/en/series/` + `/en/series/<slug>/` —— M5-12 · N-1a · D-0145
+ *
+ * 与中文页同一套数据层与组件；英文文章里没有系列时 `getStaticPaths` 返回 `[]`，
+ * 因此不会出现 `/en/series/` 空页（与 `/en/tags/` 那种「固定空态页」的区别是：
+ * 系列页没有内容就没有意义，而标签页是站点结构的一部分）。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/tags.css";
+import { getCollection } from "astro:content";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import SeriesHub from "~/components/Series/SeriesHub.astro";
+import SeriesPosts from "~/components/Series/SeriesPosts.astro";
+import { site } from "~/config";
+import { formatDateToYYYYMMDD } from "~/utils/date-utils";
+import { t } from "~/utils/i18n";
+import { collectSeriesByLang, type SeriesGroup } from "~/utils/series";
+
+interface IndexProps {
+    kind: "index";
+    groups: SeriesGroup[];
+    hasZh: boolean;
+}
+
+interface SeriesProps {
+    kind: "series";
+    group: SeriesGroup;
+    hasZh: boolean;
+}
+
+export async function getStaticPaths() {
+    const articles = await getCollection("article", ({ data }) => !data.draft);
+    const groups = collectSeriesByLang(articles, "en");
+    if (groups.length === 0) return [];
+
+    // 中文对照只决定 zh hreflang：en 有、zh 没有的系列不输出 /series/<slug>/ 的 alternate
+    const zhSlugs = new Set(collectSeriesByLang(articles, "zh").map((group) => group.slug));
+
+    return [
+        {
+            params: { slug: undefined },
+            props: { kind: "index", groups, hasZh: zhSlugs.size > 0 } satisfies IndexProps,
+        },
+        ...groups.map((group) => ({
+            params: { slug: group.slug },
+            props: { kind: "series", group, hasZh: zhSlugs.has(group.slug) } satisfies SeriesProps,
+        })),
+    ];
+}
+
+const props = Astro.props as IndexProps | SeriesProps;
+const isIndex = props.kind === "index";
+const groups = isIndex ? props.groups : [props.group];
+const title = isIndex
+    ? `${t("en", "series.title")} - ${site.title}`
+    : `${props.group.name} - ${t("en", "series.title")} - ${site.title}`;
+const description = isIndex ? t("en", "series.description") : props.group.posts[0].data.description;
+
+const latestPost = groups
+    .flatMap((group) => group.posts)
+    .reduce((latest, post) => (post.data.pubDate > latest.data.pubDate ? post : latest));
+const latestDate = formatDateToYYYYMMDD(latestPost.data.upDate ?? latestPost.data.pubDate);
+---
+
+<BaseLayout
+    locale="en"
+    title={title}
+    description={description}
+    image={`${Astro.site + site.coverImage}`}
+    imageAlt={isIndex ? t("en", "series.title") : props.group.name}
+    keywords={isIndex ? ["Series"] : [props.group.name]}
+    publishedTime={latestDate}
+    modifiedTime={latestDate}
+    noZhAlternate={!props.hasZh}
+>
+    {
+        isIndex ? (
+            <SeriesHub groups={props.groups} locale="en" />
+        ) : (
+            <SeriesPosts group={props.group} locale="en" />
+        )
+    }
+</BaseLayout>

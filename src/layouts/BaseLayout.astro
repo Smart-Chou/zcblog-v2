@@ -34,6 +34,8 @@ interface Props {
     nextUrl?: string | null;
     noindex?: boolean;
     noEnAlternate?: boolean;
+    /** M5-12：这一页没有中文对照（英文系列页专用，见 BaseHead/SeoLinks） */
+    noZhAlternate?: boolean;
     showSidebar?: boolean;
     template?: "default" | "splash" | "doc";
 }
@@ -55,6 +57,7 @@ const {
     nextUrl,
     noindex = false,
     noEnAlternate = false,
+    noZhAlternate = false,
     showSidebar = false,
     template = "default",
 } = Astro.props;
@@ -88,6 +91,7 @@ const lang = htmlLangOf(getLocale(locale));
         nextUrl={nextUrl}
         noindex={noindex}
         noEnAlternate={noEnAlternate}
+        noZhAlternate={noZhAlternate}
     />
     <body>
         <a href="#main-content" class="skip-link"

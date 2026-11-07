@@ -1,5 +1,6 @@
 /**
- * 内容模型契约 v4（G2 定稿，来源：blog2.0/docs/schema/article.schema.ts，D-0045）
+ * 内容模型契约 v5（G2 定稿 v4 → M5-12 增补 `series` / `seriesOrder`，D-0145；
+ * 来源：blog2.0/docs/schema/article.schema.ts，D-0045）
  */
 import { defineCollection } from "astro:content";
 import { z } from "astro/zod";
@@ -47,6 +48,29 @@ export const article = defineCollection({
                 summary: z.string().max(300).optional(),
 
                 upDate: z.coerce.date().optional(),
+
+                /**
+                 * 系列 / 专栏（M5-12 · D-0145）。**值是 URL slug**，不是展示名：
+                 * 只允许 ASCII 小写 kebab（`^[a-z0-9]+(-[a-z0-9]+)*$`），这样
+                 * `/series/<slug>/` 不需要 encodeURI，也不会因大小写/空格产生两个路由。
+                 * 展示名由 slug 派生（见 `src/utils/series.ts` 的 `seriesNameOf`），
+                 * 所以不额外增加 `seriesTitle` 字段 —— 契约越小越好回填。
+                 * 不写 `series` 的文章完全不受影响：不产出任何系列路由，也不渲染空壳。
+                 */
+                series: z
+                    .string()
+                    .min(1)
+                    .max(48)
+                    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+                        message: "series 必须是 ASCII 小写 kebab slug（例：self-hosted）",
+                    })
+                    .optional(),
+
+                /**
+                 * 系列内顺序（升序，从 0 或 1 起都行）；缺省 = 排在已编号文章之后，
+                 * 再按 pubDate 升序。重复编号不炸构建，回落 pubDate 决定先后（D-0145）。
+                 */
+                seriesOrder: z.number().int().min(0).max(999).optional(),
 
                 /**
                  * 双语机制不变：`<slug>-en.md` + lang:en → /en/article/<slug>/，

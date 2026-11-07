@@ -1,9 +1,12 @@
 /* ============================================================
-   P-03 · 标签（M2-4）
+   P-03 · 标签 / P-05 · 系列（M2-4 / M5-12）
    ------------------------------------------------------------
-   两个页面共用本文件：
-   - `.tags-hub`    标签索引（marx_s_blog_archives_tags_2 的权重图谱）
-   - `.tag-detail`  单个标签的文章列表（与索引共用页头语言）
+   四个页面共用本文件（同一套「kicker + serif 标题 + lede」页头语言，
+   列表页视觉只有一个出处）：
+   - `.tags-hub`      标签索引（marx_s_blog_archives_tags_2 的权重图谱）
+   - `.tag-detail`    单个标签的文章列表
+   - `.series-hub`    系列索引（M5-12）
+   - `.series-detail` 单个系列的目录（M5-12）
    约束：只消费 tokens.css 语义 token；0 hex / rgb() / hsl()；
    尺寸走 --space-* / --text-*；px 仅 1px / 2px 与断点。
    ============================================================ */
@@ -11,16 +14,21 @@
 /* `.main` 带 margin-inline:auto（auto 外边距吃掉 flex stretch）→ 宽度是 fit-content，
    页面卡要 1200 必须显式撑满；标签详情保持列表页的 860 正文宽度。 */
 .main:has(> .content > .tags-hub),
-.main:has(> .content > .tag-detail) {
+.main:has(> .content > .tag-detail),
+.main:has(> .content > .series-hub),
+.main:has(> .content > .series-detail) {
     width: 100%;
 }
 
-.main > .content:has(> .tags-hub) {
+.main > .content:has(> .tags-hub),
+.main > .content:has(> .series-hub) {
     max-width: var(--layout-content);
 }
 
 .tags-hub,
-.tag-detail {
+.tag-detail,
+.series-hub,
+.series-detail {
     display: flex;
     flex-direction: column;
     gap: var(--space-10);
@@ -28,7 +36,9 @@
 }
 
 .tags-hub > *,
-.tag-detail > * {
+.tag-detail > *,
+.series-hub > *,
+.series-detail > * {
     min-inline-size: 0;
 }
 
@@ -238,11 +248,120 @@
     content-visibility: visible;
 }
 
+/* ── 系列索引（M5-12）───────────────────────────────────────── */
+
+.series-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.series-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-6);
+    padding-block: var(--space-4);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.series-link {
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.series-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+/* 与 `.tags-meta span + span::before` 同一套分隔符语言（不需要额外的 DOM 节点） */
+.series-meta-line > * + *::before {
+    content: "/";
+    margin-inline-end: var(--space-3);
+    color: var(--color-border-default);
+}
+
+/* 「最近更新」与日期之间必须有间距：Astro 会剥掉模板换行处的空白节点 */
+.series-latest {
+    display: inline-flex;
+    gap: var(--space-1);
+}
+
+.series-latest time {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 系列目录（M5-12）：序号 + 卡片 ───────────────────────── */
+
+.series-posts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* 序号在卡片上方（不分栏）：分栏会让卡片左边缘比页头缩进一格，
+   整页左对齐出现锯齿；编号本身用 mono + accent 已足够区分层级。 */
+.series-step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.series-step__marker {
+    align-self: flex-start;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+    /* 小字用 --color-fg-link（accent-600 / 暗色 accent-400）：accent-solid 在纸色底上只有 4.36 */
+    color: var(--color-fg-link);
+}
+
+/* 与标签详情同因：axe 的 color-contrast 在 content-visibility:auto 的卡片上判 incomplete */
+.series-detail .post-card {
+    content-visibility: visible;
+}
+
+@media (hover: hover) {
+    .series-link:hover {
+        color: var(--color-accent-solid);
+    }
+}
+
 /* ── 焦点环：收口到 --color-ring-focus（global.css 的旧 --color-accent 会晚加载） ── */
 
 .tags-hub a[href]:focus-visible,
+.series-hub a[href]:focus-visible,
+.series-detail a[href]:focus-visible,
 .tags-hub button:focus-visible,
+.series-hub button:focus-visible,
+.series-detail button:focus-visible,
 .tags-hub [tabindex]:focus-visible,
+.series-hub [tabindex]:focus-visible,
+.series-detail [tabindex]:focus-visible,
 .tag-detail a[href]:focus-visible,
 .tag-detail button:focus-visible,
 .tag-detail [tabindex]:focus-visible {
@@ -254,7 +373,9 @@
 
 @media (max-width: 768px) {
     .tags-hub,
-    .tag-detail {
+    .tag-detail,
+    .series-hub,
+    .series-detail {
         padding-block: var(--space-4) var(--space-12);
         gap: var(--space-8);
     }

@@ -1,0 +1,69 @@
+---
+/**
+ * 单个系列的目录页主体（M5-12 · N-1a · D-0145）
+ *
+ * 按 `seriesOrder` 升序（缺省排最后，再按 pubDate 升序）展示本系列文章。
+ * 卡片复用列表页的 `TagsPostCard`（`.post-card` 契约 + `.post-card-link` 整卡链接），
+ * 左侧是两位 STEP 序号 —— 系列的核心信息是「第几篇」，不是日期倒序。
+ *
+ * 空态不在这里处理：`collectSeries` 只产出有文章的组，路由也只按这些组生成页面。
+ */
+import type { SeriesGroup } from "~/utils/series";
+import { seriesStepLabel, seriesIndexHref } from "~/utils/series";
+import TagsPostCard from "~/components/Article/TagsPostCard.astro";
+import Link from "~/components/UI/atom/Link.astro";
+import Author from "~/components/UI/Author.astro";
+import { enrichPost } from "~/utils/get-posts-with-meta";
+import { articleSlug } from "~/utils/article-url";
+import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
+
+interface Props {
+    group: SeriesGroup;
+    locale?: string;
+}
+
+const { group, locale = "zh" } = Astro.props;
+const loc: Locale = getLocale(locale);
+const isEn = loc === "en";
+const lang = contentLocaleOf(loc);
+
+const posts = group.posts.map((post) => enrichPost(post));
+---
+
+<div class="series-detail">
+    <header class="tag-detail__hero">
+        <p class="tags-kicker">{t(loc, "series.kicker")}</p>
+        <h1 class="tag-detail__title">{group.name}</h1>
+        <p class="tag-detail__lede">{t(loc, "series.inSeries", { count: posts.length })}</p>
+        <Link href={seriesIndexHref(lang)} variant="standalone" class="tag-detail__back">
+            ← {t(loc, "series.back")}
+        </Link>
+    </header>
+
+    <ol class="series-posts" data-count={posts.length}>
+        {
+            posts.map((post, index) => (
+                <li class="series-step">
+                    <p class="series-step__marker" aria-hidden="true">
+                        {seriesStepLabel(index)}
+                    </p>
+                    <div class="series-step__body">
+                        <TagsPostCard
+                            title={post.data.title}
+                            description={post.data.description || post.excerpt}
+                            tags={post.data.tags || []}
+                            postUrl={`${isEn ? "/en/article" : "/article"}/${articleSlug(post)}/`}
+                            publishedTime={post.data.pubDate}
+                            modifiedTime={post.modifiedTime}
+                            wordCount={post.wordCount}
+                            readTime={post.readTime}
+                            currentSlug={articleSlug(post)}
+                        />
+                    </div>
+                </li>
+            ))
+        }
+    </ol>
+
+    <Author />
+</div>

@@ -1,0 +1,62 @@
+---
+/**
+ * 系列索引的页面主体（M5-12 · N-1a · D-0145）
+ *
+ * 只做渲染：数据由路由 `src/pages/series/[...slug].astro` 在构建期聚合后传入
+ * （`collectSeries` 已丢弃草稿与无 series 的文章，并按展示名排序）。
+ * 因此这里**没有空态分支**：没有系列的站点根本不会产出这个路由（零空壳）。
+ *
+ * 类名复用 `tags.css` 的页头语言（kicker + serif 标题 + lede + meta），
+ * 系列条目自己的 `.series-*` 规则也写在同一份文件里 —— 列表页视觉只有一个出处。
+ */
+import type { SeriesGroup } from "~/utils/series";
+import { seriesHref } from "~/utils/series";
+import { formatDateToYYYYMMDD } from "~/utils/date-utils";
+import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
+
+interface Props {
+    groups: SeriesGroup[];
+    locale?: string;
+}
+
+const { groups, locale = "zh" } = Astro.props;
+const loc: Locale = getLocale(locale);
+const lang = contentLocaleOf(loc);
+
+const postCount = groups.reduce((total, group) => total + group.posts.length, 0);
+---
+
+<div class="series-hub">
+    <header class="tags-hero">
+        <p class="tags-kicker">{t(loc, "series.kicker")}</p>
+        <h1 class="tags-title">{t(loc, "series.title")}</h1>
+        <p class="tags-lede">{t(loc, "series.subtitle")}</p>
+        <p class="tags-meta">
+            <span>{t(loc, "series.seriesCount", { count: groups.length })}</span>
+            <span>{t(loc, "series.postCount", { count: postCount })}</span>
+        </p>
+    </header>
+
+    <ul class="series-list" data-count={groups.length}>
+        {
+            groups.map((group) => (
+                <li class="series-item">
+                    <a class="series-link" href={seriesHref(lang, group.slug)}>
+                        {group.name}
+                    </a>
+                    <p class="series-meta-line">
+                        <span class="series-count">
+                            {t(loc, "series.postCount", { count: group.posts.length })}
+                        </span>
+                        <span class="series-latest">
+                            <span class="series-latest__label">{t(loc, "series.latest")}</span>
+                            <time datetime={formatDateToYYYYMMDD(group.latest)}>
+                                {formatDateToYYYYMMDD(group.latest)}
+                            </time>
+                        </span>
+                    </p>
+                </li>
+            ))
+        }
+    </ul>
+</div>

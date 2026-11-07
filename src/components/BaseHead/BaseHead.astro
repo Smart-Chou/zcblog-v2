@@ -30,6 +30,8 @@ interface Props {
     nextUrl?: string | null;
     noindex?: boolean;
     noEnAlternate?: boolean;
+    /** M5-12：这一页没有中文对照（英文系列页专用，见 SeoLinks） */
+    noZhAlternate?: boolean;
 }
 
 const {
@@ -47,6 +49,7 @@ const {
     nextUrl,
     noindex = false,
     noEnAlternate = false,
+    noZhAlternate = false,
 } = Astro.props;
 ---
 
@@ -140,7 +143,12 @@ const {
     <KatexManager mathjax={mathjax} katex={katex} />
     <Scripts mathjax={mathjax} katex={katex} mermaid={mermaid} />
 
-    <SeoLinks prevUrl={prevUrl} nextUrl={nextUrl} noEnAlternate={noEnAlternate} />
+    <SeoLinks
+        prevUrl={prevUrl}
+        nextUrl={nextUrl}
+        noEnAlternate={noEnAlternate}
+        noZhAlternate={noZhAlternate}
+    />
     <FontPreload />
     <SpritePreload />
     <ExternalResources />

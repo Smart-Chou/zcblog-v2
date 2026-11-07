@@ -1,0 +1,95 @@
+---
+/**
+ * P-05 系列（中文）· `/series/` + `/series/<slug>/` —— M5-12 · N-1a · D-0145
+ *
+ * **为什么是 `[...slug].astro` 而不是 `index.astro` + `[slug].astro`**：
+ * 静态 `index.astro` 无论有没有系列都会产出一页 HTML，那就等于给「没写 series 的站点」
+ * 塞一个空壳路由（demo/主题基线 118 页也会跟着 +1）。rest 参数路由可以在
+ * `getStaticPaths` 里返回 `[]` —— 零系列 = 零路由，这是验收 1 的实现方式。
+ *
+ * 路由与数据层分层：聚合/排序在 `~/utils/series`，渲染在 `~/components/Series/*`，
+ * 本文件只做「取集合 → 生成路由 → 交给 BaseLayout」。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/tags.css";
+import { getCollection } from "astro:content";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import SeriesHub from "~/components/Series/SeriesHub.astro";
+import SeriesPosts from "~/components/Series/SeriesPosts.astro";
+import { site } from "~/config";
+import { formatDateToYYYYMMDD } from "~/utils/date-utils";
+import { getLocale, t } from "~/utils/i18n";
+import { collectSeriesByLang, type SeriesGroup } from "~/utils/series";
+
+interface IndexProps {
+    kind: "index";
+    groups: SeriesGroup[];
+    hasEn: boolean;
+}
+
+interface SeriesProps {
+    kind: "series";
+    group: SeriesGroup;
+    hasEn: boolean;
+}
+
+export async function getStaticPaths() {
+    const articles = await getCollection("article", ({ data }) => !data.draft);
+    const groups = collectSeriesByLang(articles, "zh");
+
+    // 零系列：不产出任何 /series/ 路由（连索引页也不生成）
+    if (groups.length === 0) return [];
+
+    // 英文系列集合只用来决定 hreflang：zh 有、en 没有的系列不输出 /en/series/<slug> 的 alternate
+    const enSlugs = new Set(collectSeriesByLang(articles, "en").map((group) => group.slug));
+
+    return [
+        {
+            params: { slug: undefined },
+            props: { kind: "index", groups, hasEn: enSlugs.size > 0 } satisfies IndexProps,
+        },
+        ...groups.map((group) => ({
+            params: { slug: group.slug },
+            props: { kind: "series", group, hasEn: enSlugs.has(group.slug) } satisfies SeriesProps,
+        })),
+    ];
+}
+
+const props = Astro.props as IndexProps | SeriesProps;
+const locale = getLocale(Astro.currentLocale || "zh");
+
+const isIndex = props.kind === "index";
+const groups = isIndex ? props.groups : [props.group];
+const title = isIndex
+    ? `${t(locale, "series.title")} - ${site.title}`
+    : `${props.group.name} - ${t(locale, "series.title")} - ${site.title}`;
+const description = isIndex
+    ? t(locale, "series.description")
+    : props.group.posts[0].data.description;
+
+// 页面时间戳取系列内最新一篇（索引页取全部系列里最新的那篇）
+const latestPost = groups
+    .flatMap((group) => group.posts)
+    .reduce((latest, post) => (post.data.pubDate > latest.data.pubDate ? post : latest));
+const latestDate = formatDateToYYYYMMDD(latestPost.data.upDate ?? latestPost.data.pubDate);
+---
+
+<BaseLayout
+    locale={locale}
+    title={title}
+    description={description}
+    image={`${Astro.site + site.coverImage}`}
+    imageAlt={isIndex ? t(locale, "series.title") : props.group.name}
+    keywords={isIndex ? ["Series"] : [props.group.name]}
+    publishedTime={latestDate}
+    modifiedTime={latestDate}
+    noEnAlternate={!props.hasEn}
+>
+    {
+        isIndex ? (
+            <SeriesHub groups={props.groups} locale={locale} />
+        ) : (
+            <SeriesPosts group={props.group} locale={locale} />
+        )
+    }
+</BaseLayout>

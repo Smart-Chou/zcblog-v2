@@ -14,6 +14,7 @@ import {
     type Locale,
 } from "~/utils/i18n";
 import { articleLang, articleSlug } from "~/utils/article-url";
+import { collectSeriesByLang } from "~/utils/series";
 
 /**
  * 语言切换器（M2-11a）
@@ -32,6 +33,28 @@ const currentPath = Astro.url.pathname;
 const enabled = enabledLocales();
 /** 语言无关路径：`/ja/blog/1/` → `/blog/1/` */
 const basePath = stripLocalePrefix(currentPath);
+
+/**
+ * 系列页（M5-12）：`/series/`、`/series/<slug>/` 是**按内容动态生成**的路由，
+ * 对侧语言没有同名系列时 `/en/series/<slug>/` 不存在（不是「有页面但空」）。
+ * 所以这里与文章页同一套思路：先查构建期集合，确认对侧真有这一页才直达，
+ * 否则回落到该语言的系列索引，再退一步回首页 —— 绝不拼出不存在的 URL。
+ */
+const seriesMatch = basePath.match(/^\/series(?:\/([^/]+))?\/?$/);
+const seriesSlug = seriesMatch?.[1] ? decodeURIComponent(seriesMatch[1]) : null;
+let seriesHasZh = false;
+let seriesHasEn = false;
+let seriesHasAnyEn = false;
+if (seriesMatch) {
+    const all = await getCollection("article", ({ data }) => !(data.draft ?? false));
+    const zhSeries = collectSeriesByLang(all, "zh");
+    const enSeries = collectSeriesByLang(all, "en");
+    seriesHasAnyEn = enSeries.length > 0;
+    seriesHasZh = seriesSlug
+        ? zhSeries.some((group) => group.slug === seriesSlug)
+        : zhSeries.length > 0;
+    seriesHasEn = seriesSlug ? enSeries.some((group) => group.slug === seriesSlug) : seriesHasAnyEn;
+}
 
 /** 文章页翻译对照查询（构建期一次；非文章页为 null） */
 const articleMatch = currentPath.match(/^\/(?:en\/)?article\/([^/]+)\/?$/);
@@ -60,6 +83,16 @@ function targetPath(locale: Locale): string {
 
     // 错误页没有对应版本 → 目标语言首页
     if (/^\/(404|500)\//.test(basePath)) return getLocalePath(locale);
+
+    // 系列页：按构建期集合判断「对侧真有没有这一页」（M5-12）
+    if (seriesMatch) {
+        if (locale === defaultLocale) return seriesHasZh ? basePath : "/";
+        if (locale === "en") {
+            if (seriesHasEn) return `/en${basePath}`;
+            return seriesHasAnyEn ? "/en/series/" : "/en/";
+        }
+        return getLocalePath(locale);
+    }
 
     if (locale === "en") {
         // en 是既有手写路由，保持原有回退规则（这几页没有英文版）

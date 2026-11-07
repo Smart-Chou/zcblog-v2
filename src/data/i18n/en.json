@@ -101,6 +101,18 @@
         "emptyTitle": "No posts found",
         "emptyMessage": "No posts tagged with \"{tag}\""
     },
+    "series": {
+        "title": "Series",
+        "description": "Themed collections to read in order",
+        "kicker": "SERIES · COLLECTIONS",
+        "subtitle": "Posts on one theme, stitched together in reading order.",
+        "seriesCount": "{count} series",
+        "postCount": "{count} posts",
+        "inSeries": "{count} posts in this series",
+        "latest": "Last updated",
+        "back": "All series",
+        "step": "Part {step}"
+    },
     "friends": {
         "title": "Friends",
         "description": "Friends' sites",

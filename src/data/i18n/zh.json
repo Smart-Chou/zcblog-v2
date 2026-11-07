@@ -101,6 +101,18 @@
         "emptyTitle": "暂无文章",
         "emptyMessage": "没有标签为 \"{tag}\" 的文章"
     },
+    "series": {
+        "title": "系列",
+        "description": "按顺序读的主题合集",
+        "kicker": "系列 · 专栏",
+        "subtitle": "同一主题的文章按顺序连起来读。",
+        "seriesCount": "共 {count} 个系列",
+        "postCount": "共 {count} 篇文章",
+        "inSeries": "本系列共 {count} 篇",
+        "latest": "最近更新",
+        "back": "全部系列",
+        "step": "第 {step} 篇"
+    },
     "friends": {
         "title": "友人帐",
         "description": "朋友们的小站",
