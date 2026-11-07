@@ -299,6 +299,45 @@ pnpm run preview
 | `pnpm test:unit:watch` | 以监听模式运行单元测试 |
 | `pnpm test:e2e` | 运行 Playwright E2E 测试 |
 | `pnpm test:e2e:ui` | 以 UI 模式运行 E2E 测试 |
+| `pnpm visual:build:pages` | 用固定内容构建视觉基线用的 `dist/`（页面级基线专用，见下） |
+| `pnpm test:visual:pages` | 跑 6 页 × 2 主题 × 3 视口的页面级视觉基线 |
+
+#### 视觉基线（截图回归）
+
+两套像素基线，**平台各自独立**（字体栈不同，跨平台比对无意义）：
+
+| 套件 | 覆盖 | 基线目录（macOS / Linux） | 阈值 |
+| ---- | ---- | ---- | ---- |
+| `/design/atoms` | 12 个原子 × 3 视口 × 2 主题 = 72 | `e2e/__screenshots__/design-atoms{,‑linux}/` | macOS 1% / Linux 0 px |
+| 页面级（V-0） | 6 页 × 3 视口（375/768/1280）× 2 主题 = 36 | `e2e/__screenshots__/pages{,‑linux}/` | macOS 0.1% / Linux 0 px |
+
+页面级覆盖的 6 页：`/`、`/article/beszel-server-monitoring-guide/`、`/archives/`、`/albums/`、`/culture/`、`/projects/`。Linux 集必须在 CI 用的同一个镜像里生成，与 macOS 集互不比较。
+
+**为什么页面级基线要先单独构建**：页面内容来自私有内容仓，多加一篇文章就会让首页/归档/热门列表整体位移。所以页面级基线跑在 `e2e/fixtures/pages-visual/` 的固定文章上，由 `CONTENT_ARTICLE_BASE` 指向该目录构建（常规构建/部署不设置此变量，行为不变）。所有 fixture 文章必须带 `upDate`，否则构建时间会进入像素。
+
+生成/更新流程（**必须人工看 diff，CI 永不自动更新基线**）：
+
+```bash
+# 1. 用固定内容构建（会覆盖 dist/；完成后如需正常预览请重新 pnpm build）
+pnpm visual:build:pages
+
+# 2. macOS 基线
+pnpm exec playwright test e2e/pages.visual.spec.ts --update-snapshots
+
+# 3. Linux 基线（必须在这个镜像里跑，和 CI visual job 同一个 tag）
+docker run --rm --ipc=host -v "$PWD":/work -w /work \
+  -e PLAYWRIGHT_BASELINE_PLATFORM=linux \
+  mcr.microsoft.com/playwright:v1.63.0-noble \
+  bash -lc 'corepack enable && corepack pnpm install --frozen-lockfile && \
+            node scripts/visual/build-pages-baseline.mjs && \
+            corepack pnpm exec playwright test e2e/pages.visual.spec.ts --update-snapshots'
+
+# 4. 复核：连跑两遍必须都过（Linux 集为 0 像素）
+pnpm exec playwright test e2e/pages.visual.spec.ts
+```
+
+新增/删除基线页面时：改 `e2e/pages.visual.spec.ts` 的 `PAGES`，然后**两平台都重新生成一遍**，并在 PR 里贴 diff 截图。远端图片、CDN 脚本、Waline 评论、hitokoto 一律在 spec 里打桩或拦断（见 spec 头部注释），不要为了「看起来更真实」放开网络——那会让门禁随机红。
+
 
 ### 发布
 

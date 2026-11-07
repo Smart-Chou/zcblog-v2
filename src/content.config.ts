@@ -7,8 +7,17 @@ import { glob } from "astro/loaders";
 
 const FEATURE = ["mermaid", "mathjax", "katex", "plantuml", "chart", "markmap"] as const;
 
+/**
+ * 内容目录可覆盖（M5-11）：页面级视觉基线必须跑在**固定内容**上，
+ * 否则私有内容仓一加文章，home/archives/popular 的渲染就整体变化，
+ * 视觉门禁会红在与主题无关的地方。视觉运行用
+ * `CONTENT_ARTICLE_BASE=e2e/fixtures/pages-visual/content/article` 构建，
+ * 常规构建/部署不设置该变量，行为完全不变。
+ */
+const ARTICLE_BASE = process.env.CONTENT_ARTICLE_BASE || "./src/content/article";
+
 export const article = defineCollection({
-    loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/article" }),
+    loader: glob({ pattern: "**/*.{md,mdx}", base: ARTICLE_BASE }),
     schema: ({ image }) =>
         z
             .object({

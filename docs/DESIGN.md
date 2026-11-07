@@ -2281,9 +2281,11 @@ grep -rn -- "--palette-" src/components src/pages src/styles --include=*.css --i
 | E1 | **一致性** | `node build-tokens.mjs --check` 退出码 0 | 每次改 tokens.json |
 | E2 | **键对齐** | G-T2 脚本输出（light/dark 差集 = ∅） | 每次改颜色 |
 | E3 | **对比度** | 附录 C 脚本输出，全部 PASS | 每次改颜色（含新增状态色） |
-| E4 | **视觉基线** | `e2e/__screenshots__/design-atoms/` 3 视口 × 2 主题 diff | 视觉有变化时 |
+| E4 | **视觉基线** | `e2e/__screenshots__/design-atoms/` 3 视口 × 2 主题 diff；页面级 `e2e/__screenshots__/pages/`（6 页 × 3 视口 × 2 主题，M5-11） | 视觉有变化时 |
 
 补充：**基线只能用 `--update-snapshots` 更新，且必须人工看 diff**（`16` §3.5）。CI 不许自动更新基线——自动更新的基线等于没有基线。
+
+页面级基线（`e2e/pages.visual.spec.ts`）必须先用 `pnpm visual:build:pages` 以固定内容构建——它跑在 `e2e/fixtures/pages-visual/` 的 6 篇冻结文章上，不是私有内容仓的最新快照；否则内容仓加一篇文章就会让首页/归档整体位移、视觉门禁红在与主题无关的地方。两平台基线各自生成（Linux 用 `mcr.microsoft.com/playwright:v1.63.0-noble`），流程见 README「视觉基线（截图回归）」。
 
 ### 8.5 回滚
 

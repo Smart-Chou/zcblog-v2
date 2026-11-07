@@ -111,18 +111,20 @@ jobs:
                   retention-days: 7
                   if-no-files-found: ignore
 
-    # ---- 视觉门禁：/design/atoms 72 张像素基线（Linux）----
-    # 与 test/gates 平行跑。三条硬约束：
+    # ---- 视觉门禁：/design/atoms 72 张 + 页面级 36 张像素基线（Linux）----
+    # 与 test/gates 平行跑。四条硬约束：
     #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），
     #     镜像里的浏览器构建号跟版本绑定，跨版本截图不可比。
-    #  2. 基线 e2e/__screenshots__/design-atoms-linux/ 就是在**这个镜像**里生成的
-    #     （`--update-snapshots`），所以判定用 maxDiffPixels: 0，不放大阈值。
-    #  3. 不带 --update-snapshots、--retries=0：72/72 必须是第一次就过，
-    #     连跑两遍才算稳定；重试会把 flake 藏起来。
+    #  2. 基线 e2e/__screenshots__/design-atoms-linux/ 与 pages-linux/ 就是在**这个镜像**里
+    #     生成的（`--update-snapshots`），所以判定用 maxDiffPixels: 0，不放大阈值。
+    #  3. 不带 --update-snapshots、--retries=0：必须是第一次就过，连跑两遍才算稳定；
+    #     重试会把 flake 藏起来。
+    #  4. 页面级基线跑在固定内容上（scripts/visual/build-pages-baseline.mjs）：内容仓加一篇
+    #     文章不该让视觉门禁红。因此这里**不** checkout 私有文章仓，构建命令也换成该脚本。
     visual:
-        name: visual (design/atoms · linux baselines)
+        name: visual (atoms 72 + pages 36 · linux baselines)
         runs-on: ubuntu-latest
-        timeout-minutes: 20
+        timeout-minutes: 25
         container:
             image: mcr.microsoft.com/playwright:v1.63.0-noble
             options: --ipc=host
@@ -140,10 +142,11 @@ jobs:
             - name: Install dependencies
               run: corepack pnpm install --frozen-lockfile
 
-            # 只构建，不跑 fetch:all：/design/atoms 不依赖内容仓，视觉门禁不该被
-            # 第三方 API 抖动拖红（内容相关的断言在 gates job 里）。
-            - name: Build (astro preview output)
-              run: corepack pnpm exec astro build
+            # 只构建，不跑 fetch:all：视觉门禁不该被第三方 API 抖动拖红
+            # （内容相关的断言在 gates job 里）。文章内容用 e2e/fixtures/pages-visual/
+            # 的固定副本，保证首页/归档/文章页在两次运行与两平台之间逐像素一致。
+            - name: Build (fixed fixture content · astro preview output)
+              run: node scripts/visual/build-pages-baseline.mjs
 
             # M2-1 / R-41：12 份 atom 文档页 + /design/atoms 的 a11y 与结构门禁。
             # 之前只在本地跑；M2-1 起进 CI，M5-7a 补上「用例数」硬断言：
@@ -165,11 +168,36 @@ jobs:
                     exit 1
                   fi
 
-            - name: Visual regression · pass 1/2
+            - name: Visual regression · atoms 1/2
               run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
 
-            - name: Visual regression · pass 2/2 (stability)
+            - name: Visual regression · atoms 2/2 (stability)
               run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
+
+            # M5-11 / V-0：6 页 × 3 视口 × 2 主题 = 36。同上看条数，不信退出码。
+            - name: Visual regression · pages 36 (pass 1/2)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test e2e/pages.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-visual-1.log"
+                  if ! grep -qE "^ +36 passed" "$RUNNER_TEMP/pages-visual-1.log"; then
+                    echo "::error::页面级视觉基线用例数不是 36（6 页 × 2 主题 × 3 视口）"
+                    tail -40 "$RUNNER_TEMP/pages-visual-1.log"
+                    exit 1
+                  fi
+
+            - name: Visual regression · pages 36 (pass 2/2 · stability)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test e2e/pages.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-visual-2.log"
+                  if ! grep -qE "^ +36 passed" "$RUNNER_TEMP/pages-visual-2.log"; then
+                    echo "::error::页面级视觉基线第二遍未全绿（不稳定）"
+                    tail -40 "$RUNNER_TEMP/pages-visual-2.log"
+                    exit 1
+                  fi
 
             - name: Upload visual diff on failure
               if: failure()
