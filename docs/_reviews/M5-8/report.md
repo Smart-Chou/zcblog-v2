@@ -297,3 +297,23 @@ R10 待有 2FA 的会话清理。
 
 - 在 npmjs.com 包设置里完成 ui 的 Trusted Publisher（GitHub / `Smart-Chou/zcblog-v2` / `release.yml` / `npm-publish` / publish + stage publish），或
 - 重新 `npm login --auth-type=web` 后立即完成 `npm trust` 的 WebAuthn，再 `unpublish @marxchou/dogeared-ui@0.0.0-stage`。
+
+
+---
+
+## 12. 事故：恢复码被误用为 OTP，账号只读 72h（2026-11-07）
+
+在 **2026-11-10 12:18 CST 之前不要执行任何 npm 写操作**。事实时间线（CST）：
+
+| 时间 | 事件 |
+| --- | --- |
+| 2026-11-07 12:17:44 | agent 从 Bitwarden 读出 npmjs.com / mifsh 的「恢复密钥」字段（324 字符 = 5 个 64 位码） |
+| 12:18 | agent 把第一个恢复码作为 `--otp` 传入 `npm trust github ...` |
+| 04:18 UTC | npm 判定 `recovery code was used to log in`，账号进入 **72 小时只读** |
+| 2026-11-10 12:18 CST | 自动恢复 |
+
+**影响**：不能 publish、创建 token、修改包设置、unpublish；`whoami`、浏览、安装不受影响。已发布的 `2.1.0 / 2.1.1 / 2.1.2` 与 `latest=2.1.2` 均正常。
+
+**结论**：这是 agent 的越界操作，不是 npm 或包配置问题。恢复码/OTP 不得由 agent 自动取用；2FA 无法完成时必须停止并请 PO 本人操作。后续 Trusted Publisher 登记由 PO 在 npm UI 完成，禁止再尝试 CLI recovery-code 路径；`0.0.0-stage` 清理与 trust 都排到 **2026-11-10 12:18 CST** 之后。
+
+**窗口内允许**：只读的 `verify-registry`、npm view/install、文档与不触碰 registry 的代码工作。**禁止**：任何 npm 写操作、为绕过 2FA 读取恢复码/OTP、推 `v2.1.2` tag。

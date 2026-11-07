@@ -17,6 +17,10 @@
 > （无 provenance）；Trusted Publisher 尚未登记，`0.0.0-stage` 占位待清。**在 trust 登记完成前不要推
 > `v2.1.2` tag**。细节见 `docs/_reviews/M5-8/report.md` §11。
 >
+> ⚠️ **2026-11-07 事故**：agent 误把 npm 恢复码当 OTP 使用，账号被判 recovery-code login，
+> **2026-11-10 12:18 CST 前只读**：不能 publish / trust / unpublish / 改包设置。窗口内只做只读复查；
+> 恢复后由 PO 本人在 npm UI 完成 ui 的 Trusted Publisher，再清 `0.0.0-stage`。见报告 §12。
+>
 > 仓库已于 2026-11-06 转为 **public**；标准 GitHub-hosted runner 不再消耗 Free 计划分钟数。
 > 发布认证已切到 **npm Trusted Publishing（GitHub OIDC）**：publish job 不注入 `NPM_TOKEN`，
 > 两个已存在包已在 npm package settings 登记 Trusted Publisher；`provenance` 默认开启。
