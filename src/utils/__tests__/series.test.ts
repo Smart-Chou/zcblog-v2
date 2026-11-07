@@ -5,9 +5,11 @@ import {
     collectSeriesByLang,
     seriesHref,
     seriesIndexHref,
+    seriesContextOf,
     seriesNameOf,
     seriesSlugOf,
     seriesStepLabel,
+    seriesTotalLabel,
     sortSeriesPosts,
 } from "../series";
 
@@ -148,6 +150,65 @@ describe("collectSeriesByLang", () => {
     });
 });
 
+describe("seriesContextOf（文章页上下文 · M5-13）", () => {
+    const posts = [
+        post("plain", { pubDate: "2026-04-01" }),
+        post("s3", { pubDate: "2026-01-03", series: "self-hosted", seriesOrder: 3 }),
+        post("s1", { pubDate: "2026-01-01", series: "self-hosted", seriesOrder: 1 }),
+        post("s2", { pubDate: "2026-01-02", series: "self-hosted", seriesOrder: 2 }),
+    ];
+
+    it("无 series 的文章 → null（调用方据此不渲染任何 DOM）", () => {
+        expect(seriesContextOf(posts, "plain")).toBeNull();
+    });
+
+    it("集合里没有这篇 → null", () => {
+        expect(seriesContextOf(posts, "not-in-collection")).toBeNull();
+    });
+
+    it("第一篇：无上一篇，下一篇按 seriesOrder 取第 2 篇", () => {
+        const context = seriesContextOf(posts, "s1");
+        expect(context?.index).toBe(0);
+        expect(context?.total).toBe(3);
+        expect(context?.prev).toBeNull();
+        expect(context?.next?.id).toBe("s2");
+    });
+
+    it("中间篇：上下篇都有，且顺序来自 seriesOrder 而不是 pubDate", () => {
+        // s3 的 pubDate 最晚但 seriesOrder=3；中间的必须是它自己的前后，不是日期邻居
+        const context = seriesContextOf(posts, "s2");
+        expect(context?.index).toBe(1);
+        expect(context?.prev?.id).toBe("s1");
+        expect(context?.next?.id).toBe("s3");
+    });
+
+    it("最后一篇：无下一篇", () => {
+        const context = seriesContextOf(posts, "s3");
+        expect(context?.index).toBe(2);
+        expect(context?.prev?.id).toBe("s2");
+        expect(context?.next).toBeNull();
+    });
+
+    it("单篇系列：上下篇都为 null（不产出空的翻页区）", () => {
+        const solo = [post("only", { pubDate: "2026-02-01", series: "solo" })];
+        const context = seriesContextOf(solo, "only");
+        expect(context?.total).toBe(1);
+        expect(context?.prev).toBeNull();
+        expect(context?.next).toBeNull();
+    });
+
+    it("分组与列表页同一份：名称/成员与 collectSeries 一致", () => {
+        const context = seriesContextOf(posts, "s2");
+        const group = collectSeries(posts)[0];
+        // 每次调用都会新建分组对象，只能比对内容 —— 关键是顺序与成员完全同源
+        expect(context?.group.slug).toBe(group.slug);
+        expect(context?.group.name).toBe("Self Hosted");
+        expect(context?.group.posts.map((entry) => entry.id)).toEqual(
+            group.posts.map((entry) => entry.id),
+        );
+    });
+});
+
 describe("URL / 序号", () => {
     it("zh 无前缀，en 带 /en", () => {
         expect(seriesIndexHref("zh")).toBe("/series/");
@@ -159,5 +220,10 @@ describe("URL / 序号", () => {
     it("STEP 序号从 01 起两位补零", () => {
         expect(seriesStepLabel(0)).toBe("01");
         expect(seriesStepLabel(9)).toBe("10");
+    });
+
+    it("总数同样两位补零（避免「第 03 / 3 篇」）", () => {
+        expect(seriesTotalLabel(3)).toBe("03");
+        expect(seriesTotalLabel(12)).toBe("12");
     });
 });

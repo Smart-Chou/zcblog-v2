@@ -111,7 +111,11 @@
         "inSeries": "{count} posts in this series",
         "latest": "Last updated",
         "back": "All series",
-        "step": "Part {step}"
+        "step": "Part {step}",
+        "navAria": "Series navigation",
+        "progress": "Part {step} of {total}",
+        "prevInSeries": "Previous in series",
+        "nextInSeries": "Next in series"
     },
     "friends": {
         "title": "Friends",

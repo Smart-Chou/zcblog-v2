@@ -1,0 +1,23 @@
+{
+    "$comment": "M5-13（N-1b）系列回填计划。slug → 内容仓文件名（不含扩展名）→ seriesOrder。改这里再跑 node scripts/series/backfill-series.mjs <内容目录>（默认 dry-run，--apply 才写盘）。",
+    "series": [
+        {
+            "slug": "sing-box",
+            "note": "按发布顺序串起来的 sing-box 三部曲：内网客户端踩坑 → 客户端多节点/订阅 → 服务端 Docker 部署",
+            "articles": {
+                "debian-sing-box-proxy-pitfalls": 1,
+                "sing-box-client-multi-node-config": 2,
+                "sing-box-docker-deploy": 3
+            }
+        },
+        {
+            "slug": "hermes-agent",
+            "note": "Hermes Agent 实操三篇：记忆扩容 → 记忆治理/备份 → 接 Gmail 修 Supabase 漏洞",
+            "articles": {
+                "hermes-agent-memory-optimization": 1,
+                "hermes-memory-cleanup-backup": 2,
+                "hermes-agent-supabase-security-fix": 3
+            }
+        }
+    ]
+}

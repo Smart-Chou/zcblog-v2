@@ -10,6 +10,7 @@ import PostCardImage from "~/components/Article/PostCardImage.astro";
 import PostFooter from "~/components/Article/PostFooter.astro";
 import PostNavigation from "~/components/Article/PostNavigation.astro";
 import PostShare from "~/components/Article/PostShare.astro";
+import SeriesNav from "~/components/Series/SeriesNav.astro";
 import Toc from "~/components/Article/Toc.astro";
 import BackToTop from "~/components/Layout/BackToTop.astro";
 import Donate from "~/components/UI/Donate.astro";
@@ -20,6 +21,7 @@ import RelatedPosts from "~/components/Article/RelatedPosts.astro";
 import Breadcrumb from "~/components/Article/Breadcrumb.astro";
 import { site, postView, waline, donate } from "~/config";
 import { getRandomImageUrl } from "~/utils";
+import { seriesContextOf } from "~/utils/series";
 
 interface Props {
     frontmatter: Record<string, any>;
@@ -80,6 +82,13 @@ const nextUrl = nextSlug ? toArticleUrl(nextSlug) : null;
 // 相关文章计算需要排序后的完整文章列表（仅同语言文章参与）
 const allPosts = (await getAllArticles()).filter((post) => (post.data.lang === "en") === isEnPage);
 const sorted = sortByPubDate(allPosts);
+
+/**
+ * 系列上下文（M5-13 · N-1b）：只有写了 `series` 的文章才跑聚合 —— 无系列的文章
+ * 连 `collectSeries` 都不进，页面里不会留下任何 `.series-nav` 空壳。
+ * 排序/成员来自 `~/utils/series`，与 `/series/<slug>/` 页面同一份数据。
+ */
+const seriesContext = frontmatter.series ? seriesContextOf(allPosts, slug) : null;
 
 const today = new Date();
 const publishedTime = frontmatter.pubDate;
@@ -186,6 +195,7 @@ const firstTag = currentTags[0] || "";
                 </div>
             </div>
             <PostFooter tags={frontmatter.tags} />
+            {seriesContext && <SeriesNav context={seriesContext} locale={isEn ? "en" : "zh"} />}
             <PostShare
                 title={frontmatter.title}
                 description={frontmatter.description}

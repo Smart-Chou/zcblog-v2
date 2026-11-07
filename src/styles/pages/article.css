@@ -434,6 +434,191 @@
     background-color: var(--color-accent-solid);
 }
 
+/* ── 系列导航（M5-13 · N-1b）───────────────────────────────── */
+
+/* 系列导航：页脚（标签/版权）之后、分享条之前。
+   刻意**不铺底色**：`--color-bg-sunken` 上的 `--color-fg-muted` 只有 4.41（light）/
+   4.24（dark），12px 小字过不了 AA（同 `.share-label` 的坑）。留白 + 上下细线分隔，
+   文字全部落在 `.post-sheet` 的 surface 上（muted 4.87 / 4.71，accent 6.04 / 4.72）。 */
+.series-nav {
+    max-width: var(--layout-article);
+    margin: var(--space-8) auto 0;
+    padding-block: var(--space-5) var(--space-4);
+    border-block-start: 1px solid var(--color-border-subtle);
+    border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.series-nav__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-block-end: var(--space-4);
+}
+
+.series-nav__kicker {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.series-nav__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+}
+
+.series-nav__series-link {
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.series-nav__progress {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.series-nav__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.series-nav__item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding-block: var(--space-2);
+}
+
+/* 序号列固定宽度：两位数字 + tabular-nums，标题左边缘对齐 */
+.series-nav__marker {
+    flex: none;
+    inline-size: 2ch;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.series-nav__label {
+    min-width: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-default);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+/* 当前篇：不可点（`<span aria-current="page">`），用 accent 序号 + 标题色强调 */
+.series-nav__item.is-current .series-nav__marker {
+    color: var(--color-fg-link);
+}
+
+.series-nav__item.is-current .series-nav__label {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-heading);
+}
+
+@media (hover: hover) {
+    .series-nav__series-link:hover {
+        color: var(--color-fg-link);
+    }
+
+    a.series-nav__label:hover {
+        color: var(--color-fg-link);
+    }
+
+    .series-nav__pager-link:hover {
+        border-color: var(--color-border-accent);
+    }
+}
+
+.series-nav__series-link:focus-visible,
+.series-nav__label:focus-visible,
+.series-nav__pager-link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+/* 上/下篇：两列；只有一侧存在时仍落在自己那一列（下一篇靠右），语义不跑位 */
+.series-nav__pager {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin-block-start: var(--space-4);
+}
+
+.series-nav__pager-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.series-nav__pager-link.prev {
+    grid-column: 1;
+}
+
+.series-nav__pager-link.next {
+    grid-column: 2;
+    align-items: flex-end;
+    text-align: end;
+}
+
+.series-nav__pager-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+/* 箭头走 CSS（与 `.post-nav-link__eyebrow` 同一处理：DOM 里不留纯符号文本节点） */
+.series-nav__pager-link.prev .series-nav__pager-eyebrow::before {
+    content: "←";
+}
+
+.series-nav__pager-link.next .series-nav__pager-eyebrow::after {
+    content: "→";
+}
+
+.series-nav__pager-title {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+}
+
 /* ── 上一篇 / 下一篇 ───────────────────────────────────────── */
 
 /* 上一篇 / 下一篇：两列卡；前缀 `.post-sheet` 压过共享 article.css 的浮动版
@@ -854,6 +1039,17 @@
         text-align: start;
     }
 
+    /* 系列导航：窄屏上下篇堆成一列，下一篇回到左侧（与相邻文章导航同构） */
+    .series-nav__pager {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .series-nav__pager-link.next {
+        grid-column: 1;
+        align-items: flex-start;
+        text-align: start;
+    }
+
     .post-sheet .related-posts-list {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -894,6 +1090,9 @@
     .post-license__badge,
     .post-sheet .share-icon,
     .post-sheet .post-nav-link,
+    .series-nav__series-link,
+    .series-nav__label,
+    .series-nav__pager-link,
     .toc.post-toc .toc-content .toc-link {
         transition: none;
     }

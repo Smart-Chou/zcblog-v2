@@ -111,6 +111,54 @@ export function collectSeries(posts: ArticleEntry[]): SeriesGroup[] {
     );
 }
 
+/**
+ * 文章页用的系列上下文（M5-13 · N-1b）：当前文章所属系列 + 它在系列里的位置 + 上下篇。
+ *
+ * 与列表页共用同一份 `collectSeries` 排序结果 —— 文章页的「下一篇」必须和
+ * `/series/<slug>/` 里的下一步一致，两处各写一套排序迟早会漂。
+ *
+ * 返回 `null` 的四种情况（调用方据此**不渲染任何 DOM**，不留空壳）：
+ *   1. 传进来的集合里没有这篇（id 不匹配）
+ *   2. 文章没写 `series`
+ *   3. 聚合后没有这个系列（防御：理论上不会发生）
+ *   4. 当前文章不在系列成员里（草稿 / 并发构建的脏数据）
+ */
+export interface SeriesContext {
+    group: SeriesGroup;
+    entry: ArticleEntry;
+    /** 当前文章在 `group.posts` 里的下标（0 起） */
+    index: number;
+    /** 系列成员总数 */
+    total: number;
+    /** 系列内上一篇（下标 -1）；第一篇为 null */
+    prev: ArticleEntry | null;
+    /** 系列内下一篇（下标 +1）；最后一篇为 null */
+    next: ArticleEntry | null;
+}
+
+export function seriesContextOf(posts: ArticleEntry[], entryId: string): SeriesContext | null {
+    const entry = posts.find((post) => post.id === entryId);
+    if (!entry) return null;
+
+    const slug = seriesSlugOf(entry);
+    if (!slug) return null;
+
+    const group = collectSeries(posts).find((candidate) => candidate.slug === slug);
+    if (!group) return null;
+
+    const index = group.posts.findIndex((post) => post.id === entryId);
+    if (index === -1) return null;
+
+    return {
+        group,
+        entry,
+        index,
+        total: group.posts.length,
+        prev: index > 0 ? group.posts[index - 1] : null,
+        next: index < group.posts.length - 1 ? group.posts[index + 1] : null,
+    };
+}
+
 /** 某语言的系列（zh / en 各自独立；en 无系列时返回空数组 → 该语言不产出 /series/ 路由）。 */
 export function collectSeriesByLang(posts: ArticleEntry[], lang: ArticleLang): SeriesGroup[] {
     return collectSeries(filterByLang(posts, lang));
@@ -133,4 +181,13 @@ export function seriesIndexHref(locale: ArticleLang): string {
  */
 export function seriesStepLabel(index: number): string {
     return String(index + 1).padStart(2, "0");
+}
+
+/**
+ * 系列成员总数用的同款两位补零（`03`）。
+ * 为什么要单独一个函数：`seriesStepLabel` 是 0 基下标 +1，直接拿它算总数会多一位；
+ * 而「第 03 / 3 篇」这种半截补零是文章页最显眼的排版瑕疵。
+ */
+export function seriesTotalLabel(total: number): string {
+    return String(total).padStart(2, "0");
 }

@@ -1,0 +1,98 @@
+---
+/**
+ * 文章页的系列导航（M5-13 · N-1b）
+ *
+ * 三块信息，顺序就是阅读顺序：
+ *   1. 头：系列名（链到 `/series/<slug>/`）+ 「第 02 / 05 篇」
+ *   2. 目录：本系列全部成员，当前篇用 `aria-current="page"` 标出、不可点
+ *   3. 上下篇：按 `seriesOrder` 的相邻两篇，第一篇没有上一篇、最后一篇没有下一篇
+ *
+ * 三条硬约束：
+ *   · **无系列零 DOM**：是否渲染由调用方（MarkdownLayout）用 `seriesContextOf` 决定，
+ *     本组件不写「空态」分支 —— 没有系列就不该出现在 HTML 里（N-1 验收 1）。
+ *   · **零客户端 JS**：不做折叠动画、不注入脚本，`<ol>` 直接全量输出。
+ *     `swup` 换页时 `reloadScripts` 与本组件无关，导航不会「换页后失效」。
+ *   · **排序只有一处**：成员顺序来自 `collectSeries`（= `/series/<slug>/` 用的同一份），
+ *     这里只按下标取前后，不重新排序。
+ */
+import type { SeriesContext } from "~/utils/series";
+import { seriesHref, seriesStepLabel, seriesTotalLabel } from "~/utils/series";
+import { articleUrl } from "~/utils/article-url";
+import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
+
+interface Props {
+    context: SeriesContext;
+    locale?: string;
+}
+
+const { context, locale = "zh" } = Astro.props;
+const loc: Locale = getLocale(locale);
+const lang = contentLocaleOf(loc);
+
+const { group, index, total, prev, next } = context;
+const progress = t(loc, "series.progress", {
+    step: seriesStepLabel(index),
+    total: seriesTotalLabel(total),
+});
+---
+
+<nav
+    class="series-nav"
+    data-series={group.slug}
+    aria-label={`${t(loc, "series.navAria")} · ${group.name}`}
+>
+    <div class="series-nav__head">
+        <p class="series-nav__kicker">{t(loc, "series.kicker")}</p>
+        <p class="series-nav__title">
+            <a class="series-nav__series-link" href={seriesHref(lang, group.slug)}>{group.name}</a>
+            <span class="series-nav__progress" data-step={seriesStepLabel(index)}>{progress}</span>
+        </p>
+    </div>
+
+    <ol class="series-nav__list" data-count={total}>
+        {
+            group.posts.map((post, position) => (
+                <li
+                    class:list={["series-nav__item", { "is-current": position === index }]}
+                    data-position={seriesStepLabel(position)}
+                >
+                    <span class="series-nav__marker" aria-hidden="true">
+                        {seriesStepLabel(position)}
+                    </span>
+                    {position === index ? (
+                        <span class="series-nav__label" aria-current="page">
+                            {post.data.title}
+                        </span>
+                    ) : (
+                        <a class="series-nav__label" href={articleUrl(post)}>
+                            {post.data.title}
+                        </a>
+                    )}
+                </li>
+            ))
+        }
+    </ol>
+
+    {
+        (prev || next) && (
+            <div class="series-nav__pager">
+                {prev && (
+                    <a class="series-nav__pager-link prev" href={articleUrl(prev)}>
+                        <span class="series-nav__pager-eyebrow">
+                            {t(loc, "series.prevInSeries")}
+                        </span>
+                        <span class="series-nav__pager-title">{prev.data.title}</span>
+                    </a>
+                )}
+                {next && (
+                    <a class="series-nav__pager-link next" href={articleUrl(next)}>
+                        <span class="series-nav__pager-eyebrow">
+                            {t(loc, "series.nextInSeries")}
+                        </span>
+                        <span class="series-nav__pager-title">{next.data.title}</span>
+                    </a>
+                )}
+            </div>
+        )
+    }
+</nav>

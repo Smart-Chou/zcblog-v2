@@ -111,7 +111,11 @@
         "inSeries": "本系列共 {count} 篇",
         "latest": "最近更新",
         "back": "全部系列",
-        "step": "第 {step} 篇"
+        "step": "第 {step} 篇",
+        "navAria": "系列导航",
+        "progress": "第 {step} / {total} 篇",
+        "prevInSeries": "系列上一篇",
+        "nextInSeries": "系列下一篇"
     },
     "friends": {
         "title": "友人帐",
