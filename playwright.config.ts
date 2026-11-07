@@ -122,6 +122,6 @@ export default defineConfig({
         // 被中断时会发生），没有这个标志 astro preview 会直接退出，门禁假红。
         command: "./node_modules/.bin/astro preview --host 127.0.0.1 --port 4321 --force",
         url: "http://127.0.0.1:4321",
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false, // 本机残留 preview 会被误复用；一律由本次 runner 起新 server
     },
 });

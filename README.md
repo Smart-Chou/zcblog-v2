@@ -336,7 +336,7 @@ docker run --rm --ipc=host -v "$PWD":/work -w /work \
 pnpm exec playwright test e2e/pages.visual.spec.ts
 ```
 
-**假红先排查服务器，不要急着 `--update-snapshots`**：`playwright.config.ts` 里 `reuseExistingServer: !process.env.CI` 会复用 4321 端口上残留的 `astro preview`（上一轮被中断、或正在 `--force` 重启的时间窗），症状是 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`——不是像素 diff。跑之前先 `pkill -f "astro preview"`，再确认第 1 步的固定内容构建跑过。配置已固定 `--host 127.0.0.1` / `baseURL=http://127.0.0.1:4321`：本机 `astro preview` 默认只监听 `[::1]`，靠 `localhost` 解析会在 IPv6/IPv4 之间飘，表现为随机 `ERR_CONNECTION_REFUSED`。
+**假红先排查服务器，不要急着 `--update-snapshots`**：`playwright.config.ts` 现在固定 `reuseExistingServer: false`，每次由 runner 自己起 4321 上的 `astro preview`——旧版本会复用残留 server，症状是 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，不是像素 diff。跑之前先 `pkill -f "astro preview"`，再确认第 1 步的固定内容构建跑过。配置同时固定 `--host 127.0.0.1` / `baseURL=http://127.0.0.1:4321`：本机 `astro preview` 默认只监听 `[::1]`，靠 `localhost` 解析会在 IPv6/IPv4 之间飘，表现为随机 `ERR_CONNECTION_REFUSED`。
 
 
 新增/删除基线页面时：改 `e2e/pages.visual.spec.ts` 的 `PAGES`，然后**两平台都重新生成一遍**，并在 PR 里贴 diff 截图。远端图片、CDN 脚本、Waline 评论、hitokoto 一律在 spec 里打桩或拦断（见 spec 头部注释），不要为了「看起来更真实」放开网络——那会让门禁随机红。

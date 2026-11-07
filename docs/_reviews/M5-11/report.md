@@ -221,3 +221,5 @@ $ pnpm exec playwright test e2e/pages.visual.spec.ts   # pass 2
 ```
 
 这样本地与 CI 都走 IPv4 显式地址，不再依赖 `localhost` 的解析顺序；同时避免复用任意 IPv6 旧 server。
+
+另外把 `reuseExistingServer` 从 `!process.env.CI` 改为恒 `false`：本机残留的 preview 会被 Playwright 误复用，前一次 atoms 跑到 58/72 时 server 被旧父进程回收，剩下 14 条全报 `ERR_CONNECTION_REFUSED`。改为每次由 runner 起新 server 后，atoms 72/72、pages 36/36 × 2 均稳定。
