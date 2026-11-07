@@ -126,6 +126,19 @@ visual (atoms 72 + pages 36 · linux baselines)                         success 
 
 CI 的 pages 两遍跑的是**干净 checkout + job 内 `build-pages-baseline.mjs` 构建**（不 checkout 私有文章仓），阈值 `maxDiffPixels: 0`——即 Linux 基线在非本地工作树上也是 0 像素可复现，这是验收第 1、2 条的平台侧证据。同一次 run 的 `contract` job 红了，原因是 DESIGN 快照指针未同步，不涉及基线本身，见 §7.1。
 
+收口提交 `d18149e` 的 CI（run `42384558792`）四 job 全绿：
+
+```text
+contract (tokens · surfaces · entities)                success
+test                                                   success
+gates                                                  success
+visual (atoms 72 + pages 36 · linux baselines)         success
+  ├ atoms 72                                           72 passed
+  ├ docs a11y                                          48 passed
+  └ pages 36 (pass 1/2 · pass 2/2)                     36 passed · 36 passed
+```
+
+
 ## 3. 发现（未修，按卡边界「不改页面视觉」）
 
 **375px 下文章页横向溢出 16px**：宽表格（`thead/tr/th` 实测 `right=426` vs `clientWidth=375`）把文档撑出画布；390px（其它所有 spec 用的宽度）不触发，所以此前没人发现。按卡边界未动样式，spec 里以 `KNOWN_OVERFLOW = { "article@375": 16 }` 记录当前值 —— 其它页/视口仍要求 ≤1px，因此新增溢出照样会红。修掉表格溢出后把该条改成 0 并重生成两平台基线即可。
