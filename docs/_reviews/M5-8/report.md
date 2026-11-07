@@ -247,3 +247,53 @@ node docs/_reviews/M5-8/verify-consumer.mjs --root .
 `13-npm-pack-ui.json`
 
 `verify-consumer.mjs`：消费者产物断言脚本（28 条判据）。
+
+
+---
+
+## 11. 首发结果（2026-11-07，PO 选择路径 B）
+
+PO 明确选择 **B**：不重新引入 placeholder/OIDC 引导，直接用账号登录态 token 发布 `2.1.2`，首发接受 no provenance。
+
+### 11.1 写操作
+
+```text
+npm login --auth-type=web        -> mifsh，whoami 通过
+cd packages/ui && npx npm@11.15.0 publish --access public
+  -> + @marxchou/dogeared-ui@2.1.2
+  -> registry published 2026-11-07T04:05:20.598Z
+```
+
+- `latest` = `2.1.2`；dist-tags 只有 `latest`。
+- tarball `dogeared-ui-2.1.2.tgz` 6233 B，HTTP 200。
+- 干净消费者：`npm i ... @marxchou/dogeared-ui@2.1.2` → `added 1 package`，读回版本 `2.1.2`。
+- `packages/ui/package.json` 保持 `2.1.2`；为 B 尝试过的 `0.0.0-stage` 已用 `git checkout` 还原，没有进入提交。
+
+### 11.2 两个未收口项
+
+1. **Trusted Publisher 未登记**：`npm trust github @marxchou/dogeared-ui --file release.yml --repo Smart-Chou/zcblog-v2 --env npm-publish --allow-publish --allow-stage-publish --yes` 在 WebAuthn 后仍返回
+   `403 Forbidden - POST https://registry.npmjs.org/-/package/@marxchou%2Fdogeared-ui/trust`。
+   账号 2FA 为 WebAuthn；CLI 的 auth URL 多次过期/回调 404。**这是 npm 账号 2FA 交互未完成，不是包权限或 workflow 配置错误**：`npm access list packages @marxchou` 显示 ui 为 `read-write`。
+2. **`0.0.0-stage` 占位**：新包由 registry 自动创建，`dist-tags` 不指向它；`verify-registry` R10 报 `present/window-open`。`unpublish` 同样需要 WebAuthn，本轮未执行。
+
+### 11.3 门禁读数
+
+`node scripts/release/verify-registry.mjs --min-age-hours=0`：
+
+```text
+PASS 25 / FAIL 1 / WARN 0 / INFO 1
+FAIL R6 @marxchou/dogeared-ui@2.1.2 没有 attestations（provenance 缺失）
+INFO R10 @marxchou/dogeared-ui 仍挂着 0.0.0-stage 占位
+```
+
+R6 是路径 B 的**预期结果**（PO 已接受 no provenance），不是发布失败；tokens/og-image 的 R6 仍为 SLSA v1。
+R10 待有 2FA 的会话清理。
+
+### 11.4 上膛状态
+
+`private:false` 保持不变。**在 Trusted Publisher 登记完成前不要推 `v2.1.2` tag**：`release.yml` 的 OIDC 首发会把 ui 算进 plan，并因没有 trust 而失败。后续版本要么先在 npm UI 完成 trust，要么继续走一次性 token 发布。
+
+### 11.5 下一步（需 PO 在场）
+
+- 在 npmjs.com 包设置里完成 ui 的 Trusted Publisher（GitHub / `Smart-Chou/zcblog-v2` / `release.yml` / `npm-publish` / publish + stage publish），或
+- 重新 `npm login --auth-type=web` 后立即完成 `npm trust` 的 WebAuthn，再 `unpublish @marxchou/dogeared-ui@0.0.0-stage`。

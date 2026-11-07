@@ -10,13 +10,12 @@
 > | --- | --- | --- | --- |
 > | `@marxchou/dogeared-tokens` | `2.1.2` | 已发布（`latest`，SLSA provenance） | `false` |
 > | `@marxchou/dogeared-og-image` | `2.1.2` | 已发布（`latest`，SLSA provenance） | `false` |
-> | `@marxchou/dogeared-ui` | `2.1.2` | **未发布**（404）；元数据已发布就绪 | `false`（M5-8 / D-0139 翻的） |
+> | `@marxchou/dogeared-ui` | `2.1.2` | 已发布（`latest`，token 首发，无 provenance） | `false`（M5-8 / D-0139 翻的） |
 >
 > `packages/ui` 已按 D-0139 从 `private: true` 翻成可发布（`publishConfig.access=public`），
-> 首发范围仍只有 Badge / Button。**它还没有上 registry**，所以还有两道门没过：
-> ① 真发布需 PO 明确批准；② 新包走 Trusted Publisher 有「鸡生蛋」顺序问题——
-> npm 只允许给**已存在**的包登记 Trusted Publisher，首个版本必须先用短时 token 发出去
-> （或先发一个占位版本），详见 §13。
+> 首发范围仍只有 Badge / Button。2026-11-07 已按 PO 选择的路径 B 用账号 token 发出 `2.1.2`
+> （无 provenance）；Trusted Publisher 尚未登记，`0.0.0-stage` 占位待清。**在 trust 登记完成前不要推
+> `v2.1.2` tag**。细节见 `docs/_reviews/M5-8/report.md` §11。
 >
 > 仓库已于 2026-11-06 转为 **public**；标准 GitHub-hosted runner 不再消耗 Free 计划分钟数。
 > 发布认证已切到 **npm Trusted Publishing（GitHub OIDC）**：publish job 不注入 `NPM_TOKEN`，
@@ -614,15 +613,17 @@ npm dist-tag ls @marxchou/dogeared-ui
 npm unpublish @marxchou/dogeared-ui@0.0.0-stage
 ```
 
-### 13.3 现在的状态（M5-8 收尾时）
+### 13.3 现在的状态（2026-11-07，路径 B 已发布）
 
-- `packages/ui` 已 `private: false` + `publishConfig.access=public`：**发布已上膛**。
-  任何 `v*` tag push 或 `release.yml` dispatch（`dry_run=false` + `confirm_publish=PUBLISH`）
-  都会把它算进 publish-plan（`preflight` 实测：`plan=[[ui@2.1.2]]`，tokens/og-image 因版本已在
-  registry 而不进 plan）。
-- 但 ui 还没有 Trusted Publisher 配置，OIDC 首发会失败（`ENEEDAUTH`/404）。所以在走完 §13.1
-  之前，**不要**推 `v2.1.2` tag，也不要用 `--mode=publish` 跑 release.yml。
-- `verify-registry.mjs` 会把 ui 当发布清单内成员查 `R1/R2`，在它上 registry 之前必然红 R1
-  （404）——这是「还没发」的如实读数，不是回归。发完之后应当 0 FAIL。
+- `packages/ui` 已 `private: false` + `publishConfig.access=public`；`2.1.2` 已用账号 token 发布，
+  `latest` 指向 `2.1.2`，干净安装通过。**没有 provenance**（PO 选择路径 B，明确接受）。
+- Trusted Publisher **仍未登记**：`npm trust` 在 WebAuthn 后返回 `403 POST /-/package/@marxchou%2Fdogeared-ui/trust`；
+  npm 账号 2FA 交互未完成，不是包权限问题。登记完成前 **不要**推 `v2.1.2` tag，也不要用
+  `--mode=publish` 跑 release.yml（OIDC 首发会失败）。
+- `0.0.0-stage` 占位由新包自动创建，`dist-tags` 不指向它，待在 72h 窗口内用有 2FA 的会话
+  `npm unpublish @marxchou/dogeared-ui@0.0.0-stage` 清理。
+- `verify-registry.mjs --min-age-hours=0` 当前：25 PASS / 1 FAIL / 1 INFO。FAIL 是 ui 的 `R6`
+  （no provenance，路径 B 预期）；INFO 是 ui 的 `R10` 占位。tokens/og-image 仍全绿。
+- 复现与证据：`docs/_reviews/M5-8/report.md` §11。
 
 
