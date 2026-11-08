@@ -37,9 +37,21 @@ async function open404(page: Page, theme: Theme, viewport?: { width: number; hei
     const response = await page.goto("/404/", { waitUntil: "load" });
     expect(response?.status(), "GET /404/").toBe(200);
     await page.evaluate((value) => {
+        /**
+         * 主题切换必须先把 transition 关掉：站点给 color / background-color 配了
+         * --duration-fast 过渡，setAttribute 之后立刻取色会拿到「前景已换、底色还在路上」
+         * 的半截状态 —— axe 会报出 #ffffff 底 + 深色前景这种真实页面不存在的组合。
+         */
+        const style = document.createElement("style");
+        style.id = "nf-no-transition";
+        style.textContent = "*,*::before,*::after{transition:none !important}";
+        document.head.appendChild(style);
         document.documentElement.setAttribute("data-theme", value);
     }, theme);
     await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
 }
 
 async function overflowPx(page: Page): Promise<number> {

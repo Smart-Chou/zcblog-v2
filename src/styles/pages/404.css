@@ -577,13 +577,13 @@
 
     .nf-code {
         position: absolute;
-        inset-block-start: 0;
+        inset-block-start: var(--space-12);
         inset-inline-start: 50%;
         z-index: 0;
         transform: translateX(-50%);
-        font-size: clamp(var(--text-display), 34vw, calc(var(--text-display) * 2.2));
+        font-size: clamp(var(--text-display), 44vw, calc(var(--text-display) * 3));
         pointer-events: none;
-        color: color-mix(in oklab, var(--color-accent-solid) 16%, transparent);
+        color: color-mix(in oklab, var(--color-accent-solid) 18%, transparent);
     }
 
     .nf-code__edge,
@@ -630,7 +630,13 @@
     .nf-report {
         flex-direction: column;
         align-items: stretch;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
         text-align: center;
+    }
+
+    .nf-report__body {
+        flex: none;
     }
 
     .nf-report__link {
