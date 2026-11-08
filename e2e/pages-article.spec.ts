@@ -516,10 +516,11 @@ test("分享弹层关闭态：0 额外网络请求（二维码点击时本地生
 
     // 二维码不再内联进 HTML（单篇 10.4KB），改成点「微信」时 await import("uqr") 本地渲染。
     // 判据仍是「零第三方 QR 服务」：任何 qr 服务请求都是失败（本地 chunk 是同源 /_astro/*.js）。
+    // 同源按 page.url() 的 origin 判定：baseURL 是 127.0.0.1，只排 localhost 会让同源
+    // chunk 里偶然带 "qr" 的哈希（如 feature.DkFqrIlh.js）被误判成第三方服务。
+    const origin = new URL(page.url()).origin;
     const qrRequests = requests.filter(
-        (url) =>
-            !url.startsWith("http://localhost:4321") &&
-            /qr|qrcode|chart\.googleapis|api\.qrserver/i.test(url),
+        (url) => !url.startsWith(origin) && /qr|qrcode|chart\.googleapis|api\.qrserver/i.test(url),
     );
     expect(qrRequests, "分享二维码必须本地生成，不能请求第三方 QR 服务").toEqual([]);
 
@@ -689,6 +690,118 @@ test.describe("无 JS：目录仍渲染且可跳（D-0082）", () => {
         expect(target).not.toBeNull();
         expect(Math.abs(target as number)).toBeLessThan(160);
         console.log(`[toc] no-js：${count} 个目录链接，点击 ${href} 命中标题`);
+    });
+});
+
+/* ───────────────────── M6-3 · 移动目录抽屉（390） ───────────────────── */
+
+test.describe("M6-3：移动目录抽屉", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("静态目录卡隐藏 + 抽屉 Esc 关闭且焦点回填", async ({ page }) => {
+        await page.goto(ARTICLE, { waitUntil: "load" });
+        await page.waitForTimeout(400);
+
+        // 390：右栏的静态目录卡不再占位（否则同一份目录在窄屏出现两次）
+        const tocBox = await page.evaluate(() => {
+            const toc = document.querySelector(".toc.post-toc");
+            if (!toc) return null;
+            const rect = toc.getBoundingClientRect();
+            const style = getComputedStyle(toc);
+            return {
+                w: Math.round(rect.width),
+                h: Math.round(rect.height),
+                display: style.display,
+                visibility: style.visibility,
+            };
+        });
+        expect(tocBox, "目录节点必须仍在 HTML 里（构建期渲染）").not.toBeNull();
+        expect(
+            tocBox!.w === 0 || tocBox!.display === "none" || tocBox!.visibility === "hidden",
+            `移动端静态目录卡必须不可见，实测 ${JSON.stringify(tocBox)}`,
+        ).toBe(true);
+
+        const trigger = page.locator(".post-toc-trigger");
+        await expect(trigger).toBeVisible();
+        await expect(trigger).toHaveAttribute("popovertarget", "post-toc-drawer");
+        expect((await trigger.innerText()).trim().length).toBeGreaterThan(0);
+
+        await trigger.click();
+        await page.waitForTimeout(250);
+        const isOpen = () =>
+            page.evaluate(
+                () => document.getElementById("post-toc-drawer")?.matches(":popover-open") ?? false,
+            );
+        expect(await isOpen(), "点击「目录」后抽屉必须打开").toBe(true);
+
+        const drawerLinks = page.locator("#post-toc-drawer .toc-link");
+        const linkCount = await drawerLinks.count();
+        expect(linkCount, "抽屉里的目录条目").toBeGreaterThanOrEqual(3);
+
+        // 抽屉必须贴右侧滑出（不是居中小窗）
+        const drawerBox = await page.evaluate(() => {
+            const el = document.getElementById("post-toc-drawer");
+            if (!el) return null;
+            const rect = el.getBoundingClientRect();
+            return {
+                x: Math.round(rect.x),
+                right: Math.round(rect.right),
+                clientWidth: document.documentElement.clientWidth,
+            };
+        });
+        expect(drawerBox).not.toBeNull();
+        expect(drawerBox!.x, "抽屉左边缘应留出遮罩").toBeGreaterThan(0);
+        // headless Chromium 用经典滚动条（15px）：抽屉贴的是"可用视口"右沿，不是 clientWidth
+        // 右沿 —— 真机 overlay 滚动条下这个差值是 0，这里按滚动条宽度放宽到 16px。
+        expect(drawerBox!.clientWidth - drawerBox!.right, "抽屉应贴右边缘").toBeLessThanOrEqual(16);
+
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(250);
+        expect(await isOpen(), "Esc 必须关闭抽屉").toBe(false);
+        const focused = await page.evaluate(() => document.activeElement?.className ?? "");
+        expect(focused, "关闭后焦点必须回到触发按钮").toContain("post-toc-trigger");
+
+        // 点遮罩（抽屉左侧空白）light-dismiss
+        await trigger.click();
+        await page.waitForTimeout(200);
+        await page.mouse.click(6, 420);
+        await page.waitForTimeout(250);
+        expect(await isOpen(), "点遮罩必须关闭抽屉").toBe(false);
+
+        console.log(
+            `[toc] 移动抽屉：${linkCount} 条目录，x=${drawerBox!.x}，Esc/遮罩关闭 + 焦点回填`,
+        );
+    });
+});
+
+test.describe("无 JS：移动目录抽屉仍可用（声明式 popover）", () => {
+    test.use({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+
+    test("抽屉可开 + 锚点跳转生效", async ({ page }) => {
+        const response = await page.goto(ARTICLE, { waitUntil: "load" });
+        expect(response?.status()).toBe(200);
+
+        const trigger = page.locator(".post-toc-trigger");
+        await expect(trigger).toBeVisible();
+        await trigger.click();
+        await page.waitForTimeout(400);
+
+        const links = page.locator("#post-toc-drawer .toc-link");
+        const count = await links.count();
+        expect(count, "无 JS 时抽屉里的目录条目").toBeGreaterThanOrEqual(3);
+
+        const href = await links.nth(1).getAttribute("href");
+        expect(href).toMatch(/^#.+/);
+        await links.nth(1).click();
+        await page.waitForTimeout(400);
+
+        const target = await page.evaluate(
+            (selector) => document.querySelector(selector)?.getBoundingClientRect().top ?? null,
+            href ?? "#",
+        );
+        expect(target, "无 JS 点目录必须跳到标题").not.toBeNull();
+        expect(Math.abs(target as number)).toBeLessThan(160);
+        console.log(`[toc] 移动 no-js：${count} 条目录，点击 ${href} → top=${target}`);
     });
 });
 

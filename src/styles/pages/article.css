@@ -29,15 +29,66 @@
     padding-bottom: var(--space-12);
 }
 
-/* 页头：面包屑 → 朱红短横 → 标题 → 元信息，居中；与首页 masthead 同一套节奏 */
+/* ── 8/4 版式（M6-3，selection §4.2 `marx_s_blog_toc`） ────── */
+
+/* 桌面：12 栅格里的 8/4（1440 内容宽 1092 → 主栏 707 / 右栏 353）；
+   移动：单栏，右栏的三块落到正文之后（TOC 变右侧滑出抽屉，不占流）。 */
+.post-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+}
+
+.post-layout--full {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.post-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.post-rail {
+    min-width: 0;
+    /* 栅格容器是 align-items:start，这里显式拉高到整行，`.post-rail__sticky` 才有
+       「可粘的距离」——否则父盒高度 = 卡片高度，sticky 一步都粘不住。 */
+    align-self: stretch;
+}
+
+.post-rail__sticky {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+    .post-layout {
+        grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    }
+
+    /* 整列一起吸顶：只有 TOC 单独 sticky 会在滚过作者卡时叠在它上面。
+       三块总高超过视口时，右栏自己滚（不裁切、不遮挡，axe 不会判背景被挡）。 */
+    .post-rail__sticky {
+        position: sticky;
+        top: calc(var(--shell-header-h) + var(--space-6));
+        max-block-size: calc(100dvh - var(--shell-header-h) - var(--space-8));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+}
+
+/* 页头：面包屑 → 朱红短横 → 标题 → 元信息，左对齐；与首页 masthead 同一套节奏 */
 .post-masthead {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    max-width: var(--layout-article);
-    margin-inline: auto;
-    padding-block: var(--space-4) var(--space-8);
-    text-align: center;
+    align-items: flex-start;
+    max-width: none;
+    margin-inline: 0;
+    padding-block: 0 var(--space-6);
+    text-align: start;
 }
 
 /* ── 面包屑 ──────────────────────────────────────────────── */
@@ -108,10 +159,10 @@
 /* ── 标题 ─────────────────────────────────────────────────── */
 
 .post-title-text {
-    margin: var(--space-5) 0 0;
+    margin: var(--space-4) 0 0;
     font-family: var(--font-serif);
     font-weight: var(--font-weight-semibold);
-    font-size: clamp(var(--text-3xl), 4.6vw, var(--text-4xl));
+    font-size: clamp(var(--text-2xl), 2.8vw, var(--text-3xl));
     line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
     color: var(--color-fg-heading);
@@ -125,7 +176,7 @@
     display: block;
     inline-size: var(--space-8);
     block-size: var(--space-1);
-    margin: 0 auto var(--space-5);
+    margin: 0 0 var(--space-5);
     border-radius: var(--radius-pill);
     background-color: var(--color-accent-solid);
 }
@@ -136,9 +187,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    justify-content: center;
+    justify-content: flex-start;
     gap: var(--space-2) var(--space-4);
-    margin-top: var(--space-5);
+    margin-top: var(--space-4);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     line-height: var(--leading-snug);
@@ -169,14 +220,77 @@
 
 /* ── 纸面 ─────────────────────────────────────────────────── */
 
+/* M6-3：主栏不再是一张纸卡（`toc` 稿的正文直接落在画布上），
+   圆角/边框/阴影交给右栏的目录卡与作者卡；`.post-sheet` 这个类名必须保留
+   （e2e `route-zh` 断言它恰好 1 个），所以只收表面、不收结构。 */
 .post-sheet {
     box-sizing: border-box;
     width: 100%;
-    padding: var(--space-8);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg);
-    background-color: var(--color-bg-surface);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+/* ── 移动端目录入口（M6-3） ───────────────────────────────── */
+
+.post-toolbar {
+    display: none;
+}
+
+.post-toc-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: var(--space-9);
+    padding-inline: var(--space-4);
+    border: 1px solid var(--shell-border, var(--color-border-subtle));
+    border-radius: var(--radius-pill);
+    background-color: var(--shell-surface, var(--color-bg-surface));
+    color: var(--shell-fg, var(--color-fg-default));
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
     box-shadow: var(--shadow-1);
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+.post-toc-trigger__icon {
+    inline-size: var(--text-base);
+    block-size: var(--text-base);
+    color: var(--color-fg-muted);
+}
+
+.post-toc-trigger__count {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-muted);
+}
+
+@media (hover: hover) {
+    .post-toc-trigger:hover {
+        border-color: var(--shell-border-strong, var(--color-border-default));
+        color: var(--color-fg-link);
+    }
+}
+
+.post-toc-trigger:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ── 评论区（M6-3 只挪位：主栏底部；交互仍归 M7-2） ───────── */
+
+.post-comments {
+    max-width: var(--layout-article);
+    margin: var(--space-10) auto 0;
+    padding-block-start: var(--space-8);
+    border-block-start: 1px solid var(--color-border-subtle);
 }
 
 /* ── 封面 ─────────────────────────────────────────────────── */
@@ -810,16 +924,18 @@
 
 /* ── 目录（D-0082：构建期结构 + tocbot 增强） ─────────────── */
 
-/* toc.css 的定位（left/top/display）保留，这里只换外观。
+/* M6-3：目录从「固定悬浮在视口右侧」改成 8/4 右栏里的一张卡片；
+   吸顶由 `.post-rail__sticky` 整列负责（见上），这里只画表面。
    选择器前缀 .toc.post-toc 的权重高于 toc.css 的 .toc-* 链，改版不依赖打包顺序。 */
 .toc.post-toc {
     box-sizing: border-box;
-    inline-size: var(--layout-toc);
-    padding: var(--space-3) var(--space-2) var(--space-4);
+    position: static;
+    inline-size: 100%;
+    padding: var(--space-5) var(--space-4) var(--space-5);
     border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
     background-color: var(--color-bg-surface);
-    box-shadow: var(--shadow-2);
+    box-shadow: var(--shadow-1);
 }
 
 .toc.post-toc .post-toc__head {
@@ -827,7 +943,7 @@
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-2);
-    margin: 0 var(--space-2) var(--space-3);
+    margin: 0 0 var(--space-3);
     padding-block-end: var(--space-2);
     border-block-end: 1px solid var(--color-border-subtle);
 }
@@ -852,6 +968,10 @@
     max-block-size: min(48vh, 26rem);
     margin: 0;
     padding-inline-end: var(--space-1);
+    /* tocbot 的 updateTocScroll 用 activeItem.offsetTop 算滚动量，offsetTop 是相对
+       **最近的定位祖先**。不给这一层定位，祖先会落到 `.toc`（position:relative），
+       算出来的值把卡片头部高度也加进去 —— 首屏列表会莫名下滚 34px（第一个章节消失）。 */
+    position: relative;
 }
 
 .toc.post-toc .toc-list-item {
@@ -937,7 +1057,198 @@
     color: var(--color-fg-link);
 }
 
-/* 键盘可达：目录链接的焦点环（tocbot 用 a[href] 生成，浏览器默认环在新版被去掉） */
+/* ── 目录抽屉（M6-3）：桌面 = 普通块，移动 = 右侧滑出 ─────── */
+
+/* `popover` 的 UA 样式默认 `display:none` + fixed/inset/margin auto；桌面要它当普通
+   卡片参与右栏栅格，所以把 UA 那层一律还原成静态块（选择器带 [popover] 表意）。 */
+.post-toc-drawer[popover] {
+    display: block;
+    position: static;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    inline-size: auto;
+    block-size: auto;
+    max-inline-size: none;
+    max-block-size: none;
+    border: 0;
+    background-color: transparent;
+    color: inherit;
+    overflow: visible;
+}
+
+.post-toc-drawer__bar {
+    display: none;
+}
+
+/* ── 右栏：目录卡 / 作者卡 / 相关阅读 ─────────────────────── */
+
+.post-rail__card {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+}
+
+/* 作者卡：Author.astro 的 DOM 不动，这里把它从「页脚居中简介」收成右栏竖排 */
+.post-rail .author {
+    margin: 0;
+    padding: 0;
+    text-align: start;
+}
+
+.post-rail .author-image {
+    display: block;
+    inline-size: var(--space-12);
+    block-size: var(--space-12);
+    margin: 0 0 var(--space-3);
+}
+
+.post-rail .author-site-title {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.post-rail .author-intro {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
+}
+
+.post-rail .author-links {
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-base);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--space-1);
+}
+
+.post-rail .author-links a {
+    min-inline-size: var(--space-9);
+    min-block-size: var(--space-9);
+}
+
+/* 相关阅读（rail 版式 = 竖排条目）：日期 + 标签 → 标题，条目间细线分隔。
+   位置回到正文末尾（`.post-sheet` 内），版式取自 `toc` 稿右栏的「相关阅读推荐」卡。
+   右栏只留目录 + 作者卡，是因为 900px 视口塞不下三块吸顶卡。
+   统一带 `.post-sheet` 前缀（0,3,0）：同一批类名的 grid 版式写在更晚加载的
+   `src/styles/article.css` 里，不压一级就会被它的三列网格盖掉。 */
+.post-sheet .related-posts--rail {
+    max-width: var(--layout-article);
+    margin: var(--space-10) auto 0;
+    padding-block-start: var(--space-6);
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.post-sheet .related-posts--rail .related-posts-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.post-sheet .related-posts--rail .related-posts-title::before {
+    content: "";
+    flex: none;
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+}
+
+.post-sheet .related-posts--rail .related-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.post-sheet .related-posts--rail .related-posts-item {
+    position: static;
+    height: auto;
+    margin: 0;
+}
+
+.post-sheet .related-posts--rail .related-posts-item + .related-posts-item {
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.post-sheet .related-posts--rail .related-posts-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-3) 0;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    color: inherit;
+    text-decoration: none;
+}
+
+/* 取消 grid 版式铺满卡片的伪元素（竖排条目整行就是链接，不需要覆盖层） */
+.post-sheet .related-posts--rail .related-posts-link::after {
+    content: none;
+}
+
+@media (hover: hover) {
+    .post-sheet .related-posts--rail .related-posts-link:hover {
+        border-color: transparent;
+        background-color: transparent;
+    }
+
+    .post-sheet .related-posts--rail .related-posts-link:hover .related-posts-post-title {
+        color: var(--color-fg-link);
+    }
+}
+
+.post-sheet .related-posts--rail .related-posts-link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+.post-sheet .related-posts--rail .related-posts-meta {
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-muted);
+}
+
+.post-sheet .related-posts--rail .related-posts-tags {
+    gap: var(--space-1);
+}
+
+.post-sheet .related-posts--rail .related-posts-tag {
+    padding-inline: var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: transparent;
+    font-size: var(--text-xs);
+    color: var(--color-fg-default);
+}
+
+.post-sheet .related-posts--rail .related-posts-post-title {
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+    text-wrap: pretty;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+/* ── 键盘可达：目录链接的焦点环（tocbot 用 a[href] 生成，浏览器默认环在新版被去掉） ── */
 .toc.post-toc .toc-link:focus-visible,
 /* 焦点环收口：global.css 的 `:focus-visible` 用旧 --color-accent（晚于本文件加载），
    `.post` / `.toc` 内的元素一律改用 --color-ring-focus（§3.0-5 的判据） */
@@ -966,9 +1277,145 @@
 
 /* ── 响应式 ───────────────────────────────────────────────── */
 
-@media (width <= 1024px) {
-    .post-sheet {
-        padding: var(--space-6);
+@media (width <= 1023px) {
+    /* 断点必须与上面的 `min-width: 1024px` 严丝合缝：两边都写 1024 时，
+       1024 宽的窗口会同时拿到两栏版式和移动抽屉，目录卡会凭空消失。 */
+    /* 目录抽屉：桌面是右栏卡，≤1023 变右侧滑出浮层（`marx_s_blog_slide_over_toc_sheet`） */
+    .post-toolbar {
+        display: block;
+        position: sticky;
+        top: calc(var(--shell-header-h) + var(--space-2));
+        z-index: 20;
+        align-self: flex-start;
+        margin-block: 0 var(--space-5);
+    }
+
+    .post-toc-drawer[popover] {
+        position: fixed;
+        inset: 0 0 0 auto;
+        margin: 0;
+        inline-size: min(88vw, 22rem);
+        block-size: 100dvh;
+        max-block-size: 100dvh;
+        padding: var(--space-4) var(--space-4) var(--space-8);
+        border: 0;
+        border-inline-start: 1px solid var(--color-border-subtle);
+        background-color: var(--shell-surface, var(--color-bg-surface));
+        color: var(--shell-fg, var(--color-fg-default));
+        box-shadow: var(--shadow-5);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        /* 关闭态必须**不占视口**：`translateX(100%)` 会留下一个 343px 宽的盒子，
+           e2e 的「elements past the viewport」会把它判成横向溢出。 */
+        display: none;
+        transform: translateX(100%);
+        transition: transform var(--duration-normal) var(--ease-standard);
+    }
+
+    .post-toc-drawer[popover]:popover-open {
+        display: block;
+        transform: none;
+    }
+
+    /* 滑入：允许从「display:none + 位移」起始（Chrome 117+ / Safari 17.4+） */
+    @starting-style {
+        .post-toc-drawer[popover]:popover-open {
+            transform: translateX(100%);
+        }
+    }
+
+    .post-toc-drawer::backdrop {
+        background-color: var(--color-bg-scrim);
+    }
+
+    .post-toc-drawer__bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-block-end: var(--space-4);
+        padding-block-end: var(--space-3);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .post-toc-drawer__label {
+        display: inline-flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        color: var(--color-fg-muted);
+    }
+
+    .post-toc-drawer__count {
+        font-variant-numeric: tabular-nums;
+        color: var(--color-fg-subtle);
+    }
+
+    .post-toc-drawer__close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: var(--space-10);
+        block-size: var(--space-10);
+        padding: 0;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-surface);
+        color: var(--shell-fg, var(--color-fg-default));
+        font-size: var(--text-base);
+        cursor: pointer;
+    }
+
+    .post-toc-drawer__close:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    /* 抽屉里的目录不再是「卡」：标题/计数已经在抽屉头部，列表放开高度 */
+    .post-toc-drawer .toc.post-toc {
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    .post-toc-drawer .toc.post-toc .post-toc__head {
+        display: none;
+    }
+
+    .post-toc-drawer .toc.post-toc .toc-content {
+        max-block-size: none;
+    }
+
+    /* 抽屉整块是不透明的 surface，条目改透明底（不再是一颗颗白方块） */
+    .post-toc-drawer .toc.post-toc .toc-link {
+        background-color: transparent;
+    }
+
+    /* 抽屉里放行字号：一级条目 14px + 正文色，二级 12px + muted，层级一眼可辨 */
+    .post-toc-drawer .toc.post-toc .toc-content > .toc-list > .toc-list-item {
+        margin-block-end: var(--space-2);
+    }
+
+    .post-toc-drawer .toc.post-toc .toc-content > .toc-list > .toc-list-item > .toc-link {
+        font-size: var(--text-sm);
+        color: var(--color-fg-default);
+    }
+
+    .post-toc-drawer
+        .toc.post-toc
+        .toc-content
+        > .toc-list
+        > .toc-list-item
+        > .toc-list
+        > .toc-list-item
+        > .toc-link {
+        font-size: var(--text-xs);
+        color: var(--color-fg-muted);
     }
 
     .post-sheet .related-posts-list {
@@ -996,9 +1443,13 @@
     }
 
     .post-sheet {
-        padding: var(--space-4);
-        border-radius: var(--radius-md);
+        padding: 0;
+        border-radius: 0;
         box-shadow: none;
+    }
+
+    .post-rail__card {
+        padding: var(--space-4);
     }
 
     .post-cover {
@@ -1093,6 +1544,9 @@
     .series-nav__series-link,
     .series-nav__label,
     .series-nav__pager-link,
+    .post-toc-trigger,
+    .post-toc-drawer[popover],
+    .post-rail .related-posts--rail .related-posts-post-title,
     .toc.post-toc .toc-content .toc-link {
         transition: none;
     }

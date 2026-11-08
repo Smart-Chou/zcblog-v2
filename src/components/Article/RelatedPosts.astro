@@ -1,9 +1,14 @@
 ---
 /**
- * 相关文章（M2-3 / P-02）
+ * 相关文章（M2-3 / P-02，M6-3 增补 rail 版式）
  *
- * 三张 Card atom（M1）横排；每张卡片整块可点 —— `<a>` 铺满 `.card__content`，
- * hover/focus 由 Card 的 interactive 变体给（焦点环 = --color-ring-focus）。
+ * 两种版式：
+ * - `variant="grid"`（默认，文章页正文底部）：三张 Card atom 横排；每张卡片整块可点 ——
+ *   `<a>` 铺满 `.card__content`，hover/focus 由 Card 的 interactive 变体给。
+ * - `variant="rail"`（M6-3，8/4 右栏）：一张卡里的竖排条目（日期 + 标签小字 → 标题），
+ *   与 `screens/marx_s_blog_toc` 右栏的「相关阅读推荐」对应。
+ *
+ * 两种都复用同一份取数（MarkdownLayout 的标签匹配），只换壳，不加 JS。
  */
 import type { CollectionEntry } from "astro:content";
 import { formatDateI18n } from "~/utils/date-utils";
@@ -11,9 +16,10 @@ import Card from "~/components/UI/atom/Card.astro";
 
 interface Props {
     relatedPosts: CollectionEntry<"article">[];
+    variant?: "grid" | "rail";
 }
 
-const { relatedPosts } = Astro.props;
+const { relatedPosts, variant = "grid" } = Astro.props;
 
 if (relatedPosts.length === 0) {
     // 无相关文章时不渲染任何内容
@@ -23,32 +29,56 @@ if (relatedPosts.length === 0) {
 const isEn = Astro.url.pathname.startsWith("/en/");
 const articlePrefix = isEn ? "/en/article" : "/article";
 const toArticleUrl = (id: string) => `${articlePrefix}/${isEn ? id.replace(/-en$/, "") : id}/`;
-const heading = isEn ? "Related posts" : "相关文章";
+const heading =
+    variant === "rail" ? (isEn ? "Related" : "相关阅读") : isEn ? "Related posts" : "相关文章";
 ---
 
-<section class="related-posts" aria-labelledby="related-posts-title">
+<section
+    class:list={["related-posts", { "related-posts--rail": variant === "rail" }]}
+    aria-labelledby="related-posts-title"
+>
     <h2 class="related-posts-title" id="related-posts-title">{heading}</h2>
     <ul class="related-posts-list">
         {
-            relatedPosts.map((post) => (
-                <Card as="li" variant="interactive" padding="md" class="related-posts-item">
-                    <a href={toArticleUrl(post.id)} class="related-posts-link">
-                        <span class="related-posts-post-title">{post.data.title}</span>
-                        <span class="related-posts-meta">
-                            <span class="related-posts-date">
-                                {formatDateI18n(post.data.pubDate)}
-                            </span>
-                            {post.data.tags?.length > 0 && (
-                                <span class="related-posts-tags">
-                                    {post.data.tags.slice(0, 3).map((tag: string) => (
-                                        <span class="related-posts-tag">{tag}</span>
-                                    ))}
+            relatedPosts.map((post) =>
+                variant === "rail" ? (
+                    <li class="related-posts-item">
+                        <a href={toArticleUrl(post.id)} class="related-posts-link">
+                            <span class="related-posts-meta">
+                                <span class="related-posts-date">
+                                    {formatDateI18n(post.data.pubDate)}
                                 </span>
-                            )}
-                        </span>
-                    </a>
-                </Card>
-            ))
+                                {post.data.tags?.length > 0 && (
+                                    <span class="related-posts-tags">
+                                        {post.data.tags.slice(0, 2).map((tag: string) => (
+                                            <span class="related-posts-tag">{tag}</span>
+                                        ))}
+                                    </span>
+                                )}
+                            </span>
+                            <span class="related-posts-post-title">{post.data.title}</span>
+                        </a>
+                    </li>
+                ) : (
+                    <Card as="li" variant="interactive" padding="md" class="related-posts-item">
+                        <a href={toArticleUrl(post.id)} class="related-posts-link">
+                            <span class="related-posts-post-title">{post.data.title}</span>
+                            <span class="related-posts-meta">
+                                <span class="related-posts-date">
+                                    {formatDateI18n(post.data.pubDate)}
+                                </span>
+                                {post.data.tags?.length > 0 && (
+                                    <span class="related-posts-tags">
+                                        {post.data.tags.slice(0, 3).map((tag: string) => (
+                                            <span class="related-posts-tag">{tag}</span>
+                                        ))}
+                                    </span>
+                                )}
+                            </span>
+                        </a>
+                    </Card>
+                ),
+            )
         }
     </ul>
 </section>

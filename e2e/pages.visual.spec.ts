@@ -60,15 +60,12 @@ const MAX_SHOT_HEIGHT = 3600;
 /**
  * Known, pre-existing horizontal overflow (px of document-level scrollWidth extra).
  *
- * The long article's wide tables push the document 16px past the viewport at 375 — the same
- * content is fine at 390 (the width every other suite uses), so this is a 375-specific
- * responsive gap, not a fixture artefact. M5-11 is baselines only ("不改页面视觉"), so the
- * gate records the current value instead of demanding a fix; every other page/viewport must
- * stay ≤ 1px. When the table overflow is fixed, drop this entry to 0 and regenerate.
+ * Empty since M6-3: the article page's long tables/wide code now scroll inside their own
+ * `overflow-x: auto` box, so the document no longer exceeds the viewport at 375. Every page
+ * and viewport must therefore stay ≤ 1px. (M5-11 had frozen `article@375: 16` as a known
+ * responsive gap; M6-3 removed it instead of re-freezing it.)
  */
-const KNOWN_OVERFLOW: Record<string, number> = {
-    "article@375": 16,
-};
+const KNOWN_OVERFLOW: Record<string, number> = {};
 
 /**
  * Deterministic stand-in for every off-site image. An SVG (not a PNG) on purpose: it can be

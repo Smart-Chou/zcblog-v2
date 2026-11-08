@@ -5,24 +5,13 @@
    ========================================= */
 
 /* ---- Wrapper ---- */
+/* M6-3：定位交给页面样式表 —— 桌面是 8/4 右栏里的一张卡（吸顶由 `.post-rail__sticky`
+   统一负责），移动是右侧滑出的 popover 抽屉。这里只留与布局无关的基线，
+   避免 toc.css 与 pages/article.css 两张表抢 position / left / top / display。 */
 .toc {
-    position: fixed;
-    left: calc(
-        (100vw - min(100vw, var(--content-width-medium, 664px))) / 2 +
-            min(100vw, var(--content-width-medium, 664px)) + 178px
-    );
-    top: clamp(280px, 32vh, 420px);
-    transform: none;
-    z-index: 90;
-    width: 200px;
-
-    @media screen and (max-width: 1440px) {
-        left: calc(100vw - 240px);
-    }
-
-    @media screen and (max-width: 1280px) {
-        display: none;
-    }
+    position: relative;
+    inline-size: 100%;
+    min-inline-size: 0;
 }
 
 /* ---- Content container ---- */

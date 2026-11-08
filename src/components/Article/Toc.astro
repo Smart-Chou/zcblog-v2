@@ -1,77 +1,103 @@
 ---
-// 构建期把目录结构渲染进 HTML（D-0082）。
-// 之前 `.toc-content` 是空的，完全由 tocbot 在浏览器里生成：文章正文已经显示，
-// 目录却要等 Toc 的 13KB 脚本下载 + 执行完才出现 —— 慢链路/弱机型上看起来就像
-// 「目录被故意延迟加载」。这里用 markdown 的 headings 先渲染一份同样的结构
-// （.toc-list / .toc-list-item / .toc-link，与 tocbot 生成的 DOM 一致），
-// tocbot 到位后再接管高亮与折叠，视觉上没有跳变；JS 挂了目录也照样能点。
+/**
+ * 目录（M6-3 重做）
+ *
+ * 形态（selection.md §4.2）：桌面 = 8/4 右栏里的 sticky 目录卡；移动 = 右侧滑出抽屉
+ * （`screens/marx_s_blog_slide_over_toc_sheet`）。
+ *
+ * 三条不能丢的契约：
+ *  1. **构建期渲染**（D-0082）：整份目录写进 HTML，tocbot 只做高亮/折叠增强。
+ *  2. **无 JS 可读**：抽屉的开合是 HTML `popover` 的声明式行为 —— Esc 关闭、焦点回填到
+ *     触发按钮、点遮罩 light-dismiss 都由浏览器负责，0 行 JS；脚本被禁用时目录照样能点。
+ *  3. 类名指纹 `.toc` / `.toc-content` / `.toc-list(-item)` / `.toc-link` /
+ *     `.post-toc__title` 不变：tocbot 配置、`.post-toc` 的 axe 作用域、e2e
+ *     （`pages-article.spec.ts` 的 D-0082 断言）都按它们取元素。
+ *
+ * 触发按钮在 `MarkdownLayout.astro` 的 `.post-toolbar` 里（移动才出现），通过
+ * `popovertarget="post-toc-drawer"` 指向本文件的 drawer id —— 两处字面量必须一致。
+ */
+import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+import { tocNodes, type TocHeading } from "~/utils/toc";
+
 interface Props {
-    headings?: { depth: number; slug: string; text: string }[];
+    headings?: TocHeading[];
 }
 
 const { headings = [] } = Astro.props;
 
-interface TocNode {
-    slug: string;
-    text: string;
-    children: TocNode[];
-}
-
-const nodes: TocNode[] = [];
-for (const h of headings) {
-    if (h.depth !== 2 && h.depth !== 3) continue;
-    if (h.depth === 3 && nodes.length > 0) {
-        nodes[nodes.length - 1].children.push({ slug: h.slug, text: h.text, children: [] });
-    } else {
-        nodes.push({ slug: h.slug, text: h.text, children: [] });
-    }
-}
+const nodes = tocNodes(headings);
 
 // M2-3：目录框的标题与计数在构建期就有（不再依赖 tocbot 生成）
 const isEn = Astro.url.pathname.startsWith("/en/");
 const tocLabel = isEn ? "Contents" : "目录";
+const closeLabel = isEn ? "Close contents" : "关闭目录";
+/** 与 MarkdownLayout 里触发按钮的 popovertarget 是同一个 id */
+const drawerId = "post-toc-drawer";
 ---
 
-<nav class="toc post-toc" aria-label={tocLabel}>
-    <div class="post-toc__head">
-        <span class="post-toc__title">{tocLabel}</span>
-        {
-            nodes.length > 0 && (
-                <span class="post-toc__count" aria-hidden="true">
-                    {nodes.length}
-                </span>
-            )
-        }
+<div id={drawerId} class="post-toc-drawer" popover>
+    <div class="post-toc-drawer__bar">
+        <span class="post-toc-drawer__label">
+            {tocLabel}
+            {
+                nodes.length > 0 && (
+                    <span class="post-toc-drawer__count" aria-hidden="true">
+                        {nodes.length}
+                    </span>
+                )
+            }
+        </span>
+        <button
+            class="post-toc-drawer__close"
+            type="button"
+            popovertarget={drawerId}
+            popovertargetaction="hide"
+            aria-label={closeLabel}
+        >
+            <DynamicIcon name="tabler:x" />
+        </button>
     </div>
-    <div class="toc-content">
-        {
-            nodes.length > 0 && (
-                <ol class="toc-list">
-                    {nodes.map((node) => (
-                        <li
-                            class={`toc-list-item${node.children.length > 0 ? " is-collapsible" : ""}`}
-                        >
-                            <a href={`#${node.slug}`} class="toc-link">
-                                {node.text}
-                            </a>
-                            {node.children.length > 0 && (
-                                <ol class="toc-list">
-                                    {node.children.map((child) => (
-                                        <li class="toc-list-item">
-                                            <a href={`#${child.slug}`} class="toc-link">
-                                                {child.text}
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ol>
-                            )}
-                        </li>
-                    ))}
-                </ol>
-            )
-        }
-    </div>
-</nav>
+    <nav class="toc post-toc" aria-label={tocLabel}>
+        <div class="post-toc__head">
+            <span class="post-toc__title">{tocLabel}</span>
+            {
+                nodes.length > 0 && (
+                    <span class="post-toc__count" aria-hidden="true">
+                        {nodes.length}
+                    </span>
+                )
+            }
+        </div>
+        <div class="toc-content">
+            {
+                nodes.length > 0 && (
+                    <ol class="toc-list">
+                        {nodes.map((node) => (
+                            <li
+                                class={`toc-list-item${node.children.length > 0 ? " is-collapsible" : ""}`}
+                            >
+                                <a href={`#${node.slug}`} class="toc-link">
+                                    {node.text}
+                                </a>
+                                {node.children.length > 0 && (
+                                    <ol class="toc-list">
+                                        {node.children.map((child) => (
+                                            <li class="toc-list-item">
+                                                <a href={`#${child.slug}`} class="toc-link">
+                                                    {child.text}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                )}
+                            </li>
+                        ))}
+                    </ol>
+                )
+            }
+        </div>
+    </nav>
+</div>
 
 <script>
     import { onPageReady } from "~/utils/page-lifecycle";
@@ -81,7 +107,7 @@ const tocLabel = isEn ? "Contents" : "目录";
 
     onPageReady(() => {
         requestAnimationFrame(() => {
-            // ---- Init tocbot ----
+            // ---- Init tocbot（只做高亮/折叠，目录结构已在构建期） ----
             tocbot.init({
                 tocSelector: ".toc-content",
                 contentSelector: "#post-content",
@@ -111,36 +137,20 @@ const tocLabel = isEn ? "Contents" : "目录";
                 document.removeEventListener("astro:after-swap", restore);
             });
 
-            // ---- Init scroll positioning ----
-            const tocWrapper = document.querySelector(".toc") as HTMLElement | null;
-            const post = document.querySelector("#post-content") as HTMLElement | null;
-            const footer = document.querySelector(".post-nav") as HTMLElement | null;
-            // 先判空再取子元素：没有 TOC 的页面上直接解引用 tocWrapper 会抛 TypeError，
-            // 把整个初始化（含 tocbot）一起打断。
-            if (!tocWrapper || !post || !footer) return;
-            const tocContent = tocWrapper.querySelector(".toc-content") as HTMLElement | null;
-            if (!tocContent) return;
-
-            // const 别名：function 声明会被提升，TS 不会把外层 let/const 的窄化带进闭包
-            const tocRoot = tocWrapper;
-
-            // Cancel previous scroll listener to prevent leaks across SPA navigations
-            if (tocAbortController) {
-                tocAbortController.abort();
-            }
-            tocAbortController = new AbortController();
-
-            // 初始化时读取 CSS 的 fixed top，之后不再变动
-            const tocFixedTop = parseFloat(getComputedStyle(tocWrapper).top) || 400;
-
             // ---- 激活路径管理：只高亮当前激活标题及其祖先 ----
+            // M6-3 起目录改用 CSS sticky（不再由脚本算 fixed/absolute 贴底）：
+            // 布局归样式表，脚本只管状态，SPA 换页也不再需要清 inline style。
+            const tocRoot = document.querySelector(".toc.post-toc") as HTMLElement | null;
+            const tocContent = tocRoot?.querySelector(".toc-content") as HTMLElement | null;
+            if (!tocRoot || !tocContent) return;
+
             function updateActivePath() {
-                const activeLink = tocRoot.querySelector(".is-active-link") as HTMLElement | null;
+                const activeLink = tocRoot?.querySelector(".is-active-link") as HTMLElement | null;
 
                 // 清除所有旧路径
-                tocRoot
-                    .querySelectorAll(".is-active-path")
-                    .forEach((el) => el.classList.remove("is-active-path"));
+                tocRoot?.querySelectorAll(".is-active-path").forEach((el) => {
+                    el.classList.remove("is-active-path");
+                });
 
                 if (!activeLink) return;
 
@@ -161,11 +171,16 @@ const tocLabel = isEn ? "Contents" : "目录";
                 updateActivePath();
             });
 
+            if (tocAbortController) {
+                tocAbortController.abort();
+            }
+            tocAbortController = new AbortController();
+
             // ---- Hover 时阻止页面滚动，只滚目录 ----
             tocContent.addEventListener(
                 "wheel",
                 (e) => {
-                    if (!tocWrapper.matches(":hover")) return;
+                    if (!tocRoot.matches(":hover")) return;
                     const { scrollTop, scrollHeight, clientHeight } = tocContent;
                     const atTop = scrollTop === 0;
                     const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
@@ -181,34 +196,18 @@ const tocLabel = isEn ? "Contents" : "目录";
             );
 
             let ticking = false;
-            const handler = function () {
-                if (ticking) return;
-                ticking = true;
-                requestAnimationFrame(() => {
-                    const postBottom = post.getBoundingClientRect().bottom + footer.offsetHeight;
-
-                    // 当 TOC 底部超出文章区域时，切换为 absolute 贴底
-                    if (postBottom < tocFixedTop + tocWrapper.offsetHeight) {
-                        tocWrapper.style.position = "absolute";
-                        tocWrapper.style.top = `${window.scrollY + postBottom - tocWrapper.offsetHeight}px`;
-                        tocWrapper.style.transform = "none";
-                    } else {
-                        tocWrapper.style.position = "fixed";
-                        tocWrapper.style.top = `${tocFixedTop}px`;
-                        tocWrapper.style.transform = "none";
-                    }
-
-                    // 更新激活路径
-                    updateActivePath();
-
-                    ticking = false;
-                });
-            };
-
-            window.addEventListener("scroll", handler, {
-                passive: true,
-                signal: tocAbortController.signal,
-            });
+            window.addEventListener(
+                "scroll",
+                () => {
+                    if (ticking) return;
+                    ticking = true;
+                    requestAnimationFrame(() => {
+                        updateActivePath();
+                        ticking = false;
+                    });
+                },
+                { passive: true, signal: tocAbortController.signal },
+            );
         });
     });
 </script>

@@ -13,6 +13,8 @@ import PostShare from "~/components/Article/PostShare.astro";
 import SeriesNav from "~/components/Series/SeriesNav.astro";
 import Toc from "~/components/Article/Toc.astro";
 import BackToTop from "~/components/Layout/BackToTop.astro";
+import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+import { tocNodes } from "~/utils/toc";
 import Donate from "~/components/UI/Donate.astro";
 import Author from "~/components/UI/Author.astro";
 import WalineComment from "~/components/UI/WalineComment.astro";
@@ -118,6 +120,17 @@ const relatedPosts = sorted
 
 const isEn = Astro.url.pathname.startsWith("/en/");
 const firstTag = currentTags[0] || "";
+
+/**
+ * M6-3：8/4 版式的两个派生量。
+ * - `tocCount`：移动端「目录 N」按钮上的节数 —— 与目录卡同一个口径（`~/utils/toc`），
+ *   两处各算一份必然对不上；
+ * - `showRail`：右栏在三块都为空时不渲染（不留空列，主栏自动占满整行）。
+ */
+const tocCount = tocNodes(headings).length;
+const showToc = Boolean(frontmatter.toc);
+const showAuthor = Boolean(frontmatter.author) && Boolean(postView.author);
+const showRail = showToc || showAuthor || relatedPosts.length > 0;
 ---
 
 <BaseLayout
@@ -139,79 +152,128 @@ const firstTag = currentTags[0] || "";
 >
     <div class="reading-progress"></div>
     <article class="post">
-        <header class="post-masthead">
-            <Breadcrumb title={frontmatter.title} firstTag={firstTag} isEn={isEn} />
-            <h1 class="post-title-text">
-                {frontmatter.title}
-            </h1>
-            <PostMeta
-                publishedTime={publishedTime}
-                modifiedTime={modifiedTime}
-                wordCount={wordCount}
-                readTime={readTime}
-                currentSlug={slug}
-                variant="article"
-            />
-        </header>
-        <div class="post-sheet">
-            <figure class="post-cover">
-                <PostCardImage
-                    imagePath={imageUrl}
-                    altText={imageAlt}
-                    transformWidth={1200}
-                    loading="eager"
-                />
-            </figure>
+        <div class:list={["post-layout", { "post-layout--full": !showRail }]}>
+            <div class="post-main">
+                <header class="post-masthead">
+                    <Breadcrumb title={frontmatter.title} firstTag={firstTag} isEn={isEn} />
+                    <h1 class="post-title-text">
+                        {frontmatter.title}
+                    </h1>
+                    <PostMeta
+                        publishedTime={publishedTime}
+                        modifiedTime={modifiedTime}
+                        wordCount={wordCount}
+                        readTime={readTime}
+                        currentSlug={slug}
+                        variant="article"
+                    />
+                </header>
+                {
+                    showToc && tocCount > 0 && (
+                        <div class="post-toolbar">
+                            {/* 移动端目录入口：声明式 popover 触发（0 JS，Esc/焦点回填由浏览器给） */}
+                            <button
+                                class="post-toc-trigger"
+                                type="button"
+                                popovertarget="post-toc-drawer"
+                                aria-controls="post-toc-drawer"
+                            >
+                                <DynamicIcon name="tabler:stack-2" class="post-toc-trigger__icon" />
+                                <span class="post-toc-trigger__label">
+                                    {isEn ? "Contents" : "目录"}
+                                </span>
+                                <span class="post-toc-trigger__count" aria-hidden="true">
+                                    {tocCount}
+                                </span>
+                            </button>
+                        </div>
+                    )
+                }
+                <div class="post-sheet">
+                    <figure class="post-cover">
+                        <PostCardImage
+                            imagePath={imageUrl}
+                            altText={imageAlt}
+                            transformWidth={1200}
+                            loading="eager"
+                        />
+                    </figure>
+                    {
+                        daysSinceUpdate >= 180 && (
+                            <aside class="post-stale remark-aside remark-aside--danger">
+                                <p>
+                                    🌶 <strong>过期警告：</strong> 本页面距今已有
+                                    {daysSinceUpdate}
+                                    天未更新，年久失修，内容可能有所偏颇，还请仔细甄别！
+                                </p>
+                            </aside>
+                        )
+                    }
+                    {
+                        frontmatter.summary && (
+                            <p class="post-lede" data-pagefind-ignore>
+                                {frontmatter.summary}
+                            </p>
+                        )
+                    }
+                    <div
+                        id="post-content"
+                        class="post-content"
+                        data-pagefind-body
+                        data-pagefind-meta={`title:${frontmatter.title}`}
+                        data-fancybox-off={frontmatter.fancybox === false ? "" : undefined}
+                    >
+                        <h2 id="post-content-title" class="toc-ignore sr-only" data-pagefind-ignore>
+                            {frontmatter.title}
+                        </h2>
+                        <div class="article-content">
+                            <slot />
+                        </div>
+                    </div>
+                    <PostFooter tags={frontmatter.tags} />
+                    {
+                        seriesContext && (
+                            <SeriesNav context={seriesContext} locale={isEn ? "en" : "zh"} />
+                        )
+                    }
+                    <PostShare
+                        title={frontmatter.title}
+                        description={frontmatter.description}
+                        image={ogImage}
+                        slug={slug}
+                        locale={isEn ? "en" : "zh"}
+                    />
+                    <PostNavigation slug={slug} />
+                    {/* M6-3：相关阅读回到正文末尾，改用竖排条目（toc 稿右栏卡的版式） */}
+                    <RelatedPosts relatedPosts={relatedPosts} variant="rail" />
+                    {/* M6-3：评论只挪位（主栏底部，与 toc 稿一致），交互仍归 M7-2 */}
+                    {
+                        frontmatter.waline && waline.enable && (
+                            <div class="post-comments">
+                                <WalineComment locale={locale} />
+                            </div>
+                        )
+                    }
+                </div>
+            </div>
             {
-                daysSinceUpdate >= 180 && (
-                    <aside class="post-stale remark-aside remark-aside--danger">
-                        <p>
-                            🌶 <strong>过期警告：</strong> 本页面距今已有
-                            {daysSinceUpdate}
-                            天未更新，年久失修，内容可能有所偏颇，还请仔细甄别！
-                        </p>
+                showRail && (
+                    <aside class="post-rail">
+                        <div class="post-rail__sticky">
+                            {showToc && <Toc headings={headings} />}
+                            {showAuthor && (
+                                <div class="post-rail__card post-rail__author">
+                                    <Author />
+                                </div>
+                            )}
+                        </div>
                     </aside>
                 )
             }
-            {
-                frontmatter.summary && (
-                    <p class="post-lede" data-pagefind-ignore>
-                        {frontmatter.summary}
-                    </p>
-                )
-            }
-            <div
-                id="post-content"
-                class="post-content"
-                data-pagefind-body
-                data-pagefind-meta={`title:${frontmatter.title}`}
-                data-fancybox-off={frontmatter.fancybox === false ? "" : undefined}
-            >
-                <h2 id="post-content-title" class="toc-ignore sr-only" data-pagefind-ignore>
-                    {frontmatter.title}
-                </h2>
-                <div class="article-content">
-                    <slot />
-                </div>
-            </div>
-            <PostFooter tags={frontmatter.tags} />
-            {seriesContext && <SeriesNav context={seriesContext} locale={isEn ? "en" : "zh"} />}
-            <PostShare
-                title={frontmatter.title}
-                description={frontmatter.description}
-                image={ogImage}
-                slug={slug}
-                locale={isEn ? "en" : "zh"}
-            />
-            <PostNavigation slug={slug} />
-            <RelatedPosts relatedPosts={relatedPosts} />
         </div>
     </article>
-    {frontmatter.toc && <Toc headings={headings} />}
     {postView.backtotop && <BackToTop />}
     {frontmatter.donate && donate.enable && <Donate locale={locale} />}
-    {frontmatter.author && postView.author && <Author />}
-    {frontmatter.waline && waline.enable && <WalineComment locale={locale} />}
     {hasMermaid && <MermaidRenderer />}
 </BaseLayout>
 
