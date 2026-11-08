@@ -3,7 +3,7 @@
 - 卡：`t_5080b864`（blog2 板）· 2026-11-08
 - 基线：`main` @ `49581a6`（M6-2 收口）
 - 输入：`selection.md` §4.2；桌面 `screens/marx_s_blog_toc`，移动 `screens/marx_s_blog_mobile_article_detail`，暗色参考 `screens/marx_s_blog_1`，抽屉 `screens/marx_s_blog_slide_over_toc_sheet`
-- 提交：`48e30e9` feat(m6-3) · 本报告
+- 提交：`48e30e9` feat(m6-3) · 本报告；operator 补丁 `2f6fb32`
 - 说明：attempt 1 在 150 次迭代预算处超时（改动已落工作区），attempt 2 接手：**把验收清单里剩下的门禁全部重跑**（build/perf-budget、gates、type-check、pages-article、macOS+Linux 视觉基线），并补了 attempt 1 未完成的三件事 —— Linux 基线、1024 暗色证据图、移动抽屉 e2e。attempt 3（operator）复核 CI 时发现并修复外壳暗色对比度 + full-width 溢出，重生成四套视觉基线；本报告数字为 operator 复核后的最终状态。
 
 ## 1. 改动（7 个源文件 ≤ 停点 10）
@@ -95,3 +95,8 @@ CI `A11y PR smoke` 在 `06880de` 上 8 条 dark 路由失败，节点是 `.pf-tr
 - 移动底部 tab bar、字号 A-/A+、目录归档/系列入口：按计划属后续页面卡或 M7。
 - 右栏在 1024 仍显示（稿子也是双栏）；若要 768 收单栏，需要另立卡决定断点语义（现在 1023/1024 严格对齐 M6-1 外壳断点）。
 - `perf-budget` 的 article JS 余量只剩 +1.1KB（2.8%）：本卡没加 JS，但下一张动文章页脚本的卡要盯这条。
+
+## 7. 最终 CI（operator）
+
+- `2f6fb32` · CI **42493287438**：test / gates / visual (atoms 72 + pages 36 · linux) / contract 全 success。
+- `2f6fb32` · A11y PR smoke **42493287379**：strict 11 routes success。
