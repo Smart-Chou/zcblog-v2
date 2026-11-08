@@ -1,13 +1,37 @@
 ---
+/**
+ * P-RD · 跳转守卫（M6-5b · Stitch v2 · redirect_guard_modal 桌面 / redirect_guard 移动）
+ *
+ * 选型（selection.md §4.25）：**只换壳，不动协议**。
+ *   · ≥641：redirect_guard_modal —— 顶部 Security Guard 工具条 + 盾牌标题行 +
+ *           目标解析卡（URL / 复制 / 协议 / 域名 / rel）+ 声明清单 + 操作行 + 路由页脚
+ *   · ≤640：redirect_guard —— 同一 DOM 收成窄卡：标题居中、事实清单单列、按钮满宽纵向
+ *
+ * 三条硬边界（卡面）：
+ *   1. 协议原封不动 —— `?url=` 的 base64url 解码、白名单 / 黑名单、5 秒倒计时、
+ *      解析失败降级，全部沿用原实现（只重排 DOM 与视觉，不改判定逻辑）。
+ *   2. 不新增外链拦截入口 —— 页内**不渲染**指向目标站的 <a>：目标只作为文本展示，
+ *      唯一的离开动作仍是 `#jump-button`（location.replace），与原来一致。
+ *   3. 零 JS 可读 —— 标题 / 声明 / 「留在本站」链接都在 SSR 里；CTA 只在 JS 接管后
+ *      取消 hidden（否则是一个永远点不动的按钮）。
+ *
+ * 「24h 免二次提示」复选框（两张设计稿都有）**不做**：它需要 localStorage 信任名单，
+ * 属于改安全策略，超出本卡授权 → 已在 report.md 记为待决项。
+ */
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
 import { site } from "~/config";
-import { t, getLocale } from "~/utils/i18n";
+import { t, getLocale, type Locale } from "~/utils/i18n";
+import "~/styles/tokens/tokens.css";
 import "~/styles/redirect.css";
 // M2-5：overlay 基座（跳转守卫在这个基座里是「页级矩形」：只带 [data-overlay] 标记）
 import "~/styles/pages/overlays.css";
 
-const loc = getLocale(Astro.currentLocale || "zh");
+const loc: Locale = getLocale(Astro.currentLocale || "zh");
+const isEn = loc === "en";
+
+const home = isEn ? "/en/" : "/";
+const archives = isEn ? "/en/archives/" : "/archives/";
 
 const domainsJson = JSON.stringify(site.domains);
 
@@ -19,6 +43,28 @@ const scriptTexts = JSON.stringify({
     jumping: t(loc, "redirect.jumping"),
     fetchFailed: t(loc, "redirect.fetchFailed"),
     sorry: t(loc, "redirect.sorry"),
+    continueButton: t(loc, "redirect.continueButton"),
+    // 本卡新增的界面串（i18n 数据文件不在 3 文件边界内，文案就近放在页面里）
+    copied: isEn ? "Copied" : "已复制",
+    copyFailed: isEn ? "Copy failed — select the address manually" : "复制失败，请手动选中地址复制",
+    countdownChip: isEn ? "{{count}}s" : "{{count}}s",
+    verdictPending: isEn ? "PENDING" : "待解析",
+    verdictVerified: isEn ? "VERIFIED" : "已验证",
+    verdictBlocked: isEn ? "BLOCKED" : "黑名单",
+    verdictUnknown: isEn ? "UNVERIFIED" : "未验证",
+    verdictFailed: isEn ? "UNRESOLVED" : "解析失败",
+    errorTitle: isEn ? "This redirect can’t be resolved" : "这个跳转地址无法解析",
+    errorLede: isEn
+        ? "The link carried no readable target, so there is nothing to inspect or forward. Nothing was sent to any third party."
+        : "链接里没有可解析的目标地址，因此既无可校验的对象，也没有任何内容被送往第三方。",
+    dismissedTitle: isEn ? "Stayed on this site" : "已留在本站",
+    dismissedStatus: isEn ? "Redirect cancelled — countdown stopped" : "跳转已取消，倒计时已停止",
+    dismissedLede: isEn
+        ? "The redirect was cancelled and the countdown has stopped. Pick up where you left off."
+        : "跳转已取消，倒计时也已停止。你可以从下面继续浏览。",
+    noJsNote: isEn
+        ? "JavaScript is off, so the target can’t be decoded in this browser. The guard itself still works — head back and open the page you came from."
+        : "当前浏览器未启用 JavaScript，无法在本机解析目标地址。守卫页本身仍然可用——请返回上一页或首页继续浏览。",
 });
 ---
 
@@ -32,152 +78,392 @@ const scriptTexts = JSON.stringify({
     publishedTime={new Date()}
     modifiedTime={new Date()}
 >
-    <div class="redirect" data-overlay="redirect" role="dialog" aria-labelledby="redirect-tip">
-        <span class="redirect-tip" id="redirect-tip"
-            >{t(loc, "redirect.leavingMessage", { site: site.title })}</span
-        >
-        <span id="url" aria-live="polite"></span>
-        <div id="jump-content" class="warn">
-            <span id="site-info">
-                <span class="redirect-icon warn-icon" aria-hidden="true">
-                    <DynamicIcon name="tabler:alert-triangle-filled" width="18" height="18" />
+    <section
+        class="redirect rg"
+        data-overlay="redirect"
+        data-state="guard"
+        role="dialog"
+        aria-labelledby="rg-title"
+        aria-describedby="rg-lede"
+    >
+        <div class="rg__shell">
+            <div class="rg__bar">
+                <span class="rg__bar-label">
+                    <span class="rg__dot" aria-hidden="true"></span>
+                    <span>Security Guard <span class="rg__slash">//</span> Outbound Redirect</span>
                 </span>
-                {t(loc, "redirect.safetyWarning")}
-            </span>
-            <button type="button" id="jump-button">{t(loc, "redirect.continueButton")}</button>
+                <span class="rg__bar-keys">
+                    <kbd class="rg__kbd">Esc</kbd>
+                    <button
+                        type="button"
+                        class="rg__close"
+                        id="rg-close"
+                        aria-label={isEn ? "Cancel and stay on this site" : "取消跳转并留在本站"}
+                    >
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </span>
+            </div>
+
+            <div class="rg__body">
+                <header class="rg__head">
+                    <span class="rg__glyph" aria-hidden="true">
+                        <DynamicIcon name="tabler:shield-check" width="24" height="24" />
+                    </span>
+                    <div class="rg__head-text">
+                        <div class="rg__title-row">
+                            <h1 class="rg__title" id="rg-title">
+                                {isEn ? `Leaving ${site.title}` : `即将离开 ${site.title}`}
+                            </h1>
+                            <span class="rg__badge">{isEn ? "EXTERNAL" : "外部跳转"}</span>
+                        </div>
+                        <p class="rg__lede" id="rg-lede">
+                            {
+                                isEn
+                                    ? "You followed an outbound link. You are about to leave this site’s trusted static space and reach a third-party network node — mind your digital identity and credentials there."
+                                    : "您点击了一个外部超链接，即将离开本站受信任的静态空间并接入第三方网络节点。请在交互中留意数字身份与敏感资产安全。"
+                            }
+                        </p>
+                    </div>
+                </header>
+
+                <div class="rg__inspect">
+                    <div class="rg__inspect-head">
+                        <span class="rg__label">
+                            <DynamicIcon name="tabler:world-search" width="15" height="15" />
+                            <span>{isEn ? "Target inspection" : "目标地址解析"}</span>
+                            <span class="rg__label-en">(TARGET INSPECTION)</span>
+                        </span>
+                        <span class="rg__pill" id="rg-verdict">{isEn ? "PENDING" : "待解析"}</span>
+                    </div>
+
+                    <div class="rg__url-row">
+                        <span class="rg__url" id="url"
+                            >{isEn ? "Resolving target address…" : "正在解析目标地址…"}</span
+                        >
+                        <button type="button" class="rg__copy" id="rg-copy">
+                            <DynamicIcon name="tabler:copy" width="14" height="14" />
+                            <span>{isEn ? "Copy" : "复制"}</span>
+                        </button>
+                    </div>
+
+                    <ul class="rg__facts">
+                        <li class="rg__fact">
+                            <span class="rg__fact-key">{isEn ? "PROTOCOL" : "协议"}</span>
+                            <span class="rg__fact-val" id="rg-proto">—</span>
+                        </li>
+                        <li class="rg__fact">
+                            <span class="rg__fact-key">DOMAIN</span>
+                            <span class="rg__fact-val" id="rg-host">—</span>
+                        </li>
+                        <li class="rg__fact">
+                            <span class="rg__fact-key">REL</span>
+                            <span class="rg__fact-val">nofollow · noopener</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <section class="rg__notes" aria-labelledby="rg-notes-title">
+                    <h2 class="rg__notes-title" id="rg-notes-title">
+                        <span class="rg__notes-mark" aria-hidden="true"></span>
+                        {isEn ? "Independent roaming notice" : "独立漫游声明与风险准则"}
+                    </h2>
+                    <ul class="rg__notes-list">
+                        <li>
+                            {
+                                isEn
+                                    ? "The destination is independently operated; its content, privacy policy and terms are not ours."
+                                    : "该站点由外部团队独立托管运营，其内容、隐私政策与服务条款均独立于本站。"
+                            }
+                        </li>
+                        <li>
+                            {
+                                isEn
+                                    ? "Watch for phishing forms: never type your passphrase, private key, mnemonic or payment credentials on an unverified page."
+                                    : "请警惕钓鱼表单：切勿在未经核实的外部页面输入主密码、私钥、助记词或支付凭据。"
+                            }
+                        </li>
+                        <li>
+                            {
+                                isEn
+                                    ? "Found malware, a scam or a dead link behind this address? Report it and it gets removed."
+                                    : "如发现该地址存在恶意挂马、欺诈或早已失效，欢迎反馈，本站会尽快剔除。"
+                            }
+                        </li>
+                    </ul>
+                </section>
+
+                <p class="rg__status" id="site-info" role="status" aria-live="polite">
+                    {t(loc, "redirect.safetyWarning")}
+                </p>
+
+                <div class="rg__actions">
+                    <a class="rg__stay" id="rg-stay" href={home}>
+                        <span class="rg__stay-arrow" aria-hidden="true">←</span>
+                        <span>{isEn ? "Stay here (back to home)" : "留在本站（返回首页）"}</span>
+                    </a>
+                    <button type="button" class="rg__cta" id="jump-button" hidden>
+                        <span class="rg__cta-label">{t(loc, "redirect.continueButton")}</span>
+                        <span class="rg__count" id="rg-count" hidden></span>
+                    </button>
+                </div>
+
+                <div class="rg__fallback">
+                    <p class="rg__fallback-text">
+                        {
+                            isEn
+                                ? "No verified destination is available. Nothing of yours was sent anywhere — pick one of these instead."
+                                : "当前没有可校验的目标地址，也没有任何内容被发送出去。可以从下面回到站内继续浏览。"
+                        }
+                    </p>
+                    <p class="rg__fallback-note">
+                        {
+                            isEn
+                                ? "If you came here from a link on this site, the link itself is broken — please report it."
+                                : "如果你是点站内链接过来的，说明该链接已经失效，欢迎反馈。"
+                        }
+                    </p>
+                    <div class="rg__fallback-actions">
+                        <a class="rg__stay rg__stay--solid" id="rg-fallback-home" href={home}>
+                            {isEn ? "Back to home" : "返回首页"}
+                        </a>
+                        <a class="rg__stay" href={archives}>
+                            {isEn ? "Browse archives" : "浏览归档"}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rg__foot">
+                <span class="rg__foot-path" id="rg-route">ROUTE: /redirect/?url=…</span>
+                <span class="rg__foot-meta">NOFOLLOW · NOOPENER · NOREFERRER</span>
+            </div>
         </div>
-    </div>
+    </section>
+
+    <noscript>
+        <p class="rg__noscript">
+            {
+                isEn
+                    ? "JavaScript is off, so the target address can’t be decoded in this browser. Use the “Stay here” link above to keep browsing."
+                    : "当前浏览器未启用 JavaScript，无法在本机解析目标地址。请用上方「留在本站」链接继续浏览。"
+            }
+        </p>
+    </noscript>
+
     <script is:inline define:vars={{ domainsJson, scriptTexts }}>
-        // 跳转网址
-        let jumpLink;
-        let interval;
-        // 获取元素
-        const tipDescription = document.getElementById("redirect-tip");
-        const urlDom = document.getElementById("url");
-        const urlTip = document.getElementById("site-info");
-        const jumpContent = document.getElementById("jump-content");
-        const jumpButton = document.getElementById("jump-button");
-        // M2-5：守卫矩形就是 overlay 的「打开态」根节点
-        const guard = document.querySelector('[data-overlay="redirect"]');
-        // 网址白名单
-        const siteDomains = JSON.parse(domainsJson);
-        const whitelist = [
-            ...siteDomains,
-            ...siteDomains.map((d) => `*.${d}`),
-            "github.com",
-            "astro.build",
-            "vercel.com",
-            "t.me",
-        ];
-        // 网址黑名单
-        const blacklist = ["*.taobao.com", "*.jd.com"];
-        // 翻译文本（由服务端注入）
-        const texts = JSON.parse(scriptTexts);
-        // 自动跳转
-        const autoJump = () => {
-            let count = 5;
-            const updateContent = () => {
-                jumpButton.textContent = texts.autoJumpCountdown.replace("{{count}}", count);
-                count--;
-                if (count < 0) {
+        (() => {
+            // ── 协议（M6-5b 未改动）──────────────────────────────────────────
+            // 网址白名单 / 黑名单、base64url 解码、5 秒倒计时、解析失败降级，逐条沿用原实现。
+            let jumpLink;
+            let interval = null;
+            let countdownDone = false;
+
+            const siteDomains = JSON.parse(domainsJson);
+            const whitelist = [
+                ...siteDomains,
+                ...siteDomains.map((d) => `*.${d}`),
+                "github.com",
+                "astro.build",
+                "vercel.com",
+                "t.me",
+            ];
+            const blacklist = ["*.taobao.com", "*.jd.com"];
+            const texts = JSON.parse(scriptTexts);
+
+            // ── 元素 ─────────────────────────────────────────────────────
+            const root = document.querySelector('[data-overlay="redirect"]') || document.querySelector(".redirect");
+            const titleDom = document.getElementById("rg-title");
+            const ledeDom = document.getElementById("rg-lede");
+            const urlDom = document.getElementById("url");
+            const statusDom = document.getElementById("site-info");
+            const verdictDom = document.getElementById("rg-verdict");
+            const protoDom = document.getElementById("rg-proto");
+            const hostDom = document.getElementById("rg-host");
+            const routeDom = document.getElementById("rg-route");
+            const cta = document.getElementById("jump-button");
+            const ctaLabel = cta.querySelector(".rg__cta-label");
+            const countDom = document.getElementById("rg-count");
+            const copyBtn = document.getElementById("rg-copy");
+            const closeBtn = document.getElementById("rg-close");
+            const fallbackHome = document.getElementById("rg-fallback-home");
+
+            if (!root || !cta) return;
+
+            /** 守卫退出打开态：停表 + 归零 [data-overlay]（overlays.spec 判据）+ 露出兜底面板 */
+            const standDown = (state, errorTitle, errorLede) => {
+                if (interval) {
                     clearInterval(interval);
-                    jumpButton.textContent = texts.jumping;
+                    interval = null;
+                }
+                countdownDone = true;
+                root.removeAttribute("data-overlay");
+                root.removeAttribute("role");
+                root.removeAttribute("aria-labelledby");
+                root.removeAttribute("aria-describedby");
+                root.setAttribute("data-state", state);
+                if (titleDom) titleDom.textContent = errorTitle;
+                if (ledeDom) ledeDom.textContent = errorLede;
+                // 焦点回填：关闭 / 失败之后焦点落到「返回首页」，键盘用户不必重新摸索
+                if (fallbackHome) fallbackHome.focus();
+            };
+
+            const setVerdict = (text, state) => {
+                if (verdictDom) verdictDom.textContent = text;
+                root.setAttribute("data-state", state);
+            };
+
+            // ── 自动跳转（保留 5 秒倒计时；仅在白名单命中时启动）───────────────
+            const autoJump = () => {
+                let count = 5;
+                if (countDom) {
+                    countDom.hidden = false;
+                    countDom.textContent = texts.countdownChip.replace("{{count}}", count);
+                }
+                const tick = () => {
+                    count -= 1;
+                    if (count > 0) {
+                        if (countDom) countDom.textContent = texts.countdownChip.replace("{{count}}", count);
+                        return;
+                    }
+                    clearInterval(interval);
+                    interval = null;
+                    countdownDone = true;
+                    if (countDom) countDom.textContent = texts.jumping;
                     window.location.replace(jumpLink);
+                };
+                interval = setInterval(tick, 1000);
+            };
+
+            // ── 解析目标地址（原协议）──────────────────────────────────────
+            const getJumpUrl = () => {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const encodedUrl = urlParams.get("url");
+                    if (!encodedUrl) throw new Error("URL 参数为空");
+
+                    const base64EncodedUrl = encodedUrl.replace(/-/g, "+").replace(/_/g, "/");
+                    const paddedEncodedUrl = base64EncodedUrl.padEnd(
+                        base64EncodedUrl.length + ((4 - (base64EncodedUrl.length % 4)) % 4),
+                        "=",
+                    );
+                    jumpLink = atob(paddedEncodedUrl);
+                    if (jumpLink.startsWith("//")) jumpLink = "https:" + jumpLink;
+
+                    // 先验证 URL 合法性，再设置文本内容（用 textContent 防 XSS）
+                    const parsed = new URL(jumpLink);
+                    const urlHostname = parsed.hostname;
+
+                    if (urlDom) {
+                        urlDom.textContent = jumpLink;
+                        urlDom.setAttribute("title", jumpLink);
+                    }
+                    if (hostDom) hostDom.textContent = urlHostname;
+                    if (protoDom) {
+                        protoDom.textContent =
+                            parsed.protocol === "https:" ? "HTTPS" : parsed.protocol.replace(":", "").toUpperCase();
+                        protoDom.setAttribute("data-proto", parsed.protocol === "https:" ? "https" : "plain");
+                    }
+                    if (routeDom) {
+                        routeDom.textContent = `ROUTE: /redirect/?url=${encodedUrl.slice(0, 24)}${encodedUrl.length > 24 ? "…" : ""}`;
+                    }
+
+                    // 黑名单优先（原判定顺序：先黑后白）
+                    for (let i = 0; i < blacklist.length; i++) {
+                        const blackPattern = blacklist[i].replace(/\*/g, ".*");
+                        if (urlHostname.match(blackPattern)) {
+                            if (statusDom) statusDom.textContent = texts.blacklistedSite;
+                            cta.disabled = true;
+                            if (ctaLabel) ctaLabel.textContent = texts.blockedButton;
+                            else cta.textContent = texts.blockedButton;
+                            setVerdict(texts.verdictBlocked, "danger");
+                            return;
+                        }
+                    }
+
+                    // 白名单：显示信任态并启动倒计时
+                    for (let i = 0; i < whitelist.length; i++) {
+                        const whitePattern = whitelist[i].replace(/\*/g, ".*");
+                        if (urlHostname.match(whitePattern)) {
+                            if (statusDom) statusDom.textContent = texts.trustedSite;
+                            setVerdict(texts.verdictVerified, "safe");
+                            autoJump();
+                            return;
+                        }
+                    }
+
+                    // 既不在白名单也不在黑名单：原行为是「可点但不自动跳」
+                    setVerdict(texts.verdictUnknown, "warn");
+                } catch (error) {
+                    console.error("Error during URL parsing:", error);
+                    setVerdict(texts.verdictFailed, "error");
+                    if (statusDom) statusDom.textContent = `${texts.sorry} · ${texts.fetchFailed}`;
+                    standDown("error", texts.errorTitle, texts.errorLede);
                 }
             };
-            // 每秒更新一次
-            updateContent();
-            interval = setInterval(updateContent, 1000);
-        };
-        // 获取跳转网址
-        const getJumpUrl = () => {
-            try {
-                // 解析 URL 参数
-                const urlParams = new URLSearchParams(window.location.search);
-                const encodedUrl = urlParams.get("url");
-                if (!encodedUrl) {
-                    throw new Error("URL 参数为空");
+
+            // ── 交互 ─────────────────────────────────────────────────────
+            // JS 接管之后才放出 CTA：无 JS 时它是死的，点上没有反应比不出现更糟。
+            cta.hidden = false;
+
+            cta.addEventListener("click", () => {
+                if (!jumpLink) return;
+                if (interval) {
+                    clearInterval(interval);
+                    interval = null;
                 }
-                // 处理 URL 安全的 Base64 编码，将 - 转换为 +，_ 转换为 /
-                const base64EncodedUrl = encodedUrl.replace(/-/g, "+").replace(/_/g, "/");
-                // 添加适当的填充字符
-                const paddedEncodedUrl = base64EncodedUrl.padEnd(
-                    base64EncodedUrl.length + ((4 - (base64EncodedUrl.length % 4)) % 4),
-                    "=",
-                );
-                // Base64 解码
-                jumpLink = atob(paddedEncodedUrl);
-                // 如果 URL 以 "//" 开头，添加默认协议
-                if (jumpLink.startsWith("//")) {
-                    jumpLink = "https:" + jumpLink;
+                countdownDone = true;
+                if (ctaLabel) ctaLabel.textContent = texts.jumping;
+                else cta.textContent = texts.jumping;
+                window.location.replace(jumpLink);
+            });
+
+            // 取消（关闭 / Esc）：停表 → 退出打开态 → 焦点落到「返回首页」
+            const cancel = () => {
+                if (!root.hasAttribute("data-overlay")) return;
+                if (statusDom) statusDom.textContent = texts.dismissedStatus;
+                standDown("dismissed", texts.dismissedTitle, texts.dismissedLede);
+            };
+            if (closeBtn) closeBtn.addEventListener("click", cancel);
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && root.hasAttribute("data-overlay")) {
+                    event.preventDefault();
+                    cancel();
                 }
-                // 先验证 URL 合法性，再设置文本内容（用 textContent 防 XSS）
-                const urlHostname = new URL(jumpLink).hostname;
-                urlDom.textContent = jumpLink;
-                // 判断网址是否在黑名单中
-                for (let i = 0; i < blacklist.length; i++) {
-                    const blackPattern = blacklist[i].replace(/\*/g, ".*");
-                    if (urlHostname.match(blackPattern)) {
-                        // 显示提示信息
-                        urlTip.textContent = texts.blacklistedSite;
-                        jumpButton.textContent = texts.blockedButton;
-                        jumpButton.disabled = true;
-                        jumpButton.style.cursor = "not-allowed";
-                        jumpButton.style.opacity = "0.4";
-                        jumpContent.className = "danger";
-                        return true;
+            });
+
+            // 复制目标地址（只读文本，不新增链接入口）
+            if (copyBtn) {
+                copyBtn.addEventListener("click", async () => {
+                    if (!jumpLink) {
+                        if (statusDom) statusDom.textContent = texts.copyFailed;
+                        return;
                     }
-                }
-                // 判断网址是否在白名单中
-                for (let i = 0; i < whitelist.length; i++) {
-                    const whitePattern = whitelist[i].replace(/\*/g, ".*");
-                    if (urlHostname.match(whitePattern)) {
-                        // 显示提示信息
-                        urlTip.textContent = texts.trustedSite;
-                        jumpContent.className = "safe";
-                        autoJump();
-                        return true;
+                    try {
+                        await navigator.clipboard.writeText(jumpLink);
+                        if (statusDom) statusDom.textContent = texts.copied;
+                        copyBtn.setAttribute("data-copied", "true");
+                    } catch (error) {
+                        console.error("Clipboard write failed:", error);
+                        if (statusDom) statusDom.textContent = texts.copyFailed;
                     }
+                });
+            }
+
+            // 原有反调试行为，原样保留（不属于本卡授权范围）
+            document.addEventListener("contextmenu", (event) => event.preventDefault());
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "F12") event.preventDefault();
+                if (event.ctrlKey && event.shiftKey && (event.key === "I" || event.key === "C" || event.key === "G")) {
+                    event.preventDefault();
                 }
-            } catch (error) {
-                console.error("Error during URL parsing:", error);
-                // M2-5：解析失败 = 没有可守卫的目标 → 守卫矩形退出打开态（[data-overlay] 归零）
-                if (guard) {
-                    guard.removeAttribute("data-overlay");
-                    guard.removeAttribute("role");
-                    guard.removeAttribute("aria-labelledby");
-                }
-                tipDescription.remove();
-                jumpContent.remove();
-                urlDom.textContent = texts.fetchFailed;
-                const sorryMessage = document.createElement("span");
-                sorryMessage.className = "redirect-tip";
-                sorryMessage.textContent = texts.sorry;
-                urlDom.parentElement.insertBefore(sorryMessage, urlDom);
+            });
+
+            if (document.readyState === "loading") {
+                window.addEventListener("DOMContentLoaded", getJumpUrl, { once: true });
+            } else {
+                getJumpUrl();
             }
-        };
-        document.addEventListener("contextmenu", function (event) {
-            event.preventDefault();
-        });
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "F12") {
-                event.preventDefault();
-            }
-            if (
-                event.ctrlKey &&
-                event.shiftKey &&
-                (event.key === "I" || event.key === "C" || event.key === "G")
-            ) {
-                event.preventDefault();
-            }
-        });
-        jumpButton.addEventListener("click", () => {
-            clearInterval(interval);
-            jumpButton.textContent = texts.jumping;
-            if (jumpLink) window.location.replace(jumpLink);
-        });
-        window.addEventListener("DOMContentLoaded", () => {
-            getJumpUrl();
-        });
+        })();
     </script>
 </BaseLayout>

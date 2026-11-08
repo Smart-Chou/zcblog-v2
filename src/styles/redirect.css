@@ -1,107 +1,737 @@
-a {
-    text-decoration: none;
-    color: var(--color-text);
+/* ============================================================
+   P-RD · 跳转守卫（M6-5b · Stitch v2 · redirect_guard_modal + redirect_guard）
+   ------------------------------------------------------------
+   一套 DOM，两个断点（selection.md §4.25）：
+     ≥641  redirect_guard_modal：工具条 + 盾牌标题行 + 目标解析卡 + 声明清单 + 操作行 + 路由页脚
+     ≤640  redirect_guard      ：同结构收窄 —— 标题居中、事实单列、按钮满宽纵向
+
+   约束：
+   - 只消费 token（tokens 包语义层）；本文件 0 hex / rgb() 字面量（color-mix 走 token）。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 全部规则收在 `.rg` 作用域内（旧版这里有过全局 `a {}` / `main {}`，已移除，
+     避免污染同页的外壳 Header / Footer）。
+   - 无遮罩、无位图、无内部滚动：守卫是「页级对话框」，页面自身滚动。
+   ============================================================ */
+
+/* `.main` 已是 1140 外框 + 24 内边距（M6-1 base.css）；守卫卡自己限宽，
+   不再二次收窄 content，否则窄屏下卡片会被左右各挤掉一截。 */
+.main:has(> .content > .rg) {
+    width: 100%;
 }
 
-main {
-    min-height: 66dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.main > .content:has(> .rg) {
+    max-width: none;
 }
 
-.redirect {
+.rg {
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    border-radius: 1rem;
-    padding: 2rem;
-    max-width: calc(var(--content-width) / 3 * 2);
+    padding-block: var(--space-8) var(--space-16);
+}
+
+.rg [hidden] {
+    display: none !important;
+}
+
+/* ── 卡壳 ─────────────────────────────────────────────────── */
+
+.rg__shell {
+    inline-size: 100%;
+    max-inline-size: 720px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xl);
     background-color: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    margin: 0 auto;
+    box-shadow: var(--shadow-5);
+    text-align: start;
 }
 
-.redirect .redirect-tip {
+/* 顶部工具条：等宽小字 + 呼吸点 + Esc 键帽 + 关闭键 */
+.rg__bar {
     display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-    /* M2-13a：原来 opacity .4 把 --color-text 混成 #746f6c，#262220 上只有 3.17:1。
-       守卫页最关键的句子就是这句「你要离开」，不再降透明。 */
-    opacity: 1;
-    color: var(--color-text);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    block-size: var(--space-12);
+    padding-inline: var(--space-6);
+    border-block-end: 1px solid var(--color-border-subtle);
+    background-color: var(--color-bg-sunken);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
 }
 
-.redirect #url {
-    display: block;
-    padding: 12px 20px;
-    border-radius: 8px;
-    width: 100%;
-    text-align: center;
-    color: var(--color-accent);
-    border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
-}
-
-.redirect #site-info {
+.rg__bar-label {
     display: inline-flex;
-    width: 100%;
-    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+    min-inline-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.rg__slash {
+    color: var(--color-fg-muted);
+}
+
+.rg__dot {
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-status-danger-solid);
+    flex: none;
+}
+
+/* 呼吸点：只在允许动效时存在（reduced-motion 连元素都不动） */
+@media (prefers-reduced-motion: no-preference) {
+    .rg__dot {
+        animation: rg-pulse 2.4s var(--ease-standard) infinite;
+    }
+}
+
+@keyframes rg-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.45;
+    }
+}
+
+.rg__bar-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: none;
+}
+
+.rg__kbd {
+    padding: 1px var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-default);
+}
+
+.rg__close {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-top: 20px;
-    font-size: 18px;
-}
-
-.redirect #jump-content.warn {
-    color: var(--cb-color-warning);
-}
-
-.redirect #jump-content.safe {
-    color: var(--cb-color-note);
-}
-
-.redirect #jump-content.danger {
-    color: var(--cb-color-danger);
-}
-
-.redirect #jump-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-    width: 160px;
-    margin: 30px auto 0;
-    border-radius: 8px;
-    color: var(--color-text);
-    background-color: var(--color-border);
-    transition: background-color 0.3s;
+    inline-size: var(--space-7);
+    block-size: var(--space-7);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    font-family: var(--font-sans);
+    font-size: var(--text-lg);
+    line-height: 1;
+    color: var(--color-fg-default);
     cursor: pointer;
 }
 
 @media (hover: hover) {
-    .redirect #jump-button:hover {
-        background-color: var(--color-bg);
+    .rg__close:hover {
+        border-color: var(--color-border-subtle);
+        background-color: var(--color-bg-hover);
+        color: var(--color-fg-heading);
     }
 }
 
-.redirect-icon {
+.rg__close:focus-visible,
+.rg__copy:focus-visible,
+.rg__cta:focus-visible,
+.rg__stay:focus-visible,
+.rg__kbd:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ── 主体 ─────────────────────────────────────────────────── */
+
+.rg__body {
+    display: grid;
+    gap: var(--space-6);
+    padding: var(--space-7) var(--space-8);
+}
+
+.rg__head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.rg__glyph {
     display: inline-flex;
     align-items: center;
-    margin-right: 6px;
-    flex-shrink: 0;
+    justify-content: center;
+    inline-size: var(--space-12);
+    block-size: var(--space-12);
+    flex: none;
+    border: 1px solid var(--color-status-danger-border);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-status-danger-bg);
+    color: var(--color-status-danger-fg);
 }
 
-#jump-content.warn .warn-icon {
-    color: var(--cb-color-warning);
+.rg__head-text {
+    display: grid;
+    gap: var(--space-2);
+    min-inline-size: 0;
 }
 
-#jump-content.safe .warn-icon {
-    color: var(--cb-color-note);
+.rg__title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
 }
 
-#jump-content.danger .warn-icon {
-    color: var(--cb-color-danger);
+.rg__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.rg__badge {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--color-status-danger-border);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-status-danger-bg);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-status-danger-fg);
+    white-space: nowrap;
+}
+
+.rg__lede {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-default);
+}
+
+/* ── 目标解析卡 ───────────────────────────────────────────── */
+
+.rg__inspect {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-sunken);
+}
+
+.rg__inspect-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+}
+
+.rg__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-inline-size: 0;
+}
+
+.rg__label-en {
+    color: var(--color-fg-muted);
+}
+
+.rg__pill {
+    padding: 2px var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-default);
+    white-space: nowrap;
+}
+
+.rg__url-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-surface);
+}
+
+.rg__url {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-default);
+    overflow-wrap: anywhere;
+}
+
+.rg__copy {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex: none;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    color: var(--color-fg-default);
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .rg__copy:hover {
+        background-color: var(--color-bg-hover);
+        color: var(--color-fg-heading);
+    }
+}
+
+.rg__copy[data-copied="true"] {
+    border-color: var(--color-status-success-border);
+    background-color: var(--color-status-success-bg);
+    color: var(--color-status-success-fg);
+}
+
+/* 三条事实：协议 / 域名 / rel —— 全部来自真实解析结果，不编造证书结论 */
+.rg__facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rg__fact {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-surface);
+    min-inline-size: 0;
+}
+
+.rg__fact-key {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+}
+
+.rg__fact-val {
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-fg-heading);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rg__fact-val[data-proto="https"] {
+    color: var(--color-status-success-fg);
+}
+
+.rg__fact-val[data-proto="plain"] {
+    color: var(--color-status-warning-fg);
+}
+
+/* ── 声明清单 ─────────────────────────────────────────────── */
+
+.rg__notes {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.rg__notes-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.rg__notes-mark {
+    inline-size: var(--space-1);
+    block-size: var(--text-sm);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+    flex: none;
+}
+
+.rg__notes-list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-default);
+}
+
+.rg__notes-list li {
+    display: grid;
+    grid-template-columns: var(--space-4) minmax(0, 1fr);
+    gap: var(--space-2);
+    align-items: start;
+}
+
+.rg__notes-list li::before {
+    content: "✓";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-4);
+    block-size: var(--space-4);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    line-height: 1;
+    color: var(--color-fg-default);
+}
+
+/* ── 状态行（aria-live）──────────────────────────────────── */
+
+.rg__status {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 2px solid var(--color-status-warning-solid);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-status-warning-bg);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-status-warning-fg);
+}
+
+.rg[data-state="safe"] .rg__status {
+    border-inline-start-color: var(--color-status-success-solid);
+    background-color: var(--color-status-success-bg);
+    color: var(--color-status-success-fg);
+}
+
+.rg[data-state="danger"] .rg__status,
+.rg[data-state="error"] .rg__status {
+    border-inline-start-color: var(--color-status-danger-solid);
+    background-color: var(--color-status-danger-bg);
+    color: var(--color-status-danger-fg);
+}
+
+.rg[data-state="dismissed"] .rg__status {
+    border-inline-start-color: var(--color-status-success-solid);
+    background-color: var(--color-status-success-bg);
+    color: var(--color-status-success-fg);
+}
+
+/* ── 操作行 ───────────────────────────────────────────────── */
+
+.rg__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.rg__stay {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-block-size: var(--space-12);
+    padding-inline: var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    color: var(--color-fg-default);
+}
+
+.rg__stay-arrow {
+    font-family: var(--font-mono);
+}
+
+@media (hover: hover) {
+    .rg__stay:hover {
+        border-color: var(--color-border-subtle);
+        background-color: var(--color-bg-hover);
+        color: var(--color-fg-heading);
+    }
+}
+
+.rg__stay--solid {
+    border-color: var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-heading);
+}
+
+/* 主 CTA：实底赤陶 + 倒计时芯片（#jump-button 的 id 沿用旧实现与 overlays.css 契约） */
+.rg__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-block-size: var(--space-12);
+    margin-inline-start: auto;
+    padding-inline: var(--space-6);
+    border: 0;
+    border-radius: var(--radius-md);
+    background-color: var(--color-accent-solid);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-on-accent);
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    .rg__cta:not([disabled]):hover {
+        background-color: var(--color-accent-solid-hover);
+    }
+}
+
+.rg__count {
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid-hover);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-on-accent);
+}
+
+/* 黑名单：按钮 disabled —— 结构与初版一致，只是换了表面 */
+.rg__cta[disabled] {
+    background-color: var(--color-bg-muted);
+    color: var(--color-fg-default);
+    cursor: not-allowed;
+}
+
+/* ── 兜底面板（解析失败 / 用户取消）────────────────────────── */
+
+.rg__fallback {
+    display: none;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-sunken);
+}
+
+.rg[data-state="error"] .rg__fallback,
+.rg[data-state="dismissed"] .rg__fallback {
+    display: grid;
+}
+
+/* 退到兜底态时，解析卡 / 声明 / 状态行 / 操作行都不再有意义 */
+.rg[data-state="error"] .rg__inspect,
+.rg[data-state="error"] .rg__notes,
+.rg[data-state="error"] .rg__status,
+.rg[data-state="error"] .rg__actions,
+.rg[data-state="dismissed"] .rg__inspect,
+.rg[data-state="dismissed"] .rg__notes,
+.rg[data-state="dismissed"] .rg__actions {
+    display: none;
+}
+
+.rg[data-state="dismissed"] .rg__glyph {
+    border-color: var(--color-status-success-border);
+    background-color: var(--color-status-success-bg);
+    color: var(--color-status-success-fg);
+}
+
+.rg[data-state="dismissed"] .rg__badge {
+    border-color: var(--color-status-success-border);
+    background-color: var(--color-status-success-bg);
+    color: var(--color-status-success-fg);
+}
+
+.rg__fallback-text {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-default);
+}
+
+.rg__fallback-note {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-default);
+}
+
+.rg__fallback-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* ── 路由页脚 ─────────────────────────────────────────────── */
+
+.rg__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-6);
+    border-block-start: 1px solid var(--color-border-subtle);
+    background-color: var(--color-bg-sunken);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-default);
+}
+
+.rg__foot-path {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rg__foot-meta {
+    white-space: nowrap;
+}
+
+/* ── 无 JS 提示 ───────────────────────────────────────────── */
+
+.rg__noscript {
+    max-inline-size: 44rem;
+    margin: var(--space-8) auto 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-sunken);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-default);
+}
+
+/* ── 断点 ─────────────────────────────────────────────────── */
+
+/* ≤1024：卡壳贴满 1140 内容区但不溢出；事实仍三列 */
+@media (width <= 1024px) {
+    .rg {
+        padding-block: var(--space-6) var(--space-12);
+    }
+
+    .rg__body {
+        padding: var(--space-6);
+    }
+}
+
+/* ≤640：redirect_guard 移动形态 —— 标题居中、单列事实、按钮满宽纵向 */
+@media (width <= 640px) {
+    .rg {
+        padding-block: var(--space-4) var(--space-10);
+    }
+
+    .rg__shell {
+        border-radius: var(--radius-lg);
+    }
+
+    .rg__bar {
+        padding-inline: var(--space-4);
+    }
+
+    .rg__body {
+        gap: var(--space-5);
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .rg__head {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .rg__title-row {
+        justify-content: center;
+    }
+
+    .rg__title {
+        font-size: var(--text-xl);
+    }
+
+    .rg__lede {
+        font-size: var(--text-sm);
+    }
+
+    .rg__label-en {
+        display: none;
+    }
+
+    .rg__facts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rg__actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .rg__cta,
+    .rg__stay {
+        inline-size: 100%;
+        margin-inline-start: 0;
+    }
+
+    .rg__fallback-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rg__foot {
+        padding-inline: var(--space-4);
+    }
+
+    .rg__foot-meta {
+        white-space: normal;
+    }
+}
+
+/* ── 动效开关（守卫本身无动画，只有呼吸点）───────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .rg,
+    .rg * {
+        animation: none !important;
+        transition: none !important;
+    }
 }
