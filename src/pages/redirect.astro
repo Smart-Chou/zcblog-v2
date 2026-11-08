@@ -100,7 +100,9 @@ const scriptTexts = JSON.stringify({
                         id="rg-close"
                         aria-label={isEn ? "Cancel and stay on this site" : "取消跳转并留在本站"}
                     >
-                        <span aria-hidden="true">×</span>
+                        <span aria-hidden="true">
+                            <DynamicIcon name="tabler:x" width="16" height="16" />
+                        </span>
                     </button>
                 </span>
             </div>
@@ -108,7 +110,7 @@ const scriptTexts = JSON.stringify({
             <div class="rg__body">
                 <header class="rg__head">
                     <span class="rg__glyph" aria-hidden="true">
-                        <DynamicIcon name="tabler:shield-check" width="24" height="24" />
+                        <DynamicIcon name="tabler:alert-triangle-filled" width="24" height="24" />
                     </span>
                     <div class="rg__head-text">
                         <div class="rg__title-row">
@@ -130,7 +132,7 @@ const scriptTexts = JSON.stringify({
                 <div class="rg__inspect">
                     <div class="rg__inspect-head">
                         <span class="rg__label">
-                            <DynamicIcon name="tabler:world-search" width="15" height="15" />
+                            <DynamicIcon name="tabler:world" width="15" height="15" />
                             <span>{isEn ? "Target inspection" : "目标地址解析"}</span>
                             <span class="rg__label-en">(TARGET INSPECTION)</span>
                         </span>
@@ -199,7 +201,9 @@ const scriptTexts = JSON.stringify({
 
                 <div class="rg__actions">
                     <a class="rg__stay" id="rg-stay" href={home}>
-                        <span class="rg__stay-arrow" aria-hidden="true">←</span>
+                        <span class="rg__stay-arrow" aria-hidden="true">
+                            <DynamicIcon name="tabler:chevron-left" width="14" height="14" />
+                        </span>
                         <span>{isEn ? "Stay here (back to home)" : "留在本站（返回首页）"}</span>
                     </a>
                     <button type="button" class="rg__cta" id="jump-button" hidden>
@@ -208,7 +212,7 @@ const scriptTexts = JSON.stringify({
                     </button>
                 </div>
 
-                <div class="rg__fallback">
+                <div class="rg__fallback rg__fallback--error">
                     <p class="rg__fallback-text">
                         {
                             isEn
@@ -225,6 +229,31 @@ const scriptTexts = JSON.stringify({
                     </p>
                     <div class="rg__fallback-actions">
                         <a class="rg__stay rg__stay--solid" id="rg-fallback-home" href={home}>
+                            {isEn ? "Back to home" : "返回首页"}
+                        </a>
+                        <a class="rg__stay" href={archives}>
+                            {isEn ? "Browse archives" : "浏览归档"}
+                        </a>
+                    </div>
+                </div>
+
+                <div class="rg__fallback rg__fallback--dismissed">
+                    <p class="rg__fallback-text">
+                        {
+                            isEn
+                                ? "Nothing was opened and nothing was sent. Pick up wherever you left off."
+                                : "没有打开任何外部页面，也没有任何内容被发送。你可以接着刚才的浏览继续。"
+                        }
+                    </p>
+                    <p class="rg__fallback-note">
+                        {
+                            isEn
+                                ? "Changed your mind? Open the link again from the page you came from."
+                                : "改变主意了？从刚才那一页重新点这个链接即可。"
+                        }
+                    </p>
+                    <div class="rg__fallback-actions">
+                        <a class="rg__stay rg__stay--solid" id="rg-fallback-home-dismissed" href={home}>
                             {isEn ? "Back to home" : "返回首页"}
                         </a>
                         <a class="rg__stay" href={archives}>
@@ -286,7 +315,6 @@ const scriptTexts = JSON.stringify({
             const countDom = document.getElementById("rg-count");
             const copyBtn = document.getElementById("rg-copy");
             const closeBtn = document.getElementById("rg-close");
-            const fallbackHome = document.getElementById("rg-fallback-home");
 
             if (!root || !cta) return;
 
@@ -304,8 +332,11 @@ const scriptTexts = JSON.stringify({
                 root.setAttribute("data-state", state);
                 if (titleDom) titleDom.textContent = errorTitle;
                 if (ledeDom) ledeDom.textContent = errorLede;
-                // 焦点回填：关闭 / 失败之后焦点落到「返回首页」，键盘用户不必重新摸索
-                if (fallbackHome) fallbackHome.focus();
+                // 焦点回填：关闭 / 失败之后焦点落到该状态的「返回首页」，键盘用户不必重新摸索
+                const homeLink = document.getElementById(
+                    state === "dismissed" ? "rg-fallback-home-dismissed" : "rg-fallback-home",
+                );
+                if (homeLink) homeLink.focus();
             };
 
             const setVerdict = (text, state) => {

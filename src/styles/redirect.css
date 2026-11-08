@@ -76,30 +76,16 @@
     color: var(--color-fg-muted);
 }
 
+/* 状态点：静态实底。
+   早先是无限循环的呼吸动画，但 M2-5 的 overlays.spec 会对 `[data-overlay]` 子树里
+   所有动画调用 Animation.finish() —— 无限迭代的动画 finish() 抛 InvalidStateError，
+   直接把那条门禁打红。守卫页的「活着」信号不值得这个代价，改静态点。 */
 .rg__dot {
     inline-size: var(--space-2);
     block-size: var(--space-2);
     border-radius: var(--radius-pill);
     background-color: var(--color-status-danger-solid);
     flex: none;
-}
-
-/* 呼吸点：只在允许动效时存在（reduced-motion 连元素都不动） */
-@media (prefers-reduced-motion: no-preference) {
-    .rg__dot {
-        animation: rg-pulse 2.4s var(--ease-standard) infinite;
-    }
-}
-
-@keyframes rg-pulse {
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.45;
-    }
 }
 
 .rg__bar-keys {
@@ -255,7 +241,9 @@
 }
 
 .rg__label-en {
-    color: var(--color-fg-muted);
+    /* 12px 等宽小字：light 的 --color-fg-muted 只有 4.4:1、dark 4.24:1（axe serious），
+       这里用 fg-default 满对比，仅靠括号与字距和主标签区分。 */
+    color: var(--color-fg-default);
 }
 
 .rg__pill {
@@ -482,7 +470,9 @@
 }
 
 .rg__stay-arrow {
-    font-family: var(--font-mono);
+    display: inline-flex;
+    align-items: center;
+    flex: none;
 }
 
 @media (hover: hover) {
@@ -552,9 +542,21 @@
     background-color: var(--color-bg-sunken);
 }
 
-.rg[data-state="error"] .rg__fallback,
-.rg[data-state="dismissed"] .rg__fallback {
+.rg[data-state="error"] .rg__fallback--error,
+.rg[data-state="dismissed"] .rg__fallback--dismissed {
     display: grid;
+}
+
+/* 取消态的焦点落到它自己的「返回首页」（错误态另有一个同 id 之外的链接） */
+.rg[data-state="dismissed"] .rg__fallback--error,
+.rg[data-state="error"] .rg__fallback--dismissed {
+    display: none;
+}
+
+/* 退出打开态后，工具条上的 Esc / 关闭键已无可关闭的对象 —— 不留死控件 */
+.rg[data-state="error"] .rg__bar-keys,
+.rg[data-state="dismissed"] .rg__bar-keys {
+    display: none;
 }
 
 /* 退到兜底态时，解析卡 / 声明 / 状态行 / 操作行都不再有意义 */
@@ -569,9 +571,9 @@
 }
 
 .rg[data-state="dismissed"] .rg__glyph {
-    border-color: var(--color-status-success-border);
-    background-color: var(--color-status-success-bg);
-    color: var(--color-status-success-fg);
+    border-color: var(--color-border-subtle);
+    background-color: var(--color-bg-sunken);
+    color: var(--color-fg-default);
 }
 
 .rg[data-state="dismissed"] .rg__badge {

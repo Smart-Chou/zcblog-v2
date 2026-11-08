@@ -130,8 +130,9 @@ test.describe("redirect · 结构与协议", () => {
         await expect(page.locator("[data-overlay]")).toHaveCount(0);
         await expect(page.locator(".rg")).toHaveAttribute("data-state", "error");
         await expect(page.locator(".rg__title")).toHaveText("这个跳转地址无法解析");
-        await expect(page.locator(".rg__fallback")).toBeVisible();
+        await expect(page.locator(".rg__fallback--error")).toBeVisible();
         await expect(page.locator("#rg-fallback-home")).toBeVisible();
+        await expect(page.locator("#rg-fallback-home")).toBeFocused();
         // 兜底态不该还挂着一个可点的「继续前往」
         await expect(page.locator("#jump-button")).toBeHidden();
         // 页面不是白的：主体仍有可读文本
@@ -165,8 +166,9 @@ test.describe("redirect · 键盘与焦点", () => {
         await expect(page.locator("[data-overlay]")).toHaveCount(0);
         await expect(page.locator(".rg")).toHaveAttribute("data-state", "dismissed");
         await expect(page.locator(".rg__title")).toHaveText("已留在本站");
+        await expect(page.locator(".rg__fallback--dismissed")).toBeVisible();
         const focusedId = await page.evaluate(() => document.activeElement?.id ?? "");
-        expect(focusedId, "焦点应回填到兜底面板的首页链接").toBe("rg-fallback-home");
+        expect(focusedId, "焦点应回填到取消态的首页链接").toBe("rg-fallback-home-dismissed");
 
         // 停表：再过 6 秒也不该导航走（页面仍在 /redirect/）
         await page.waitForTimeout(6000);
@@ -177,7 +179,7 @@ test.describe("redirect · 键盘与焦点", () => {
         await open(page, UNLISTED, "light", VIEWPORTS[0]);
         await page.locator("#rg-close").click();
         await expect(page.locator(".rg")).toHaveAttribute("data-state", "dismissed");
-        await expect(page.locator("#rg-fallback-home")).toBeFocused();
+        await expect(page.locator("#rg-fallback-home-dismissed")).toBeFocused();
     });
 });
 
@@ -262,5 +264,21 @@ test.describe("redirect · 证据截图", () => {
                 expect(existsSync(target)).toBe(true);
             });
         }
+    }
+
+    // 两个非默认态也要有证据：解析失败（兜底面板）与用户取消（焦点回填后的样子）
+    for (const [name, url, action] of [
+        ["error", BROKEN, async () => {}],
+        ["dismissed", UNLISTED, async (page: Page) => page.keyboard.press("Escape")],
+    ] as const) {
+        test(`redirect-${name}-light-1440`, async ({ page }) => {
+            await open(page, url, "light", VIEWPORTS[0]);
+            await action(page);
+            if (!existsSync(SCREENS_DIR)) mkdirSync(SCREENS_DIR, { recursive: true });
+            const target = path.join(SCREENS_DIR, `redirect-${name}-light-1440.png`);
+            await page.screenshot({ path: target, fullPage: true, animations: "disabled" });
+            console.log(`[shot] ${target}`);
+            expect(existsSync(target)).toBe(true);
+        });
     }
 });
