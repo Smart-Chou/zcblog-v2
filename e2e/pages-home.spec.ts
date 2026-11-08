@@ -492,6 +492,20 @@ test.describe("evidence screenshots", () => {
                 await openHome(page, theme);
                 // 关掉光标动画，截图不落在半帧上
                 await page.addStyleTag({ content: ".typewriter::after{display:none!important}" });
+                // 打字机是 JS 定时器驱动：不等它落定，证据图会停在「删到一半」的半句上
+                // （M6-2 首图就拍到过「记录技术与生」）。这里停掉实例并写回首句。
+                await page.evaluate(() => {
+                    document.querySelectorAll<HTMLElement>(".typewriter").forEach((el) => {
+                        const instance = (
+                            el as HTMLElement & { __typewriterInstance?: { destroy: () => void } }
+                        ).__typewriterInstance;
+                        instance?.destroy();
+                        const texts = JSON.parse(el.dataset.text ?? "[]");
+                        if (Array.isArray(texts) && typeof texts[0] === "string") {
+                            el.textContent = texts[0];
+                        }
+                    });
+                });
                 // 全页截图前先滚一遍触发 loading="lazy" 的图（相册是远程 CDN，
                 // 不滚就永远停在占位，证据图会看起来像「图片全丢」）。
                 await page.evaluate(async () => {
