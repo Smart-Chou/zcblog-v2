@@ -3,7 +3,7 @@
 - 卡：`t_a0f38b0d`（blog2 板）· 2026-11-09
 - 基线：`main` @ `8a363e3`（M6-3）
 - 输入：`selection.md` §4.3 + §4.4；桌面 `marx_s_blog_archives_tags_1`，移动 `marx_s_blog_archives_tags_2`
-- 说明：attempt 1 在 150 次迭代预算处超时（2747s），改动已落工作区；operator 接手完成测试、暗色对比度、标签长尾布局和报告。本报告数字为 operator 最终实跑结果。
+- 说明：attempt 1 在 150 次迭代预算处超时（2747s），改动已落工作区；operator 接手完成测试、暗色对比度、标签长尾布局、视觉基线与报告（提交 `d25424c`）。claim worker（run 124）随后在干净重建上复核全部门禁并补齐 CI 证据，见 §3。
 
 ## 1. 改动（9 个源文件 ≤ 停点 10）
 
@@ -21,7 +21,7 @@
 
 没有改内容 schema、路由、palette、依赖；没有引入 d3 / 图谱 JS。
 
-## 2. 版式实测（全量内容：89 篇文章 / 272 标签）
+## 2. 版式实测（全量内容：85 篇文章 / 272 标签）
 
 | 页面 / 视口 | 实测 |
 |---|---|
@@ -52,7 +52,9 @@ pnpm exec playwright test e2e/pages-archives.spec.ts e2e/pages-tags.spec.ts
 - 标签侧 axe（light/dark × 1440）0 violations；归档 / 单标签页 axe 0 violations。
 - `pages-archives` 的 CLS：1440 **0.0003**、390 **0.0000**；键盘 Tab 顺序、焦点环、无 JS、reduced-motion 均通过。
 - 视觉基线：`archives-*` macOS **6 张** + Linux **6 张**已重生成并各自验证 6 passed；其他页面未动。
-- **重要本地复现坑**：`visual:build:pages` 会把 Astro 内容缓存切到 6 篇夹具；随后直接跑 `build:ci` 可能继续读夹具，导致 `/tags/` 只有 14 个标签。已在本地把 `.astro` 缓存移走后重建，得到 89 篇 / 272 标签再跑验收。CI 是干净 checkout，不会继承此缓存。
+- **重要本地复现坑**：`visual:build:pages` 会把 Astro 内容缓存切到 6 篇夹具；随后直接跑 `build:ci` 可能继续读夹具，导致 `/tags/` 只有 14 个标签。已在本地把 `.astro` 缓存移走后重建，得到 85 篇 / 272 标签再跑验收。CI 是干净 checkout，不会继承此缓存。
+- **claim worker 复核（2026-11-09 01:00）**：`astro build --force` 重建全量内容（477 页，其中 `/tags/<tag>/` 272 个），重跑 `perf-budget`（749 页 over=0）与两个 e2e 文件（**54 passed / 6 skipped**）；`visual:build:pages` + `pages.visual.spec.ts` macOS **36 passed**。
+- **CI `d25424c`**：CI **42502565489** `test / gates / contract / visual (atoms 72 + pages 36 · linux baselines)` 全 success；Perf **42502565508**、A11y PR smoke **42502565471**、Deploy matrix **42502565479** 均 success —— Linux 视觉基线由 CI 的 `maxDiffPixels 0` 判定通过。
 
 ## 4. 与 selection §4.3 / §4.4 的偏差与修正
 
