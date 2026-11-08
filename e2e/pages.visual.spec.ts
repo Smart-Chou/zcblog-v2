@@ -3,10 +3,10 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * Page-level visual baselines — M5-11 (V-0).
  *
- * 6 pages × 2 themes × 3 viewports = 36 shots per platform:
+ * 6 pages × 2 themes × 3 viewports = 36 shots per platform (M6-6a adds `/404/` → 42):
  *   /                                     home
  *   /article/beszel-server-monitoring-guide/  long-form representative
- *   /archives/  /albums/  /culture/  /projects/
+ *   /archives/  /albums/  /culture/  /projects/  /404/
  *
  * Stored at `e2e/__screenshots__/pages{,-linux}/<page>-<theme>-<width>.png`
  * (the dir is chosen by the Playwright project in `playwright.config.ts`).
@@ -45,6 +45,8 @@ const PAGES = [
     { name: "albums", path: "/albums/" },
     { name: "culture", path: "/culture/" },
     { name: "projects", path: "/projects/" },
+    // M6-6a: the 404 shell is a user-visible page, so it gets the same baseline treatment.
+    { name: "404", path: "/404/" },
 ] as const;
 
 const VIEWPORTS = [375, 768, 1280] as const;
