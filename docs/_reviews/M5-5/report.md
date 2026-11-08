@@ -15,7 +15,7 @@
 | `release.yml` 是否读 token | **不读**。文件里 `secrets.` 出现 0 次；OIDC gate 反过来把 `NPM_TOKEN` / 非占位 `NODE_AUTH_TOKEN` 当硬失败条件 |
 | `NPM_TOKEN` 现状 | **仍在** `npm-publish` environment secret（2026-11-06T06:29Z 创建，granular、仅两包 read-write、2027-02-04 到期）；workflow 不引用它 |
 | token 处置建议 | **保留 30 天到 2026-12-06 复审，到期无条件撤销**（理由与操作单见 §4） |
-| 24h 点检 | 本轮执行时距发布仅 **12 分钟**，24h 窗口未到；已把复查命令固化成脚本并给出到点时间（§2） |
+| 24h 点检 | **已完成（2026-11-08 15:37 HKT）**：`R11` 27.5h ≥ 24h；26 PASS / 1 FAIL（ui R6 无 provenance，路径 B 已知）/ 1 INFO（ui stage 占位待 M5-8a）；无 registry 写操作（§2） |
 
 ## 1. registry 24h 复查（本轮为 T+12min 基线）
 
@@ -119,18 +119,60 @@ EXIT=3        # ← 未到 24h 就是 3，不是 0
 脚本只读：不发任何带认证的请求（无 `_authToken` 读取、无 `npm publish/dist-tag/unpublish`），
 `R5` 的 tarball 校验也会顺带证明 CDN 上的字节与 integrity 一致。
 
-## 2. 24h 点检（未到点，命令已固化）
+## 2. 24h 点检（2026-11-08 15:37 HKT 完成）
 
-到点：**`2026-11-07T15:16:33Z` = 2026-11-07 23:16 HKT**（以 `tokens@2.1.2` 的 registry 时间为基准，更晚的包）。
+- 实际执行：`2026-11-08T07:37:11Z` = **2026-11-08 15:37 HKT**
+- 最近发布：`ui@2.1.2` 于 `2026-11-07T04:05:20.598Z`（路径 B），距今 **27.5h**；`tokens` / `og-image` 距今 40.3/40.4h。24h 窗口已满足。
+- 命令：`pnpm verify:registry --min-age-hours=24`
+- 退出码：**1**。唯一 FAIL 是 `ui R6（无 provenance）`，这是 M5-8 路径 B 在发布时已明确接受的已知项，不是 24h 内的新漂移；其余 26 项 PASS，`R11` 明确「24h 窗口已满足」。无任何 registry 写操作。
 
-```bash
-cd ~/Documents/WebSiteCode/zcblog-v2
-pnpm verify:registry --min-age-hours=24     # 或 node scripts/release/verify-registry.mjs --min-age-hours=24
+```console
+$ node scripts/release/verify-registry.mjs --min-age-hours=24
+
+== 发布后 registry 复查（只读） ==
+[PASS] R1         @marxchou/dogeared-tokens registry 可达（HTTP 200）
+[PASS] R2         @marxchou/dogeared-tokens latest = 2.1.2（与仓库 packages/tokens/package.json 一致）
+[PASS] R3         @marxchou/dogeared-tokens dist-tags 只有 latest（无 next/beta/stage 流浪 tag）
+[PASS] R4         @marxchou/dogeared-tokens@2.1.2 tarball 可下载（HTTP 200, 20748 B）
+[PASS] R5         @marxchou/dogeared-tokens@2.1.2 integrity 实算一致（sha512-pmzNV9jDuZY8e0hsw…）
+[PASS] R6         @marxchou/dogeared-tokens@2.1.2 provenance = SLSA v1（attestation bundle 可达）
+[PASS] R7         @marxchou/dogeared-tokens@2.1.2 maintainers = mifsh，未 deprecated
+[PASS] R8         @marxchou/dogeared-tokens@2.1.2 发布于 2026-11-06T15:16:33.075Z（距今 40.3h）
+[PASS] R1         @marxchou/dogeared-ui registry 可达（HTTP 200）
+[PASS] R2         @marxchou/dogeared-ui latest = 2.1.2（与仓库 packages/ui/package.json 一致）
+[PASS] R3         @marxchou/dogeared-ui dist-tags 只有 latest（无 next/beta/stage 流浪 tag）
+[PASS] R4         @marxchou/dogeared-ui@2.1.2 tarball 可下载（HTTP 200, 6233 B）
+[PASS] R5         @marxchou/dogeared-ui@2.1.2 integrity 实算一致（sha512-vsa6BZZok8gbKY5CZ…）
+[FAIL] R6         @marxchou/dogeared-ui@2.1.2 没有 attestations（provenance 缺失）
+           重发该版本或检查 publish 是否带 provenance
+[PASS] R7         @marxchou/dogeared-ui@2.1.2 maintainers = mifsh，未 deprecated
+[PASS] R8         @marxchou/dogeared-ui@2.1.2 发布于 2026-11-07T04:05:20.598Z（距今 27.5h）
+[PASS] R1         @marxchou/dogeared-og-image registry 可达（HTTP 200）
+[PASS] R2         @marxchou/dogeared-og-image latest = 2.1.2（与仓库 packages/og-image/package.json 一致）
+[PASS] R3         @marxchou/dogeared-og-image dist-tags 只有 latest（无 next/beta/stage 流浪 tag）
+[PASS] R4         @marxchou/dogeared-og-image@2.1.2 tarball 可下载（HTTP 200, 12284 B）
+[PASS] R5         @marxchou/dogeared-og-image@2.1.2 integrity 实算一致（sha512-2FPKklzJOSN1SylYr…）
+[PASS] R6         @marxchou/dogeared-og-image@2.1.2 provenance = SLSA v1（attestation bundle 可达）
+[PASS] R7         @marxchou/dogeared-og-image@2.1.2 maintainers = mifsh，未 deprecated
+[PASS] R8         @marxchou/dogeared-og-image@2.1.2 发布于 2026-11-06T15:15:33.555Z（距今 40.4h）
+[PASS] R10        @marxchou/dogeared-tokens 没有 0.0.0-stage 占位
+[INFO] R10        @marxchou/dogeared-ui 仍挂着 0.0.0-stage 占位（27.6h 前，无 tag 指向）
+           unpublish 窗口：72h（发布后 27.6h → 仍可自助删除）
+           删除需 PO 单独批准（M5-5 只核查，不执行）
+[PASS] R10        @marxchou/dogeared-og-image 没有 0.0.0-stage 占位
+[PASS] R11        距最近一次发布已 27.5h ≥ 24h（24h 窗口已满足）
+
+RELEASE_SUMMARY {"title":"发布后 registry 复查（只读）","ok":false,"counts":{"PASS":26,"FAIL":1,"WARN":0,"INFO":1,"SKIP":0},"checkedAt":"2026-11-08T07:37:11.710Z","minAgeHours":24,"newestPublish":"@marxchou/dogeared-ui@2.1.2 @ 2026-11-07T04:05:20.598Z (27.5h)","placeholder":{"@marxchou/dogeared-tokens":"absent","@marxchou/dogeared-ui":"present/window-open","@marxchou/dogeared-og-image":"absent"}}
+[ELIFECYCLE] Command failed with exit code 1.
 ```
 
-- 退出码 `0` = 24h 窗口内一切未漂移；`1` = 有 drift（按 §6 处置）；`3` = 还没到 24h（本次就是这个）。
-- 24h 点检的**独立卡**已建：`M5-5b · registry 24h 点检（只读）`，属性写明「早于 2026-11-07T15:16Z 不得声称 24h，脚本会 exit 3」。
-- 没有新增 CI 定时任务：任何新 workflow / cron 属于基础设施变更，等 PO 批准后再加（建议形态：`schedule: cron('20 15 * * *')` 只跑 `verify:registry`，read-only）。
+判读：
+
+- `tokens` / `og-image`：版本、dist-tag、tarball、integrity、provenance、maintainer 全部未漂移（R1–R8 PASS）。
+- `ui`：版本 / tarball / integrity / dist-tag 正常；`R6` 无 attestations，按路径 B 接受，不重发。
+- `R10`：tokens / og-image 的 `0.0.0-stage` 已 `absent`；ui 仍 `present/window-open`（27.6h，72h 窗口内），按 M5-8a 等 PO 封禁解除后处理，本卡未执行删除。
+- 没有新增 CI 定时任务；任何新 workflow / cron 仍属基础设施变更，等 PO 批准。
+- 本次只读，未产生 publish / unpublish / deprecate / dist-tag 写操作。
 
 ## 3. `0.0.0-stage` 占位：只读核查结论
 
