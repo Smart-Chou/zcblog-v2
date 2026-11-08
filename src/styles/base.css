@@ -2,15 +2,50 @@
    Base — Editorial defaults
    ========================================= */
 
+/* =========================================
+   Shell aliases — 语义 token 优先，旧名兜底（M6-1）
+   -----------------------------------------
+   tokens 包按页 import（`src/styles/tokens/tokens.css`），所以并非每条路由都能
+   解析 `--color-*` 的语义层。外壳（header / nav / footer / atoms）统一读 `--shell-*`：
+   语义层在 → 用 D-0148 冻结的 palette；语义层不在 → 落回 variables.css 的旧值，
+   不会出现「transparent 画布 / 不可见文字」。M6-1 边界不许改 `src/pages/**` 的
+   import 列表，所以这层 indirection 留在 base.css 里。
+   ========================================= */
+:root {
+    --shell-canvas: var(--color-bg-canvas, var(--color-bg));
+    --shell-surface: var(--color-bg-surface, var(--color-surface));
+    --shell-surface-translucent: var(--color-bg-surface-translucent, var(--color-surface-translucent));
+    --shell-sunken: var(--color-bg-sunken, var(--color-surface-secondary));
+    --shell-sunken-strong: var(--color-bg-muted, var(--color-surface-secondary));
+    --shell-hover: var(--color-bg-hover, var(--color-hover));
+    --shell-fg: var(--color-fg-default, var(--color-text));
+    --shell-fg-strong: var(--color-fg-heading, var(--color-title));
+    --shell-fg-muted: var(--color-fg-muted, var(--color-text-muted));
+    --shell-border: var(--color-border-subtle, var(--color-border));
+    --shell-border-strong: var(--color-border-default, var(--color-border));
+    --shell-accent: var(--color-accent-solid, var(--color-accent));
+    --shell-accent-hover: var(--color-accent-solid-hover, var(--color-accent));
+    --shell-accent-fg: var(--color-fg-on-accent, var(--color-on-accent));
+    --shell-accent-subtle: var(--color-accent-subtle, var(--color-hover));
+    --shell-ring: var(--color-ring-focus, var(--color-accent));
+    --shell-radius-sm: var(--radius-sm, 6px);
+    --shell-radius-md: var(--radius-md, 8px);
+    --shell-radius-lg: var(--radius-lg, 12px);
+    --shell-radius-xl: var(--radius-xl, 16px);
+    --shell-radius-pill: var(--radius-pill, 9999px);
+    --shell-gutter: var(--space-6, 24px);
+    --shell-header-h: var(--layout-header-height, var(--header-height));
+}
+
 .skip-link {
     position: absolute;
     top: -100%;
     left: 16px;
     z-index: 10000;
     padding: 8px 16px;
-    background: var(--color-accent, #c2413b);
-    color: #fff;
-    border-radius: 0 0 4px 4px;
+    background: var(--shell-accent);
+    color: var(--shell-accent-fg);
+    border-radius: 0 0 var(--shell-radius-sm) var(--shell-radius-sm);
     font-size: var(--text-sm, 0.875rem);
     text-decoration: none;
     transition: top 0.2s ease;
@@ -43,8 +78,8 @@ html {
 }
 
 body {
-    background-color: var(--color-bg);
-    color: var(--color-text);
+    background-color: var(--shell-canvas);
+    color: var(--shell-fg);
     font-family: var(--font-body);
     font-weight: 400;
     margin: 0;
@@ -92,13 +127,30 @@ hr:before {
 
 .main {
     margin: 0 auto;
-    padding: calc(3.5vw + var(--header-height)) 20px 0;
+    width: 100%;
+    /* M6-1：页头与正文共用 1140 外框 + 24 内边距（设计稿 max-w-[1140px] px-gutter），
+       否则页头品牌会比正文左边缘右偏一个 gutter。 */
+    max-width: var(--layout-content-wide, var(--content-width-max));
+    /* 页头改全宽吸顶条后，正文起点 = 页头高度 + 一个 24px 节拍；
+       旧值 calc(3.5vw + header) 在 1440 下是 ~114px，会在页头下留出一段死高。 */
+    padding: calc(var(--shell-header-h) + var(--shell-gutter)) var(--shell-gutter) 0;
     flex: 1;
 }
 
 .content {
-    max-width: var(--content-width);
-    margin-inline: auto;
+    max-width: none;
+    margin-inline: 0;
+}
+
+/* 区块节奏（M6-1）：页面里相邻的 section 默认走 48px 节拍。
+   本文件在 @layer base，页面自己的 margin 仍优先。 */
+.content > section + section,
+.content > .section + .section {
+    margin-block-start: var(--space-12, 3rem);
+}
+
+.content > :first-child {
+    margin-block-start: 0;
 }
 
 .content--full {
@@ -111,10 +163,14 @@ hr:before {
     max-width: 100%;
 }
 
-/* ---- Mobile ---- */
+/* ---- Mobile ----
+   M6-1：移动端横向内边距**保持旧值**（≤768 12px / ≤450 10px）。
+   设计稿是 20px，但 `e2e/pages.visual.spec.ts` 把 article@375 的横向溢出冻结在
+   16px（宽表格，属 M6-3 的页面卡）；加宽内边距会把它推到 21px，视觉门禁直接红。
+   修表格换行不在 M6-1 的 10 文件边界内，所以这里只收窄纵向节拍。 */
 @media screen and (max-width: 768px) {
     .main {
-        padding: calc(3.5vw + 50px) 12px 0;
+        padding: calc(var(--shell-header-h) + var(--space-4, 16px)) 12px 0;
     }
 
     .content-box {
@@ -138,7 +194,7 @@ hr:before {
 
 @media screen and (max-width: 450px) {
     .main {
-        padding: calc(3.5vw + 48px) 10px 0;
+        padding: calc(var(--shell-header-h) + var(--space-3, 12px)) 10px 0;
     }
 
     .post-title {

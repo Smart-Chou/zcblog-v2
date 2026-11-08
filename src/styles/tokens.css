@@ -6,26 +6,16 @@
    This file sits ABOVE variables.css in the same @layer.
    It provides semantic aliases so components never reference
    raw color values directly — only semantic token names.
+
+   M6-1（2026-11-08）：本文件只保留「仍在被消费」的别名。
+   旧 --content-width-max 桥接到 tokens 包的 --layout-wide（带字面兜底：
+   部分路由尚未引入 `styles/tokens/tokens.css`，见卡 t_b112fa5a 的文件边界），
+   并删掉实测 0 引用的死别名（灰阶整块、--color-hover-accent、--color-backdrop、
+   --toc-width、--content-width-wide、--leading-headings、--z-toast）。
    ========================================= */
 
 /* =========================================
-   1. Gray Scale Palette (net-new — not in variables.css)
-   ========================================= */
-:root {
-    --color-gray-50: hsl(30, 10%, 98%);
-    --color-gray-100: hsl(30, 8%, 94%);
-    --color-gray-200: hsl(30, 6%, 80%);
-    --color-gray-300: hsl(30, 5%, 60%);
-    --color-gray-400: hsl(30, 5%, 44%);
-    --color-gray-500: hsl(30, 6%, 30%);
-    --color-gray-600: hsl(30, 8%, 18%);
-    --color-gray-700: hsl(30, 8%, 12%);
-    --color-gray-800: hsl(30, 8%, 8%);
-    --color-gray-900: hsl(30, 8%, 4%);
-}
-
-/* =========================================
-   2. Semantic Colors — referencing variables.css values
+   1. Semantic Colors — referencing variables.css values
    ========================================= */
 :root {
     /* Surface & Background */
@@ -39,27 +29,15 @@
     --color-text-heading: var(--color-heading);
     --color-text-accent: var(--color-link);
     --color-text-invert: #fbf8f4;
-
-    /* Interactive */
-    --color-hover-accent: var(--color-hover);
-
-    /* Code */
-    /* NOTE: --color-code-bg is defined in variables.css (light + dark). Do NOT re-declare
-       it here as an alias — a same-name alias (--x: var(--x)) is a CSS cycle and nukes the
-       token to empty (2026-10 regression: light-mode inline code lost its background). */
-
-    /* Overlay / Backdrop */
-    --color-backdrop: rgba(0, 0, 0, 0.5);
 }
 
 /* ---- Dark mode overrides for new tokens only ---- */
 [data-theme="dark"] {
     --color-text-invert: #1c1917;
-    --color-backdrop: rgba(0, 0, 0, 0.7);
 }
 
 /* =========================================
-   3. Typography — aliases + extensions
+   2. Typography — aliases + extensions
    ========================================= */
 :root {
     /* Font families — --font-body / --font-heading / --font-mono retained from variables.css.
@@ -79,9 +57,8 @@
 
     /* Leading */
     --leading: var(--leading-relaxed);
-    --leading-headings: var(--leading-snug);
     /* NOTE: --leading-code is defined in variables.css. Same-name alias = CSS cycle → empty
-       (same regression as --color-code-bg above); do NOT re-declare. */
+       (same regression as --color-code-bg below); do NOT re-declare. */
 
     /* Font weights (net-new) */
     --font-weight-normal: 400;
@@ -91,25 +68,27 @@
 }
 
 /* =========================================
-   4. Layout — extensions beyond variables.css
+   3. Layout — 旧键 → tokens 包度量（M6-1 桥接）
    ========================================= */
 :root {
-    /* --content-width, --content-width-max, --header-height
-     already in variables.css — pass-through */
+    /* 字面兜底不是「第二套值」：`--layout-wide` / `--layout-sidebar` 只有引入
+       `styles/tokens/tokens.css` 的路由才有（tokens 包按页 import，M6-1 边界不碰
+       `src/pages/**`）。没有兜底时这些路由会把 max-width 算成 `auto`。 */
+    --content-width-max: var(--layout-wide, 1440px);
+    --sidebar-width: var(--layout-sidebar, 280px);
 
-    --content-width-wide: var(--content-width-max);
-    --sidebar-width: 260px;
-    --toc-width: 200px;
+    /* --content-width / --header-height 由 variables.css 提供，数值与 tokens 包一致，
+       继续 pass-through（消费面太广，M6-1 不在此处迁移）。 */
 }
 
 /* =========================================
-   5. Spacing — consolidated (already in variables.css)
+   4. Spacing — consolidated (already in variables.css)
    ========================================= */
 /* --space-2xs~--space-3xl are defined in variables.css
    No additional aliases needed; components refer to them directly. */
 
 /* =========================================
-   6. Radii — consolidated
+   5. Radii — consolidated
    ========================================= */
 :root {
     --radius-xs: var(--radius-sm);
@@ -118,17 +97,17 @@
 }
 
 /* =========================================
-   7. Shadows — already in variables.css, pass-through
+   6. Shadows — already in variables.css, pass-through
    ========================================= */
 /* --shadow-xs~--shadow-xl defined in variables.css */
 
 /* =========================================
-   8. Transitions — already in variables.css, pass-through
+   7. Transitions — already in variables.css, pass-through
    ========================================= */
 /* --duration-fast~--duration-slower, --ease-out/in/in-out in variables.css */
 
 /* =========================================
-   9. Z-Index Scale (net-new)
+   8. Z-Index Scale (net-new)
    ========================================= */
 :root {
     --z-base: 1;
@@ -136,5 +115,4 @@
     --z-sticky: 20;
     --z-overlay: 30;
     --z-modal: 50;
-    --z-toast: 100;
 }

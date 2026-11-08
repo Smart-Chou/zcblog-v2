@@ -2,7 +2,7 @@
    tokens.css — GENERATED FILE, DO NOT EDIT BY HAND
    source : packages/tokens/tokens.json
    version: 1.1.0
-   sha256 : c85b75885db08ef0273c64b0bcce1e31510aaebc1bab0a6430afd41bca6681d9
+   sha256 : f0e394b26df972cb6d92f40b598cb79da1aa3efbc5339ac2159edd2ebb4e5481
    build  : node packages/tokens/scripts/build-tokens.mjs
    order  : :root{palette} → :root{primitive} → :root{semantic.light}
             → [data-theme="dark"]{semantic.dark} → @media{responsive}
@@ -138,6 +138,7 @@
   --z-toast: 60;
   --z-skip-link: 1000;
   --layout-content: 1200px;
+  --layout-content-wide: 1140px;
   --layout-article: 780px;
   --layout-wide: 1440px;
   --layout-sidebar: 280px;

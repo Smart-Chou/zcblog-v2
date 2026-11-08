@@ -40,7 +40,13 @@ const navHref = (href: string): string => {
 function isActive(href: string) {
     // 单段链接（"/"、"/en/"、"/ja/" …）必须精确匹配：否则 "/ja/" 会把
     // /ja/blog/1/ 也算成首页高亮（M2-11a）
-    if (/^\/[^/]*\/$/.test(href) && !href.startsWith("/blog/")) return currentPath === href;
+    //
+    // M6-1 修正：旧写法 `/^\/[^/]*\/$/.test("/")` 是 **false**（"只有 1 个斜杠"），
+    // 于是 "/" 掉进下面的前缀分支 `currentPath.startsWith("/")` —— 全站每一页都把
+    // 「首页」算成当前页。以前只表现为颜色多亮一项；M6-1 把导航做成胶囊后当前页是
+    // 整颗填色 + aria-current="page"，同一屏会出现两颗"当前页"，读屏也会播报两次。
+    const isSingleSegment = href === "/" || /^\/[^/]*\/$/.test(href);
+    if (isSingleSegment && !href.startsWith("/blog/")) return currentPath === href;
     const base = href.replace(/\/\d+\/$/, "/");
     return currentPath.startsWith(base);
 }
@@ -58,6 +64,7 @@ function isActive(href: string) {
         <span class="nav-menu-btn-bar"></span>
         <span class="nav-menu-btn-bar"></span>
     </span>
+    <span class="nav-menu-btn-label">{isEn ? "Menu" : "菜单"}</span>
 </button>
 
 <nav
@@ -70,14 +77,14 @@ function isActive(href: string) {
         {
             navLinks.map((link) => {
                 const label = navKeyMap[link.href] ? t(loc, navKeyMap[link.href]) : link.label;
+                const href = navHref(link.href);
+                const active = isActive(href);
                 return (
                     <li>
                         <a
-                            href={navHref(link.href)}
-                            class:list={[
-                                "nav-dropdown-link",
-                                { active: isActive(navHref(link.href)) },
-                            ]}
+                            href={href}
+                            class:list={["nav-dropdown-link", { active }]}
+                            aria-current={active ? "page" : undefined}
                         >
                             {label}
                         </a>
@@ -126,11 +133,11 @@ function isActive(href: string) {
             const href = link.getAttribute("href") || "";
             if (!href) return;
             const base = href.replace(/\/\d+\/$/, "/");
-            // 与构建期同口径：单段链接精确匹配，其余按 base 前缀匹配
+            // 与构建期同口径：单段链接（含 "/"）精确匹配，其余按 base 前缀匹配。
+            // M6-1："/" 必须显式算作单段，否则 startsWith("/") 会把每一页都点亮。
+            const isSingleSegment = href === "/" || /^\/[^/]*\/$/.test(href);
             const active =
-                /^\/[^/]*\/$/.test(href) && !href.startsWith("/blog/")
-                    ? path === href
-                    : path.startsWith(base);
+                isSingleSegment && !href.startsWith("/blog/") ? path === href : path.startsWith(base);
             link.classList.toggle("active", active);
             if (active) link.setAttribute("aria-current", "page");
             else link.removeAttribute("aria-current");
@@ -261,48 +268,70 @@ function isActive(href: string) {
         margin: 0.2rem;
     }
 
+    /* M6-1：汉堡按钮收成 34px 面片胶囊，和搜索触发器/工具组同一档高度。 */
     .nav-menu-btn {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 12px;
-        border: none;
-        border-radius: 8px;
-        background: transparent;
-        color: var(--color-text);
-        font-size: 0.95em;
-        font-weight: 600;
+        gap: var(--space-2, 8px);
+        height: 34px;
+        padding: 0 var(--space-3, 12px);
+        border: 1px solid var(--shell-border);
+        border-radius: var(--shell-radius-md);
+        background: var(--shell-sunken);
+        color: var(--shell-fg-muted);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: 500;
         font-family: var(--font-body);
         cursor: pointer;
-        transition: background-color var(--duration-fast);
+        transition:
+            background-color var(--duration-fast) var(--ease-out),
+            color var(--duration-fast) var(--ease-out),
+            border-color var(--duration-fast) var(--ease-out);
     }
 
     @media (hover: hover) {
         .nav-menu-btn:hover {
-            background: var(--color-hover);
+            background: var(--shell-sunken-strong);
+            color: var(--shell-fg);
         }
+    }
+
+    .nav-menu-btn[aria-expanded="true"] {
+        background: var(--shell-accent);
+        border-color: var(--shell-accent);
+        color: var(--shell-accent-fg);
+    }
+
+    .nav-menu-btn:focus-visible {
+        outline: 2px solid var(--shell-ring);
+        outline-offset: 2px;
     }
 
     .nav-menu-btn-icon {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        width: 18px;
+        gap: 3px;
+        width: 16px;
     }
 
     .nav-menu-btn-bar {
         display: block;
-        width: 18px;
+        width: 16px;
         height: 2px;
         border-radius: 2px;
-        background: var(--color-text);
+        background: currentColor;
         transition:
             transform 0.3s,
             opacity 0.3s;
     }
 
+    .nav-menu-btn-label {
+        line-height: 1;
+        white-space: nowrap;
+    }
+
     .nav-menu-btn--open .nav-menu-btn-bar:nth-child(1) {
-        transform: translateY(6px) rotate(45deg);
+        transform: translateY(5px) rotate(45deg);
     }
 
     .nav-menu-btn--open .nav-menu-btn-bar:nth-child(2) {
@@ -310,7 +339,7 @@ function isActive(href: string) {
     }
 
     .nav-menu-btn--open .nav-menu-btn-bar:nth-child(3) {
-        transform: translateY(-6px) rotate(-45deg);
+        transform: translateY(-5px) rotate(-45deg);
     }
 
     @media screen and (max-width: 768px) {
@@ -319,35 +348,37 @@ function isActive(href: string) {
         }
 
         .nav-menu-btn {
-            padding: 6px 8px;
-            min-width: 40px;
-            min-height: 40px;
+            padding: 0;
+            width: 34px;
+            min-width: 34px;
+            height: 34px;
             justify-content: center;
         }
     }
 
-    /* ── Dropdown panel ── */
+    /* ── Dropdown panel ──
+       面板挂在页头正下方（top 走同一个 header 高度 token），里面是一排胶囊：
+       常态透明、hover 换面片底、当前页整颗填强调色。 */
     .nav-dropdown {
         position: fixed;
-        top: 80px;
+        top: calc(var(--notice-height, 0px) + var(--shell-header-h) + var(--space-2, 8px));
         left: 50%;
-        transform: translateX(-50%) translateY(-8px);
+        transform: translateX(-50%) translateY(-6px);
         z-index: 10;
-        width: calc(100% - 48px);
-        max-width: var(--content-width-medium);
-        padding: 0 32px;
-        background: var(--color-bg-surface);
-        background: color-mix(in srgb, var(--color-bg-surface) 90%, transparent);
-        -webkit-backdrop-filter: blur(24px);
-        backdrop-filter: blur(24px);
-        border: 1px solid var(--color-border);
-        border-radius: 28px;
-        box-shadow: var(--shadow-lg);
+        width: calc(100% - 2 * var(--space-6, 24px));
+        max-width: var(--layout-content-wide, var(--content-width-max));
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        background: var(--shell-surface-translucent);
+        -webkit-backdrop-filter: blur(20px) saturate(1.3);
+        backdrop-filter: blur(20px) saturate(1.3);
+        border: 1px solid var(--shell-border);
+        border-radius: var(--shell-radius-xl);
+        box-shadow: var(--shadow-4, var(--shadow-lg));
         opacity: 0;
         pointer-events: none;
         transition:
-            opacity 0.25s ease,
-            transform 0.25s ease;
+            opacity var(--duration-base, 0.2s) var(--ease-standard, ease),
+            transform var(--duration-base, 0.2s) var(--ease-standard, ease);
     }
 
     .nav-dropdown--open {
@@ -359,7 +390,7 @@ function isActive(href: string) {
     .nav-dropdown-list {
         display: flex;
         justify-content: center;
-        gap: 6px;
+        gap: var(--space-1, 4px);
         list-style: none;
         margin: 0;
         padding: 0;
@@ -369,65 +400,82 @@ function isActive(href: string) {
     .nav-dropdown-link {
         display: inline-flex;
         align-items: center;
-        padding: 0.25em 0.6em;
-        margin: 4px 0;
-        border-radius: 10px;
-        font-size: 1.05em;
-        font-weight: 600;
-        color: var(--color-text);
+        gap: var(--space-2, 8px);
+        padding: 6px var(--space-3, 12px);
+        border-radius: var(--shell-radius-pill);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: 500;
+        line-height: 1.4;
+        color: var(--shell-fg-muted);
+        background: transparent;
+        border: 0;
+        cursor: pointer;
         text-decoration: none;
         white-space: nowrap;
         transition:
-            color var(--duration-fast),
-            background-color var(--duration-fast);
+            color var(--duration-fast) var(--ease-out),
+            background-color var(--duration-fast) var(--ease-out);
     }
 
     @media (hover: hover) {
         .nav-dropdown-link:hover {
-            color: var(--color-accent);
-            background: var(--color-hover);
+            color: var(--shell-fg);
+            background: var(--shell-sunken-strong);
         }
     }
 
-    .nav-dropdown-link.active {
-        color: var(--color-accent);
+    .nav-dropdown-link:focus-visible {
+        outline: 2px solid var(--shell-ring);
+        outline-offset: 2px;
+    }
+
+    /* 当前页：整颗胶囊填强调色（设计稿 data-active-classes = bg-primary-container） */
+    .nav-dropdown-link.active,
+    .nav-dropdown-link[aria-current="page"] {
+        color: var(--shell-accent-fg);
+        background: var(--shell-accent);
+    }
+
+    @media (hover: hover) {
+        .nav-dropdown-link.active:hover,
+        .nav-dropdown-link[aria-current="page"]:hover {
+            color: var(--shell-accent-fg);
+            background: var(--shell-accent-hover);
+        }
+    }
+
+    .nav-dropdown-link--utility {
+        color: var(--shell-fg-muted);
+        background: transparent;
+        border: 0;
     }
 
     @media screen and (max-width: 768px) {
         .nav-dropdown {
-            top: 72px;
-            width: calc(100% - 144px);
-            padding: 0 16px;
-            border-radius: 32px;
+            width: calc(100% - 2 * var(--space-5, 20px));
+            border-radius: var(--shell-radius-lg);
+            padding: var(--space-2, 8px) var(--space-3, 12px);
+        }
+
+        .nav-dropdown-list {
+            gap: 2px;
         }
 
         .nav-dropdown-link {
-            font-size: 0.95em;
-            padding: 0.2em 0.4em;
+            font-size: var(--text-sm, 0.875rem);
+            padding: 6px var(--space-2, 8px);
         }
     }
 
     @media screen and (max-width: 450px) {
         .nav-dropdown {
-            top: 64px;
-            border-radius: 16px;
-            padding: 6px 8px;
-        }
-
-        .nav-menu-btn {
-            padding: 0;
-            min-width: 40px;
-            min-height: 40px;
-            justify-content: center;
-        }
-
-        .nav-dropdown-list {
-            gap: 4px;
+            width: calc(100% - 2 * var(--space-4, 16px));
+            max-height: calc(100dvh - var(--shell-header-h) - var(--space-6, 24px));
+            overflow-y: auto;
         }
 
         .nav-dropdown-link {
-            padding: 0 0.2em;
-            margin: 0;
+            padding: 6px var(--space-2, 8px);
         }
     }
 </style>

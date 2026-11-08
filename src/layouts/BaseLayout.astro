@@ -38,6 +38,12 @@ interface Props {
     noZhAlternate?: boolean;
     showSidebar?: boolean;
     template?: "default" | "splash" | "doc";
+    /**
+     * M6-1：shell 分栏。`auto`（默认）= 沿用旧行为（有侧栏才分栏）；
+     * `8-4` / `4-8` = 1140 shell 的 12 栅格可选列（主栏 8 / 侧栏 4），
+     * 供 M6-2 起的页面重做直接使用；不传 props 的页面输出逐字节不变。
+     */
+    columns?: "auto" | "8-4" | "4-8";
 }
 
 const {
@@ -60,10 +66,14 @@ const {
     noZhAlternate = false,
     showSidebar = false,
     template = "default",
+    columns = "auto",
 } = Astro.props;
 
 const isSplash = template === "splash";
 const isDoc = template === "doc";
+/** 有列定义才进 page-wrapper（8/4 需要栅格容器；旧页面没有 props → 行为不变） */
+const hasColumns = columns === "8-4" || columns === "4-8";
+const useWrapper = showSidebar || isDoc || hasColumns;
 
 /**
  * `<html lang>` 只从 i18n 注册表取（M2-11a）：以前是 `locale === "en" ? "en" : "zh-CN"`，
@@ -108,9 +118,20 @@ const lang = htmlLangOf(getLocale(locale));
         >
             {!isSplash && <Header locale={locale} />}
             {
-                showSidebar || isDoc ? (
-                    <div class="page-wrapper">
-                        <Sidebar items={sidebarConfig} currentPath={Astro.url.pathname} />
+                useWrapper ? (
+                    <div
+                        class:list={[
+                            "page-wrapper",
+                            {
+                                "page-wrapper--sidebar": showSidebar || isDoc,
+                                "page-wrapper--8-4": columns === "8-4",
+                                "page-wrapper--4-8": columns === "4-8",
+                            },
+                        ]}
+                    >
+                        {(showSidebar || isDoc) && (
+                            <Sidebar items={sidebarConfig} currentPath={Astro.url.pathname} />
+                        )}
                         <main id="main-content" class="main">
                             <div class:list={["content", { "content--full": fullWidth }]}>
                                 <slot />
@@ -148,27 +169,61 @@ const lang = htmlLangOf(getLocale(locale));
 </html>
 
 <style is:global>
+    /* M6-1：shell 容器。宽度走 1140（`--layout-content-wide`），外边距 24；
+       旧 `--content-width-max`(1440) 只保留给全宽模板。 */
     .page-wrapper {
-        display: flex;
-        max-width: var(--content-width-max);
-        margin: 0 auto;
-        padding: var(--space-md);
-    }
-
-    .with-sidebar .page-wrapper {
         display: grid;
-        grid-template-columns: var(--sidebar-width) 1fr;
-        gap: var(--space-xl);
+        width: 100%;
+        max-width: var(--layout-content-wide, var(--content-width-max));
+        margin: 0 auto;
+        padding-inline: var(--space-6, 24px);
+        padding-block: var(--space-6, 24px) 0;
+        gap: var(--space-8, 32px);
         align-items: start;
     }
 
-    .with-sidebar .main {
+    .page-wrapper--sidebar,
+    .with-sidebar .page-wrapper {
+        grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    }
+
+    /* 12 栅格的可选列：主栏 8 / 侧栏 4（M6-2 起直接用 columns="8-4"） */
+    .page-wrapper--8-4 {
+        grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    }
+
+    .page-wrapper--4-8 {
+        grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    }
+
+    /* 8/4 分栏里正文吃满 shell，不再被 860 的旧阅读宽截断（页面自己可再收窄） */
+    .page-wrapper--8-4 .content,
+    .page-wrapper--4-8 .content {
+        max-width: none;
+    }
+
+    .with-sidebar .main,
+    .page-wrapper--sidebar .main {
         min-width: 0;
     }
 
+    .page-wrapper > .main {
+        padding-inline: 0;
+    }
+
     @media (max-width: 768px) {
-        .with-sidebar .page-wrapper {
-            grid-template-columns: 1fr;
+        .with-sidebar .page-wrapper,
+        .page-wrapper--sidebar,
+        .page-wrapper--8-4,
+        .page-wrapper--4-8 {
+            grid-template-columns: minmax(0, 1fr);
+            padding-inline: var(--space-5, 20px);
+        }
+    }
+
+    @media (max-width: 450px) {
+        .page-wrapper {
+            padding-inline: var(--space-4, 16px);
         }
     }
 

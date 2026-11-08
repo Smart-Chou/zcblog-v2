@@ -12,6 +12,14 @@ interface Props {
     target?: string;
     rel?: string;
     class?: string;
+    /**
+     * 表面语言（M6-1，可选）。默认不传 = 与 M6-1 之前逐字节一致的输出。
+     * - `media`（默认）：卡片自带表面（圆角 + 阴影），用于独立摆放的媒体卡。
+     * - `plain`：不画自己的表面，交给外层卡片/列表行。
+     */
+    variant?: "media" | "plain";
+    /** 齐平网格（M6-1，可选）：去圆角/阴影，图片铺满格子（相册 3 列 flush 用）。 */
+    flush?: boolean;
     "data-tags"?: string;
 }
 
@@ -25,11 +33,26 @@ const {
     target,
     rel,
     class: className,
+    variant,
+    flush = false,
     ...rest
 } = Astro.props;
 ---
 
-<a href={href} class:list={["media-card", className]} target={target} rel={rel} {...rest}>
+<a
+    href={href}
+    class:list={[
+        "media-card",
+        {
+            "media-card--plain": variant === "plain",
+            "media-card--flush": flush,
+        },
+        className,
+    ]}
+    target={target}
+    rel={rel}
+    {...rest}
+>
     <div class="media-cover" style={`aspect-ratio: ${aspectRatio}`}>
         {
             image ? (
@@ -61,25 +84,56 @@ const {
     .media-card {
         display: block;
         text-decoration: none;
-        border-radius: var(--radius-xl);
+        border-radius: var(--shell-radius-xl);
         overflow: hidden;
-        background: var(--color-bg-surface);
-        box-shadow: var(--shadow-sm);
+        background: var(--shell-surface);
+        box-shadow: var(--shadow-1, var(--shadow-sm));
         transition:
             transform var(--duration-slow) var(--ease-out),
-            box-shadow var(--duration-slow) var(--ease-out);
+            box-shadow var(--duration-slow) var(--ease-out),
+            border-color var(--duration-slow) var(--ease-out);
     }
 
     @media (hover: hover) {
         .media-card:hover {
             transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
+            box-shadow: var(--shadow-4, var(--shadow-xl));
+        }
+    }
+
+    /* variant="plain"：表面交给外层 */
+    .media-card--plain {
+        background: transparent;
+        box-shadow: none;
+    }
+
+    @media (hover: hover) {
+        .media-card--plain:hover {
+            transform: none;
+            box-shadow: none;
+        }
+    }
+
+    /* flush：网格齐平，圆角/阴影全部撤掉 */
+    .media-card--flush {
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    @media (hover: hover) {
+        .media-card--flush:hover {
+            transform: none;
+            box-shadow: none;
         }
     }
 
     .media-cover {
         position: relative;
         overflow: hidden;
+    }
+
+    .media-card--flush .media-cover {
+        border-radius: var(--shell-radius-md);
     }
 
     .cover-img {
@@ -95,13 +149,17 @@ const {
         }
     }
 
+    .media-card--flush:hover .cover-img {
+        transform: scale(1.02);
+    }
+
     .cover-placeholder {
         width: 100%;
         height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-surface-secondary, #f0f0f0);
+        background: var(--shell-sunken, #f0f0f0);
         font-size: 3rem;
     }
 

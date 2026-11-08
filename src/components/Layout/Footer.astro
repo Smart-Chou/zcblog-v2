@@ -131,17 +131,22 @@ const umamiViews =
 </script>
 
 <style>
+    /* M6-1：页脚与 shell 同宽（1140）、同一条 24px 外边距；三段（统计 / 技术栈 / 备案）
+       全部走 `--shell-*`，等宽数字与标签统一到 `.mono-*` 的排印口径。 */
     .footer {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: var(--space-sm);
-        padding: var(--space) 15px;
-        font-size: var(--text-sm);
-        font-family: var(--font-body);
-        color: var(--color-text-muted);
-        margin-top: auto;
-        border-top: 1px solid var(--color-border);
+        gap: var(--space-3, 12px);
+        width: 100%;
+        max-width: var(--layout-content-wide, var(--content-width-max));
+        margin: var(--space-12, 48px) auto 0;
+        padding: var(--space-8, 32px) var(--space-6, 24px) var(--space-6, 24px);
+        font-size: var(--text-xs, 0.75rem);
+        font-family: var(--font-mono);
+        letter-spacing: 0.04em;
+        color: var(--shell-fg-muted);
+        border-top: 1px solid var(--shell-border);
     }
 
     /* ---- Stats bar ---- */
@@ -154,11 +159,11 @@ const umamiViews =
 
     .stat-item {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 5px;
-        padding: 5px 14px;
-        border-radius: var(--radius-full);
-        color: var(--color-text-muted);
+        padding: 5px 12px;
+        border-radius: var(--shell-radius-pill);
+        color: var(--shell-fg-muted);
         text-decoration: none;
         line-height: 1;
         transition:
@@ -168,24 +173,25 @@ const umamiViews =
 
     @media (hover: hover) {
         .stat-item:hover {
-            color: var(--color-accent);
-            background: var(--color-hover);
+            color: var(--shell-accent);
+            background: var(--shell-hover);
         }
     }
 
     .stat-value {
         font-family: var(--font-mono);
-        font-size: 0.85em;
+        font-size: 0.95em;
         font-weight: 600;
         letter-spacing: -0.02em;
-        color: var(--color-text);
+        color: var(--shell-fg-strong);
+        font-variant-numeric: tabular-nums;
         line-height: 1;
     }
 
     .stat-label {
-        font-size: 0.8em;
+        font-size: 0.85em;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.08em;
         font-weight: 500;
         line-height: 1;
     }
@@ -193,9 +199,9 @@ const umamiViews =
     .stat-divider {
         display: inline-block;
         width: 1px;
-        height: 14px;
-        background: var(--color-border);
-        margin: 0 2px;
+        height: 12px;
+        background: var(--shell-border);
+        margin: 0 4px;
         border-radius: 1px;
     }
 
@@ -213,38 +219,40 @@ const umamiViews =
         }
     }
 
-    /* ---- Tech badges row — text chips ---- */
+    /* ---- Tech badges row — 等宽标签胶囊 ---- */
     .footer-tech {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-2, 8px);
     }
 
     .tech-badge {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 4px 12px;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-full);
+        padding: 4px 10px;
+        border: 1px solid var(--shell-border);
+        border-radius: var(--shell-radius-pill);
+        background: var(--shell-surface);
         font-family: var(--font-mono);
         font-size: 0.72em;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: var(--color-text-dimmed);
+        color: var(--shell-fg-muted);
         text-decoration: none;
         transition:
             color var(--duration-fast) var(--ease-out),
-            border-color var(--duration-fast) var(--ease-out);
+            border-color var(--duration-fast) var(--ease-out),
+            background-color var(--duration-fast) var(--ease-out);
     }
 
     .tech-badge__dot {
         width: 5px;
         height: 5px;
         border-radius: 50%;
-        background: var(--color-accent);
+        background: var(--shell-accent);
         opacity: 0.85;
         flex-shrink: 0;
     }
@@ -256,8 +264,9 @@ const umamiViews =
 
     @media (hover: hover) {
         .tech-badge:hover {
-            color: var(--color-text);
-            border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+            color: var(--shell-fg);
+            border-color: var(--shell-border-strong);
+            background-color: var(--shell-hover);
         }
     }
 
@@ -267,8 +276,9 @@ const umamiViews =
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: var(--space-xs);
+        gap: var(--space-2, 8px);
         font-size: 0.8em;
+        letter-spacing: 0.04em;
     }
 
     .footer-copyright {
@@ -283,32 +293,33 @@ const umamiViews =
 
     @media (hover: hover) {
         .footer-beian:hover {
-            color: var(--color-accent);
+            color: var(--shell-accent);
         }
     }
 
     /* ---- Mobile ---- */
     @media screen and (max-width: 768px) {
         .footer {
-            padding: var(--space) 12px;
+            padding: var(--space-6, 24px) var(--space-5, 20px);
             gap: 10px;
+            margin-top: var(--space-8, 32px);
         }
 
         .stat-item {
-            padding: 4px 10px;
+            padding: 4px 8px;
             gap: 4px;
         }
 
         .stat-divider {
-            height: 12px;
-            margin: 0 1px;
+            height: 10px;
+            margin: 0 2px;
         }
     }
 
     @media screen and (max-width: 480px) {
         .footer {
-            padding: var(--space-sm) 10px;
-            gap: var(--space-xs);
+            padding: var(--space-5, 20px) var(--space-4, 16px);
+            gap: var(--space-2, 8px);
         }
 
         .footer-stats {
@@ -318,16 +329,16 @@ const umamiViews =
         }
 
         .stat-item {
-            padding: 4px 8px;
+            padding: 4px 6px;
         }
 
         .stat-value {
-            font-size: 0.8em;
+            font-size: 0.9em;
         }
 
         .stat-label {
-            font-size: 0.72em;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.04em;
+            font-size: 0.78em;
         }
 
         .stat-divider {
@@ -337,7 +348,7 @@ const umamiViews =
 
     @media screen and (max-width: 360px) {
         .stat-item {
-            padding: 3px 6px;
+            padding: 3px 4px;
         }
     }
 </style>
