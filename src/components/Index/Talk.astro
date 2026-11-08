@@ -17,6 +17,9 @@ interface Props {
 const { title, locale } = Astro.props;
 const itemsJson = JSON.stringify(items);
 const talksUrl = locale === defaultLocale ? "/talks/" : "/en/talks/";
+/** M6-2：首条随笔在构建期就渲染出来 —— 卡片不再依赖 ticker 脚本才有内容
+ *  （无 JS / 脚本未到位时是空白卡），轮换仍由下面的模块脚本接管并整体替换。 */
+const firstTalk = items[0];
 ---
 
 {
@@ -33,7 +36,16 @@ const talksUrl = locale === defaultLocale ? "/talks/" : "/en/talks/";
             </div>
             <div class="talk-card">
                 <div class="talk-wrap">
-                    <ul class="talk-list" data-items={itemsJson} />
+                    <ul class="talk-list" data-items={itemsJson}>
+                        {firstTalk && (
+                            <li class="item">
+                                <span class="datetime" title={firstTalk.datetime}>
+                                    {firstTalk.display}
+                                </span>
+                                <a href={firstTalk.url}>{firstTalk.content}</a>
+                            </li>
+                        )}
+                    </ul>
                 </div>
             </div>
         </section>

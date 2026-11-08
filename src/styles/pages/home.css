@@ -1,20 +1,26 @@
 /* ============================================================
-   P-01 · 首页（M2-2 / D-0110）
+   P-01 · 首页（M6-2 / marx_s_blog_2 + marx_s_blog_mobile_home）
    ------------------------------------------------------------
-   版式：marx_s_blog_2 的桌面 8/4 双栏，移动单栏（D-0110 选项 A）。
+   版式：1140 shell 的 8/4 双栏（桌面）、单栏（移动，D-0110）。
+   视觉语言（M6-1 底座之上）：
+   - 卡片 = 纸白面 + 1px 边线 + --shadow-1，hover 抬 2px 到 --shadow-3；
+   - 区块头 = 赤陶竖条 + 无衬线小标题 + 右侧等宽小链接（无下划线）；
+   - 元信息 = 等宽 12px，标题 = 衬线，正文/UI = DM Sans；
+   - 移动端按移动稿（marx_s_blog_mobile_home）**不显示** 热门 / 友链，
+     页脚仍保留两个入口。
    约束：
-   - 只消费 tokens.css 的语义 token；本文件不出现 hex / rgb() / hsl()。
-   - 所有规则收在 `.home` 作用域内，不与共享样式（.home-page 老首页）互相污染。
-   - 断点：1024（双栏→单栏）、768（卡片横排→纵排）、450（窄屏留白收紧）。
+   - 只消费 token（tokens 包语义层）；本文件不出现 hex / rgb() / hsl()。
+   - 所有规则收在 `.home` 作用域内，不与共享样式互相污染。
+   - 断点：1024（双栏 → 单栏）、768（卡片横排 → 纵排 / 缩边距）、450（窄屏）。
    - reduced-motion：只关动画与过渡，不隐藏内容（§3.0-6）。
    ============================================================ */
 
 /* ── 页面外壳 ─────────────────────────────────────────────── */
 
-/* 默认 .content 是 860px（文章正文宽度）；首页需要 1200 的双栏。
-   用 :has() 只对首页生效，不改 BaseLayout。 */
+/* `.main` 已经是 1140 外框 + 24 内边距（M6-1 base.css），首页不再二次限宽，
+   否则 hero / 栅格会比页头品牌块左右各偏 30px。 */
 .main > .content:has(> .home) {
-    max-width: var(--layout-content);
+    max-width: none;
 }
 
 .home {
@@ -23,9 +29,8 @@
 
 .home-shell {
     width: 100%;
-    max-width: var(--layout-content);
     margin-inline: auto;
-    padding: var(--space-8) var(--space-6) var(--space-16);
+    padding-block: var(--space-2) var(--space-16);
 }
 
 /* ── Hero ─────────────────────────────────────────────────── */
@@ -35,7 +40,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding-block: var(--space-6) var(--space-12);
+    padding-block: var(--space-8) var(--space-10);
 }
 
 .home-hero .hero-masthead {
@@ -43,22 +48,22 @@
     width: 100%;
 }
 
-/* 标题上方的朱红短横（Stitch 的 decorative dash） */
+/* 标题上方的赤陶短横（设计稿的 decorative dash） */
 .home-hero .hero-masthead::before {
     content: "";
     display: block;
     inline-size: var(--space-8);
-    block-size: var(--space-1);
+    block-size: 3px;
     margin: 0 auto var(--space-5);
     border-radius: var(--radius-pill);
     background-color: var(--color-accent-solid);
 }
 
 .home-hero .hero-title {
-    margin: 0 0 var(--space-2);
+    margin: 0 0 var(--space-3);
     font-family: var(--font-serif);
     font-weight: var(--font-weight-semibold);
-    font-size: clamp(var(--text-3xl), 5vw, var(--text-display));
+    font-size: clamp(var(--text-3xl), 4.6vw, var(--text-display));
     line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
     color: var(--color-fg-heading);
@@ -68,37 +73,18 @@
     color: var(--color-fg-link);
 }
 
+/* 设计稿的 tagline 是无衬线常规字重（不是斜体衬线）：与衬线大标题形成对比 */
 .home-hero .hero-subtitle {
-    margin: 0 0 var(--space-4);
-    font-family: var(--font-serif);
+    margin: 0 0 var(--space-5);
+    font-family: var(--font-sans);
     font-size: var(--text-lg);
-    font-style: italic;
-    letter-spacing: var(--tracking-wide);
+    font-weight: var(--font-weight-normal);
+    letter-spacing: 0;
     color: var(--color-fg-muted);
 }
 
 .home-hero .hero-divider {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-inline: auto;
-    max-inline-size: var(--layout-article);
-}
-
-.home-hero .hero-divider::before,
-.home-hero .hero-divider::after {
-    content: "";
-    flex: 1;
-    block-size: 1px;
-    background-color: var(--color-border-subtle);
-}
-
-.home-hero .hero-divider-dot {
-    flex: none;
-    inline-size: var(--space-2);
-    block-size: var(--space-2);
-    border-radius: var(--radius-pill);
-    background-color: var(--color-accent-solid);
+    display: none;
 }
 
 .home-hero .hero-stats {
@@ -106,8 +92,7 @@
     flex-wrap: wrap;
     align-items: baseline;
     justify-content: center;
-    gap: var(--space-4);
-    margin-top: var(--space-5);
+    gap: var(--space-2);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     letter-spacing: var(--tracking-wide);
@@ -123,47 +108,134 @@
 
 .home-hero .hero-stat + .hero-stat::before {
     content: "/";
-    margin-inline-end: var(--space-4);
+    margin-inline-end: var(--space-2);
     color: var(--color-border-default);
 }
 
+/* mono-metric：数字用等宽 + 表格数字，标签仍走上面的等宽小字 */
 .home-hero .hero-stat-value {
     font-family: var(--font-mono);
     font-size: var(--text-xl);
     font-weight: var(--font-weight-semibold);
     line-height: var(--leading-none);
     color: var(--color-fg-heading);
+    font-variant-numeric: tabular-nums;
 }
 
 /* 打字机 slogan（保留 TypewriterText，LCP 文案随 HTML 到达，见 D-0087） */
 .home-hero__motto {
     margin: var(--space-4) auto 0;
     min-block-size: 1.8em;
-    max-inline-size: var(--layout-article);
-    font-family: var(--font-serif);
+    max-inline-size: 36rem;
+    font-family: var(--font-sans);
     font-style: italic;
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
+    letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* 作者卡：Author 组件的 .author 规则来自 article.css（全局），这里只给外壳 */
+/* ── 作者卡（Author 组件的 .author 规则来自 article.css，这里只在本页覆盖） ── */
+
 .home-hero__author {
     inline-size: 100%;
-    max-inline-size: 34rem;
-    margin-top: var(--space-6);
-    padding: var(--space-6) var(--space-8) 0;
+    max-inline-size: 30rem;
+    margin-top: var(--space-8);
+    padding: var(--space-8) var(--space-6) var(--space-6);
     border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     background-color: var(--color-bg-surface);
-    box-shadow: var(--shadow-1);
+    box-shadow: var(--shadow-2);
 }
 
 .home-hero__author .author {
-    margin-top: 0;
-    padding-bottom: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+.home-hero__author .author-image {
+    inline-size: 72px;
+    block-size: 72px;
+    margin: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-sunken);
+    box-shadow:
+        0 0 0 4px var(--color-bg-surface),
+        0 0 0 5px var(--color-border-subtle);
+    object-fit: cover;
+}
+
+.home-hero__author .author-site-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.home-hero__author .author-intro {
+    margin: 0;
+    max-inline-size: 30ch;
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-fg-muted);
+}
+
+.home-hero__author .author-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.home-hero__author .author-links + .author-links {
+    margin-top: var(--space-1);
+}
+
+/* 两排入口（分类 5 个 / 社交 4 个）统一成 34px 圆角面片：
+   设计稿里就是「一排胶囊 + 一排小方块」的社交簇。 */
+.home-hero__author .author-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 34px;
+    block-size: 34px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-sunken);
+    text-decoration: none;
+    transition:
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-standard);
+}
+
+.home-hero__author .author-links a svg {
+    inline-size: 17px;
+    block-size: 17px;
+}
+
+@media (hover: hover) {
+    .home-hero__author .author-links a:hover {
+        border-color: var(--color-border-default);
+        background-color: var(--color-bg-muted);
+        transform: translateY(-1px);
+    }
+}
+
+.home-hero__author .author-links a:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
 }
 
 /* ── 8/4 主栅格 ───────────────────────────────────────────── */
@@ -201,9 +273,10 @@
 }
 
 @media (min-width: 1024px) {
+    /* 设计稿：12 栅格里的 8/4（主栏 706 / 侧栏 353 @1092） */
     .home-grid {
-        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-        gap: var(--space-10);
+        grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+        gap: var(--space-8);
     }
 
     .home-main .posts-section,
@@ -213,37 +286,38 @@
     }
 }
 
-/* ── 区块头 ───────────────────────────────────────────────── */
+/* ── 区块头：赤陶竖条 + 无衬线标题 + 等宽小链接 ───────────── */
 
 .home .section-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-4);
-    margin-bottom: var(--space-5);
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--color-border-subtle);
-    position: relative;
-}
-
-.home .section-header::after {
-    content: "";
-    position: absolute;
-    inset-inline-start: 0;
-    inset-block-end: -1px;
-    inline-size: var(--space-10);
-    block-size: 2px;
-    border-radius: var(--radius-pill);
-    background-color: var(--color-accent-solid);
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    border: 0;
 }
 
 .home .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
     margin: 0;
-    font-family: var(--font-serif);
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--tracking-tight);
+    font-family: var(--font-sans);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.01em;
+    line-height: var(--leading-snug);
     color: var(--color-fg-heading);
+}
+
+.home .section-label::before {
+    content: "";
+    flex: none;
+    inline-size: 3px;
+    block-size: 1.05em;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
 }
 
 .home .section-link {
@@ -281,13 +355,15 @@
     box-shadow: var(--shadow-1);
     transition:
         border-color var(--duration-base) var(--ease-standard),
-        box-shadow var(--duration-base) var(--ease-standard);
+        box-shadow var(--duration-base) var(--ease-standard),
+        transform var(--duration-base) var(--ease-standard);
 }
 
 @media (hover: hover) {
     .post-featured:hover {
         border-color: var(--color-border-default);
         box-shadow: var(--shadow-3);
+        transform: translateY(-2px);
     }
 }
 
@@ -319,18 +395,21 @@
     gap: var(--space-3);
 }
 
-/* 「Featured」徽标用描边而不是填充：两端主题下都稳定过 4.5:1 */
+/* FEATURED 徽章：C-02 的「实底强调胶囊」——accent-solid 底 + on-accent 文字
+   （light 6.7:1 / dark 5.2:1），不用 color-mix 的浅底：暗色下 accent-400 压在
+   15% 赤陶底上只有 3.5:1，axe 会判 serious。 */
 .post-featured__badge {
     display: inline-flex;
     align-items: center;
-    padding-block: var(--space-1);
-    padding-inline: var(--space-2);
-    border: 1px solid var(--color-border-accent);
-    border-radius: var(--radius-xs);
-    color: var(--color-fg-link);
+    padding: 3px var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+    color: var(--color-fg-on-accent);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    line-height: 1.2;
     text-transform: uppercase;
 }
 
@@ -349,6 +428,11 @@
 .post-featured__title a {
     color: inherit;
     text-decoration: none;
+}
+
+.post-featured__title a:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 3px;
 }
 
 .post-featured__desc {
@@ -375,7 +459,9 @@
 .post-item__time {
     font-family: var(--font-mono);
     font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 .post-list {
@@ -393,11 +479,14 @@
     border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
     background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-1);
     transition:
         border-color var(--duration-base) var(--ease-standard),
-        box-shadow var(--duration-base) var(--ease-standard);
+        box-shadow var(--duration-base) var(--ease-standard),
+        transform var(--duration-base) var(--ease-standard);
 }
 
+/* 卡片左缘的赤陶竖条：hover 才出现，呼应区块头的竖条 */
 .post-item::before {
     content: "";
     position: absolute;
@@ -414,6 +503,7 @@
     .post-item:hover {
         border-color: var(--color-border-default);
         box-shadow: var(--shadow-2);
+        transform: translateY(-2px);
     }
 
     .post-item:hover::before {
@@ -421,29 +511,33 @@
     }
 }
 
+/* 设计稿的列表卡是「日期在上、标题在下」；翻转行序不需要改组件标记 */
 .post-item__head {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
+    flex-direction: column-reverse;
+    align-items: flex-start;
     gap: var(--space-2);
     margin-bottom: var(--space-2);
 }
 
 .post-item__title {
-    flex: 1;
-    min-inline-size: 0;
     margin: 0;
     font-family: var(--font-serif);
     font-size: var(--text-lg);
     font-weight: var(--font-weight-medium);
     line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
     color: var(--color-fg-heading);
 }
 
 .post-item__title a {
     color: inherit;
     text-decoration: none;
+}
+
+.post-item__title a:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 3px;
 }
 
 .post-item__desc {
@@ -458,7 +552,7 @@
 }
 
 .post-item .post-tags {
-    font-family: var(--font-mono);
+    margin-top: 0;
 }
 
 /* ── 近期光影 ─────────────────────────────────────────────── */
@@ -486,7 +580,7 @@
     position: relative;
     overflow: hidden;
     aspect-ratio: 1;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background-color: var(--color-bg-sunken);
 }
 
@@ -494,20 +588,19 @@
    外加 221px 白条，合计 1663px @1920 宽；实测白条起于 y=1442）。
    直接 cover 进方图时，横构图会把白条留在画面里、竖构图又把它裁掉，
    4 张的底边因此对不齐。
-   这里把图片框做成 4:3 宽 × 方图高（133.334% × 100%）并顶对齐：
-   图片的 4:3 内容刚好铺满这个框，白条落在框外、被 .photo-frame 裁掉 →
-   4 张一致「无 EXIF 条」，内容底边对齐。
-   裁切只发生在水平方向（框比格子宽、两侧对称溢出），竖直方向不溢出——
+   M2-2b 曾用「图片框撑成 133.334% 宽 + 左侧偏移 -66.667%」模拟裁切：
+   视觉上等价于 cover，但 <img> 的真实 rect 比视口宽 ——
+   e2e/pages-home.spec.ts 的横向溢出断言在 768 档（内容贴边）会判红：
+   `img right=770 > 768`。M6-2 改成同一裁切语义的原生写法：
+   盒 = 100% 宽高，object-fit: cover 以高度为准放大、水平居中裁掉两侧，
+   白条落在框外被 .photo-frame 的 overflow:hidden 裁掉，底边对齐；
+   img 的 rect 不再越界。竖直方向不裁切（object-position: center top），
    图片底边因此不会压到 figcaption 上（压上去会让 axe 把说明文字判成
    color-contrast incomplete：背景被其它元素遮挡、无法计算）。 */
 .photo-image {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 50%;
     display: block;
-    inline-size: 133.334%;
+    inline-size: 100%;
     block-size: 100%;
-    margin-inline-start: -66.667%;
     max-inline-size: none;
     object-fit: cover;
     object-position: center top;
@@ -546,12 +639,12 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* ── 最新随笔（Talk ticker） ──────────────────────────────── */
+/* ── 最新随笔（Talk ticker）——设计稿的「红点 + 时间 + 短文」便签 ── */
 
 .talk-card {
-    padding: var(--space-5);
+    padding: var(--space-5) var(--space-6);
     border: 1px solid var(--color-border-subtle);
-    border-inline-start: 2px solid var(--color-accent-solid);
+    border-inline-start: 3px solid var(--color-accent-solid);
     border-radius: var(--radius-lg);
     background-color: var(--color-bg-surface);
     box-shadow: var(--shadow-1);
@@ -563,8 +656,8 @@
 
 .talk-list {
     display: flex;
-    align-items: center;
-    min-block-size: var(--space-11);
+    align-items: baseline;
+    min-block-size: var(--space-8);
     margin: 0;
     padding: 0;
     transition:
@@ -575,7 +668,7 @@
 .talk-list li {
     display: flex;
     align-items: baseline;
-    gap: var(--space-2);
+    gap: var(--space-3);
     inline-size: 100%;
     min-width: 0;
     margin: 0;
@@ -584,10 +677,22 @@
 }
 
 .talk-list .datetime {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
     flex: none;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
+}
+
+.talk-list .datetime::before {
+    content: "";
+    inline-size: 6px;
+    block-size: 6px;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
 }
 
 .talk-list a {
@@ -606,18 +711,21 @@
     }
 }
 
-/* ── 侧栏：近期热门 ───────────────────────────────────────── */
+/* ── 侧栏卡：统一内边距（Card atom 传 padding="none"） ────── */
 
-/* 侧栏卡片统一内边距（Card atom 传 padding="none"，在这里补 24px）。
-   必须带 .card--pad-none 凑到 (0,5,0)：Card 组件 scoped 的
-   `.card--pad-none .card__body[data-astro-cid-*]` 是 (0,3,0)，与原来的
-   `.home .home-side > .card > .card__body`（0,3,0）打平后靠加载顺序取胜，
-   结果 24px 被组件的 0 覆盖 —— 三张卡内容全部贴到边框上，
-   「朋友连接」只剩几行文字，看起来就像直接落在纸底上。 */
+/* 必须带 .card--pad-none 凑到 (0,5,0)：Card 组件 scoped 的
+   `.card--pad-none .card__body[data-astro-cid-*]` 是 (0,3,0)，打平后靠加载顺序取胜，
+   结果是 24px 被组件的 0 覆盖，三张卡内容全部贴到边框上。 */
+.home .home-side > .card {
+    padding: 0;
+}
+
 .home .home-side > .card.card--pad-none > .card__body {
     padding: var(--space-6);
     gap: var(--space-3);
 }
+
+/* ── 侧栏：近期热门（01–05 大号序号，设计稿的 leaderboard） ── */
 
 .popular-list {
     margin: 0;
@@ -630,26 +738,28 @@
 }
 
 .popular-link {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
+    display: grid;
+    grid-template-columns: var(--space-8) minmax(0, 1fr);
+    column-gap: var(--space-3);
+    align-items: start;
     padding-block: var(--space-3);
     text-decoration: none;
     color: inherit;
 }
 
 .popular-rank {
-    flex: none;
-    inline-size: 2ch;
-    font-family: var(--font-mono);
-    font-size: var(--text-lg);
+    grid-row: span 2;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
     font-style: italic;
-    line-height: var(--leading-snug);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-none);
     color: var(--color-fg-link);
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
 }
 
 .popular-title {
-    flex: 1;
     min-inline-size: 0;
     font-size: var(--text-sm);
     line-height: var(--leading-snug);
@@ -657,10 +767,12 @@
 }
 
 .popular-date {
-    flex: none;
+    margin-top: var(--space-1);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 @media (hover: hover) {
@@ -669,37 +781,32 @@
     }
 }
 
-@media (max-width: 640px) {
-    .popular-date {
-        display: none;
-    }
-}
-
 /* ── 侧栏：文化生活（Media × 2） ──────────────────────────── */
 
 .culture-section .media-panel + .media-panel {
     margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border-subtle);
 }
 
-/* Media 自带 section-header；侧栏里降级为小标题，去掉下划线装饰 */
+/* Media 自带 section-header；侧栏里降级为小标题，不画竖条 */
 .home .home-side .media-panel .section-header {
     margin-bottom: var(--space-3);
-    padding-bottom: 0;
-    border-bottom: 0;
-}
-
-.home .home-side .media-panel .section-header::after {
-    content: none;
 }
 
 .home .home-side .media-panel .section-label {
-    font-family: var(--font-sans);
     font-size: var(--text-sm);
     font-weight: var(--font-weight-semibold);
+    letter-spacing: 0;
+}
+
+.home .home-side .media-panel .section-label::before {
+    content: none;
 }
 
 .home .home-side .media-panel .section-link {
     font-size: var(--text-xs);
+    letter-spacing: 0.02em;
     text-transform: none;
 }
 
@@ -739,6 +846,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
+    margin-top: calc(var(--space-1) * -1);
 }
 
 .friends-list .fri-item {
@@ -749,11 +857,16 @@
     padding-block: var(--space-2);
 }
 
+.friends-list .fri-item + .fri-item {
+    border-top: 1px solid var(--color-border-subtle);
+}
+
 .friends-list .fri-avatar {
     flex: none;
     inline-size: var(--space-8);
     block-size: var(--space-8);
     border-radius: var(--radius-pill);
+    background-color: var(--color-bg-sunken);
     object-fit: cover;
 }
 
@@ -795,8 +908,10 @@
     flex: none;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    font-style: normal;
+    letter-spacing: var(--tracking-wide);
     color: var(--color-fg-muted);
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── 响应式 ───────────────────────────────────────────────── */
@@ -820,15 +935,28 @@
     .home-side {
         gap: var(--space-8);
     }
-
-    .home-shell {
-        padding-block-start: var(--space-6);
-    }
 }
 
-@media (max-width: 768px) {
+/* 移动稿（marx_s_blog_mobile_home）只有 4 个内容块：热门 / 友链不出现，
+   页脚保留两个入口。用 display:none 而不是拆 DOM——静态站没有服务端断点。 */
+@media (max-width: 767px) {
+    /* 特异性要压过 Card.astro scoped 的 `.card[data-astro-cid-*] { display:flex }` */
+    .home .home-side > .card.popular-section,
+    .home .home-side > .card.friends-section {
+        display: none;
+    }
+
+    .home-shell {
+        padding-block: 0 var(--space-12);
+    }
+
+    .home-grid,
+    .home-main {
+        gap: var(--space-8);
+    }
+
     .home-hero {
-        padding-block: var(--space-4) var(--space-10);
+        padding-block: var(--space-5) var(--space-8);
     }
 
     .home-hero .hero-masthead::before {
@@ -836,38 +964,50 @@
     }
 
     .home-hero__author {
-        padding: var(--space-5) var(--space-5) 0;
-    }
-}
-
-@media (max-width: 450px) {
-    .home-shell {
-        padding-inline: var(--space-4);
-    }
-
-    .home-hero .hero-stats {
-        gap: var(--space-3);
-    }
-
-    .home-hero .hero-stat + .hero-stat::before {
-        margin-inline-end: var(--space-3);
-    }
-
-    .home-hero__motto {
-        font-size: var(--text-sm);
+        margin-top: var(--space-6);
+        padding: var(--space-6) var(--space-5) var(--space-5);
     }
 
     .post-featured__body,
     .post-item {
         padding: var(--space-4);
     }
+
+    .talk-card {
+        padding: var(--space-4);
+    }
+}
+
+@media (max-width: 450px) {
+    /* 设计稿移动端是 16px 外边距；`.main` 在 ≤768 / ≤450 分别是 12 / 10，
+       这里补足到 16（首页没有宽表格，不会碰 pages.visual 的 article 冻结值）。 */
+    .home-shell {
+        padding-inline: calc(var(--space-3) / 2);
+    }
+
+    .home-hero .hero-stats {
+        gap: var(--space-1);
+    }
+
+    .home-hero .hero-stat + .hero-stat::before {
+        margin-inline-end: var(--space-1);
+    }
+
+    .home-hero__motto {
+        font-size: var(--text-xs);
+    }
+
+    .post-featured__title {
+        font-size: var(--text-xl);
+    }
+
+    .popular-rank {
+        font-size: var(--text-xl);
+    }
 }
 
 /* ── 焦点环：页面内容统一到设计系统 token（§3.0-5） ──────── */
 
-/* global.css 的旧站焦点环用 --color-accent（palette-accent-600），与 M1 atom 的
-   --color-ring-focus（palette-accent-500）差一档。页面内容在本文件收口；
-   站点 Header/Footer 的 chrome 不在本卡文件边界内，归 M2-12 / V-01。 */
 .home :focus-visible {
     outline-color: var(--color-ring-focus);
 }
@@ -889,7 +1029,9 @@
     }
 
     .home .photo-item:hover img,
-    .home .media-card:hover {
+    .home .media-card:hover,
+    .home .post-item:hover,
+    .home .post-featured:hover {
         transform: none !important;
     }
 }
