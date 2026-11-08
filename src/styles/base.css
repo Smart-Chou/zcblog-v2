@@ -14,7 +14,10 @@
 :root {
     --shell-canvas: var(--color-bg-canvas, var(--color-bg));
     --shell-surface: var(--color-bg-surface, var(--color-surface));
-    --shell-surface-translucent: var(--color-bg-surface-translucent, var(--color-surface-translucent));
+    --shell-surface-translucent: var(
+        --color-bg-surface-translucent,
+        var(--color-surface-translucent)
+    );
     --shell-sunken: var(--color-bg-sunken, var(--color-surface-secondary));
     --shell-sunken-strong: var(--color-bg-muted, var(--color-surface-secondary));
     --shell-hover: var(--color-bg-hover, var(--color-hover));

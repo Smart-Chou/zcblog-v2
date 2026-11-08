@@ -41,11 +41,13 @@ const avatarInitial = (author.type || site.title).trim().slice(0, 1).toUpperCase
         </div>
 
         <div class="header-actions">
-            {searchEnable && (
-                <div class="header-search">
-                    <Search locale={locale} />
-                </div>
-            )}
+            {
+                searchEnable && (
+                    <div class="header-search">
+                        <Search locale={locale} />
+                    </div>
+                )
+            }
 
             <Nav />
 
@@ -59,29 +61,31 @@ const avatarInitial = (author.type || site.title).trim().slice(0, 1).toUpperCase
                     target="_blank"
                     aria-label={author.type}
                 >
-                    {avatarImage ? (
-                        <Image
-                            src={avatarImage}
-                            alt=""
-                            width={64}
-                            height={64}
-                            class="header-avatar-img"
-                            loading="lazy"
-                            decoding="async"
-                        />
-                    ) : avatarRemote ? (
-                        <img
-                            src={avatarRemote}
-                            alt=""
-                            class="header-avatar-img"
-                            loading="lazy"
-                            decoding="async"
-                        />
-                    ) : (
-                        <span class="header-avatar-fallback" aria-hidden="true">
-                            {avatarInitial}
-                        </span>
-                    )}
+                    {
+                        avatarImage ? (
+                            <Image
+                                src={avatarImage}
+                                alt=""
+                                width={64}
+                                height={64}
+                                class="header-avatar-img"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                        ) : avatarRemote ? (
+                            <img
+                                src={avatarRemote}
+                                alt=""
+                                class="header-avatar-img"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                        ) : (
+                            <span class="header-avatar-fallback" aria-hidden="true">
+                                {avatarInitial}
+                            </span>
+                        )
+                    }
                 </a>
             </div>
         </div>
