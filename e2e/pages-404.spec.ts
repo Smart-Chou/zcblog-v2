@@ -132,7 +132,9 @@ test.describe("404 · 版面与可访问性", () => {
                 await open404(page, theme, viewport);
                 const overflow = await overflowPx(page);
                 console.log(`[404:${theme}] ${viewport.width}px 横向溢出 = ${overflow}px`);
-                expect(overflow, `${viewport.width}px · ${theme} 无横向溢出`).toBeLessThanOrEqual(1);
+                expect(overflow, `${viewport.width}px · ${theme} 无横向溢出`).toBeLessThanOrEqual(
+                    1,
+                );
             }
 
             // axe 在 1440 跑一次（同一份 DOM，断点只改排版）。

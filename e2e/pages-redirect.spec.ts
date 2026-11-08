@@ -18,7 +18,10 @@ import path from "node:path";
  * 截图默认跳过（`RG_SHOTS=1` 时写入 docs/_reviews/M6-5b/screens/）。
  */
 
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 
 const b64 = (url: string) => Buffer.from(url).toString("base64url");
 
@@ -83,7 +86,10 @@ test.describe("redirect · 结构与协议", () => {
             ),
         );
         for (let i = 1; i < levels.length; i += 1) {
-            expect(levels[i] - levels[i - 1], `标题层级跳级：${levels.join(" → ")}`).toBeLessThanOrEqual(1);
+            expect(
+                levels[i] - levels[i - 1],
+                `标题层级跳级：${levels.join(" → ")}`,
+            ).toBeLessThanOrEqual(1);
         }
     });
 
@@ -190,7 +196,9 @@ test.describe("redirect · 版面与可访问性", () => {
                 await open(page, UNLISTED, theme, viewport);
                 const overflow = await overflowPx(page);
                 console.log(`[redirect:${theme}] ${viewport.width}px 横向溢出 = ${overflow}px`);
-                expect(overflow, `${viewport.width}px · ${theme} 无横向溢出`).toBeLessThanOrEqual(1);
+                expect(overflow, `${viewport.width}px · ${theme} 无横向溢出`).toBeLessThanOrEqual(
+                    1,
+                );
             }
 
             // axe 作用域 = 守卫卡 `.rg`：外壳 header/footer 的对比度与品牌块属 M6-1 共享层，
@@ -226,7 +234,10 @@ test.describe("redirect · 版面与可访问性", () => {
             const axe = (window as any).axe;
             const surface = document.querySelector(".rg") as HTMLElement;
             return axe.run(surface, {
-                runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
+                runOnly: {
+                    type: "tag",
+                    values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+                },
             });
         });
         const blocking = result.violations.filter(
@@ -239,7 +250,11 @@ test.describe("redirect · 版面与可访问性", () => {
         await page.emulateMedia({ reducedMotion: "reduce" });
         await open(page, UNLISTED, "light", VIEWPORTS[0]);
         const running = await page.evaluate(
-            () => document.querySelector(".rg")!.getAnimations({ subtree: true }).filter((a) => a.playState === "running").length,
+            () =>
+                document
+                    .querySelector(".rg")!
+                    .getAnimations({ subtree: true })
+                    .filter((a) => a.playState === "running").length,
         );
         console.log(`[redirect] reduced-motion 运行中动画 = ${running}`);
         expect(running).toBe(0);
@@ -255,7 +270,9 @@ test.describe("redirect · 证据截图", () => {
                 await open(page, UNLISTED, theme, viewport);
                 // 截图前停表，避免 5 秒后自动跳走
                 await page.evaluate(() => {
-                    document.querySelectorAll<HTMLElement>("#jump-button").forEach((el) => el.blur());
+                    document
+                        .querySelectorAll<HTMLElement>("#jump-button")
+                        .forEach((el) => el.blur());
                 });
                 if (!existsSync(SCREENS_DIR)) mkdirSync(SCREENS_DIR, { recursive: true });
                 const target = path.join(SCREENS_DIR, `redirect-${theme}-${viewport.width}.png`);

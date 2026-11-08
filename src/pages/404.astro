@@ -38,8 +38,7 @@ const recent = sortByPubDate(filterByLang(await getAllArticles(), contentLocaleO
         url: articleUrl(post),
         date: new Date(post.data.pubDate),
         route: String(index + 1).padStart(2, "0"),
-        tag:
-            post.data.tags && post.data.tags.length > 0 ? normalizeTag(post.data.tags[0]) : null,
+        tag: post.data.tags && post.data.tags.length > 0 ? normalizeTag(post.data.tags[0]) : null,
     }));
 
 const fmt = (date: Date) =>
@@ -155,9 +154,8 @@ const terminalLines = isEn
                 <span class="nf-terminal__name">marx-kernel — lost-beacon (zsh)</span>
                 <span class="nf-terminal__status">{isEn ? "PROBE ACTIVE" : "探测中"}</span>
             </div>
-            <pre class="nf-terminal__body"><code>{terminalLines.join("\n")}</code><span
-                    class="nf-terminal__cursor"
-                    aria-hidden="true"></span></pre>
+            <pre
+                class="nf-terminal__body"><code>{terminalLines.join("\n")}</code><span class="nf-terminal__cursor" aria-hidden="true" /></pre>
             <p class="nf-terminal__foot">
                 {
                     isEn

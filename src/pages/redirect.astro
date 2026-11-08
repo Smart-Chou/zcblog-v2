@@ -253,7 +253,11 @@ const scriptTexts = JSON.stringify({
                         }
                     </p>
                     <div class="rg__fallback-actions">
-                        <a class="rg__stay rg__stay--solid" id="rg-fallback-home-dismissed" href={home}>
+                        <a
+                            class="rg__stay rg__stay--solid"
+                            id="rg-fallback-home-dismissed"
+                            href={home}
+                        >
                             {isEn ? "Back to home" : "返回首页"}
                         </a>
                         <a class="rg__stay" href={archives}>
@@ -301,7 +305,9 @@ const scriptTexts = JSON.stringify({
             const texts = JSON.parse(scriptTexts);
 
             // ── 元素 ─────────────────────────────────────────────────────
-            const root = document.querySelector('[data-overlay="redirect"]') || document.querySelector(".redirect");
+            const root =
+                document.querySelector('[data-overlay="redirect"]') ||
+                document.querySelector(".redirect");
             const titleDom = document.getElementById("rg-title");
             const ledeDom = document.getElementById("rg-lede");
             const urlDom = document.getElementById("url");
@@ -354,7 +360,8 @@ const scriptTexts = JSON.stringify({
                 const tick = () => {
                     count -= 1;
                     if (count > 0) {
-                        if (countDom) countDom.textContent = texts.countdownChip.replace("{{count}}", count);
+                        if (countDom)
+                            countDom.textContent = texts.countdownChip.replace("{{count}}", count);
                         return;
                     }
                     clearInterval(interval);
@@ -392,8 +399,13 @@ const scriptTexts = JSON.stringify({
                     if (hostDom) hostDom.textContent = urlHostname;
                     if (protoDom) {
                         protoDom.textContent =
-                            parsed.protocol === "https:" ? "HTTPS" : parsed.protocol.replace(":", "").toUpperCase();
-                        protoDom.setAttribute("data-proto", parsed.protocol === "https:" ? "https" : "plain");
+                            parsed.protocol === "https:"
+                                ? "HTTPS"
+                                : parsed.protocol.replace(":", "").toUpperCase();
+                        protoDom.setAttribute(
+                            "data-proto",
+                            parsed.protocol === "https:" ? "https" : "plain",
+                        );
                     }
                     if (routeDom) {
                         routeDom.textContent = `ROUTE: /redirect/?url=${encodedUrl.slice(0, 24)}${encodedUrl.length > 24 ? "…" : ""}`;
@@ -485,7 +497,11 @@ const scriptTexts = JSON.stringify({
             document.addEventListener("contextmenu", (event) => event.preventDefault());
             document.addEventListener("keydown", (event) => {
                 if (event.key === "F12") event.preventDefault();
-                if (event.ctrlKey && event.shiftKey && (event.key === "I" || event.key === "C" || event.key === "G")) {
+                if (
+                    event.ctrlKey &&
+                    event.shiftKey &&
+                    (event.key === "I" || event.key === "C" || event.key === "G")
+                ) {
                     event.preventDefault();
                 }
             });
