@@ -1,16 +1,17 @@
 ---
 /**
- * P-03 · 标签详情（M2-4）
+ * P-03 · 标签详情（M2-4 建，M6-4 换皮）
  *
- * 版式与归档/标签索引同一套页头（kicker + serif 标题 + lede + 计数）。
+ * 版式：与 /tags/ 同一套页头（badge + 衬线标题 + lede + 等宽计数），文章列表**复用**
+ * `TagsPostCard`（`.post-card` / `.post-card-link` 契约不动，e2e 依赖它们）。
  * - 只做渲染层：标签页路由与分页 URL 规则不动（G2 契约，见 utils/tag-paths）。
- * - 样式在 src/styles/pages/tags.css；文章卡片仍用 TagsPostCard（.post-card 契约）。
+ * - 样式在 src/styles/pages/tags.css。
  */
 import type { CollectionEntry } from "astro:content";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import TagsPostCard from "~/components/Article/TagsPostCard.astro";
 import EmptyState from "~/components/UI/EmptyState.astro";
-import Link from "~/components/UI/atom/Link.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 import { site } from "~/config";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { t, getLocale, type Locale } from "~/utils/i18n";
@@ -47,15 +48,19 @@ const countLabel = isEn
 >
     <div class="tag-detail">
         <header class="tag-detail__hero">
-            <p class="tags-kicker">{isEn ? "TAGS · INDEX" : "标签 · 索引"}</p>
+            <p class="badge-section tags-kicker">
+                <span class="badge-status-dot" aria-hidden="true"></span>
+                {isEn ? "TAGS · INDEX" : "TAGS · 标签索引"}
+            </p>
             <h1 class="tag-detail__title">
                 <span class="tag-detail__hash" aria-hidden="true">#</span>
                 {tag}
             </h1>
             <p class="tag-detail__lede">{countLabel}</p>
-            <Link href={tagsHref} variant="standalone" class="tag-detail__back">
-                ← {isEn ? "All tags" : "全部标签"}
-            </Link>
+            <a href={tagsHref} class="tag-detail__back mono-label">
+                <Icon name="tabler:chevron-left" size="sm" />
+                {isEn ? "All tags" : "全部标签"}
+            </a>
         </header>
 
         {

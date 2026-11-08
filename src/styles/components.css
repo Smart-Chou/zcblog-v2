@@ -188,6 +188,12 @@
     border-radius: var(--shell-radius-pill);
 }
 
+/* M6-4：dark 下 #f0745b 对 accent-subtle #3d2f31 只有 4.45:1（axe 差 0.05）。
+   降低徽章自身的底，而不是改全站 accent；light 不受影响。 */
+html[data-theme="dark"] .badge-section {
+    background-color: var(--color-bg-sunken, #1a1819);
+}
+
 .badge-status-dot {
     width: 6px;
     height: 6px;

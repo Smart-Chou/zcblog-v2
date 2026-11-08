@@ -1,13 +1,18 @@
 ---
 /**
- * P-03 · 归档页（M2-4）
+ * P-03 · 归档页（M6-4 / marx_s_blog_archives_tags_1 + archives_tags_2）
  *
- * 版式：marx_s_blog_archives_tags_1 的「KPI 行 + 创作热力图 + 8/4 双栏时间轴」。
- * - 只做渲染层：文章集合、字数、标签统计仍走 utils/article-stats + article-url，
- *   热力图数据源与分页规则未改（M2-4 文件边界）。
- * - 样式在 src/styles/pages/archives.css：0 颜色字面量，尺寸全部 token。
- * - CLS：热力图的最小高度由 src/styles/heatmap.css 的 min-height 占位（D-0093），
- *   本组件不改该结构（容器仍只带 data-posts，3 个子节点由脚本填入）。
+ * 版式（桌面 ≥1024）：页头 → 4 张 KPI 卡 → 52 周热力图卡 → 8/4 双栏
+ *   （左：年份折叠组 + 月份分组 + 文章卡；右：标签分层 / 标签云 / 导出 / 引言）。
+ * 版式（移动 <1024）：单栏；顶部「编年时空 / 标签图谱」胶囊把归档与标签两个既有路由
+ *   串起来（**不新建移动专属路由，也 0 行 JS**：胶囊是两条链接，aria-current 标当前视图）。
+ *
+ * 数据口径未改：文章集合 / 字数 / 阅读时长仍走 enrichPost，标签统计仍走
+ * getAllTags + normalizeTag，热力图数据源仍是 postsData（Heatmap.astro 与
+ * src/scripts/heatmap.ts 逐字节未动；移动端 26 周窗口由脚本原有的 <768 分支决定）。
+ *
+ * 样式：src/styles/pages/archives.css。本组件不写 `<style>`（272 标签/89 篇的页面
+ * 不重复吃一份 scoped 指纹），也不写 hex / rgb。
  */
 import { getAllArticles, getAllTags, normalizeTag } from "~/utils/article-stats";
 import { filterByLang, articleUrl } from "~/utils/article-url";
@@ -15,10 +20,7 @@ import BaseLayout from "~/layouts/BaseLayout.astro";
 import Archive from "~/components/UI/Archive.astro";
 import Author from "~/components/UI/Author.astro";
 import Heatmap from "~/components/UI/Heatmap.astro";
-import Card from "~/components/UI/atom/Card.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
-import Link from "~/components/UI/atom/Link.astro";
-import Tag from "~/components/UI/atom/Tag.astro";
 import { site } from "~/config";
 import { enrichPost } from "~/utils/get-posts-with-meta";
 import { sortByPubDate, formatDateToYYYYMMDD } from "~/utils";
@@ -61,6 +63,8 @@ const years = Object.keys(postsByYear)
 const totalPosts = postsWithMeta.length;
 const totalWords = postsWithMeta.reduce((sum, post) => sum + post.wordCount, 0);
 const totalWordsInThousands = `${(totalWords / 1000).toFixed(1)}k`;
+const averageWords = totalPosts > 0 ? totalWords / totalPosts : 0;
+const averageWordsLabel = `${(averageWords / 1000).toFixed(2)}k`;
 
 const startYear =
     postsWithMeta.length > 0
@@ -73,16 +77,107 @@ const tagCounts = getAllTags(allPosts).reduce<Record<string, number>>((acc, tag)
     acc[key] = (acc[key] || 0) + 1;
     return acc;
 }, {});
-const totalTags = Object.keys(tagCounts).length;
-const topTags = Object.entries(tagCounts)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 8);
+const tagEntries = Object.entries(tagCounts).sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+);
+const totalTags = tagEntries.length;
+const tagReferences = tagEntries.reduce((sum, [, count]) => sum + count, 0);
+const topTags = tagEntries.slice(0, 12).map(([name, count]) => ({ name, count }));
+
+/** 标签分层：同一份 tagCounts 按权重切三档（不新增 schema，不做人工分类）。 */
+const tierOf = (count: number): "core" | "common" | "tail" =>
+    count >= 10 ? "core" : count >= 3 ? "common" : "tail";
+const tierDefs = [
+    {
+        key: "core" as const,
+        label: isEn ? "Core topics" : "核心主题",
+        sub: isEn ? "10+ posts" : "10 篇以上",
+        icon: "tabler:flame",
+    },
+    {
+        key: "common" as const,
+        label: isEn ? "Working set" : "常用标签",
+        sub: isEn ? "3–9 posts" : "3–9 篇",
+        icon: "tabler:folders",
+    },
+    {
+        key: "tail" as const,
+        label: isEn ? "Long tail" : "长尾标签",
+        sub: isEn ? "1–2 posts" : "1–2 篇",
+        icon: "tabler:tool",
+    },
+];
+const tiers = tierDefs.map((def) => {
+    const entries = tagEntries.filter(([, count]) => tierOf(count) === def.key);
+    return {
+        ...def,
+        tags: entries.length,
+        refs: entries.reduce((sum, [, count]) => sum + count, 0),
+    };
+});
+
+const MONTHS_EN = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+];
+const monthLabel = (index: number) => (isEn ? MONTHS_EN[index] : `${index + 1} 月`);
+
+/** 年份组：年 → 月（倒序，同月合并）→ 文章。月分组只做视觉折叠，不改任何排序口径。 */
+const yearGroups = years.map((year) => {
+    const posts = sortByPubDate(postsByYear[year]) as PostWithMeta[];
+    const months: { index: number; label: string; posts: PostWithMeta[] }[] = [];
+    for (const post of posts) {
+        const index = new Date(post.data.pubDate).getMonth();
+        const last = months[months.length - 1];
+        if (last && last.index === index) last.posts.push(post);
+        else months.push({ index, label: monthLabel(index), posts: [post] });
+    }
+    return {
+        year,
+        posts,
+        months,
+        words: posts.reduce((sum, post) => sum + post.wordCount, 0),
+        wordsLabel: `${(posts.reduce((sum, post) => sum + post.wordCount, 0) / 1000).toFixed(1)}k`,
+    };
+});
+
+/** 峰值月份（用于热力图脚注）：同一 (年, 月) 的文章数最大值。 */
+const peakBuckets = new Map<string, number>();
+const peak = postsWithMeta.reduce<{ label: string; count: number }>(
+    (best, post) => {
+        const date = new Date(post.data.pubDate);
+        const key = `${date.getFullYear()}-${date.getMonth()}`;
+        const bucket = (peakBuckets.get(key) ?? 0) + 1;
+        peakBuckets.set(key, bucket);
+        if (bucket > best.count) {
+            return {
+                label: isEn
+                    ? `${MONTHS_EN[date.getMonth()]} ${date.getFullYear()}`
+                    : `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`,
+                count: bucket,
+            };
+        }
+        return best;
+    },
+    { label: "—", count: 0 },
+);
 
 const tagPrefix = isEn ? "/en/tags" : "/tags";
 const allPostsHref = isEn ? "/en/blog/1/" : "/blog/1/";
 const tagsHref = isEn ? "/en/tags/" : "/tags/";
+const archivesHref = isEn ? "/en/archives/" : "/archives/";
 const rssHref = isEn ? "/en/rss.xml" : "/rss.xml";
+const atomHref = isEn ? "/en/atom.xml" : "/atom.xml";
 
 const postsData = postsWithMeta.map((post) => ({
     date: post.data.pubDate ? formatDateToYYYYMMDD(new Date(post.data.pubDate)) : "",
@@ -99,34 +194,60 @@ const subtitle = t(loc, "archives.subtitle", {
 const kpis = [
     {
         key: "posts",
-        label: "ARTICLES",
+        label: "TOTAL ARTICLES",
         value: String(totalPosts),
-        note: isEn ? "published posts" : "篇文章",
+        unit: isEn ? "posts" : "篇精选文章",
+        note: isEn ? `across ${years.length} years` : `跨越 ${years.length} 个自然年`,
+        icon: "tabler:folders",
     },
     {
         key: "tags",
-        label: "TAGS",
+        label: "TAGS & TOPICS",
         value: String(totalTags),
-        note: isEn ? "topics covered" : "个主题标签",
+        unit: isEn ? "topics" : "个主题标签",
+        note: isEn ? `${tagReferences} references` : `${tagReferences} 次标签引用`,
+        icon: "tabler:tags",
     },
     {
         key: "words",
-        label: "WORDS",
+        label: "CUMULATIVE WORDS",
         value: totalWordsInThousands,
-        note: isEn ? "words in total" : "累计字数",
+        unit: isEn ? "characters" : "字符记录",
+        note: isEn ? `${averageWordsLabel} per post` : `平均 ${averageWordsLabel} 字 / 篇`,
+        icon: "tabler:brain",
     },
     {
         key: "span",
-        label: "SPAN",
+        label: "TIMELINE SPAN",
         value: `${startYear}–${endYear}`,
-        note: isEn ? "years writing" : "持续写作",
+        unit: isEn ? "years" : "年跨度",
+        note: isEn
+            ? `${totalPosts} posts in total`
+            : `最新一篇 ${new Date(postsWithMeta[0]?.data.pubDate ?? Date.now()).toISOString().slice(0, 10)}`,
+        icon: "tabler:clock",
     },
 ];
 
-const timelineTitle = isEn ? "Timeline" : "编年时间轴";
 const heatmapTitle = isEn ? "Publishing rhythm" : "创作节奏热力图";
-const knowledgeTitle = isEn ? "Knowledge map" : "知识域";
-const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
+const heatmapNote = isEn
+    ? "Daily publishing density over the last 52 weeks — hover a cell for the post."
+    : "近 52 周的字句密度，颜色越深表示当天写下的字越多。";
+const timelineTitle = isEn ? "Chronological archive" : "编年时间轴";
+const tiersTitle = isEn ? "Tag tiers" : "标签分层索引";
+const tiersNote = isEn
+    ? "Same tag counts, cut into three weight bands."
+    : "同一份标签计数按权重切成三档，不做人工分类。";
+const cloudTitle = isEn ? "Popular tags" : "热门标签云";
+const exportTitle = isEn ? "Search & offline archive" : "检索与离线归档";
+const exportNote = isEn
+    ? "Every list on this site exists as a feed: subscribe in a reader, or hand the index to Obsidian / Logseq."
+    : "全站索引以订阅源形式存在：可放进阅读器，也可交给 Obsidian / Logseq 做双向链接。";
+const quoteText = isEn
+    ? "An archive is not where words lie down; it is the map you draw so a future self can find the way back."
+    : "归档不是让文字躺进棺材，而是为未来的自己画一张能在迷途时回溯的地图。";
+const viewSwitchLabel = isEn ? "Archives and tags views" : "归档与标签视图";
+const timelineViewLabel = isEn ? "Timeline" : "编年时空";
+const matrixViewLabel = isEn ? "Matrix" : "标签图谱";
 ---
 
 <BaseLayout
@@ -141,75 +262,170 @@ const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
 >
     <div class="archives">
         <header class="archives-hero">
-            <p class="archives-kicker">{isEn ? "ARCHIVES · TIMELINE" : "归档 · 时间轴"}</p>
-            <h1 class="archives-title">{t(loc, "archives.title")}</h1>
-            <p class="archives-lede">{subtitle}</p>
+            <div class="archives-hero__main">
+                <p class="badge-section archives-kicker">
+                    <span class="badge-status-dot" aria-hidden="true"></span>
+                    {isEn ? "ARCHIVES · TAXONOMY" : "ARCHIVES · 归档与分类"}
+                </p>
+                <h1 class="archives-title">{t(loc, "archives.title")}</h1>
+                <p class="archives-lede">{subtitle}</p>
+            </div>
+            <div class="archives-actions">
+                <a class="archives-action" href={tagsHref}>
+                    <Icon name="tabler:tags" size="sm" />
+                    {isEn ? "Tag index" : "标签索引"}
+                </a>
+                <a class="archives-action archives-action--solid" href={rssHref} rel="alternate">
+                    <Icon name="tabler:rss" size="sm" />
+                    {isEn ? "Full feed" : "全量源 (RSS)"}
+                </a>
+            </div>
         </header>
 
         <section class="archives-kpis" aria-label={isEn ? "Site statistics" : "站点统计"}>
             {
                 kpis.map((kpi) => (
-                    <Card padding="md" as="div" class="archives-kpi">
-                        <p class="archives-kpi__label">{kpi.label}</p>
-                        <p class="archives-kpi__value">{kpi.value}</p>
+                    <article class="archives-kpi" data-kpi={kpi.key}>
+                        <div class="archives-kpi__top">
+                            <p class="mono-label archives-kpi__label">{kpi.label}</p>
+                            <Icon name={kpi.icon} size="sm" class="archives-kpi__icon" />
+                        </div>
+                        <p class="archives-kpi__value">
+                            <span class="mono-metric archives-kpi__number">{kpi.value}</span>
+                            <span class="archives-kpi__unit">{kpi.unit}</span>
+                        </p>
                         <p class="archives-kpi__note">{kpi.note}</p>
-                    </Card>
+                    </article>
                 ))
             }
         </section>
 
-        <Card padding="none" as="section" class="archives-heatmap" labelledby="heatmap-title">
+        <nav class="archives-switch" aria-label={viewSwitchLabel}>
+            <a class="archives-switch__item" href={archivesHref} aria-current="page">
+                <Icon name="tabler:clock" size="sm" />
+                <span>{timelineViewLabel}</span>
+            </a>
+            <a class="archives-switch__item" href={tagsHref}>
+                <Icon name="tabler:tags" size="sm" />
+                <span>{matrixViewLabel}</span>
+            </a>
+        </nav>
+
+        <section class="archives-heatmap" aria-labelledby="heatmap-title">
             <div class="archives-heatmap__head">
-                <div>
-                    <h2 id="heatmap-title" class="archives-section-title">{heatmapTitle}</h2>
-                    <p class="archives-section-note">
-                        {
-                            isEn
-                                ? "Daily word count of the last 12 months — hover a cell for the post."
-                                : "近 12 个月的发文密度，悬停格子看当天文章。"
-                        }
-                    </p>
+                <div class="archives-heatmap__intro">
+                    <h2 id="heatmap-title" class="archives-section-title">
+                        {heatmapTitle}
+                        <span class="archives-badge">{isEn ? "LAST 52 WEEKS" : "近 52 周"}</span>
+                    </h2>
+                    <p class="archives-section-note">{heatmapNote}</p>
                 </div>
-                <p class="archives-heatmap__meta">
-                    <Icon name="tabler:flame" size="sm" />
-                    <span>{isEn ? "52 weeks" : "近 52 周"}</span>
-                </p>
+                <ul class="archives-years-nav" aria-label={isEn ? "Jump to a year" : "跳转到年份"}>
+                    <li>
+                        <a
+                            class="archives-years-nav__link"
+                            href="#archives-timeline"
+                            aria-current="true"
+                        >
+                            {isEn ? "All" : "全部"}
+                            <span class="archives-years-nav__count">{totalPosts}</span>
+                        </a>
+                    </li>
+                    {
+                        years.map((year) => (
+                            <li>
+                                <a class="archives-years-nav__link" href={`#archive-year-${year}`}>
+                                    {year}
+                                    <span class="archives-years-nav__count">
+                                        {postsByYear[year].length}
+                                    </span>
+                                </a>
+                            </li>
+                        ))
+                    }
+                </ul>
             </div>
             <div class="archives-heatmap__body">
                 <Heatmap postsData={postsData} />
             </div>
-        </Card>
+            <p class="archives-heatmap__foot">
+                <Icon name="tabler:flame" size="xs" />
+                <span>
+                    {
+                        isEn
+                            ? `Peak: ${peak.label} — ${peak.count} posts in one month`
+                            : `年度最高峰：${peak.label}（当月 ${peak.count} 篇）`
+                    }
+                </span>
+            </p>
+        </section>
 
         <div class="archives-columns">
-            <section class="archives-timeline" aria-labelledby="timeline-title">
+            <section
+                id="archives-timeline"
+                class="archives-timeline"
+                aria-labelledby="timeline-title"
+            >
                 <div class="archives-section-header">
-                    <h2 id="timeline-title" class="archives-section-title">{timelineTitle}</h2>
-                    <p class="archives-section-meta">
+                    <h2
+                        id="timeline-title"
+                        class="archives-section-title archives-section-title--rule"
+                    >
+                        {timelineTitle}
+                    </h2>
+                    <p class="archives-section-meta mono-label">
                         {isEn ? `${totalPosts} posts` : `共 ${totalPosts} 篇`}
                     </p>
                 </div>
                 <ol class="archives-years">
                     {
-                        years.map((year) => (
-                            <li class="archives-year" data-year={year}>
-                                <div class="archives-year__head">
-                                    <h3 class="archives-year__label">{year}</h3>
-                                    <span class="archives-year__count">
-                                        {isEn
-                                            ? `${postsByYear[year].length} posts`
-                                            : `${postsByYear[year].length} 篇`}
-                                    </span>
-                                </div>
-                                <div class="archives-year__list">
-                                    {sortByPubDate(postsByYear[year]).map((post) => (
-                                        <Archive
-                                            key={post.slug}
-                                            url={articleUrl(post)}
-                                            title={post.data.title}
-                                            publishedTime={post.data.pubDate}
-                                        />
-                                    ))}
-                                </div>
+                        yearGroups.map((group, index) => (
+                            <li class="archives-year" id={`archive-year-${group.year}`}>
+                                <details class="archives-year__details" open={index === 0}>
+                                    <summary class="archives-year__summary">
+                                        <span class="archives-year__dot" aria-hidden="true" />
+                                        <h3 class="archives-year__label">{group.year}</h3>
+                                        <span class="archives-year__badge">
+                                            {isEn
+                                                ? `${group.posts.length} posts · ${group.wordsLabel} chars`
+                                                : `共 ${group.posts.length} 篇 · ${group.wordsLabel} 字`}
+                                        </span>
+                                        <span class="archives-year__toggle">
+                                            <span class="archives-year__toggle-text">
+                                                {isEn ? "Expand" : "展开年度文章"}
+                                            </span>
+                                            <Icon name="tabler:chevron-right" size="sm" />
+                                        </span>
+                                    </summary>
+                                    <div class="archives-year__body">
+                                        {group.months.map((month) => (
+                                            <section class="archives-month">
+                                                <h4 class="archives-month__label">
+                                                    <span
+                                                        class="archives-month__dot"
+                                                        aria-hidden="true"
+                                                    />
+                                                    {isEn
+                                                        ? `${month.label} ${group.year}`
+                                                        : `${String(month.index + 1).padStart(2, "0")} 月`}
+                                                    <span class="archives-month__count mono-label">
+                                                        {isEn
+                                                            ? `${month.posts.length} posts`
+                                                            : `${month.posts.length} 篇沉淀`}
+                                                    </span>
+                                                </h4>
+                                                {month.posts.map((post) => (
+                                                    <Archive
+                                                        key={post.slug}
+                                                        url={articleUrl(post)}
+                                                        title={post.data.title}
+                                                        publishedTime={post.data.pubDate}
+                                                    />
+                                                ))}
+                                            </section>
+                                        ))}
+                                    </div>
+                                </details>
                             </li>
                         ))
                     }
@@ -217,71 +433,107 @@ const shortcutsTitle = isEn ? "Shortcuts" : "快速入口";
             </section>
 
             <aside class="archives-side" aria-label={isEn ? "Archive sidebars" : "归档侧栏"}>
-                <Card
-                    padding="md"
-                    as="section"
-                    class="archives-panel"
-                    labelledby="archives-tags-title"
-                >
+                <section class="archives-panel" aria-labelledby="archives-tiers-title">
                     <div class="archives-panel__head">
-                        <h2 id="archives-tags-title" class="archives-panel__title">
-                            {knowledgeTitle}
+                        <h2 id="archives-tiers-title" class="archives-panel__title">
+                            {tiersTitle}
                         </h2>
-                        <Link href={tagsHref} variant="standalone" class="archives-panel__link">
-                            {isEn ? "All" : "全部"}
-                        </Link>
+                        <Icon name="tabler:stack-2" size="sm" class="archives-panel__icon" />
                     </div>
-                    <ul class="archives-taglist">
+                    <p class="archives-panel__note">{tiersNote}</p>
+                    <ul class="archives-tiers">
                         {
-                            topTags.map((tag) => (
-                                <li class="archives-taglist__item">
-                                    <Tag href={`${tagPrefix}/${tag.name}/`} size="sm">
-                                        {tag.name}
-                                        <span class="archives-taglist__count" aria-hidden="true">
-                                            {tag.count}
-                                        </span>
-                                        <span class="sr-only">
-                                            {isEn ? `${tag.count} posts` : `${tag.count} 篇文章`}
-                                        </span>
-                                    </Tag>
+                            tiers.map((tier) => (
+                                <li class="archives-tier" data-tier={tier.key}>
+                                    <span class="archives-tier__icon">
+                                        <Icon name={tier.icon} size="sm" />
+                                    </span>
+                                    <span class="archives-tier__body">
+                                        <span class="archives-tier__label">{tier.label}</span>
+                                        <span class="archives-tier__sub">{tier.sub}</span>
+                                    </span>
+                                    <span class="archives-tier__count">
+                                        {isEn ? `${tier.tags} tags` : `${tier.tags} 个`}
+                                    </span>
                                 </li>
                             ))
                         }
                     </ul>
-                </Card>
+                </section>
 
-                <Card
-                    padding="md"
-                    as="section"
-                    class="archives-panel"
-                    labelledby="archives-links-title"
+                <section class="archives-panel" aria-labelledby="archives-tags-title">
+                    <div class="archives-panel__head">
+                        <h2 id="archives-tags-title" class="archives-panel__title">{cloudTitle}</h2>
+                        <a class="archives-panel__link mono-label" href={tagsHref}>
+                            {isEn ? `${totalTags} tags` : `${totalTags} 个标签`}
+                        </a>
+                    </div>
+                    <ul class="archives-cloud">
+                        {
+                            topTags.map((tag) => (
+                                <li class="archives-cloud__item">
+                                    <a
+                                        class="archives-cloud__link"
+                                        href={`${tagPrefix}/${tag.name}/`}
+                                    >
+                                        <span class="archives-cloud__hash" aria-hidden="true">
+                                            #
+                                        </span>
+                                        {tag.name}
+                                        <span class="archives-cloud__count">{tag.count}</span>
+                                    </a>
+                                </li>
+                            ))
+                        }
+                    </ul>
+                    <p class="archives-panel__note archives-panel__note--foot">
+                        {isEn ? "Each tag opens its own index." : "点标签进入该标签的索引页。"}
+                    </p>
+                </section>
+
+                <section
+                    class="archives-panel archives-panel--sunken"
+                    aria-labelledby="archives-export-title"
                 >
                     <div class="archives-panel__head">
-                        <h2 id="archives-links-title" class="archives-panel__title">
-                            {shortcutsTitle}
+                        <h2 id="archives-export-title" class="archives-panel__title">
+                            {exportTitle}
                         </h2>
+                        <Icon name="tabler:archive" size="sm" class="archives-panel__icon" />
                     </div>
-                    <ul class="archives-links">
+                    <p class="archives-panel__note">{exportNote}</p>
+                    <ul class="archives-export">
                         <li>
-                            <Link href={allPostsHref} variant="standalone">
-                                <Icon name="tabler:archive" size="sm" />
-                                {isEn ? "All posts" : "全部文章"}
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href={tagsHref} variant="standalone">
-                                <Icon name="tabler:tags" size="sm" />
-                                {isEn ? "Tag graph" : "标签图谱"}
-                            </Link>
-                        </li>
-                        <li>
-                            <Link href={rssHref} variant="standalone" external>
+                            <a class="archives-export__link" href={rssHref} rel="alternate">
                                 <Icon name="tabler:rss" size="sm" />
-                                {isEn ? "RSS feed" : "RSS 订阅"}
-                            </Link>
+                                <span>{isEn ? "Subscribe (RSS)" : "订阅全站 RSS"}</span>
+                                <span class="mono-label archives-export__meta">XML</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="archives-export__link" href={atomHref} rel="alternate">
+                                <Icon name="tabler:bolt" size="sm" />
+                                <span>{isEn ? "Atom feed" : "Atom 订阅源"}</span>
+                                <span class="mono-label archives-export__meta">ATOM</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="archives-export__link" href={allPostsHref}>
+                                <Icon name="tabler:folders" size="sm" />
+                                <span>{isEn ? "All posts index" : "全部文章索引"}</span>
+                                <span class="mono-label archives-export__meta">HTML</span>
+                            </a>
                         </li>
                     </ul>
-                </Card>
+                </section>
+
+                <figure class="archives-quote">
+                    <blockquote class="archives-quote__text">{quoteText}</blockquote>
+                    <figcaption class="archives-quote__by">
+                        — {site.title}
+                        {isEn ? ", archive edition" : " · 归档版"}
+                    </figcaption>
+                </figure>
             </aside>
         </div>
 

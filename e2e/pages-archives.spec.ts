@@ -582,7 +582,10 @@ test("swup：首页 → 归档（站内点击）后页面样式就位", async ({
         return Math.round(el.getBoundingClientRect().width);
     });
     console.log(`[swup] 换页后 .archives 宽度 = ${width}（页面 CSS 已生效）`);
-    expect(width).toBeGreaterThan(1100);
+    // M6-1 把 shell 收到 1140（1440 视口 − 15px 经典滚动条 − 2×24 gutter = 1077），
+    // 所以判据从「1200 时代的 >1100」改为「>1050」：仍然足以证明页面自己的 CSS 已加载
+    // （未加载时 .archives 是一条无宽度的 flex 列）。
+    expect(width).toBeGreaterThan(1050);
 });
 
 /* ───────────────────────── 证据截图（默认跳过） ───────────────────────── */

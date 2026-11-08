@@ -1,4 +1,19 @@
 ---
+/**
+ * Archive — 归档时间轴里的一篇文章（M2-4 建，M6-4 换皮）
+ *
+ * 一行两段：日期（等宽、赤陶）+ 标题。日期坏掉时显示 `Invalid date` 且不输出
+ * `datetime` —— `/design/components/archive/` 的坏数据示例依赖这个分支。
+ *
+ * **为什么不做设计稿里的大卡片（标签 + 字数 + 导语）**：`/archives/` 一次列出全部
+ * 85 篇文章。实测加上标签胶囊（506 个 <a>）≈ 37KB、导语 ≈ 17KB、字数行 ≈ 5KB，
+ * HTML 从 57KB 涨到 167KB，直接击穿列表页 105KB 预算
+ * （`scripts/gates/perf-budget.py`；D-0052 的棘轮只许降不许抬）。所以时间轴保留
+ * 「日期 + 标题」的紧凑行，标签交给右栏标签云与 `/tags/`，字数交给 KPI 卡与文章页。
+ *
+ * 组件自身不带 `<style>`：行外观归页面（`src/styles/pages/archives.css` 的
+ * `.archives` 作用域），与 M2-4 的既有约定一致。
+ */
 interface Props {
     key?: string;
     title: string;
@@ -19,5 +34,5 @@ const isoDate = valid ? parsed.toISOString().slice(0, 10) : undefined;
 
 <p class="archive-meta">
     <time class="archive-date" datetime={isoDate}>{formattedDate}</time>
-    <a class="archive-title" href={url} rel="noopener noreferrer">{title}</a>
+    <a class="archive-title" href={url}>{title}</a>
 </p>

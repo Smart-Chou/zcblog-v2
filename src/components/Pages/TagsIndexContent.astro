@@ -1,19 +1,22 @@
 ---
 /**
- * P-03 · 标签索引（M2-4）
+ * P-03 · 标签索引（M6-4 / marx_s_blog_archives_tags_1 右栏 + archives_tags_2 Matrix）
  *
- * 版式：marx_s_blog_archives_tags_2 的「权重排序标签图谱」——单列网格、
- * 高频 12 个用大号胶囊、长尾用小号胶囊，计数留在胶囊内部。
- * - 只做渲染层：标签统计仍走 utils/article-stats（normalizeTag 口径未改）。
- * - 样式在 src/styles/pages/tags.css。**本组件不写 `<style>`**：Astro 会给
- *   每个元素加 data-astro-cid-*，272 个标签会把 HTML 撑出列表页预算（≤105KB）。
- * - 390 宽不溢出：胶囊 flex-wrap + max-inline-size:100%。
+ * Stitch 没有给独立的标签页：本页 = 把桌面归档稿右栏的「热门标签云」按整页重排，
+ * 并把移动稿的 Matrix 视图作为移动形态 —— 0 新设计、0 新截图依赖，数据口径不变。
+ *
+ * - 272+ 标签**纯 CSS 分列**（`columns` + `break-inside: avoid`），不引入 JS 图谱 / d3；
+ *   首屏无脚本即可读（本组件没有 `<script>`，也不写 `<style>`：样式在 tags.css，
+ *   否则 272 个元素各带一份 data-astro-cid-* 会把 HTML 撑出列表页预算）。
+ * - `.tag-cloud__item[data-weight]`（3 = 前 12 / 2 = 前 48 / 1 = 长尾）是既有 e2e 与
+ *   视觉分级的公共契约，保留；`.tags-meta` 的第一个数字仍是标签总数（e2e 断言）。
+ * - 移动端「编年时空 / 标签图谱」胶囊与 /archives/ 同一套（两条既有路由，非新路由）。
  */
 import { getAllTags, getAllArticles, normalizeTag } from "~/utils/article-stats";
 import { filterByLang } from "~/utils/article-url";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Author from "~/components/UI/Author.astro";
-import Link from "~/components/UI/atom/Link.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 import { site } from "~/config";
 import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
 
@@ -39,11 +42,29 @@ const sortedTags = Object.entries(tagCounts)
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
+const totalTags = sortedTags.length;
+const totalCount = allPosts.length;
+const references = sortedTags.reduce((sum, tag) => sum + tag.count, 0);
+const singleUse = sortedTags.filter((tag) => tag.count === 1).length;
+const topCount = sortedTags[0]?.count ?? 0;
+
 const tagPrefix = isEn ? "/en/tags" : "/tags";
 const allPostsHref = isEn ? "/en/blog/1/" : "/blog/1/";
+const archivesHref = isEn ? "/en/archives/" : "/archives/";
+const tagsHref = isEn ? "/en/tags/" : "/tags/";
 
-/** 权重视觉分级：前 12 高、前 48 中、其余长尾（纯展示，不改排序）。 */
-const weightOf = (index: number) => (index < 12 ? 3 : index < 48 ? 2 : 1);
+/** 权重分级：featured 行 = 前 12 高，长尾里前 36 个中号、其余小号（纯展示，不改排序）。 */
+const viewSwitchLabel = isEn ? "Archives and tags views" : "归档与标签视图";
+
+const stats = [
+    { value: String(totalTags), label: isEn ? "tags" : "个标签", icon: "tabler:tags" },
+    {
+        value: String(references),
+        label: isEn ? "references" : "次标签引用",
+        icon: "tabler:stack-2",
+    },
+    { value: String(singleUse), label: isEn ? "used once" : "个只用过一次", icon: "tabler:tool" },
+];
 ---
 
 <BaseLayout
@@ -59,29 +80,80 @@ const weightOf = (index: number) => (index < 12 ? 3 : index < 48 ? 2 : 1);
 >
     <div class="tags-hub">
         <header class="tags-hero">
-            <p class="tags-kicker">{isEn ? "TAXONOMY · TAG GRAPH" : "标签 · 图谱"}</p>
-            <h1 class="tags-title">{t(loc, "tags.title")}</h1>
-            <p class="tags-lede">{t(loc, "tags.subtitle")}</p>
-            <p class="tags-meta">
-                <span>{isEn ? `${sortedTags.length} tags` : `${sortedTags.length} 个标签`}</span>
-                <span>{isEn ? `${allPosts.length} posts` : `${allPosts.length} 篇文章`}</span>
-            </p>
+            <div class="tags-hero__main">
+                <p class="badge-section">
+                    <span class="badge-status-dot" aria-hidden="true"></span>
+                    {isEn ? "TAXONOMY · TAG MATRIX" : "TAXONOMY · 标签图谱"}
+                </p>
+                <h1 class="tags-title">{t(loc, "tags.title")}</h1>
+                <p class="tags-lede">{t(loc, "tags.subtitle")}</p>
+                <p class="tags-meta mono-label">
+                    <span>{isEn ? `${totalTags} tags` : `${totalTags} 个标签`}</span>
+                    <span>{isEn ? `${totalCount} posts` : `${totalCount} 篇文章`}</span>
+                    <span>{isEn ? `top tag ×${topCount}` : `最高频 ×${topCount}`}</span>
+                </p>
+            </div>
         </header>
+
+        <nav class="tags-switch" aria-label={viewSwitchLabel}>
+            <a class="tags-switch__item" href={archivesHref}>
+                <Icon name="tabler:clock" size="sm" />
+                <span>{isEn ? "Timeline" : "编年时空"}</span>
+            </a>
+            <a class="tags-switch__item" href={tagsHref} aria-current="page">
+                <Icon name="tabler:tags" size="sm" />
+                <span>{isEn ? "Matrix" : "标签图谱"}</span>
+            </a>
+        </nav>
+
+        <section class="tags-stats" aria-label={isEn ? "Tag statistics" : "标签统计"}>
+            {
+                stats.map((stat) => (
+                    <article class="tags-stat">
+                        <Icon name={stat.icon} size="sm" class="tags-stat__icon" />
+                        <span class="mono-metric tags-stat__value">{stat.value}</span>
+                        <span class="tags-stat__label">{stat.label}</span>
+                    </article>
+                ))
+            }
+        </section>
 
         <section class="tags-graph" aria-labelledby="tags-graph-title">
             <div class="tags-section-header">
-                <h2 id="tags-graph-title" class="tags-section-title">
-                    {isEn ? "Weighted tag graph" : "高频热度图谱"}
-                </h2>
-                <Link href={allPostsHref} variant="standalone" class="tags-section-link">
+                <div class="tags-section-header__main">
+                    <h2 id="tags-graph-title" class="tags-section-title">
+                        {isEn ? "Weighted tag matrix" : "高频热度图谱"}
+                    </h2>
+                    <p class="tags-section-note">
+                        {
+                            isEn
+                                ? "Sorted by weight: the first 12 are the primary topics; the tail is long and quiet. Pure CSS columns, no script."
+                                : "按权重排序：前 12 是主主题，长尾很长也很安静 —— 纯 CSS 分列，无脚本。"
+                        }
+                    </p>
+                </div>
+                <a class="tags-section-link mono-label" href={allPostsHref}>
                     {isEn ? "All posts" : "全部文章"} →
-                </Link>
+                </a>
             </div>
 
-            <ul class="tag-cloud" data-count={sortedTags.length}>
+            <ul class="tag-cloud tag-cloud--featured" data-count="12">
                 {
-                    sortedTags.map(({ name, count }, index) => (
-                        <li class="tag-cloud__item" data-weight={weightOf(index)}>
+                    sortedTags.slice(0, 12).map(({ name, count }) => (
+                        <li class="tag-cloud__item" data-weight="3">
+                            <a class="tag-cloud__link" href={`${tagPrefix}/${name}/`}>
+                                {name}
+                                <span class="tag-cloud__count">{count}</span>
+                            </a>
+                        </li>
+                    ))
+                }
+            </ul>
+
+            <ul class="tag-cloud tag-cloud--tail" data-count={totalTags - 12}>
+                {
+                    sortedTags.slice(12).map(({ name, count }, index) => (
+                        <li class="tag-cloud__item" data-weight={index < 36 ? 2 : 1}>
                             <a class="tag-cloud__link" href={`${tagPrefix}/${name}/`}>
                                 {name}
                                 <span class="tag-cloud__count">{count}</span>

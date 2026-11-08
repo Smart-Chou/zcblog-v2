@@ -1,26 +1,24 @@
 /* ============================================================
-   P-03 · 标签 / P-05 · 系列（M2-4 / M5-12）
+   P-03 · 标签 / P-05 · 系列（M2-4 / M6-4 / M5-12）
    ------------------------------------------------------------
-   四个页面共用本文件（同一套「kicker + serif 标题 + lede」页头语言，
+   四个页面共用本文件（同一套「badge + serif 标题 + lede」页头语言，
    列表页视觉只有一个出处）：
-   - `.tags-hub`      标签索引（marx_s_blog_archives_tags_2 的权重图谱）
-   - `.tag-detail`    单个标签的文章列表
-   - `.series-hub`    系列索引（M5-12）
-   - `.series-detail` 单个系列的目录（M5-12）
+   - `.tags-hub`      标签索引（M6-4：把归档右栏的标签云按整页重排 ——
+                      272+ 标签纯 CSS 分列，无 JS 图谱 / d3）
+   - `.tag-detail`    单个标签的文章列表（复用 TagsPostCard）
+   - `.series-hub`    系列索引（M5-12，未在本卡范围内）
+   - `.series-detail` 单个系列的目录（M5-12，未在本卡范围内）
    约束：只消费 tokens.css 语义 token；0 hex / rgb() / hsl()；
    尺寸走 --space-* / --text-*；px 仅 1px / 2px 与断点。
    ============================================================ */
 
 /* `.main` 带 margin-inline:auto（auto 外边距吃掉 flex stretch）→ 宽度是 fit-content，
-   页面卡要 1200 必须显式撑满；标签详情保持列表页的 860 正文宽度。 */
-.main:has(> .content > .tags-hub),
-.main:has(> .content > .tag-detail),
+   系列页要 1200 必须显式撑满；标签页跟随 M6-1 的 1140 shell，不再二次限宽。 */
 .main:has(> .content > .series-hub),
 .main:has(> .content > .series-detail) {
     width: 100%;
 }
 
-.main > .content:has(> .tags-hub),
 .main > .content:has(> .series-hub) {
     max-width: var(--layout-content);
 }
@@ -31,8 +29,8 @@
 .series-detail {
     display: flex;
     flex-direction: column;
-    gap: var(--space-10);
-    padding-block: var(--space-6) var(--space-16);
+    gap: var(--space-8);
+    padding-block: var(--space-2) var(--space-16);
 }
 
 .tags-hub > *,
@@ -42,32 +40,25 @@
     min-inline-size: 0;
 }
 
-/* ── 页头（与归档同一套：kicker + serif 标题 + lede） ─────── */
+/* ── 页头（与归档同一套：badge + serif 标题 + lede） ─────── */
 
 .tags-hero,
 .tag-detail__hero {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
+    padding-block: var(--space-4) var(--space-2);
+}
+
+.tags-hero__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-inline-size: 0;
 }
 
 .tags-kicker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
     margin: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--color-fg-muted);
-}
-
-.tags-kicker::before {
-    content: "";
-    inline-size: var(--space-8);
-    block-size: 1px;
-    background-color: var(--color-accent-solid);
 }
 
 .tags-title,
@@ -75,15 +66,22 @@
     margin: 0;
     font-family: var(--font-serif);
     font-weight: var(--font-weight-semibold);
-    font-size: clamp(var(--text-3xl), 4.5vw, var(--text-4xl));
+    font-size: clamp(var(--text-3xl), 4.4vw, var(--text-4xl));
     line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
     color: var(--color-fg-heading);
     overflow-wrap: anywhere;
 }
 
+.tag-detail__title {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+
 .tag-detail__hash {
     color: var(--color-accent-solid);
+    font-size: var(--text-3xl);
 }
 
 .tags-lede,
@@ -99,90 +97,207 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: var(--space-3);
+    gap: var(--space-2);
     margin: var(--space-1) 0 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
     color: var(--color-fg-muted);
 }
 
 .tags-meta span + span::before {
     content: "/";
-    margin-inline-end: var(--space-3);
+    margin-inline-end: var(--space-2);
     color: var(--color-border-default);
 }
 
 .tag-detail__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
     align-self: flex-start;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    min-block-size: var(--space-8);
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .tag-detail__back:hover {
+        color: var(--color-fg-link);
+    }
+}
+
+/* ── 视图胶囊（仅移动，与 /archives/ 同一套）──────────────── */
+
+.tags-switch {
+    display: none;
+    gap: var(--space-1);
+    padding: var(--space-1);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+}
+
+.tags-switch__item {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-block-size: var(--space-11);
+    padding-inline: var(--space-3);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    transition:
+        background-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
+}
+
+.tags-switch__item[aria-current="page"] {
+    background-color: var(--color-accent-solid);
+    color: var(--color-fg-on-accent);
+}
+
+/* ── 标签统计（3 张窄卡）──────────────────────────────────── */
+
+.tags-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.tags-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-1);
+}
+
+.tags-stat__icon {
+    color: var(--color-fg-link);
+}
+
+.tags-stat__value {
+    font-size: var(--text-xl);
+}
+
+.tags-stat__label {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
 }
 
 /* ── 区块标题 ─────────────────────────────────────────────── */
 
 .tags-section-header {
-    position: relative;
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     justify-content: space-between;
     gap: var(--space-4);
-    margin-block-end: var(--space-6);
+    margin-block-end: var(--space-5);
     padding-block-end: var(--space-3);
     border-block-end: 1px solid var(--color-border-subtle);
 }
 
-.tags-section-header::after {
+.tags-section-header__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-inline-size: 0;
+}
+
+.tags-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.01em;
+    color: var(--color-fg-heading);
+}
+
+.tags-section-title::before {
     content: "";
-    position: absolute;
-    inset-inline-start: 0;
-    inset-block-end: -1px;
-    inline-size: var(--space-10);
-    block-size: 2px;
+    flex: none;
+    inline-size: 3px;
+    block-size: 1.05em;
     border-radius: var(--radius-pill);
     background-color: var(--color-accent-solid);
 }
 
-.tags-section-title {
+.tags-section-note {
     margin: 0;
-    font-family: var(--font-serif);
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--tracking-tight);
-    color: var(--color-fg-heading);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
 }
 
 .tags-section-link {
     flex: none;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
 }
 
-/* ── 标签图谱 ─────────────────────────────────────────────── */
+@media (hover: hover) {
+    .tags-section-link:hover {
+        color: var(--color-fg-link);
+    }
+}
 
+/* ── 标签矩阵：纯 CSS 分列 ────────────────────────────────── */
+
+/* `columns` 用 min 宽度而不是固定列数：1092 上自动 4 列、768 上 2–3 列、
+   390 上 1 列，靠浏览器平衡列高 —— 无脚本、无测量、无 CLS。 */
 .tag-cloud {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
+    columns: 15rem;
+    column-gap: var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
+/* 前 12 个主主题单独成行：multicol 会把它们全塞进第一列，视觉上左重右轻。 */
+.tag-cloud--featured {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-block-end: var(--space-4);
+}
+
+.tag-cloud--featured .tag-cloud__item {
+    margin-block-end: 0;
+}
+
 .tag-cloud__item {
+    /* 胶囊不能被拆到两列 */
+    break-inside: avoid;
     max-inline-size: 100%;
+    margin-block-end: 2px;
+}
+
+/* 长尾标签不画胶囊，但链接必须是 inline-flex：否则 flex 会把整列宽度撑满，
+   计数被 margin-inline-start:auto 推到列的另一端，两个标签看起来像断开的表格。 */
+.tag-cloud--tail .tag-cloud__link {
+    display: inline-flex;
 }
 
 .tag-cloud__link {
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+    align-items: baseline;
     gap: var(--space-2);
     max-inline-size: 100%;
+    min-block-size: var(--space-8);
     padding: var(--space-1) var(--space-3);
-    border: 1px solid var(--color-border-subtle);
+    border: 1px solid transparent;
     border-radius: var(--radius-pill);
-    background-color: var(--color-bg-surface);
     color: var(--color-fg-default);
     font-family: var(--font-sans);
     font-size: var(--text-sm);
@@ -191,45 +306,52 @@
     overflow-wrap: anywhere;
     transition:
         background-color var(--duration-fast) var(--ease-standard),
-        border-color var(--duration-fast) var(--ease-standard);
+        border-color var(--duration-fast) var(--ease-standard),
+        color var(--duration-fast) var(--ease-standard);
 }
 
-/* 权重分级：Top12 大号暖底，13–48 中号，长尾小号（只影响视觉，不改排序） */
-.tag-cloud__item[data-weight="3"] .tag-cloud__link {
-    padding: var(--space-2) var(--space-4);
-    border-color: var(--color-border-accent);
-    background-color: var(--color-accent-subtle);
-    color: var(--color-fg-heading);
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-}
-
-.tag-cloud__item[data-weight="2"] .tag-cloud__link {
-    padding: var(--space-1) var(--space-4);
-    font-size: var(--text-base);
+/* 「#」用伪元素画，不进 HTML：272 个标签 × 一个 <span> 就是 13KB */
+.tag-cloud__link::before {
+    content: "#";
+    flex: none;
+    color: var(--color-fg-muted);
 }
 
 .tag-cloud__count {
+    margin-inline-start: auto;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    /* 亮色下 muted 已够；暗色下 muted（ink-300）在 surface 上不足 4.5，用 default */
-    color: var(--color-fg-default);
+    color: var(--color-fg-muted);
     font-variant-numeric: tabular-nums;
 }
 
-.tag-cloud__item[data-weight="3"] .tag-cloud__count {
-    /* 顶部胶囊底色是 --color-accent-subtle：accent 文字在暗色底上只有 ~3.2:1，改用 heading */
+/* 权重分级：Top12 实底强调，13–48 常规，长尾收灰（只影响视觉，不改排序） */
+.tag-cloud__item[data-weight="3"] .tag-cloud__link {
+    border-color: var(--color-border-accent);
+    background-color: var(--color-accent-subtle);
     color: var(--color-fg-heading);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+}
+
+.tag-cloud__item[data-weight="3"] .tag-cloud__count {
+    color: var(--color-fg-heading);
+}
+
+.tag-cloud__item[data-weight="1"] .tag-cloud__link {
+    color: var(--color-fg-muted);
 }
 
 @media (hover: hover) {
     .tag-cloud__link:hover {
         border-color: var(--color-border-default);
         background-color: var(--color-bg-hover);
+        color: var(--color-fg-link);
     }
 
     .tag-cloud__item[data-weight="3"] .tag-cloud__link:hover {
         background-color: var(--color-bg-selected);
+        color: var(--color-fg-heading);
     }
 }
 
@@ -248,7 +370,7 @@
     content-visibility: visible;
 }
 
-/* ── 系列索引（M5-12）───────────────────────────────────────── */
+/* ── 系列索引（M5-12，本卡未改）───────────────────────────── */
 
 .series-list {
     display: flex;
@@ -371,25 +493,66 @@
 
 /* ── 断点 ─────────────────────────────────────────────────── */
 
+@media (max-width: 1024px) {
+    .tags-switch {
+        display: flex;
+    }
+}
+
 @media (max-width: 768px) {
     .tags-hub,
     .tag-detail,
     .series-hub,
     .series-detail {
-        padding-block: var(--space-4) var(--space-12);
-        gap: var(--space-8);
+        padding-block: var(--space-2) var(--space-12);
+        gap: var(--space-6);
+    }
+
+    .tags-hero,
+    .tag-detail__hero {
+        padding-block: var(--space-2) 0;
+    }
+
+    .tags-stats {
+        gap: var(--space-2);
+    }
+
+    .tags-stat {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
+        padding: var(--space-3);
     }
 }
 
 @media (max-width: 450px) {
+    .tag-cloud {
+        columns: 1;
+    }
+
     .tag-cloud__item[data-weight="3"] .tag-cloud__link {
-        font-size: var(--text-base);
-        padding: var(--space-1) var(--space-4);
+        font-size: var(--text-sm);
+    }
+
+    .tags-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .tag-cloud__link {
+    .tag-cloud__link,
+    .tags-switch__item,
+    .tag-detail__back,
+    .tags-section-link {
         transition: none;
     }
+}
+
+/* 暗色下 `.badge-section` 的 accent-400 落在 accent-subtle 上只有 4.25:1（axe critical）
+   → 提到 accent-300（5.37:1）；只作用于标签页，不改 M6-1 的共享 atom。 */
+html[data-theme="dark"] .tags-hub .badge-section,
+html[data-theme="dark"] .tag-detail .badge-section {
+    color: var(--color-accent-solid-hover);
 }

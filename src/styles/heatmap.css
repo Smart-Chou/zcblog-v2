@@ -30,7 +30,10 @@
 
 .heatmap-months {
     display: grid;
-    grid-template-columns: repeat(53, var(--heatmap-cell-size));
+    /* M6-4：月份行不能写死 53 列 —— 移动端只渲染 26 周（heatmap.ts 的 <768 窗口），
+       写死 53 列的隐式网格会让这一行比网格宽 300px，整个卡片在手机上可横向滚动。
+       改成「按需生成列」：宽度只由真实周数决定。 */
+    grid-auto-columns: var(--heatmap-cell-size);
     gap: var(--heatmap-gap);
     margin-left: 1.25rem;
     margin-bottom: 8px;
