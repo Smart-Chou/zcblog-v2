@@ -64,7 +64,7 @@
 ### 1.4 品牌记忆点（三条，评审时最先看）
 
 1. **暖纸底色 `#fdf9f2`（`paper-50`）**：不是纯白，也不是米黄。深色是冷墨 `#121316`（`ink-950`），不是纯黑。
-2. **朱红 `#c84b31`（`accent-500`；深色用 `accent-400` `#e05d43`）**：只做强调（链接、主按钮、选中态、焦点环），任何单屏面积 ≤10%。
+2. **赤陶 `#a6331b`（`accent-500`；深色用 `accent-400` `#e05d43`）**：只做强调（链接、主按钮、选中态、焦点环），任何单屏面积 ≤10%。
 3. **衬线标题 + 无衬线正文 + 等宽代码**：三族封顶，永不引入第四族。
 
 ---
@@ -228,9 +228,9 @@ emphasis  ∈ strong | subtle | hover | focus | disabled | solid | fg | bg | bor
 |---|---|---|
 | 300 | `#f0745b` | accent-solid-hover(d)、fg-code-accent(d)、fg-link-hover(d)、status-danger-fg(d) |
 | 400 | `#e05d43` | accent-solid(d)、accent-subtle(d)、bg-selected(d)、border-accent(d)、fg-link(d)、ring-focus(d)、status-danger-bg(d)、status-danger-border(d)、status-danger-solid(d) |
-| 500 | `#c84b31` | accent-solid(l)、accent-subtle(l)、bg-selected(l)、border-accent(l)、ring-focus(l)、status-danger-bg(l)、status-danger-border(l)、status-danger-solid(l) |
-| 600 | `#b03a22` | accent-solid-hover(l)、fg-link(l) |
-| 700 | `#9e290f` | fg-code-accent(l)、fg-link-hover(l)、status-danger-fg(l) |
+| 500 | `#a6331b` | accent-solid(l)、accent-subtle(l)、bg-selected(l)、border-accent(l)、ring-focus(l)、status-danger-bg(l)、status-danger-border(l)、status-danger-solid(l) |
+| 600 | `#8e2a17` | accent-solid-hover(l)、fg-link(l) |
+| 700 | `#77230f` | fg-code-accent(l)、fg-link-hover(l)、status-danger-fg(l) |
 
 > **danger 不新增色相（「不引入第二个红」）**：错误色复用朱红（旧 DS 的既定决定），所以本章没有 danger 梯子——`--color-status-danger-*` 全部指向 `accent-*`（浅色 solid/fg 用 500/700，深色用 400/300）。这条同时约束了「不要为了告警再引入一个红色」。
 >
@@ -646,7 +646,7 @@ emphasis  ∈ strong | subtle | hover | focus | disabled | solid | fg | bg | bor
   "palette": {
     "paper":   { "0": "#ffffff", "50": "#fdf9f2", "450": "#998f7e" /* … 11 档 */ },
     "ink":     { "0": "#f0ede6", "875": "#1a1c22", "950": "#121316" /* … 15 档 */ },
-    "accent":  { "300": "#f0745b", "500": "#c84b31", "700": "#9e290f" },
+    "accent":  { "300": "#f0745b", "500": "#a6331b", "700": "#77230f" },
     "success": { "300": "#4caf50", "500": "#2e7d32", "700": "#27762b" },
     "warning": { "500": "#ed6c02", "550": "#ea6a00", "700": "#bd4000" },
     "viz":     { "wish": "#ec4899" /* … 6 个分类色 */ }
@@ -790,7 +790,7 @@ Stitch 的浅色是暖纸（色相≈35°）、深色是冷墨（色相≈220°�
 |---|---|---|---|
 | `paper` | light 主题的全部中性（bg/fg/border） | 0–950 | `#ffffff` → `#1c1c18`，11 档 |
 | `ink` | dark 主题的全部中性（bg/fg/border） | 0–975 | `#f0ede6` → `#0d0e11`，15 档 |
-| `accent` | 赤陶，深浅共用一条 ramp | 300–700 | `#f0745b` / `#e05d43` / `#c84b31` / `#b03a22` + 推导档 |
+| `accent` | 赤陶，深浅共用一条 ramp | 300–700 | `#f0745b` / `#e05d43` / `#a6331b` / `#8e2a17` + 推导档 |
 | `success` / `warning` | 状态三色相之二（danger 复用 accent） | 300–700 | Stitch 原值 + 文字档 |
 | `viz` | 六个分类色，不随主题变 | 名字即 step | 沿用 §3.3.6 |
 
