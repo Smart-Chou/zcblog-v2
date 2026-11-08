@@ -4,9 +4,9 @@
 - 基线：`main` @ `49581a6`（M6-2 收口）
 - 输入：`selection.md` §4.2；桌面 `screens/marx_s_blog_toc`，移动 `screens/marx_s_blog_mobile_article_detail`，暗色参考 `screens/marx_s_blog_1`，抽屉 `screens/marx_s_blog_slide_over_toc_sheet`
 - 提交：`48e30e9` feat(m6-3) · 本报告
-- 说明：attempt 1 在 150 次迭代预算处超时（改动已落工作区），attempt 2 接手：**把验收清单里剩下的门禁全部重跑**（build/perf-budget、gates、type-check、pages-article、macOS+Linux 视觉基线），并补了 attempt 1 未完成的三件事 —— Linux 基线、1024 暗色证据图、移动抽屉 e2e。本报告的数字全部是 attempt 2 实跑结果，不引用 attempt 1 自述。
+- 说明：attempt 1 在 150 次迭代预算处超时（改动已落工作区），attempt 2 接手：**把验收清单里剩下的门禁全部重跑**（build/perf-budget、gates、type-check、pages-article、macOS+Linux 视觉基线），并补了 attempt 1 未完成的三件事 —— Linux 基线、1024 暗色证据图、移动抽屉 e2e。attempt 3（operator）复核 CI 时发现并修复外壳暗色对比度 + full-width 溢出，重生成四套视觉基线；本报告数字为 operator 复核后的最终状态。
 
-## 1. 改动（6 个源文件 ≤ 停点 10）
+## 1. 改动（7 个源文件 ≤ 停点 10）
 
 | 文件 | 内容 |
 |---|---|
@@ -16,6 +16,7 @@
 | `src/utils/toc.ts`（新，39 行） | `tocNodes()`：目录树与节数唯一口径，桌面卡与移动按钮计数共用，避免两处各算一遍 |
 | `src/styles/pages/article.css` | +506 行：8/4 版式、目录卡、抽屉（含遮罩、动画）、作者卡、相关阅读竖排、断点 1023/1024 严丝合缝 |
 | `src/styles/toc.css` | `.toc` 去掉 `position: fixed` 与 `≤1280 隐藏`（sticky 由版式承担） |
+| `src/styles/base.css` | operator 修复：暗色 `--shell-fg-muted` 提到 ink-200（header/footer 半透明底 4.24→5.1:1）；`.content--full` 宽度 `100%` 修 `/douban/` 24px 溢出 |
 
 测试/基线侧（不属于源文件计数）：`e2e/pages-article.spec.ts`（+119）、`e2e/pages.visual.spec.ts`（KNOWN_OVERFLOW 清空）、`e2e/__screenshots__/pages{,-linux}/article-*.png`（12 张重生成）。
 
@@ -59,6 +60,15 @@ docker playwright:v1.63.0-noble  pages.visual                 36 passed（连跑
 - **Linux 基线不是 macOS 冒充**：容器内 `pages-linux` 与仓库内 36 张 PNG `diff -rq` **完全一致**（0 像素差，对得上 CI 的 `maxDiffPixels 0`）。基线是在 `mcr.microsoft.com/playwright:v1.63.0-noble` 里生成的，并在格式化后**用同一批 PNG 复跑**仍然 36 passed。
 - **只有 article-* 基线变了**：`git status` 里 6 张 macOS + 6 张 Linux 全是 `article-*`，home/archives/albums/culture/projects 一个像素没动 —— 本卡没有泄漏到其他页面。
 - **Prettier/格式**：改动文件 `prettier --check` 全绿（格式化后重跑了 type-check、pages-article、108 张 macOS 视觉，均无像素漂移）。
+
+## 3.1 Operator 复核补丁（2026-11-08 22:50）
+
+CI `A11y PR smoke` 在 `06880de` 上 8 条 dark 路由失败，节点是 `.pf-trigger-text`、`span[data-mod-key=""]`、`.nav-menu-btn-label`：暗色半透明 header 上 `#8c867a` 对 `#22252c` 仅 **4.24:1**。这是 M6-1 外壳 token 的遗留，不是 M6-3 版式本身。
+
+- `src/styles/base.css` 增加 `html[data-theme="dark"] { --shell-fg-muted: var(--color-fg-subtle, #a39d91) }`；只改外壳别名，不动 palette/正文。
+- 同文件把 `.content--full` 从 `width: var(--content-width-max)` 改为 `width: 100%`，修 `/douban/` 在 1440 的 24px 横向溢出（`scrollWidth` 1464 → 1440）。
+- 复测 strict a11y（含 `/douban/`、`/article/debian-sing-box-proxy-pitfalls/`）：**37 passed / 2 skipped / 0 failed**。
+- 因暗色文本颜色变化，macOS 与 Linux 的 `design-atoms` 72 张 + `pages` 36 张基线全部重生成并复核；CI 会以新基线判定。
 
 ## 4. 与 `selection.md` §4.2 / 卡片正文的偏差
 

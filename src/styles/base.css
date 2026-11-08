@@ -40,6 +40,12 @@
     --shell-header-h: var(--layout-header-height, var(--header-height));
 }
 
+/* M6-3：外壳 muted 文字在暗色半透明 header 上只有 4.24:1（#8c867a on #22252c），
+   axe 全站 dark smoke 会判 serious。只提外壳别名，不改 palette / 正文 token。 */
+html[data-theme="dark"] {
+    --shell-fg-muted: var(--color-fg-subtle, #a39d91);
+}
+
 .skip-link {
     position: absolute;
     top: -100%;
@@ -157,7 +163,7 @@ hr:before {
 }
 
 .content--full {
-    width: var(--content-width-max);
+    width: 100%;
     margin-inline: 0;
     padding: 0;
 }
