@@ -1,30 +1,48 @@
 /* ============================================================
-   P-04 · 404（M2-4）
+   P-04 · 404（M6-5a · Stitch v2 · marx_s_blog_404_2 + 404_1）
    ------------------------------------------------------------
-   版式：终端版（marx_s_blog_404_1 的母题）——状态徽章 + 404 大字 +
-   macOS 终端卡（静态命令行输出）+ 双按钮 + 最近文章航标。
-   零位图、零运行时：全部排版与 token 色，天然不产 CLS。
-   约束：0 hex / rgb() / hsl()；px 仅 1px / 2px 与断点。
+   一套叙事、两个断点（selection.md §4.16）：
+     ≥1025  404_2：大 404 编号 + 坐标条 + 终端诊断卡 + 3 列航标卡 + 断链上报
+     ≤640   404_1：404 化作标题背后的半透明水印，航标卡单列，终端收窄
+   视觉语言沿用 M6-1/M6-4：白卡 + 1px --color-border-subtle + --shadow-1；
+   区块头 = 赤陶竖条 + 无衬线小标题 + 右侧等宽小链接；元信息一律等宽 12px。
+
+   约束：
+   - 只消费 token（tokens 包语义层）；本文件 0 hex / rgb() / hsl()。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 全部规则收在 `.not-found` 作用域内。
+   - 零位图、零运行时：终端里的命令行只是视觉示意，不接真命令。
    ============================================================ */
 
 .main:has(> .content > .not-found) {
     width: 100%;
 }
 
+/* `.main` 已是 1140 外框 + 24 内边距（M6-1 base.css）：404 不再二次限宽，
+   否则终端卡与页头品牌块左右各偏 30px。 */
 .main > .content:has(> .not-found) {
-    max-width: var(--layout-article);
+    max-width: none;
 }
 
 .not-found {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-5);
-    padding-block: var(--space-8) var(--space-16);
+    gap: var(--space-8);
+    padding-block: var(--space-6) var(--space-16);
     text-align: center;
 }
 
-/* ── 状态徽章 ─────────────────────────────────────────────── */
+/* ── Hero ─────────────────────────────────────────────────── */
+
+.nf-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    inline-size: 100%;
+    padding-block: var(--space-6) var(--space-2);
+}
 
 .nf-kicker {
     display: inline-flex;
@@ -49,21 +67,45 @@
     background-color: var(--color-status-danger-solid);
 }
 
-/* ── 404 大字 + 标题 ──────────────────────────────────────── */
-
 .nf-code {
-    margin: var(--space-2) 0 0;
+    display: flex;
+    justify-content: center;
+    margin: 0;
     font-family: var(--font-mono);
-    font-size: clamp(var(--text-4xl), 12vw, var(--text-display));
+    font-size: clamp(var(--text-4xl), 13vw, calc(var(--text-display) * 2.4));
     font-weight: var(--font-weight-bold);
     line-height: var(--leading-none);
     letter-spacing: var(--tracking-tight);
-    color: var(--color-accent-solid);
     font-variant-numeric: tabular-nums;
 }
 
-.nf-title {
+.nf-code__edge {
+    color: var(--color-accent-solid);
+}
+
+.nf-code__mid {
+    color: var(--color-fg-heading);
+}
+
+/* 坐标条：等宽小字 + 实底芯片，替代 404_2 里的假 GPS 坐标（不编造数据） */
+.nf-coords {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
     margin: 0;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-sunken);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+}
+
+.nf-title {
+    margin: var(--space-2) 0 0;
     font-family: var(--font-serif);
     font-weight: var(--font-weight-semibold);
     font-size: clamp(var(--text-2xl), 4vw, var(--text-3xl));
@@ -80,11 +122,97 @@
     color: var(--color-fg-muted);
 }
 
-/* ── 终端卡 ───────────────────────────────────────────────── */
+.nf-lede--note {
+    margin-block-start: calc(var(--space-1) * -1);
+    font-size: var(--text-sm);
+    /* 14px on canvas：--color-fg-muted 只有 4.4:1（axe serious），这里必须用 default */
+    color: var(--color-fg-default);
+}
+
+/* ── 操作区 ───────────────────────────────────────────────── */
+
+.nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-block-start: var(--space-2);
+    inline-size: 100%;
+}
+
+.nf-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--space-12);
+    padding-inline: var(--space-6);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    transition:
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+.nf-button--primary {
+    background-color: var(--color-accent-solid);
+    color: var(--color-fg-on-accent);
+}
+
+.nf-button--secondary {
+    border-color: var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-default);
+}
+
+@media (hover: hover) {
+    .nf-button--primary:hover {
+        background-color: var(--color-accent-solid-hover);
+    }
+
+    .nf-button--secondary:hover {
+        background-color: var(--color-bg-hover);
+    }
+}
+
+.nf-hint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-fg-default);
+}
+
+.nf-hint a {
+    color: var(--color-fg-link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.nf-hint a:hover {
+    color: var(--color-fg-link-hover);
+}
+
+.nf-hint kbd {
+    padding: 0 var(--space-1);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-muted);
+}
+
+/* ── 终端诊断卡 ───────────────────────────────────────────── */
 
 .nf-terminal {
     inline-size: 100%;
-    margin-block-start: var(--space-2);
     overflow: hidden;
     border-radius: var(--radius-lg);
     background-color: var(--color-bg-inverse);
@@ -163,65 +291,49 @@
     border: 0;
 }
 
-/* ── 操作区 ───────────────────────────────────────────────── */
-
-.nf-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--space-3);
-    inline-size: 100%;
+.nf-terminal__cursor {
+    display: inline-block;
+    inline-size: var(--space-2);
+    block-size: 1em;
+    margin-inline-start: var(--space-1);
+    vertical-align: text-bottom;
+    background-color: var(--color-status-danger-fg);
 }
 
-.nf-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-block-size: var(--space-12);
-    padding-inline: var(--space-6);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    font-family: var(--font-sans);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-medium);
-    text-decoration: none;
-    transition:
-        background-color var(--duration-fast) var(--ease-standard),
-        border-color var(--duration-fast) var(--ease-standard);
-}
-
-.nf-button--primary {
-    background-color: var(--color-accent-solid);
-    color: var(--color-fg-on-accent);
-}
-
-.nf-button--secondary {
-    border-color: var(--color-border-default);
-    background-color: var(--color-bg-surface);
-    color: var(--color-fg-default);
-}
-
-@media (hover: hover) {
-    .nf-button--primary:hover {
-        background-color: var(--color-accent-solid-hover);
-    }
-
-    .nf-button--secondary:hover {
-        background-color: var(--color-bg-hover);
+/* 呼吸光标：只在允许动效时存在（reduced-motion 下连元素都不动） */
+@media (prefers-reduced-motion: no-preference) {
+    .nf-terminal__cursor {
+        animation: nf-cursor-blink 1.2s steps(1, end) infinite;
     }
 }
 
-.nf-hint {
+@keyframes nf-cursor-blink {
+    0%,
+    49% {
+        opacity: 1;
+    }
+
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+
+.nf-terminal__foot {
     margin: 0;
-    font-size: var(--text-sm);
-    color: var(--color-fg-muted);
+    padding: var(--space-2) var(--space-4);
+    border-block-start: 1px solid color-mix(in oklab, var(--color-fg-inverse) 12%, transparent);
+    background-color: color-mix(in oklab, var(--color-bg-inverse) 88%, var(--color-fg-inverse));
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in oklab, var(--color-fg-inverse) 78%, transparent);
 }
 
-/* ── 最近文章航标 ─────────────────────────────────────────── */
+/* ── 恢复信标（最近 3 篇） ────────────────────────────────── */
 
 .nf-beacons {
     inline-size: 100%;
-    margin-block-start: var(--space-6);
     text-align: start;
 }
 
@@ -236,12 +348,22 @@
 }
 
 .nf-beacons__title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     margin: 0;
-    font-family: var(--font-serif);
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
+    font-family: var(--font-sans);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
     letter-spacing: var(--tracking-tight);
     color: var(--color-fg-heading);
+}
+
+.nf-beacons__mark {
+    inline-size: var(--space-1);
+    block-size: var(--text-lg);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
 }
 
 .nf-beacons__meta {
@@ -254,44 +376,161 @@
 }
 
 .nf-beacons__list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
+.nf-beacons__item {
+    display: flex;
+    min-inline-size: 0;
+}
+
 .nf-beacons__link {
     display: flex;
-    align-items: baseline;
-    gap: var(--space-4);
-    padding: var(--space-3) var(--space-2);
-    border-radius: var(--radius-md);
+    flex-direction: column;
+    gap: var(--space-2);
+    inline-size: 100%;
+    padding: var(--space-5);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-1);
     color: var(--color-fg-default);
-    font-size: var(--text-base);
     text-decoration: none;
-    transition: background-color var(--duration-fast) var(--ease-standard);
+    transition:
+        border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
 }
 
 @media (hover: hover) {
     .nf-beacons__link:hover {
+        border-color: var(--color-border-accent);
         background-color: var(--color-bg-hover);
+    }
+
+    .nf-beacons__link:hover .nf-beacons__name {
         color: var(--color-fg-link);
+    }
+
+    .nf-beacons__link:hover .nf-beacons__cta {
+        color: var(--color-fg-link-hover);
     }
 }
 
-.nf-beacons__date {
-    flex: none;
+.nf-beacons__route {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-link);
+}
+
+.nf-beacons__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    min-inline-size: 0;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--color-fg-muted);
+}
+
+.nf-beacons__date {
     font-variant-numeric: tabular-nums;
 }
 
-.nf-beacons__name {
-    flex: 1 1 auto;
+.nf-beacons__tag {
     min-inline-size: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--color-fg-subtle);
+}
+
+.nf-beacons__name {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
     overflow-wrap: anywhere;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.nf-beacons__cta {
+    margin-block-start: auto;
+    padding-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-link);
+}
+
+/* ── 断链上报 ─────────────────────────────────────────────── */
+
+.nf-report {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    inline-size: 100%;
+    padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-sunken);
+    text-align: start;
+}
+
+.nf-report__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-inline-size: 0;
+    flex: 1 1 22rem;
+}
+
+.nf-report__label {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    /* 12px 等宽：深色下 --color-fg-link（accent-400）只有 4.24:1，
+       用 hover 档（暗色 accent-300 / 亮色 accent-700）才过 4.5 —— axe dark serious 项。 */
+    color: var(--color-fg-link-hover);
+}
+
+.nf-report__text {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.nf-report__link {
+    flex: none;
+    padding: var(--space-2) var(--space-5);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-surface);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-default);
+    text-decoration: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .nf-report__link:hover {
+        border-color: var(--color-border-accent);
+        color: var(--color-fg-link);
+    }
 }
 
 /* ── 焦点环：收口到 --color-ring-focus ────────────────────── */
@@ -303,12 +542,68 @@
     outline-offset: 2px;
 }
 
-/* ── 断点 ─────────────────────────────────────────────────── */
+/* ── 断点 1024：3 列航标 → 单列（长中文标题在窄格里会碎成两行半） ── */
 
-@media (max-width: 450px) {
+@media (max-width: 1024px) {
+    .nf-beacons__list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nf-beacons__link {
+        gap: var(--space-1);
+        padding: var(--space-4);
+    }
+
+    .nf-beacons__cta {
+        padding-block-start: 0;
+    }
+}
+
+/* ── 断点 640：404_1 形态 —— 404 化作标题背后的水印 ────────── */
+
+@media (max-width: 640px) {
     .not-found {
-        padding-block: var(--space-4) var(--space-12);
-        gap: var(--space-4);
+        gap: var(--space-6);
+        padding-block: var(--space-2) var(--space-12);
+    }
+
+    .nf-hero {
+        position: relative;
+        isolation: isolate;
+        gap: var(--space-3);
+        padding-block: var(--space-8) var(--space-2);
+        overflow: hidden;
+    }
+
+    .nf-code {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 50%;
+        z-index: 0;
+        transform: translateX(-50%);
+        font-size: clamp(var(--text-display), 34vw, calc(var(--text-display) * 2.2));
+        pointer-events: none;
+        color: color-mix(in oklab, var(--color-accent-solid) 16%, transparent);
+    }
+
+    .nf-code__edge,
+    .nf-code__mid {
+        color: inherit;
+    }
+
+    .nf-kicker,
+    .nf-coords,
+    .nf-title,
+    .nf-lede,
+    .nf-actions,
+    .nf-hint {
+        position: relative;
+        z-index: 1;
+    }
+
+    .nf-coords {
+        border-radius: var(--radius-md);
+        text-align: center;
     }
 
     .nf-actions {
@@ -320,13 +615,42 @@
     }
 
     .nf-terminal__bar {
+        gap: var(--space-2);
         padding-inline: var(--space-3);
+    }
+
+    .nf-terminal__status {
+        display: none;
+    }
+
+    .nf-terminal__body {
+        font-size: var(--text-xs);
+    }
+
+    .nf-report {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .nf-report__link {
+        text-align: center;
+    }
+}
+
+@media (max-width: 450px) {
+    .nf-beacons__head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .nf-button,
-    .nf-beacons__link {
+    .nf-beacons__link,
+    .nf-beacons__name,
+    .nf-report__link {
         transition: none;
     }
 }

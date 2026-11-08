@@ -1,10 +1,16 @@
 ---
 /**
- * P-04 · 404（M2-4）
+ * P-04 · 404（M6-5a · Stitch v2）
  *
- * 版式决策（卡内二选一）：**终端版**（marx_s_blog_404_1 的母题），不取编辑版大数字。
- * 理由：站点定位是 100% 静态 / 零运行时，终端卡的叙事与技术身份一致；静态 DOM 最小、
- * 零位图依赖（编辑版的推荐卡要配图），天然不产 CLS；深色终端块在双主题下都成立。
+ * 选型（selection.md §4.16）：**不二选一**。404_2 与 404_1 是同一叙事（信标失联 +
+ * 仿真终端 + 航线推荐）的两个断点，不是两套叙事 —— 所以落一套实现、按断点分形态：
+ *   · ≥1025：404_2 —— 大 404 编号 + 坐标条 + 终端诊断卡 + 3 列航标卡 + 断链上报
+ *   · ≤640 ：404_1 —— 404 化作标题背后的半透明水印，终端卡收窄，航标卡单列
+ * 两套都不做「可注入指令」：终端里的命令行只是视觉示意，静态站不为此加载 JS。
+ *
+ * 保留的三条恢复路径（卡面硬要求）：返回首页 / 检索入口 / 最近 3 篇航标。
+ * 检索入口复用外壳 header 的 `<pagefind-modal-trigger>`（全站单实例，二次实例化会
+ * 破坏 swup 重挂逻辑），页内以「⌘K / Ctrl K」提示指向它，不重复挂组件。
  *
  * 英文化：Astro 静态站只有一个 dist/404.html（走 noEnAlternate），所以不新建
  * src/pages/en/404.astro（那会是一条永远没人访问的路由）；文案按 locale 分支。
@@ -16,19 +22,24 @@ import "~/styles/tokens/tokens.css";
 import "~/styles/pages/404.css";
 import { site } from "~/config";
 import { t, getLocale, contentLocaleOf, type Locale } from "~/utils/i18n";
-import { getAllArticles } from "~/utils/article-stats";
+import { getAllArticles, normalizeTag } from "~/utils/article-stats";
 import { filterByLang, articleUrl } from "~/utils/article-url";
 import { sortByPubDate } from "~/utils";
 
 const loc: Locale = getLocale(Astro.currentLocale || "zh");
 const isEn = loc === "en";
 
+const tagPrefix = isEn ? "/en/tags" : "/tags";
+
 const recent = sortByPubDate(filterByLang(await getAllArticles(), contentLocaleOf(loc)))
     .slice(0, 3)
-    .map((post) => ({
+    .map((post, index) => ({
         title: post.data.title,
         url: articleUrl(post),
         date: new Date(post.data.pubDate),
+        route: String(index + 1).padStart(2, "0"),
+        tag:
+            post.data.tags && post.data.tags.length > 0 ? normalizeTag(post.data.tags[0]) : null,
     }));
 
 const fmt = (date: Date) =>
@@ -43,24 +54,32 @@ const paths = {
 
 const siteHost = new URL(site.url).hostname;
 
+const issueUrl = "https://github.com/Smart-Chou/zcblog/issues/new";
+
 const terminalLines = isEn
     ? [
-          `$ ping ${siteHost}`,
-          "  HTTP/2 404  ·  route not found",
+          "# network diagnostic probe · edge → origin",
+          `$ ping -c 2 ${siteHost}`,
+          "  HTTP/2 404 · route not found (ERR_ROUTE_VACANT)",
+          "  2 packets transmitted, 0 received · 100% packet loss",
           "$ traceroute --to=this-path",
-          "  1  edge       ok",
-          "  2  static     no match",
+          "  [01] edge        0.4 ms   ok",
+          "  [02] static ast  —        no match",
+          "  [03] 404 null route",
           '$ grep -r "lost" ./dist',
-          "  0 results  ·  this page was never built",
+          "  0 results · this path was never built",
       ]
     : [
-          `$ ping ${siteHost}`,
-          "  HTTP/2 404  ·  路由未命中",
+          "# 边缘节点诊断探针 · edge → origin",
+          `$ ping -c 2 ${siteHost}`,
+          "  HTTP/2 404 · 路由未命中 (ERR_ROUTE_VACANT)",
+          "  发送 2 个包，收到 0 个 · 100% 丢包",
           "$ traceroute --to=this-path",
-          "  1  edge       正常",
-          "  2  static     没有这一页",
+          "  [01] edge        0.4 ms   正常",
+          "  [02] static ast  —        未命中",
+          "  [03] 404 空路由",
           '$ grep -r "迷路" ./dist',
-          "  0 条结果  ·  这条路从未被构建",
+          "  0 条结果 · 这条路从未被构建",
       ];
 ---
 
@@ -77,64 +96,111 @@ const terminalLines = isEn
     noEnAlternate
 >
     <div class="not-found">
-        <p class="nf-kicker">
-            <span class="nf-kicker__dot" aria-hidden="true"></span>
-            {isEn ? "HTTP 404 · SIGNAL LOST" : "HTTP 404 · 信号丢失"}
-        </p>
+        <header class="nf-hero">
+            <p class="nf-kicker">
+                <span class="nf-kicker__dot" aria-hidden="true"></span>
+                {isEn ? "HTTP 404 · SIGNAL LOST" : "HTTP 404 · 信号丢失"}
+            </p>
 
-        <p class="nf-code" aria-hidden="true">404</p>
-        <h1 class="nf-title">{t(loc, "common.404.title")}</h1>
-        <p class="nf-lede">{t(loc, "common.404.heading")}</p>
+            <p class="nf-code" aria-hidden="true">
+                <span class="nf-code__edge">4</span><span class="nf-code__mid">0</span><span
+                    class="nf-code__edge">4</span
+                >
+            </p>
+
+            <p class="nf-coords">
+                <span>{isEn ? "EDGE POP" : "边缘节点"}</span>
+                <span aria-hidden="true">·</span>
+                <span>{isEn ? "STATIC ROUTE MISS" : "静态路由未命中"}</span>
+                <span aria-hidden="true">·</span>
+                <span>{isEn ? "TTL 0 EXPIRED" : "TTL 0 已过期"}</span>
+            </p>
+
+            <h1 class="nf-title">{t(loc, "common.404.title")}</h1>
+            <p class="nf-lede">{t(loc, "common.404.heading")}</p>
+            <p class="nf-lede nf-lede--note">
+                {
+                    isEn
+                        ? "Maybe the static routes were refactored, or this piece moved to cold storage. Drifting is often how you meet the unknown."
+                        : "也许是静态路由被重构过，或某篇沉淀已迁去冷数据仓库。迷航，往往也是偶遇未知的开始。"
+                }
+            </p>
+
+            <div class="nf-actions">
+                <a class="nf-button nf-button--primary" href={paths.home}>
+                    {isEn ? "Back to base" : "返回首页"}
+                </a>
+                <a class="nf-button nf-button--secondary" href={paths.archives}>
+                    {isEn ? "Browse archives" : "浏览归档"}
+                </a>
+            </div>
+
+            <p class="nf-hint">
+                <span class="nf-hint__search">
+                    {isEn ? "Search lives in the header · " : "站内检索在页头 · "}<kbd>⌘K</kbd> /
+                    <kbd>Ctrl K</kbd>
+                </span>
+                <span aria-hidden="true"> · </span>
+                <a href={paths.tags}>{isEn ? "tag graph" : "标签图谱"}</a>
+                <span aria-hidden="true"> · </span>
+                <a href={paths.posts}>{isEn ? "all posts" : "全部文章"}</a>
+            </p>
+        </header>
 
         <div class="nf-terminal">
             <div class="nf-terminal__bar">
                 <span class="nf-terminal__dots" aria-hidden="true">
                     <span></span><span></span><span></span>
                 </span>
-                <span class="nf-terminal__name">marx-kernel — debug.sh</span>
+                <span class="nf-terminal__name">marx-kernel — lost-beacon (zsh)</span>
                 <span class="nf-terminal__status">{isEn ? "PROBE ACTIVE" : "探测中"}</span>
             </div>
-            <pre class="nf-terminal__body"><code>{terminalLines.join("\n")}</code></pre>
+            <pre class="nf-terminal__body"><code>{terminalLines.join("\n")}</code><span
+                    class="nf-terminal__cursor"
+                    aria-hidden="true"></span></pre>
+            <p class="nf-terminal__foot">
+                {
+                    isEn
+                        ? "> awaiting_instruction — static build, snapshot only"
+                        : "> 等待指令 · 静态构建，以上为构建期快照"
+                }
+            </p>
         </div>
-
-        <div class="nf-actions">
-            <a class="nf-button nf-button--primary" href={paths.home}>
-                {isEn ? "Back to home" : "返回首页"}
-            </a>
-            <a class="nf-button nf-button--secondary" href={paths.archives}>
-                {isEn ? "Browse archives" : "浏览归档"}
-            </a>
-        </div>
-
-        <p class="nf-hint">
-            {isEn ? "or jump to " : "或者直接去 "}
-            <a href={paths.tags}>{isEn ? "the tag graph" : "标签图谱"}</a>
-            <span aria-hidden="true"> · </span>
-            <a href={paths.posts}>{isEn ? "all posts" : "全部文章"}</a>
-        </p>
 
         {
             recent.length > 0 && (
                 <section class="nf-beacons" aria-labelledby="nf-beacons-title">
                     <div class="nf-beacons__head">
                         <h2 id="nf-beacons-title" class="nf-beacons__title">
-                            {isEn ? "Recovery beacons" : "迷途寻路"}
+                            <span class="nf-beacons__mark" aria-hidden="true" />
+                            {isEn ? "Recovery beacons" : "迷途寻路 · 最近航标"}
                         </h2>
                         <span class="nf-beacons__meta">
-                            {isEn ? `${recent.length} channels` : `${recent.length} 个航标`}
+                            {isEn ? `${recent.length} CHANNELS` : `${recent.length} 个航标`}
                         </span>
                     </div>
                     <ul class="nf-beacons__list">
                         {recent.map((post) => (
                             <li class="nf-beacons__item">
                                 <a class="nf-beacons__link" href={post.url}>
-                                    <time
-                                        class="nf-beacons__date"
-                                        datetime={post.date.toISOString()}
-                                    >
-                                        {fmt(post.date)}
-                                    </time>
+                                    <span class="nf-beacons__route" aria-hidden="true">
+                                        ROUTE {post.route}
+                                    </span>
+                                    <span class="nf-beacons__row">
+                                        <time
+                                            class="nf-beacons__date"
+                                            datetime={post.date.toISOString()}
+                                        >
+                                            {fmt(post.date)}
+                                        </time>
+                                        {post.tag && (
+                                            <span class="nf-beacons__tag">#{post.tag}</span>
+                                        )}
+                                    </span>
                                     <span class="nf-beacons__name">{post.title}</span>
+                                    <span class="nf-beacons__cta" aria-hidden="true">
+                                        {isEn ? "jump →" : "立即跃迁 →"}
+                                    </span>
                                 </a>
                             </li>
                         ))}
@@ -142,5 +208,23 @@ const terminalLines = isEn
                 </section>
             )
         }
+
+        <aside class="nf-report">
+            <div class="nf-report__body">
+                <p class="nf-report__label">
+                    {isEn ? "BROKEN LINK TELEMETRY" : "断链遥测上报"}
+                </p>
+                <p class="nf-report__text">
+                    {
+                        isEn
+                            ? "If this is an internal dead link, open an issue on GitHub and it gets patched in the next batch."
+                            : "如果确认这是站内死链，去 GitHub 提一个 Issue，下一个批次会修掉。"
+                    }
+                </p>
+            </div>
+            <a class="nf-report__link" href={issueUrl} rel="noopener">
+                {isEn ? "Report broken link ↗" : "上报断链 ↗"}
+            </a>
+        </aside>
     </div>
 </BaseLayout>
