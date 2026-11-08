@@ -47,6 +47,9 @@ pnpm exec playwright test e2e/pages.visual.spec.ts
                                          36 passed × 2（连跑）
 Linux（mcr.microsoft.com/playwright:v1.63.0-noble）
   atoms 72 passed / pages 36 passed（--update-snapshots=all）
+changelog 目标 commit 478b8bf
+  CI run 42466693844：test / visual / gates / contract 全 success
+  A11y PR smoke 42466693866、Perf 42466693822、Deploy matrix 42466693831、Demo site 42466693796 全 success
 ```
 
 ## 5. 边界
