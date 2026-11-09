@@ -175,7 +175,9 @@ for (const theme of THEMES) {
 
         // 右栏：微信 QR（本地生成）+ 平台直链
         await expect(page.locator('[data-overlay="share"] [data-share-qr] svg')).toHaveCount(1);
-        await expect(page.locator('[data-overlay="share"] .share-platforms .share-platform')).toHaveCount(7);
+        await expect(
+            page.locator('[data-overlay="share"] .share-platforms .share-platform'),
+        ).toHaveCount(7);
 
         const dl = page.locator('[data-overlay="share"] [data-share-download]');
         expect(await dl.getAttribute("href")).toBe(POSTER);
@@ -227,14 +229,16 @@ test("390：单列 sheet、海报不溢出、关闭后焦点回填", async ({ pa
         const frame = img.closest(".share-poster-frame")!.getBoundingClientRect();
         const s = getComputedStyle(document.querySelector(".share-modal")!);
         return {
-            columns: s.gridTemplateColumns.split(" ").length,
+            display: s.display,
+            flexDirection: s.flexDirection,
             card: [Math.round(r.left), Math.round(r.width), Math.round(r.bottom)],
             frameRatio: Number((frame.width / frame.height).toFixed(3)),
             imgOverflowX: ir.right > r.right + 1 || ir.left < r.left - 1,
             pageOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         };
     });
-    expect(mobile.columns, "390 必须是单列").toBe(1);
+    expect(mobile.display, "390 必须是单列 flex").toBe("flex");
+    expect(mobile.flexDirection, "390 必须是单列 flex").toBe("column");
     expect(mobile.frameRatio, "海报仍是 3:4").toBeCloseTo(0.75, 2);
     expect(mobile.imgOverflowX, "海报不能横向溢出卡片").toBe(false);
     expect(mobile.pageOverflow, "390 页面不允许横向滚动").toBe(false);
@@ -297,6 +301,15 @@ test.describe("海报弹层证据截图", () => {
             await openShare(page);
             await page.waitForTimeout(300);
             await page.screenshot({ path: path.join(SHOT_DIR, `modal-${theme}-1440.png`) });
+
+            // 短链降级的状态行也要留证据（这是本卡唯一「文案」产物）
+            await page.locator('[data-overlay="share"] [data-share-action="shortlink"]').click();
+            await expect(page.locator('[data-overlay="share"] [data-share-note]')).not.toHaveText(
+                "",
+            );
+            await page.screenshot({
+                path: path.join(SHOT_DIR, `modal-${theme}-1440-shortlink.png`),
+            });
         });
 
         test(`${theme}：390 打开态`, async ({ page }) => {

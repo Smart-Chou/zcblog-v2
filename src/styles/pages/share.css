@@ -285,6 +285,11 @@
     border-radius: var(--radius-pill);
 }
 
+/* 7 个平台在 4 列里排成 4+3：末项跨两格，把最后一行的空位填掉 */
+.share-bar.post-share[data-post-share] .share-platforms > li:last-child {
+    grid-column: span 2;
+}
+
 .share-bar.post-share[data-post-share] .share-platform svg {
     flex: none;
     inline-size: var(--text-base);
@@ -576,10 +581,52 @@
         background: var(--color-border-default);
     }
 
-    /* M7-3c：sheet 单列 —— 海报（限高）→ 二维码/提示 → 平台 → 操作 → 脚注 */
+    /* M7-3c：sheet 单列 —— 海报 → 下载/短链 → 平台 → 二维码/提示 → 脚注。
+       手机上先给「拿到东西」（海报、下载），二维码在下面（真机还会整块收起）。 */
     .share-bar.post-share[data-post-share] .share-modal {
-        grid-template-columns: minmax(0, 1fr);
+        display: flex;
+        flex-direction: column;
+        /* 桌面那条 align-items:start 是给两栏用的；换 flex 后必须 stretch，否则子项塌成内容宽 */
+        align-items: stretch;
         gap: var(--space-4);
+    }
+
+    /* 打散右栏，让操作行插到海报正下方（视觉顺序 ≠ DOM 顺序，DOM 仍可读） */
+    .share-bar.post-share[data-post-share] .share-panel {
+        display: contents;
+    }
+
+    .share-bar.post-share[data-post-share] .share-poster {
+        order: 1;
+    }
+
+    .share-bar.post-share[data-post-share] .share-modal-actions {
+        order: 2;
+    }
+
+    .share-bar.post-share[data-post-share] .share-platforms {
+        order: 3;
+    }
+
+    .share-bar.post-share[data-post-share] .share-note {
+        order: 4;
+    }
+
+    .share-bar.post-share[data-post-share] .share-qr {
+        order: 5;
+    }
+
+    .share-bar.post-share[data-post-share] .share-in-wechat {
+        order: 6;
+    }
+
+    .share-bar.post-share[data-post-share] .share-url {
+        order: 7;
+    }
+
+    /* 窄屏二维码收到 176px：扫得动，但不吃掉整屏 */
+    .share-bar.post-share[data-post-share] .share-qr-img {
+        max-inline-size: 11rem;
     }
 
     .share-bar.post-share[data-post-share] .share-poster-frame {
@@ -596,9 +643,13 @@
         flex-wrap: nowrap;
     }
 
-    /* 335px 的 sheet 里 4 列会把 "Telegram" 截成省略号，窄版退到 3 列 */
+    /* 335px 的 sheet 里 4 列会把 "Telegram" 截成省略号：窄版改成每行一个平台（列表式） */
     .share-bar.post-share[data-post-share] .share-platforms {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .share-bar.post-share[data-post-share] .share-platforms > li:last-child {
+        grid-column: auto;
     }
 
     .share-bar.post-share[data-post-share] .share-action {
