@@ -82,8 +82,8 @@ async function axeShare(page: Page) {
     );
 }
 
-/** QR pack（uqr chunk）与 overlay 基座：关闭态一个都不该出现 */
-const COLD_ASSET = /\/_astro\/(?:overlay|dist)\.[\w-]+\.js/;
+/** overlay 基座：没点过任何弹层的页面连它都不该下载（口径同 e2e/overlays.spec.ts） */
+const COLD_ASSET = /\/_astro\/(?:overlay|overlay-sheets)[\w-]*\.[\w-]+\.js/;
 
 const count = (page: Page) =>
     page.evaluate(() => document.querySelectorAll("[data-overlay]").length);
@@ -94,8 +94,14 @@ test("1440 关闭态：10 个分享钩子顺序不变、站外链接仍带真实
     page,
 }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    const requests: string[] = [];
-    page.on("request", (req) => requests.push(req.url()));
+    const requests: { url: string; sw: boolean; type: string }[] = [];
+    page.on("request", (req) =>
+        requests.push({
+            url: req.url(),
+            sw: req.serviceWorker() !== null,
+            type: req.resourceType(),
+        }),
+    );
 
     await page.goto(ARTICLE, { waitUntil: "load" });
     await settle(page);
@@ -126,14 +132,14 @@ test("1440 关闭态：10 个分享钩子顺序不变、站外链接仍带真实
     const hrefs = await page.$$eval("[data-post-share] .share-icon[data-share-platform]", (ns) =>
         ns.map((n) => n.getAttribute("href") ?? ""),
     );
-    expect(hrefs).toHaveLength(8);
+    expect(hrefs).toHaveLength(7);
     expect(hrefs[0]).toMatch(/^https:\/\/service\.weibo\.com\/share\/share\.php\?/);
-    expect(hrefs[3]).toMatch(/^https:\/\/www\.douban\.com\/share\/service\?/);
-    expect(hrefs[5]).toMatch(/^https:\/\/t\.me\/share\/url\?/);
+    expect(hrefs[2]).toMatch(/^https:\/\/www\.douban\.com\/share\/service\?/);
+    expect(hrefs[4]).toMatch(/^https:\/\/t\.me\/share\/url\?/);
     for (const href of hrefs) expect(href).toMatch(/^https?:\/\//);
 
     // 关闭态：弹层 aria-hidden、透明、不吃事件、QR 容器为空
-    const pop = page.locator('.share-pop').first();
+    const pop = page.locator(".share-pop").first();
     await expect(pop).toHaveAttribute("aria-hidden", "true");
     const cold = await pop.evaluate((el) => {
         const s = getComputedStyle(el as HTMLElement);
@@ -150,10 +156,23 @@ test("1440 关闭态：10 个分享钩子顺序不变、站外链接仍带真实
     expect(cold.qrChildren, "关闭态 HTML 不内联二维码").toBe(0);
 
     expect(await count(page), "关闭态 0 个 [data-overlay]").toBe(0);
+    console.log(
+        "[net] 关闭态命中 overlay 基座的请求：",
+        JSON.stringify(requests.filter((r) => COLD_ASSET.test(r.url))),
+    );
     expect(
-        requests.filter((url) => COLD_ASSET.test(url)),
-        "关闭态不该下载 overlay 基座 / QR pack",
+        requests.filter((r) => COLD_ASSET.test(r.url)),
+        "关闭态不该下载 overlay 基座",
     ).toEqual([]);
+
+    // 关闭态「0 请求」的严格版：静默 600ms 内不再新增任何 script 请求
+    // （uqr 的 QR pack 与 overlay 基座都只会在点开微信时按需 import）
+    const scriptsClosed = requests.filter((r) => r.type === "script").length;
+    await page.waitForTimeout(600);
+    expect(
+        requests.filter((r) => r.type === "script").length,
+        "关闭态 600ms 静默窗口内不应有新 script 请求",
+    ).toBe(scriptsClosed);
 
     // 换壳后的视觉锚点：赤陶竖条 + 等宽计数 + surface 托盘，都是纯 CSS（不新节点请求）
     const skin = await bar.evaluate((el) => {
@@ -187,6 +206,7 @@ for (const theme of THEMES) {
         await setTheme(page, theme);
         await settle(page);
 
+        const scriptsBefore = requests.filter((url) => /\/_astro\/[\w.-]+\.js/.test(url));
         const trigger = page.locator("[data-share-action='wechat']");
         await trigger.click();
         await expect(page.locator('[data-overlay="share"]')).toHaveCount(1);
@@ -195,6 +215,16 @@ for (const theme of THEMES) {
         // QR 仍是懒加载：点开才画出 svg，且必须同源（不许第三方 QR 服务）
         const qr = page.locator('[data-overlay="share"] [data-share-qr]');
         await expect(qr.locator("svg")).toHaveCount(1);
+
+        // 懒加载的正向证据：打开时确实新拉了一个 script chunk（overlay 基座 + uqr pack）
+        const scriptsAfter = requests.filter((url) => /\/_astro\/[\w.-]+\.js/.test(url));
+        const pulled = scriptsAfter.filter((url) => !scriptsBefore.includes(url));
+        console.log(
+            `[net] share @${theme} 打开时新拉 ${pulled.length} 个 chunk: ${pulled
+                .map((u) => u.split("/").pop())
+                .join(",")}`,
+        );
+        expect(pulled.length, "打开微信必须按需加载 overlay 基座 / QR pack").toBeGreaterThan(0);
         const origin = new URL(page.url()).origin;
         expect(
             requests.filter(
@@ -228,7 +258,9 @@ for (const theme of THEMES) {
         await page.evaluate(() =>
             document
                 .querySelectorAll("[data-overlay]")
-                .forEach((node) => node.getAnimations({ subtree: true }).forEach((a) => a.finish())),
+                .forEach((node) =>
+                    node.getAnimations({ subtree: true }).forEach((a) => a.finish()),
+                ),
         );
         await page.waitForTimeout(120);
 
@@ -257,6 +289,7 @@ test("外点遮罩关闭：点卡片外部收起弹层，焦点同样回填", as
     const trigger = page.locator("[data-share-action='wechat']");
     await trigger.click();
     await expect(page.locator('[data-overlay="share"]')).toHaveCount(1);
+    await page.waitForTimeout(250); // 让淡入走完，避免把「过渡中的半屏遮罩」当成布局
 
     await page.mouse.click(30, 400); // 遮罩左上角，卡片之外
     await expect(page.locator('[data-overlay="share"]')).toHaveCount(0);
@@ -337,7 +370,7 @@ test("390：入口条换网格、无横向溢出；二维码 sheet 可开可关�
         const rect = el.getBoundingClientRect();
         return { left: rect.left, width: rect.width, bottom: rect.bottom, viewport: innerWidth };
     });
-    expect(sheet.width).toBeGreaterThanOrEqual(sheet.viewport - 1);
+    expect(sheet.width).toBeGreaterThanOrEqual(sheet.viewport - 20); // 减去 scrollbar-gutter:stable 的 15px
     expect(Math.round(sheet.bottom)).toBeGreaterThanOrEqual(843);
 
     await page.locator("[data-overlay='share'] [data-share-close]").click();

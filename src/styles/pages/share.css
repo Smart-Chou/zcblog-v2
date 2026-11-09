@@ -157,6 +157,16 @@
 
 /* ── 微信二维码弹层：桌面居中卡（selection §4.17 的 modal 基座） ── */
 
+/* 弹层就位时不要再播 transform 过渡：基座是 fixed + inset:0（铺满视口），
+   而 article.css 的 `.share-pop` 带着 translateX(-50%) 的关闭态位移，
+   留着 transform 过渡会让整块遮罩从左往右扫一遍（前 150ms 里遮罩只有半屏，
+   点面板外也关不掉）。这里只保留淡入。 */
+.share-bar.post-share[data-post-share] .share-wechat-wrap.open .share-pop[data-overlay="share"] {
+    transition:
+        opacity var(--duration-fast) var(--ease-standard),
+        visibility 0s linear 0s;
+}
+
 .share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-card {
     inline-size: min(22rem, 100%);
     padding: var(--space-5) var(--space-5) var(--space-5);
@@ -295,8 +305,9 @@
 
     .share-bar.post-share[data-post-share] .share-icon {
         inline-size: 100%;
-        block-size: auto;
-        aspect-ratio: 1;
+        /* 固定方格高度而不是 aspect-ratio：宽由 1fr 决定、高由 aspect-ratio 反推时，
+           Chromium 会把网格盒的内容高度算成一行（48px），第二行被 overflow 裁掉 */
+        block-size: 3.25rem;
         background: var(--color-bg-surface);
         border-color: var(--color-border-subtle);
     }
@@ -307,7 +318,9 @@
     }
 
     /* 弹层：贴底 sheet（圆角只在上面两角），遮罩仍由基座铺满 */
-    .share-bar.post-share[data-post-share] .share-wechat-wrap.open .share-pop[data-overlay="share"] {
+    .share-bar.post-share[data-post-share]
+        .share-wechat-wrap.open
+        .share-pop[data-overlay="share"] {
         align-items: flex-end;
         padding: 0;
     }
