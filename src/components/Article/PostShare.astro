@@ -198,9 +198,7 @@ const platformLinks = items.filter((item) => Boolean(item.href));
                                                         />
                                                     </div>
                                                     <figcaption class="share-poster-cap">
-                                                        <span class="share-poster-tag">
-                                                            3:4
-                                                        </span>
+                                                        <span class="share-poster-tag">3:4</span>
                                                         <span class="share-poster-size">
                                                             1200 × 1600
                                                         </span>
@@ -219,7 +217,10 @@ const platformLinks = items.filter((item) => Boolean(item.href));
                                                     {t(locale, "article.share.inWechatHint")}
                                                 </p>
                                                 {platformLinks.length > 0 && (
-                                                    <ul class="share-platforms" aria-label={shareToLabel}>
+                                                    <ul
+                                                        class="share-platforms"
+                                                        aria-label={shareToLabel}
+                                                    >
                                                         {platformLinks.map((item) => (
                                                             <li>
                                                                 <a
@@ -230,10 +231,14 @@ const platformLinks = items.filter((item) => Boolean(item.href));
                                                                     data-share-platform={item.id}
                                                                 >
                                                                     <Fragment
-                                                                        set:html={iconMarkup(item.icon)}
+                                                                        set:html={iconMarkup(
+                                                                            item.icon,
+                                                                        )}
                                                                     />
                                                                     <span>
-                                                                        {item[contentLocaleOf(locale)] ?? item.zh}
+                                                                        {item[
+                                                                            contentLocaleOf(locale)
+                                                                        ] ?? item.zh}
                                                                     </span>
                                                                 </a>
                                                             </li>
@@ -259,13 +264,19 @@ const platformLinks = items.filter((item) => Boolean(item.href));
                                                             data-share-download
                                                         >
                                                             <Fragment
-                                                                set:html={iconMarkup("tabler:photo")}
+                                                                set:html={iconMarkup(
+                                                                    "tabler:photo",
+                                                                )}
                                                             />
                                                             {downloadLabel}
                                                         </a>
                                                     )}
                                                 </div>
-                                                <p class="share-note" data-share-note role="status" />
+                                                <p
+                                                    class="share-note"
+                                                    data-share-note
+                                                    role="status"
+                                                />
                                                 <p class="share-url" aria-hidden="true">
                                                     {sharePath}
                                                 </p>

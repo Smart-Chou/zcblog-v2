@@ -49,7 +49,8 @@ const isWeChatBrowser = /MicroMessenger/i.test(navigator.userAgent);
  */
 function setPoster(pop: HTMLElement) {
     const img = pop.querySelector<HTMLImageElement>("[data-share-poster]");
-    if (!img || img.dataset.posterState === "loading" || img.dataset.posterState === "ready") return;
+    if (!img || img.dataset.posterState === "loading" || img.dataset.posterState === "ready")
+        return;
     const slug = img.dataset.sharePoster || "";
     if (!slug) return;
     img.dataset.posterState = "loading";
