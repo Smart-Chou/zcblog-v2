@@ -1,0 +1,57 @@
+/**
+ * 批注高亮（M7-4a）
+ *
+ * 只定义 `mark.annotation-mark` 这一种渲染态：数据层（`src/scripts/annotations.ts`）
+ * 决定「哪一段、哪几个字」，这里决定「长什么样」。不改任何全局布局、不碰 `article.css`、
+ * 也不给 `mark` 加默认样式 —— 未带类名的 `mark` 保持浏览器原生表现，避免误伤正文里
+ * 作者自己写的 `<mark>`。
+ *
+ * 三条硬约束：
+ *   1. **不造成布局偏移**：只改 `background-color` 与圆角，`padding/margin/border/font`
+ *      一律不动 —— 加高亮前后段落高度必须一致（e2e 有断言）。
+ *   2. **跨行不间断**：长句换行时 `box-decoration-break: clone` 让每一行都有完整的
+ *      圆角与底色，而不是把首尾两行的圆角拉成一条。
+ *   3. **light/dark 都可见**：底色用 `color-mix` 从主题调色板里混出来，跟随
+ *      `[data-theme]` 走；深色下提高一点浓度，否则在 ink-950 底色上几乎看不见。
+ *      给一条 1px 的强调色下划线做「非颜色」冗余，色弱用户也能分辨。
+ */
+
+mark.annotation-mark {
+    /* 底色：light 用 accent-500 的 24%，够看得见又不盖住字形 */
+    --annotation-mark-bg: color-mix(in oklab, var(--palette-accent-500) 24%, transparent);
+    --annotation-mark-line: color-mix(in oklab, var(--palette-accent-600) 70%, transparent);
+
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0.18em;
+    background-color: var(--annotation-mark-bg);
+    box-shadow: inset 0 -0.08em 0 var(--annotation-mark-line);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    color: inherit;
+    /* 高亮是「标注」而不是「链接」：不继承任何可点击的视觉暗示 */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+[data-theme="dark"] mark.annotation-mark {
+    --annotation-mark-bg: color-mix(in oklab, var(--palette-accent-400) 30%, transparent);
+    --annotation-mark-line: color-mix(in oklab, var(--palette-accent-300) 65%, transparent);
+}
+
+/* 键盘可达的批注（M7-4b 起 mark 会带 tabindex）：焦点环走全局 ring token */
+mark.annotation-mark:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* 打印：底色与下划线在纸上都容易糊成一片，退化成虚线，字号颜色照旧 */
+@media print {
+    mark.annotation-mark {
+        background-color: transparent;
+        box-shadow: none;
+        text-decoration: underline dotted currentColor;
+        text-underline-offset: 0.18em;
+    }
+}

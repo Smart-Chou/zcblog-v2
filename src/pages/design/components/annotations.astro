@@ -1,0 +1,561 @@
+---
+/**
+ * /design/components/annotations/ — 批注数据层 + 高亮渲染基础 · 内部演示页（M7-4a）
+ *
+ * 这是一张**内部演示页**，不是产品页面：
+ *   · 本卡**不接文章正文选中**（工具条与文章高亮层是 M7-4b），页面上的「添加高亮」
+ *     按钮只是把固定 fixture 里的某一段文字喂给数据层 —— 目的是证明
+ *     「写进去 → 画出来 → 刷新还在 → 清得掉」这条链路成立；
+ *   · 正文是写死的 fixture（`data-annotation-text`），脚本只读不改，任何时刻
+ *     `textContent` 都必须等于这份原文（高亮只包 `<mark>`，不增删一个字）；
+ *   · noindex，不进主导航，也不在 `_docs` 的组件清单口径里（那份清单管 atom / UI 组件，
+ *     本页演示的是数据层 + `mark.annotation-mark` 这一种渲染态）。
+ *
+ * 与 `quote-card.astro` 同构：手写 html 壳 + 只 import tokens.css / annotations.css，
+ * 不套 BaseLayout —— 站点导航与 swup 只会给「0 第三方请求」这条验收添噪音。
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/annotations.css";
+
+const DOC_ID = "design/components/annotations";
+
+/** 固定 fixture：三段真实口吻的正文，够长、够重复（重复词用来试「唯一命中」重定位）。 */
+const BLOCKS = [
+    "把批注当成一次对话：你不是在书上画道道，而是在跟自己较劲——这句话到底成立吗，换个例子还站得住吗。划线本身不是目的，把它变成一句能复述的话才是。",
+    "所以本地优先：批注先落在你自己的浏览器里，不好用就删掉，不留任何服务端痕迹。等它真的长成一套方法，再谈同步、谈分享、谈别人看不看得见。",
+    "写作与阅读其实是同一件事的两面。读的时候把疑问留住，写的时候才有东西可写；反过来，写过的段落会教你下次读到哪里该停下来。",
+];
+
+/** 预设：每一条都是「第几段 + 原文里的一段子串」，偏移由脚本用 indexOf 现算。 */
+const PRESETS = [
+    { block: 0, quote: "把批注当成一次对话", label: "添加高亮 · 第 1 段", tone: "primary" },
+    { block: 1, quote: "批注先落在你自己的浏览器里", label: "添加高亮 · 第 2 段", tone: "default" },
+    { block: 2, quote: "写过的段落会教你下次读到哪里该停下来", label: "添加高亮 · 第 3 段", tone: "default" },
+];
+
+const CONTRACT = [
+    { label: "存储", value: "localStorage · key = zcblog:annotations:v1 · 值带 schema/version 信封" },
+    { label: "定位", value: "docId + blockIndex + [start, end)，UTF-16 code unit，与 Selection 同口径" },
+    { label: "去重", value: "同段同区间重复写入 → duplicate，不新增记录" },
+    { label: "拒绝", value: "空白 / 零长度 / 越界 / 与已有批注重叠 → 返回 reason，不落盘" },
+    { label: "自愈", value: "非 JSON / 旧版本 / 结构不对 → 清 key 并当空库，绝不猜测迁移" },
+    { label: "渲染", value: "只包 <mark class=\"annotation-mark\">，不改字号间距，零布局偏移" },
+    { label: "不做的", value: "不接文章选中、不出工具条、不做侧栏与同步（M7-4b / M7-4c）" },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>批注数据层 · 内部演示</title>
+    </head>
+    <body>
+        <header class="page-head">
+            <p class="page-kicker">Design system · 内部演示 · M7-4a</p>
+            <h1 class="page-title">批注数据层与高亮渲染</h1>
+            <p class="page-lead">
+                一段文字、一个偏移区间、一条 localStorage 记录 —— 写进去、画出来、刷新还在、清得掉。
+                这一页只证明这条链路和 <code class="tok">mark.annotation-mark</code> 这一种渲染态成立：
+                <strong>还没有接文章选中</strong>，正文上的工具条会在 M7-4b 出现。
+            </p>
+            <nav class="page-nav" aria-label="相关页面">
+                <a href="/design/">文档站首页</a>
+                <a href="/design/components/quote-card/">金句卡渲染器（上一个演示页）</a>
+            </nav>
+        </header>
+
+        <main class="page-main">
+            <section class="page-section" aria-labelledby="stage-title">
+                <h2 id="stage-title" class="page-h2">演示</h2>
+                <p class="page-hint">
+                    按钮把预设子串交给数据层（偏移由脚本现算，不写死数字）。第三条按钮故意与第一条
+                    同段同区间，用来验证去重；第四条故意重叠，验证拒绝。
+                </p>
+
+                <div
+                    class="stage"
+                    data-annotation-demo
+                    data-doc-id={DOC_ID}
+                    data-annotation-count="0"
+                    data-annotation-state="idle"
+                    data-annotation-storage="pending"
+                >
+                    <div class="stage__controls">
+                        {
+                            PRESETS.map((preset) => (
+                                <button
+                                    type="button"
+                                    class:list={["btn", preset.tone === "primary" && "btn--primary"]}
+                                    data-annotation-add
+                                    data-block={String(preset.block)}
+                                    data-quote={preset.quote}
+                                >
+                                    {preset.label}
+                                </button>
+                            ))
+                        }
+                        <button
+                            type="button"
+                            class="btn"
+                            data-annotation-add
+                            data-block="0"
+                            data-quote="把批注当成一次对话"
+                        >
+                            重复加第一条（应被去重）
+                        </button>
+                        <button
+                            type="button"
+                            class="btn"
+                            data-annotation-add
+                            data-block="0"
+                            data-quote="一次对话：你不是"
+                        >
+                            加一条重叠的（应被拒绝）
+                        </button>
+                        <button type="button" class="btn btn--ghost" data-annotation-clear>清除全部高亮</button>
+                        <p class="stage__status" role="status" aria-live="polite" data-annotation-status>
+                            尚未添加任何高亮。
+                        </p>
+                        <p class="stage__meta" data-annotation-meta>
+                            存储：<code class="tok" data-annotation-key>—</code>
+                        </p>
+                    </div>
+
+                    <div class="stage__prose">
+                        {
+                            BLOCKS.map((text, index) => (
+                                <p
+                                    class="prose__block"
+                                    data-annotation-block={String(index)}
+                                    data-annotation-text={text}
+                                >
+                                    {text}
+                                </p>
+                            ))
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="page-section" aria-labelledby="contract-title">
+                <h2 id="contract-title" class="page-h2">契约</h2>
+                <dl class="fixture">
+                    {
+                        CONTRACT.map((row) => (
+                            <div class="fixture__row">
+                                <dt>{row.label}</dt>
+                                <dd>{row.value}</dd>
+                            </div>
+                        ))
+                    }
+                </dl>
+                <p class="page-hint">
+                    数据层（<code class="tok">src/scripts/annotations.ts</code>）不依赖 DOM：偏移与
+                    「重定位」都是纯字符串运算，本页只负责把记录包成 <code class="tok">mark</code>。
+                </p>
+            </section>
+        </main>
+
+        <script>
+            import * as annotations from "~/scripts/annotations";
+
+            const DOC_ID = "design/components/annotations";
+
+            const root = document.querySelector<HTMLElement>("[data-annotation-demo]");
+
+            if (root) {
+                const store = annotations.getAnnotationStore();
+                const status = root.querySelector<HTMLElement>("[data-annotation-status]");
+                const keyLabel = root.querySelector<HTMLElement>("[data-annotation-key]");
+                const blocks = Array.from(
+                    root.querySelectorAll<HTMLElement>("[data-annotation-block]"),
+                );
+
+                /** 段落原文：以 data 属性为唯一权威，DOM 只是它的渲染结果。 */
+                const texts = blocks.map((el) => el.dataset.annotationText ?? "");
+
+                if (keyLabel) keyLabel.textContent = store.key;
+
+                const announce = (text: string, tone: "ok" | "muted" | "warn" = "muted"): void => {
+                    if (!status) return;
+                    status.textContent = text;
+                    status.dataset.tone = tone;
+                };
+
+                const render = (): void => {
+                    const records = store.list(DOC_ID);
+
+                    blocks.forEach((el, index) => {
+                        const text = texts[index] ?? "";
+                        // 偏移失效时靠唯一引文命中重定位；命中多处/零处就跳过这一条，
+                        // 宁可少画一条也不要画到别的句子上。
+                        const spans = records
+                            .filter((record) => record.blockIndex === index)
+                            .map((record) => ({ record, span: annotations.resolveSpan(text, record) }))
+                            .filter((item): item is { record: annotations.AnnotationRecord; span: NonNullable<ReturnType<typeof annotations.resolveSpan>> } => item.span !== null)
+                            .sort((a, b) => a.span.start - b.span.start);
+
+                        const fragment = document.createDocumentFragment();
+                        let cursor = 0;
+                        for (const { record, span } of spans) {
+                            if (span.start < cursor) continue; // 渲染层再挡一次重叠，绝不套娃
+                            if (span.start > cursor) fragment.append(text.slice(cursor, span.start));
+                            const mark = document.createElement("mark");
+                            mark.className = "annotation-mark";
+                            mark.dataset.annotationId = record.id;
+                            mark.dataset.annotationMode = span.mode;
+                            mark.textContent = text.slice(span.start, span.end);
+                            fragment.append(mark);
+                            cursor = span.end;
+                        }
+                        if (cursor < text.length) fragment.append(text.slice(cursor));
+                        el.replaceChildren(fragment);
+                    });
+
+                    root.dataset.annotationCount = String(records.length);
+                    root.dataset.annotationState = "ready";
+                };
+
+                const REASONS: Record<string, string> = {
+                    blank: "选区是空白，不写。",
+                    "invalid-span": "区间不合法（起止颠倒或零长度），不写。",
+                    overflow: "区间越过了段落末尾，不写。",
+                    "quote-mismatch": "引文与原文对不上，不写。",
+                    overlap: "与已有高亮重叠，不写。",
+                    limit: "这篇的批注已经到上限，不写。",
+                    "invalid-target": "缺 docId 或段落序号，不写。",
+                };
+
+                const addPreset = (button: HTMLButtonElement): void => {
+                    const blockIndex = Number(button.dataset.block ?? "-1");
+                    const quote = button.dataset.quote ?? "";
+                    const text = texts[blockIndex];
+
+                    if (typeof text !== "string") {
+                        announce(`第 ${blockIndex + 1} 段不存在，什么都没做。`, "warn");
+                        root.dataset.annotationLast = "invalid-target";
+                        return;
+                    }
+
+                    const start = annotations.findQuoteOffset(text, quote);
+                    if (start < 0) {
+                        announce("原文里找不到这段文字，什么都没做。", "warn");
+                        root.dataset.annotationLast = "not-found";
+                        return;
+                    }
+
+                    const result = store.add({
+                        docId: DOC_ID,
+                        blockIndex,
+                        start,
+                        end: start + quote.length,
+                        quote,
+                        text,
+                    });
+
+                    render();
+
+                    if (result.ok) {
+                        root.dataset.annotationLast = result.duplicate ? "duplicate" : "added";
+                        announce(
+                            result.duplicate
+                                ? "这条已经在库里了（去重，没有新增记录）。"
+                                : `已高亮第 ${blockIndex + 1} 段：${quote}。刷新后仍在。`,
+                            "ok",
+                        );
+                        return;
+                    }
+
+                    root.dataset.annotationLast = result.reason ?? "rejected";
+                    announce(REASONS[result.reason ?? ""] ?? "数据层拒绝了这次写入。", "warn");
+                };
+
+                root.addEventListener("click", (event) => {
+                    const target = event.target as HTMLElement | null;
+                    const addButton = target?.closest<HTMLButtonElement>("[data-annotation-add]");
+                    if (addButton) {
+                        addPreset(addButton);
+                        return;
+                    }
+                    if (target?.closest("[data-annotation-clear]")) {
+                        const removed = store.clear(DOC_ID);
+                        render();
+                        root.dataset.annotationLast = "cleared";
+                        announce(removed > 0 ? `已清除 ${removed} 条高亮。` : "本来就没有高亮。", "muted");
+                    }
+                });
+
+                root.dataset.annotationStorage = store.list(DOC_ID).length >= 0 ? "ready" : "degraded";
+                render();
+                const count = Number(root.dataset.annotationCount ?? "0");
+                announce(count > 0 ? `从本地恢复 ${count} 条高亮。` : "尚未添加任何高亮。", "muted");
+
+                // 测试钩子：数据层是纯逻辑，e2e 用它直接验边界（损坏 JSON、旧版本、重叠…），
+                // 不必把每种失败路径都做成一个按钮。这是 noindex 的内部演示页，不对外暴露。
+                const hook = window as unknown as { __annotations?: unknown };
+                hook.__annotations = { ...annotations, store, texts, docId: DOC_ID };
+            }
+        </script>
+
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
+
+            html {
+                -webkit-text-size-adjust: 100%;
+            }
+
+            body {
+                margin: 0;
+                padding: var(--space-8) var(--space-6) var(--space-10);
+                background: var(--color-bg-canvas);
+                color: var(--color-fg-default);
+                font-family: var(--font-sans);
+                font-size: var(--text-base);
+                line-height: var(--leading-loose);
+                overflow-x: clip;
+            }
+
+            .page-head,
+            .page-main {
+                max-inline-size: 68rem;
+                margin-inline: auto;
+            }
+
+            .page-head {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-3);
+                padding-block-end: var(--space-6);
+                border-block-end: 1px solid var(--color-border-subtle);
+            }
+
+            .page-kicker {
+                margin: 0;
+                color: var(--color-fg-muted);
+                font-size: var(--text-xs);
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+            }
+
+            .page-title {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-family: var(--font-serif);
+                font-size: var(--text-3xl);
+                font-weight: 400;
+                line-height: var(--leading-tight);
+            }
+
+            .page-lead {
+                margin: 0;
+                max-inline-size: 52rem;
+                color: var(--color-fg-muted);
+            }
+
+            .page-nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-4);
+                font-size: var(--text-sm);
+            }
+
+            .page-nav a {
+                color: var(--color-fg-link);
+                text-underline-offset: 0.2em;
+            }
+
+            .page-main {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-8);
+                padding-block-start: var(--space-7);
+            }
+
+            .page-section {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .page-h2 {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-size: var(--text-lg);
+                font-weight: var(--font-weight-semibold);
+                line-height: var(--leading-snug);
+            }
+
+            .page-hint {
+                margin: 0;
+                max-inline-size: 52rem;
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+            }
+
+            .tok {
+                font-family: var(--font-mono);
+                font-size: var(--text-xs);
+                color: var(--color-fg-code);
+                background: var(--color-bg-sunken);
+                padding: 0 var(--space-1);
+                border-radius: var(--radius-xs);
+            }
+
+            /* ── 舞台：左控制 / 右正文（窄屏竖排） ── */
+
+            .stage {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-6);
+                align-items: flex-start;
+                padding: var(--space-5);
+                background: var(--color-bg-surface);
+                border: 1px solid var(--color-border-subtle);
+                border-radius: var(--radius-lg);
+            }
+
+            .stage__controls {
+                flex: 1 1 16rem;
+                min-inline-size: 0;
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-2);
+            }
+
+            .stage__prose {
+                flex: 2 1 26rem;
+                min-inline-size: 0;
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-4);
+            }
+
+            .prose__block {
+                margin: 0;
+                font-family: var(--font-serif);
+                font-size: var(--text-md);
+                line-height: var(--leading-loose);
+                color: var(--color-fg-default);
+            }
+
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: var(--space-2);
+                padding: var(--space-2) var(--space-4);
+                border: 1px solid var(--color-border-default);
+                border-radius: var(--radius-md);
+                background: var(--color-bg-raised);
+                color: var(--color-fg-default);
+                font: inherit;
+                font-size: var(--text-sm);
+                font-weight: var(--font-weight-medium);
+                text-align: start;
+                cursor: pointer;
+            }
+
+            .btn--primary {
+                border-color: var(--color-accent-solid);
+                background: var(--color-accent-solid);
+                color: var(--color-fg-on-accent);
+            }
+
+            .btn--ghost {
+                border-style: dashed;
+                color: var(--color-fg-default);
+            }
+
+            .btn:hover {
+                background: var(--color-bg-hover);
+            }
+
+            .btn--primary:hover {
+                background: var(--color-accent-solid-hover);
+            }
+
+            .btn:focus-visible {
+                outline: 2px solid var(--color-ring-focus);
+                outline-offset: 2px;
+            }
+
+            .stage__status {
+                margin: 0;
+                min-block-size: 2.6em;
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+            }
+
+            .stage__status[data-tone="ok"] {
+                color: var(--color-fg-default);
+            }
+
+            .stage__status[data-tone="warn"] {
+                color: var(--color-status-danger-fg, var(--color-fg-default));
+            }
+
+            .stage__meta {
+                margin: 0;
+                color: var(--color-fg-muted);
+                font-size: var(--text-xs);
+                overflow-wrap: anywhere;
+            }
+
+            /* ── 契约表 ── */
+
+            .fixture {
+                display: grid;
+                gap: 0;
+                margin: 0;
+                border: 1px solid var(--color-border-subtle);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+            }
+
+            .fixture__row {
+                display: grid;
+                grid-template-columns: minmax(7rem, 12rem) minmax(0, 1fr);
+                gap: var(--space-4);
+                padding: var(--space-3) var(--space-4);
+                border-block-start: 1px solid var(--color-border-subtle);
+            }
+
+            .fixture__row:first-child {
+                border-block-start: 0;
+            }
+
+            .fixture dt {
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+            }
+
+            .fixture dd {
+                margin: 0;
+                min-inline-size: 0;
+                overflow-wrap: anywhere;
+            }
+
+            @media (max-width: 40rem) {
+                body {
+                    padding: var(--space-6) var(--space-4) var(--space-8);
+                }
+
+                .stage {
+                    padding: var(--space-3);
+                }
+
+                .fixture__row {
+                    grid-template-columns: minmax(0, 1fr);
+                    gap: var(--space-1);
+                }
+            }
+        </style>
+    </body>
+</html>
