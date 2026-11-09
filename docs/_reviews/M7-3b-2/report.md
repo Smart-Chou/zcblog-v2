@@ -81,3 +81,11 @@ corepack pnpm run build:ci                         # 477 页 + 85 张海报
 ./node_modules/.bin/playwright test e2e/poster-assets.spec.ts --reporter=line
 # 判据速记：dist/poster/*.png 全部 1200×1600 且 w*4===h*3；dist/og/*.png 仍 1200×630
 ```
+
+
+## 6. Operator 收口补记（2026-11-09）
+
+- 视觉复核发现摘要面板与 tags 之间仍有约 25% 空档：route.ts 在 descBox 之外又插了一个 `flexGrow:1` 占位，剩余高度被两者平分。
+- 已改为有 tags 时占位 `flexGrow:0`，让 descBox 的 `flexGrow:1` 吃满剩余高度（OG 分支 tags=null，占位仍为 1，默认 1200×630 不受影响）。
+- `packages/og-image` build 5/5、poster 7/7 重跑通过；`docs/_reviews/M7-3b-1/poster.png` 已重生成（180,309 B）。
+- 站点侧 85 张海报由 CI `build:ci` 重新生成；本机不再重复 5m42s 构建。

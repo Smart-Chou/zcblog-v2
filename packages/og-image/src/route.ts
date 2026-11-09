@@ -500,7 +500,9 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                             : [descNode]),
                         // OG 分支：弹性空档在摘要和页脚之间（与抽取前一致）；
                         // 海报分支把 tags 行拉到同一个空档之下，形成「内容块 + 底部轨道」。
-                        { type: "div", props: { style: { flexGrow: 1 } } },
+                        // 有 tags 时不要再插弹性占位：否则 descBox 的 flexGrow 只分到
+                        // 一半剩余高度，摘要与 tags 之间会留下无意义的大空档。
+                        { type: "div", props: { style: { flexGrow: tagsSpec ? 0 : 1 } } },
                         // 海报专属：tags 胶囊行（OG 分支 tags=null 或文章无 tags 时不渲染）。
                         ...(tagsSpec && chips
                             ? [
