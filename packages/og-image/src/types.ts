@@ -73,4 +73,12 @@ export interface OgImageOptions {
     fonts?: OgImageFonts;
     /** 可选扩展：CDN 字体缓存目录，默认 `<cwd>/.astro/fonts`。 */
     fontCacheDir?: string;
+    /**
+     * 可选扩展（M7-3b）：`true` 时同一模板改渲染 **3:4 竖版分享海报 1200×1600**
+     * ——顶部站点/日期元信息行、更大标题、摘要块、tags 胶囊行、页脚 url + 作者。
+     *
+     * 缺省（或 `false`）保持现有 **1200×630** OG 图；默认分支的渲染树、字号、边距
+     * 与抽取前逐像素一致（见包内 smoke 测试的 golden sha256）。
+     */
+    poster?: boolean;
 }

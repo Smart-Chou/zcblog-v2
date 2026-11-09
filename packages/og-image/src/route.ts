@@ -30,6 +30,117 @@ const FONT_FAMILY = "Noto Sans SC";
 const DEFAULT_FONT_CACHE = path.join(process.cwd(), ".astro", "fonts");
 const OVERRIDE_HINT = "可传 options.fonts 指向本地字体文件（离线构建）";
 
+/* ───────────────────────── 版式 ───────────────────────── */
+
+/**
+ * 一套版式参数。`OG_LAYOUT` 与抽取前的字面量一一对应（逐像素基线），
+ * `POSTER_LAYOUT` 是 M7-3b 的 3:4 变体：同一模板、同一棵树，只换尺寸/字号/间距
+ * 并追加「顶部元信息行」与「tags 胶囊行」。默认分支不会渲染这两块。
+ */
+interface CardLayout {
+    width: number;
+    height: number;
+    paddingTop: number;
+    paddingX: number;
+    paddingBottom: number;
+    titleSize: number;
+    titleLineHeight: number;
+    /** 标题截断预算（字符数）：CJK 约 2x 拉丁宽度，分别给两档。 */
+    titleMaxCjk: number;
+    titleMaxLatin: number;
+    dividerWidth: number;
+    dividerHeight: number;
+    dividerMarginTop: number;
+    descSize: number;
+    descLineHeight: number;
+    descMarginTop: number;
+    descMaxChars: number;
+    /** 摘要是否包在色块里（海报用；OG 为 null = 裸文本，与抽取前一致）。 */
+    descBox: {
+        padding: string;
+        radius: number;
+        marginTop: number;
+        alpha: number;
+        /** 面板吃掉部分剩余纵向空间（文字在面板内垂直居中），让海报不留大片空底。 */
+        grow: boolean;
+        /** 面板高度上限：防止短摘要被拉成一大片空色块（null = 不限）。 */
+        maxHeight: number | null;
+    } | null;
+    /** tags 胶囊行（海报用；OG 为 null = 不渲染）。 */
+    tags: { size: number; padding: string; marginTop: number; gap: number; alpha: number } | null;
+    /** 顶部元信息行：站点标识 + 日期（海报用）。 */
+    meta: { size: number; letterSpacing: string; marginBottom: number } | null;
+    decorCircle: { top: number; right: number; size: number };
+    decorDot: { bottom: number; right: number; size: number };
+    footerSize: number;
+    footerPaddingTop: number;
+}
+
+const OG_LAYOUT: CardLayout = {
+    width: 1200,
+    height: 630,
+    paddingTop: 72,
+    paddingX: 88,
+    paddingBottom: 56,
+    titleSize: 80,
+    titleLineHeight: 1.35,
+    titleMaxCjk: 14,
+    titleMaxLatin: 42,
+    dividerWidth: 100,
+    dividerHeight: 4,
+    dividerMarginTop: 28,
+    descSize: 24,
+    descLineHeight: 1.55,
+    descMarginTop: 24,
+    descMaxChars: 100,
+    descBox: null,
+    tags: null,
+    meta: null,
+    decorCircle: { top: -60, right: -60, size: 280 },
+    decorDot: { bottom: 48, right: 88, size: 8 },
+    footerSize: 18,
+    footerPaddingTop: 24,
+};
+
+/**
+ * 1200×1600（3:4）海报。内容宽 = 1200 − 96×2 − 6（左侧竖条）= 1002px：
+ * 标题 92px/行高 1.3 → 每行约 10 个 CJK 字，截断预算 38 字 ≈ 4 行（≤478px）；
+ * 摘要 28px/行高 1.65、盒内宽 930px → 每行约 33 个 CJK 字，预算 220 字 ≈ 7 行（≤387px）。
+ * 全部预算按「最坏情况」留白：垂直占用约 1175px < 可用 1432px，中间由 flexGrow 吸收。
+ */
+const POSTER_LAYOUT: CardLayout = {
+    width: 1200,
+    height: 1600,
+    paddingTop: 88,
+    paddingX: 96,
+    paddingBottom: 80,
+    titleSize: 92,
+    titleLineHeight: 1.3,
+    titleMaxCjk: 38,
+    titleMaxLatin: 76,
+    dividerWidth: 120,
+    dividerHeight: 4,
+    dividerMarginTop: 40,
+    descSize: 28,
+    descLineHeight: 1.65,
+    descMarginTop: 0,
+    descMaxChars: 220,
+    descBox: {
+        padding: "40px 48px",
+        radius: 18,
+        marginTop: 36,
+        alpha: 0.07,
+        grow: true,
+        maxHeight: 640,
+    },
+    tags: { size: 22, padding: "10px 20px", marginTop: 40, gap: 12, alpha: 0.14 },
+    meta: { size: 20, letterSpacing: "1.4px", marginBottom: 56 },
+    decorCircle: { top: -80, right: -80, size: 360 },
+    decorDot: { bottom: 72, right: 96, size: 8 },
+    footerSize: 20,
+    footerPaddingTop: 28,
+};
+
 /* ───────────────────────── 颜色 ───────────────────────── */
 
 /**
@@ -167,6 +278,7 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
     const fonts = options.fonts ?? DEFAULT_FONT_URLS;
     const cacheDir = options.fontCacheDir ?? DEFAULT_FONT_CACHE;
     const theme = options.theme;
+    const layout = options.poster ? POSTER_LAYOUT : OG_LAYOUT;
     const background =
         theme.gradient ??
         `linear-gradient(135deg, ${theme.background} 0%, ${theme.background} 40%, ${theme.background} 100%)`;
@@ -200,12 +312,40 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
         const title = post.title || "Article";
         const description = post.description || options.site.description || "";
 
-        // CJK 字符约 2x 拉丁字符宽度，1200px 容器 80px 字号约放 12-14 个 CJK 字
+        // CJK 字符约 2x 拉丁字符宽度：1200px 容器下 OG 的 80px 字号约放 12-14 个 CJK 字，
+        // 海报的 92px 字号约放 10 个。截断预算跟着版式走（见 OG_LAYOUT / POSTER_LAYOUT），
+        // 预算取值保证「最坏情况」也放得下，宁可截断也不让文字撞页脚或溢出画布。
         const isCJK = /[一-鿿㐀-䶿]/.test(title);
-        const maxLen = isCJK ? 14 : 42;
+        const maxLen = isCJK ? layout.titleMaxCjk : layout.titleMaxLatin;
         const displayTitle = title.length > maxLen ? title.slice(0, maxLen) + "…" : title;
         const displayDesc =
-            description.length > 100 ? description.slice(0, 100) + "…" : description;
+            description.length > layout.descMaxChars
+                ? description.slice(0, layout.descMaxChars) + "…"
+                : description;
+
+        // 海报顶部元信息行的日期（YYYY-MM-DD，不做 locale 猜测；非法日期留空）
+        const metaDate =
+            post.pubDate instanceof Date && !Number.isNaN(post.pubDate.getTime())
+                ? post.pubDate.toISOString().slice(0, 10)
+                : "";
+
+        const tagsSpec = layout.tags;
+        const chips =
+            tagsSpec && Array.isArray(post.tags) && post.tags.length > 0 ? post.tags : null;
+
+        const descNode = {
+            type: "div",
+            props: {
+                children: displayDesc,
+                style: {
+                    fontSize: `${layout.descSize}px`,
+                    fontWeight: 400,
+                    color: muted,
+                    marginTop: `${layout.descMarginTop}px`,
+                    lineHeight: `${layout.descLineHeight}`,
+                },
+            },
+        };
 
         const svg = await satori(
             {
@@ -221,7 +361,7 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                         // 1382×758，页脚行与右下装饰点被挤出画布裁掉。显式 border-box 在 0.26 上
                         // 是空操作（出图与升级前逐字节一致，见 docs/_reviews/M4-9/report.md）。
                         boxSizing: "border-box",
-                        padding: "72px 88px 56px",
+                        padding: `${layout.paddingTop}px ${layout.paddingX}px ${layout.paddingBottom}px`,
                         backgroundImage: background,
                         borderLeftWidth: "6px",
                         borderLeftStyle: "solid",
@@ -229,15 +369,58 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                         position: "relative",
                     },
                     children: [
+                        // 海报专属：顶部「站点标识 / 日期」元信息行。OG 分支（meta=null）不渲染。
+                        ...(layout.meta
+                            ? [
+                                  {
+                                      type: "div",
+                                      props: {
+                                          style: {
+                                              display: "flex",
+                                              flexDirection: "row",
+                                              justifyContent: "space-between",
+                                              alignItems: "center",
+                                              marginBottom: `${layout.meta.marginBottom}px`,
+                                          },
+                                          children: [
+                                              {
+                                                  type: "div",
+                                                  props: {
+                                                      children: options.site.title,
+                                                      style: {
+                                                          fontSize: `${layout.meta.size}px`,
+                                                          fontWeight: 700,
+                                                          color: theme.accent,
+                                                          letterSpacing: layout.meta.letterSpacing,
+                                                      },
+                                                  },
+                                              },
+                                              {
+                                                  type: "div",
+                                                  props: {
+                                                      children: metaDate,
+                                                      style: {
+                                                          fontSize: `${layout.meta.size}px`,
+                                                          fontWeight: 400,
+                                                          color: subtle,
+                                                          letterSpacing: layout.meta.letterSpacing,
+                                                      },
+                                                  },
+                                              },
+                                          ],
+                                      },
+                                  },
+                              ]
+                            : []),
                         {
                             type: "div",
                             props: {
                                 style: {
                                     position: "absolute",
-                                    top: "-60px",
-                                    right: "-60px",
-                                    width: "280px",
-                                    height: "280px",
+                                    top: `${layout.decorCircle.top}px`,
+                                    right: `${layout.decorCircle.right}px`,
+                                    width: `${layout.decorCircle.size}px`,
+                                    height: `${layout.decorCircle.size}px`,
                                     borderRadius: "50%",
                                     backgroundColor: withAlpha(theme.accent, 0.07),
                                 },
@@ -248,10 +431,10 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                             props: {
                                 style: {
                                     position: "absolute",
-                                    bottom: "48px",
-                                    right: "88px",
-                                    width: "8px",
-                                    height: "8px",
+                                    bottom: `${layout.decorDot.bottom}px`,
+                                    right: `${layout.decorDot.right}px`,
+                                    width: `${layout.decorDot.size}px`,
+                                    height: `${layout.decorDot.size}px`,
                                     borderRadius: "50%",
                                     backgroundColor: withAlpha(theme.accent, 0.6),
                                 },
@@ -262,11 +445,11 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                             props: {
                                 children: displayTitle,
                                 style: {
-                                    fontSize: "80px",
+                                    fontSize: `${layout.titleSize}px`,
                                     fontWeight: 700,
                                     color: theme.foreground,
                                     letterSpacing: "-0.3px",
-                                    lineHeight: "1.35",
+                                    lineHeight: `${layout.titleLineHeight}`,
                                 },
                             },
                         },
@@ -274,28 +457,84 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                             type: "div",
                             props: {
                                 style: {
-                                    width: "100px",
-                                    height: "4px",
+                                    width: `${layout.dividerWidth}px`,
+                                    height: `${layout.dividerHeight}px`,
                                     backgroundColor: theme.accent,
-                                    marginTop: "28px",
+                                    marginTop: `${layout.dividerMarginTop}px`,
                                     borderRadius: "2px",
                                 },
                             },
                         },
-                        {
-                            type: "div",
-                            props: {
-                                children: displayDesc,
-                                style: {
-                                    fontSize: "24px",
-                                    fontWeight: 400,
-                                    color: muted,
-                                    marginTop: "24px",
-                                    lineHeight: "1.55",
-                                },
-                            },
-                        },
+                        // 海报把摘要放进色块（descBox 存在且摘要有内容时）；OG 分支和空摘要
+                        // 都走裸文本节点，与抽取前一致（空摘要仍占 marginTop，保持像素基线）。
+                        ...(layout.descBox && displayDesc.length > 0
+                            ? [
+                                  {
+                                      type: "div",
+                                      props: {
+                                          style: {
+                                              display: "flex",
+                                              ...(layout.descBox.grow
+                                                  ? {
+                                                        flexGrow: 1,
+                                                        alignItems: "center",
+                                                        ...(layout.descBox.maxHeight
+                                                            ? {
+                                                                  maxHeight: `${layout.descBox.maxHeight}px`,
+                                                              }
+                                                            : {}),
+                                                    }
+                                                  : {}),
+                                              backgroundColor: withAlpha(
+                                                  theme.accent,
+                                                  layout.descBox.alpha,
+                                              ),
+                                              borderRadius: `${layout.descBox.radius}px`,
+                                              padding: layout.descBox.padding,
+                                              marginTop: `${layout.descBox.marginTop}px`,
+                                          },
+                                          children: [descNode],
+                                      },
+                                  },
+                              ]
+                            : [descNode]),
+                        // OG 分支：弹性空档在摘要和页脚之间（与抽取前一致）；
+                        // 海报分支把 tags 行拉到同一个空档之下，形成「内容块 + 底部轨道」。
                         { type: "div", props: { style: { flexGrow: 1 } } },
+                        // 海报专属：tags 胶囊行（OG 分支 tags=null 或文章无 tags 时不渲染）。
+                        ...(tagsSpec && chips
+                            ? [
+                                  {
+                                      type: "div",
+                                      props: {
+                                          style: {
+                                              display: "flex",
+                                              flexDirection: "row",
+                                              flexWrap: "wrap",
+                                              gap: `${tagsSpec.gap}px`,
+                                              marginTop: `${tagsSpec.marginTop}px`,
+                                          },
+                                          children: chips.map((tag) => ({
+                                              type: "div",
+                                              props: {
+                                                  children: `#${tag}`,
+                                                  style: {
+                                                      fontSize: `${tagsSpec.size}px`,
+                                                      fontWeight: 400,
+                                                      color: theme.foreground,
+                                                      padding: tagsSpec.padding,
+                                                      borderRadius: "999px",
+                                                      backgroundColor: withAlpha(
+                                                          theme.accent,
+                                                          tagsSpec.alpha,
+                                                      ),
+                                                  },
+                                              },
+                                          })),
+                                      },
+                                  },
+                              ]
+                            : []),
                         {
                             type: "div",
                             props: {
@@ -303,7 +542,7 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                                     borderTopWidth: "1px",
                                     borderTopStyle: "solid",
                                     borderTopColor: divider,
-                                    paddingTop: "24px",
+                                    paddingTop: `${layout.footerPaddingTop}px`,
                                     display: "flex",
                                     flexDirection: "row",
                                     justifyContent: "space-between",
@@ -315,7 +554,7 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                                         props: {
                                             children: siteUrl,
                                             style: {
-                                                fontSize: "18px",
+                                                fontSize: `${layout.footerSize}px`,
                                                 fontWeight: 400,
                                                 color: subtle,
                                                 letterSpacing: "0.2px",
@@ -327,7 +566,7 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                                         props: {
                                             children: options.site.title,
                                             style: {
-                                                fontSize: "18px",
+                                                fontSize: `${layout.footerSize}px`,
                                                 fontWeight: 400,
                                                 color: subtle,
                                             },
@@ -340,8 +579,8 @@ export function createOgImageRoute(options: OgImageOptions): APIRoute {
                 },
             },
             {
-                width: 1200,
-                height: 630,
+                width: layout.width,
+                height: layout.height,
                 fonts: [
                     { name: FONT_FAMILY, data: regular, weight: 400 },
                     { name: FONT_FAMILY, data: bold, weight: 700 },
