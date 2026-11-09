@@ -33,6 +33,43 @@
 }
 
 /* =========================================
+   Waline 皮肤：全断点（M7-2b）
+   =========================================
+   M7-2a 只在移动抽屉里换过皮；桌面内联评论区仍是 Waline 默认的 #27ae60 绿 +
+   #999 灰，1440 打开态有 8 个 color-contrast（2.7–2.9:1）和 1 个
+   aria-prohibited-attr（死上传 label）。本卡把同一套覆盖提到全局：只改颜色
+   变量，不动结构、字号、间距与交互。
+
+   变量声明在 `[data-waline]` 上（Waline 自己的声明也在这层，必须用
+   `#comment-wrapper #waline [data-waline]` 叠够特异性才压得住）。值全部
+   引用站内 token，`[data-theme="dark"]` 下会自动跟着翻转。 */
+
+#comment-wrapper #waline [data-waline] {
+    --waline-theme-color: var(--color-accent);
+    --waline-active-color: var(--color-link);
+    --waline-color: var(--color-body);
+    --waline-bg-color: var(--color-bg-surface);
+    --waline-bg-color-light: var(--color-surface-secondary);
+    --waline-bg-color-hover: var(--color-hover);
+    --waline-border-color: var(--color-border);
+    --waline-disable-bg-color: var(--color-surface-secondary);
+    --waline-disable-color: var(--color-muted);
+    --waline-info-color: var(--color-muted);
+    --waline-info-bg-color: var(--color-surface-secondary);
+    --waline-light-grey: var(--color-muted);
+    --waline-dark-grey: var(--color-muted);
+    --waline-bq-color: var(--color-surface-secondary);
+    --waline-badge-color: var(--color-accent);
+}
+
+/* 图片上传仍是「暂未开放」的死入口（imageUploader 直接 reject），
+   其 <label aria-label> 没有合法 role，会在 axe 报 aria-prohibited-attr。
+   全断点隐藏（`display: none` 的子树不进无障碍树，规则随之消失）。 */
+#comment-wrapper #waline label[for="wl-image-upload"] {
+    display: none;
+}
+
+/* =========================================
    移动抽屉（≤640）
    ========================================= */
 
@@ -234,39 +271,6 @@
 
     #comment-wrapper #waline.visible {
         display: block;
-    }
-
-    /* ── Waline 皮肤：只在移动抽屉里换成站内语义色 ──────────────
-       Waline 默认皮是 #27ae60 绿 + #999 灰，放在这套暖色纸质界面上既突兀
-       也过不了对比度（#999 on #fffcf8 = 2.8:1，见 M7-2a 报告）。这里只覆盖
-       CSS 变量，不动 Waline 的结构与交互；桌面内联评论区保持原样（本卡不改桌面）。
-
-       变量声明在 `[data-waline]` 上（Waline 自己的声明也在这层，必须用
-       `#comment-wrapper #waline [data-waline]` 叠够特异性才压得住）。值全部
-       引用站内 token，`[data-theme="dark"]` 下会自动跟着翻转。 */
-    #comment-wrapper #waline [data-waline] {
-        --waline-theme-color: var(--color-accent);
-        --waline-active-color: var(--color-link);
-        --waline-color: var(--color-body);
-        --waline-bg-color: var(--color-bg-surface);
-        --waline-bg-color-light: var(--color-surface-secondary);
-        --waline-bg-color-hover: var(--color-hover);
-        --waline-border-color: var(--color-border);
-        --waline-disable-bg-color: var(--color-surface-secondary);
-        --waline-disable-color: var(--color-muted);
-        --waline-info-color: var(--color-muted);
-        --waline-info-bg-color: var(--color-surface-secondary);
-        --waline-light-grey: var(--color-muted);
-        --waline-dark-grey: var(--color-muted);
-        --waline-bq-color: var(--color-surface-secondary);
-        --waline-badge-color: var(--color-accent);
-    }
-
-    /* 图片上传仍是「暂未开放」的死入口（imageUploader 直接 reject），
-       其 <label aria-label> 没有合法 role，会在 axe 报 aria-prohibited-attr。
-       移动抽屉直接隐藏，桌面保持原样（本卡不改桌面皮肤）。 */
-    #comment-wrapper #waline label[for="wl-image-upload"] {
-        display: none;
     }
 }
 

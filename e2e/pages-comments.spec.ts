@@ -24,6 +24,10 @@ type Theme = (typeof THEMES)[number];
 const SHOTS = process.env.M72A_SHOTS === "1";
 const SHOT_DIR = path.join(process.cwd(), "docs/_reviews/M7-2a/screens");
 
+/** M7-2b：桌面 1440 打开态证据截图（`M72B_SHOTS=1` 时写入 docs/_reviews/M7-2b/screens/） */
+const SHOTS_B = process.env.M72B_SHOTS === "1";
+const SHOT_DIR_B = path.join(process.cwd(), "docs/_reviews/M7-2b/screens");
+
 const AXE_SOURCE = readFileSync(
     path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
     "utf8",
@@ -109,6 +113,12 @@ async function shot(page: Page, name: string, fullPage = false) {
     if (!SHOTS) return;
     mkdirSync(SHOT_DIR, { recursive: true });
     await page.screenshot({ path: path.join(SHOT_DIR, `${name}.png`), fullPage });
+}
+
+async function shotDesktop(page: Page, name: string, fullPage = false) {
+    if (!SHOTS_B) return;
+    mkdirSync(SHOT_DIR_B, { recursive: true });
+    await page.screenshot({ path: path.join(SHOT_DIR_B, `${name}.png`), fullPage });
 }
 
 /* ─────────────────────────── 390：关闭态 ─────────────────────────── */
@@ -431,11 +441,56 @@ for (const theme of THEMES) {
     });
 }
 
-/* 桌面（1440）内联评论区不跑 axe 门禁：
-   卡面要求「桌面 1440 评论仍是正文流内联，不改」，而 Waline 3.16 自带皮肤在
-   桌面这段 DOM 上的对比度/aria 问题（#999 像素灰、#27ae60 绿底白字、上传 label
-   的 aria-label）是既有状态，本卡不动它 —— 记 M7-2a 报告「遗留」，留给 M7-2b
-   Waline 换皮卡统一处理。 */
+/* 桌面（1440）打开态 axe 门禁（M7-2b）：
+   M7-2a 把 Waline 皮肤 token 与死上传隐藏只放在 ≤640；桌面内联评论区因此仍有
+   8 个 color-contrast（#999 / #27ae60，2.7–2.9:1）+ 1 个 aria-prohibited-attr。
+   M7-2b 把同一套覆盖提到全断点（只改颜色变量 + 隐藏死入口），桌面也纳入门禁。 */
+
+for (const theme of THEMES) {
+    test(`1440 打开态 axe（${theme}）serious/critical = 0`, async ({ page }) => {
+        await openArticle(page, DESKTOP, theme);
+        await clickToggleByDom(page);
+        await expect(page.locator("#waline-toggle")).toHaveAttribute("aria-expanded", "true");
+        await page.waitForTimeout(3000); // 等 Waline 把表单/列表渲染完，别审半截 DOM
+
+        // 桌面皮肤换了颜色，但形态仍是内联：无 fixed 遮罩、不锁滚动、无 dialog 语义
+        const structure = await page.evaluate(() => {
+            const waline = document.getElementById("waline")!;
+            return {
+                fixedCount: [...document.querySelectorAll("#comment-wrapper *")].filter(
+                    (el) => getComputedStyle(el).position === "fixed",
+                ).length,
+                htmlClass: document.documentElement.classList.contains("comment-drawer-open"),
+                role: document.getElementById("waline-drawer")!.getAttribute("role"),
+                widthRatio:
+                    waline.getBoundingClientRect().width /
+                    document.getElementById("comment-wrapper")!.getBoundingClientRect().width,
+                uploadLabelDisplay: (() => {
+                    const el = document.querySelector<HTMLElement>(
+                        '#waline label[for="wl-image-upload"]',
+                    );
+                    return el ? getComputedStyle(el).display : "absent";
+                })(),
+            };
+        });
+        expect(structure.fixedCount).toBe(0);
+        expect(structure.htmlClass).toBe(false);
+        expect(structure.role).toBeNull();
+        expect(structure.widthRatio).toBeCloseTo(1, 2);
+        expect(structure.uploadLabelDisplay).toBe("none");
+
+        const violations = await axeViolations(page, "#comment-wrapper");
+        const blocking = violations.filter(
+            (violation) => violation.impact === "serious" || violation.impact === "critical",
+        );
+        expect(blocking, `[comments:1440:${theme}] ${JSON.stringify(blocking)}`).toEqual([]);
+
+        await page.locator("#waline").scrollIntoViewIfNeeded();
+        await page.evaluate(() => window.scrollBy(0, -72));
+        await page.waitForTimeout(200);
+        await shotDesktop(page, `m72b-1440-open-${theme}`);
+    });
+}
 
 /* ─────────────────────────── 截图（暗色关闭态） ─────────────────────────── */
 
