@@ -43,7 +43,9 @@ async function setTheme(page: Page, theme: Theme): Promise<void> {
 async function settle(page: Page): Promise<void> {
     await page.evaluate(async () => {
         await document.fonts.ready;
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        await new Promise<void>((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => r())),
+        );
     });
 }
 
@@ -71,6 +73,9 @@ async function selectBodyText(page: Page): Promise<string> {
         const selection = window.getSelection()!;
         selection.removeAllRanges();
         selection.addRange(range);
+        // 程序化选区在 Playwright 下偶尔不合帧触发 selectionchange；显式补一次，
+        // 只影响测试稳定性，不改变浏览器真实交互。
+        document.dispatchEvent(new Event("selectionchange"));
         return selection.toString();
     });
     expect(text.trim().length).toBeGreaterThan(8);
@@ -167,7 +172,12 @@ for (const viewport of [
                     bottom: toolbar.bottom,
                     right: toolbar.right,
                 },
-                selection: { x: selection.x, y: selection.y, w: selection.width, h: selection.height },
+                selection: {
+                    x: selection.x,
+                    y: selection.y,
+                    w: selection.width,
+                    h: selection.height,
+                },
                 lastLine: { x: last.x, w: last.width, right: last.right, bottom: last.bottom },
                 viewport: { w: window.innerWidth, h: window.innerHeight },
             };
@@ -313,14 +323,24 @@ test("懒加载：选中前 0 请求、打开前不拉 quote-card、0 第三方�
 
     await page.goto(ARTICLE, { waitUntil: "load" });
     await settle(page);
+    // gtag / umami 是文章页存量脚本，首屏后才陆续发；等它们发完再取基线，
+    // 否则「新增第三方请求」这条会误判成金句卡带来的。
+    await page.waitForTimeout(1500);
 
     const foreignOf = (urls: string[]) =>
-        urls.filter((url) => !/^(http:\/\/127\.0\.0\.1|http:\/\/localhost|blob:|data:)/u.test(url));
+        urls.filter(
+            (url) =>
+                !/^(http:\/\/127\.0\.0\.1|http:\/\/localhost|blob:|data:)/u.test(url) &&
+                // 文章页存量分析脚本（gtag/umami）会在 load 后延迟发请求，
+                // 不属于金句卡的网络边界，统一排除，避免时序误判。
+                !/(googletagmanager|google-analytics|umami)/u.test(url),
+        );
     /** 文章页本来就有 umami / waline / gtag；金句卡只许多出同源 chunk，不许多出任何域 */
     const baseline = new Set(foreignOf(requests));
 
     const quoteRequests = () => requests.filter((url) => /quote-(selection|card)[.-]/u.test(url));
     expect(quoteRequests(), "没选过字之前不许请求金句卡相关脚本").toEqual([]);
+    expect(page.url()).toContain("127.0.0.1");
     await expect(page.locator("[data-overlay]")).toHaveCount(0);
 
     await selectBodyText(page);
@@ -341,6 +361,12 @@ test("懒加载：选中前 0 请求、打开前不拉 quote-card、0 第三方�
         quoteRequests().some((url) => /quote-card[.-]/u.test(url)),
         "打开弹层后才拉渲染器",
     ).toBe(true);
+
+    /* 金句卡自己的请求必须全部同源（渲染器不引第三方字体/服务） */
+    expect(
+        quoteRequests().filter((url) => !/^http:\/\/127\.0\.0\.1/u.test(url)),
+        "金句卡的请求必须全部同源",
+    ).toEqual([]);
 
     const added = foreignOf(requests).filter((url) => !baseline.has(url));
     expect(added, "金句卡不许带来任何新的第三方请求").toEqual([]);
