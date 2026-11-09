@@ -1,0 +1,275 @@
+/* =========================================
+   Comments — M7-2a · 移动评论抽屉（≤640）
+   =========================================
+   一套 DOM 两个断点（与 M6-3 目录抽屉同一套写法）：
+
+     桌面（≥641）：抽屉外壳全部 `display: contents` —— 不产生任何盒子，
+                   评论仍是正文流里的内联块，版面与改动前逐像素一致；
+                   `#comment-wrapper` / `#waline-toggle` / `#waline` 的基线
+                   规则继续由 `src/styles/article.css` 提供（本文件不重复声明）。
+
+     移动（≤640）：外壳变成贴底的 sheet（88dvh），顶部工具条 + 可滚动正文。
+                   关闭态 `visibility: hidden` + `translateY(100%)`，不占视口、
+                   不进无障碍树、不拦滚动；打开态由 JS 置 `data-state="open"`。
+
+   为什么关闭态不用 `display: none`：抽屉要有「从底部升起」的过渡，display 无法
+   参与过渡；`visibility` 可以在关闭后把子树移出无障碍树与命中测试，同时保留动画。
+
+   样式只在本组件被渲染的页面生效（WalineComment.astro 里 `import`），
+   不改 `article.css`、不动 `overlays.css`。
+   ========================================= */
+
+/* ---------- 桌面基线：外壳零占位 ---------- */
+
+.comment-drawer,
+.comment-drawer__sheet,
+.comment-drawer__body {
+    display: contents;
+}
+
+.comment-drawer__scrim,
+.comment-drawer__bar {
+    display: none;
+}
+
+/* =========================================
+   移动抽屉（≤640）
+   ========================================= */
+
+@media screen and (max-width: 640px) {
+    /* 打开时锁页面滚动：滚动位置在 JS 里记录/回填，关闭后原样恢复。
+       `scrollbar-gutter: stable`（base.css，仅 hover:hover 桌面）会一直占着 15px
+       槽位，导致 fixed 抽屉只有 375 宽、右侧露一条缝；锁滚动期间收回槽位。 */
+    html.comment-drawer-open,
+    html.comment-drawer-open body {
+        overflow: hidden;
+    }
+
+    html.comment-drawer-open {
+        scrollbar-gutter: auto;
+    }
+
+    .comment-drawer {
+        position: fixed;
+        inset: 0;
+        /* 1100 = overlays.css 的弹层基座；页头是 z-index 100，
+           抽屉必须在它之上，否则顶部 12% 的遮罩会被页头抢走点击。 */
+        z-index: 1100;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        visibility: hidden;
+        pointer-events: none;
+        /* 关闭动画跑完再隐藏子树；打开时立刻可见（下面把 delay 归零） */
+        transition: visibility 0s linear var(--duration-normal);
+    }
+
+    .comment-drawer[data-state="open"] {
+        visibility: visible;
+        pointer-events: auto;
+        transition-delay: 0s;
+    }
+
+    .comment-drawer__scrim {
+        display: block;
+        position: absolute;
+        inset: 0;
+        background-color: var(--color-bg-scrim);
+        opacity: 0;
+        transition: opacity var(--duration-normal) var(--ease-out);
+    }
+
+    .comment-drawer[data-state="open"] .comment-drawer__scrim {
+        opacity: 1;
+    }
+
+    .comment-drawer__sheet {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        inline-size: 100%;
+        block-size: 88dvh;
+        max-block-size: 88dvh;
+        overflow: hidden;
+        /* #comment-wrapper 是 text-align:center（article.css），抽屉里的文案一律左对齐 */
+        text-align: start;
+        border-start-start-radius: var(--radius-xl);
+        border-start-end-radius: var(--radius-xl);
+        background-color: var(--color-surface);
+        color: var(--color-body);
+        box-shadow: var(--shadow-5);
+        transform: translateY(100%);
+        transition: transform var(--duration-normal) var(--ease-out);
+    }
+
+    .comment-drawer[data-state="open"] .comment-drawer__sheet {
+        transform: none;
+    }
+
+    /* 滑入的起始帧（Chrome 117+ / Safari 17.4+）；不支持时退化为直接出现 */
+    @starting-style {
+        .comment-drawer[data-state="open"] .comment-drawer__sheet {
+            transform: translateY(100%);
+        }
+    }
+
+    /* ---------- 顶部工具条 ---------- */
+
+    .comment-drawer__bar {
+        display: block;
+        flex: none;
+        padding: var(--space-2) var(--space-5) var(--space-4);
+        border-block-end: 1px solid var(--color-border-subtle);
+        background-color: var(--color-surface);
+    }
+
+    /* 抓手条：告诉用户这是一张可下滑的 sheet（不做拖拽手势，纯视觉） */
+    .comment-drawer__grip {
+        display: block;
+        inline-size: 40px;
+        block-size: 4px;
+        margin: var(--space-2) auto var(--space-3);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-border-default);
+    }
+
+    .comment-drawer__head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .comment-drawer__heading {
+        min-inline-size: 0;
+    }
+
+    .comment-drawer__title {
+        margin: 0;
+        font-family: var(--font-heading);
+        font-size: var(--text-2xl);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--leading-snug);
+        letter-spacing: var(--tracking-tight);
+        color: var(--color-heading);
+    }
+
+    .comment-drawer__meta {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin: 2px 0 0;
+        overflow: hidden;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        text-transform: uppercase;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        color: var(--color-muted);
+    }
+
+    .comment-drawer__dot {
+        flex: none;
+        inline-size: 6px;
+        block-size: 6px;
+        border-radius: var(--radius-pill);
+        background-color: var(--color-accent);
+    }
+
+    /* `#comment-wrapper` 前缀是必要的：`.post button:focus-visible`（pages/article.css）
+       的 (0,2,1) 会压过裸类选择器，把圆角改回 4px —— 抽屉打开时焦点恰好在这个键上。 */
+    #comment-wrapper .comment-drawer__close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 40px;
+        block-size: 40px;
+        padding: 0;
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-bg-surface);
+        color: var(--color-fg-default);
+        cursor: pointer;
+        transition: background-color var(--duration-fast) var(--ease-out);
+    }
+
+    @media (hover: hover) {
+        #comment-wrapper .comment-drawer__close:hover {
+            background-color: var(--color-hover);
+        }
+    }
+
+    #comment-wrapper .comment-drawer__close:focus-visible {
+        border-radius: var(--radius-pill);
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    /* ---------- 可滚动正文 ---------- */
+
+    .comment-drawer__body {
+        display: block;
+        flex: 1 1 auto;
+        min-block-size: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: var(--space-4) var(--space-5) max(env(safe-area-inset-bottom), var(--space-6));
+        scrollbar-width: thin;
+    }
+
+    /* 抽屉里的 #waline 不再是「正文流里的 38rem 占位块」，交给外层滚动容器。
+       选择器叠一层 `#comment-wrapper` 压过 article.css 的 `#waline`。 */
+    #comment-wrapper #waline {
+        display: none;
+        min-block-size: 0;
+        max-inline-size: none;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+        content-visibility: visible;
+        contain-intrinsic-size: auto 20rem;
+    }
+
+    #comment-wrapper #waline.visible {
+        display: block;
+    }
+
+    /* ── Waline 皮肤：只在移动抽屉里换成站内语义色 ──────────────
+       Waline 默认皮是 #27ae60 绿 + #999 灰，放在这套暖色纸质界面上既突兀
+       也过不了对比度（#999 on #fffcf8 = 2.8:1，见 M7-2a 报告）。这里只覆盖
+       CSS 变量，不动 Waline 的结构与交互；桌面内联评论区保持原样（本卡不改桌面）。
+
+       变量声明在 `[data-waline]` 上（Waline 自己的声明也在这层，必须用
+       `#comment-wrapper #waline [data-waline]` 叠够特异性才压得住）。值全部
+       引用站内 token，`[data-theme="dark"]` 下会自动跟着翻转。 */
+    #comment-wrapper #waline [data-waline] {
+        --waline-theme-color: var(--color-accent);
+        --waline-active-color: var(--color-link);
+        --waline-color: var(--color-body);
+        --waline-bg-color: var(--color-bg-surface);
+        --waline-bg-color-light: var(--color-surface-secondary);
+        --waline-bg-color-hover: var(--color-hover);
+        --waline-border-color: var(--color-border);
+        --waline-disable-bg-color: var(--color-surface-secondary);
+        --waline-disable-color: var(--color-muted);
+        --waline-info-color: var(--color-muted);
+        --waline-info-bg-color: var(--color-surface-secondary);
+        --waline-light-grey: var(--color-muted);
+        --waline-dark-grey: var(--color-muted);
+        --waline-bq-color: var(--color-surface-secondary);
+        --waline-badge-color: var(--color-accent);
+    }
+}
+
+/* ---------- 降低动态偏好 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .comment-drawer,
+    .comment-drawer__scrim,
+    .comment-drawer__sheet,
+    .comment-drawer__close {
+        transition: none;
+    }
+}

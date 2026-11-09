@@ -1,4 +1,5 @@
 ---
+import "~/styles/comments.css";
 import { waline } from "~/config";
 
 interface Props {
@@ -9,13 +10,55 @@ const { locale = "zh" } = Astro.props;
 const isEn = locale === "en";
 ---
 
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->{
+<!-- 样式基线在 src/styles/article.css（D-0085）；M7-2a 的移动抽屉外壳在 src/styles/comments.css -->{
     waline.enable && (
         <div id="comment-wrapper" data-waline-locale={locale}>
-            <button id="waline-toggle" type="button">
+            <button id="waline-toggle" type="button" aria-expanded="false" aria-controls="waline">
                 {isEn ? "Show Comments" : "展开评论"}
             </button>
-            <div id="waline" />
+            {/* M7-2a：移动端（≤640）是贴底抽屉，桌面（≥641）整个外壳
+                `display: contents`，评论仍是正文流内联块 —— 一套 DOM 两形态。 */}
+            <div id="waline-drawer" class="comment-drawer" data-state="closed">
+                <div class="comment-drawer__scrim" data-drawer-dismiss aria-hidden="true" />
+                <div class="comment-drawer__sheet">
+                    <div class="comment-drawer__bar">
+                        <span class="comment-drawer__grip" aria-hidden="true" />
+                        <div class="comment-drawer__head">
+                            <div class="comment-drawer__heading">
+                                <h2 class="comment-drawer__title" id="waline-drawer-title">
+                                    {isEn ? "Comments" : "评论"}
+                                </h2>
+                                <p class="comment-drawer__meta">
+                                    <span class="comment-drawer__dot" aria-hidden="true" />
+                                    Waline · {isEn ? "loaded on demand" : "按需加载"}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="comment-drawer__close"
+                                data-drawer-dismiss
+                                aria-label={isEn ? "Close comments" : "关闭评论"}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.6"
+                                    stroke-linecap="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M4 4l8 8M12 4l-8 8" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="comment-drawer__body" id="waline-drawer-body">
+                        <div id="waline" />
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
@@ -29,6 +72,7 @@ const isEn = locale === "en";
     // 评论实例懒加载（2026-10-03）：只用到 destroy()，用结构化最小接口
     let walineInstance: { destroy: () => void } | null = null;
     let walineInitializing = false;
+    let walineObserver: MutationObserver | null = null;
 
     // Waline 样式改为点击展开时注入（Astro 会把脚本里 import 的 CSS 静态挂到页面，
     // 用 ?url 拿资源地址、运行时按需插入 <link>，避免文章页白载 36KB 评论样式）
@@ -210,12 +254,34 @@ const isEn = locale === "en";
             // 注：入口守卫（上方 walineInitializing || walineInstance 判断）已保证此处实例必为空，
             // 旧的「销毁旧实例」防御分支为死代码（TS 亦报 never），2026-10 审计中移除。
             walineInstance = init(walineConfig);
+            watchWalineToolbar(walineElement);
         } finally {
             walineInitializing = false;
         }
     }
 
+    // Waline 3.x 把「上传图片」渲染成 <label aria-label>（无合法 role），而本站
+    // `imageUploader` 是直接 reject 的「暂未开放」—— 既是死按钮，又触发 axe
+    // aria-prohibited-attr。移动抽屉里把它摘掉；桌面内联评论区保持原样（本卡不改桌面）。
+    function pruneDisabledWalineControls() {
+        if (!isMobileDrawer()) return;
+        document
+            .querySelectorAll<HTMLElement>('#waline label[for="wl-image-upload"]')
+            .forEach((label) => {
+                label.remove();
+            });
+    }
+
+    function watchWalineToolbar(root: HTMLElement) {
+        pruneDisabledWalineControls();
+        walineObserver?.disconnect();
+        walineObserver = new MutationObserver(() => pruneDisabledWalineControls());
+        walineObserver.observe(root, { childList: true, subtree: true });
+    }
+
     function destroyWaline() {
+        walineObserver?.disconnect();
+        walineObserver = null;
         if (walineInstance) {
             try {
                 walineInstance.destroy();
@@ -224,6 +290,66 @@ const isEn = locale === "en";
             }
             walineInstance = null;
         }
+    }
+
+    // ── M7-2a：移动评论抽屉（≤640）。桌面走原来的内联展开，一行行为不变 ──
+    const MOBILE_QUERY = "(max-width: 640px)";
+    const FOCUSABLE =
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    let savedScrollY = 0;
+
+    function isMobileDrawer() {
+        return window.matchMedia(MOBILE_QUERY).matches;
+    }
+
+    function isDrawerOpen() {
+        return document.getElementById("waline-drawer")?.dataset.state === "open";
+    }
+
+    // 按钮文案 / active / aria-expanded / #waline.visible 统一由这里同步，
+    // 避免「抽屉关了但按钮还写着收起评论」这类半截状态。
+    function syncCommentUi(visible: boolean) {
+        const toggle = document.getElementById("waline-toggle");
+        const walineEl = document.getElementById("waline");
+        if (!toggle || !walineEl) return;
+        const labels = toggleLabels[getWalineLocale()] || toggleLabels.zh;
+        walineEl.classList.toggle("visible", visible);
+        toggle.classList.toggle("active", visible);
+        toggle.textContent = visible ? labels.hide : labels.show;
+        toggle.setAttribute("aria-expanded", String(visible));
+    }
+
+    function openCommentDrawer() {
+        const drawer = document.getElementById("waline-drawer");
+        if (!drawer || drawer.dataset.state === "open") return;
+        // 关掉页面滚动前先记住位置，关闭时原样回填
+        savedScrollY = window.scrollY;
+        drawer.dataset.state = "open";
+        // 只在小屏打开时才把外壳标成 dialog：桌面它是正文流的一部分
+        drawer.setAttribute("role", "dialog");
+        drawer.setAttribute("aria-modal", "true");
+        drawer.setAttribute("aria-labelledby", "waline-drawer-title");
+        document.documentElement.classList.add("comment-drawer-open");
+        drawer
+            .querySelector<HTMLButtonElement>(".comment-drawer__close")
+            ?.focus({ preventScroll: true });
+    }
+
+    function closeCommentDrawer(options: { restoreFocus?: boolean; restoreScroll?: boolean } = {}) {
+        const drawer = document.getElementById("waline-drawer");
+        const toggle = document.getElementById("waline-toggle");
+        if (!drawer) return;
+        const wasOpen = drawer.dataset.state === "open";
+        drawer.dataset.state = "closed";
+        drawer.removeAttribute("role");
+        drawer.removeAttribute("aria-modal");
+        drawer.removeAttribute("aria-labelledby");
+        document.documentElement.classList.remove("comment-drawer-open");
+        syncCommentUi(false);
+        if (!wasOpen) return;
+        if (options.restoreScroll !== false) window.scrollTo(0, savedScrollY);
+        if (options.restoreFocus !== false) toggle?.focus({ preventScroll: true });
     }
 
     function setupWalineToggle() {
@@ -235,18 +361,70 @@ const isEn = locale === "en";
         toggle.dataset.walineReady = "true";
 
         toggle.addEventListener("click", () => {
-            const labels = toggleLabels[getWalineLocale()] || toggleLabels.zh;
+            // 移动：按钮 = 打开抽屉；桌面：按钮 = 原地展开（原行为）
+            if (isMobileDrawer()) {
+                if (isDrawerOpen()) {
+                    closeCommentDrawer();
+                    return;
+                }
+                syncCommentUi(true);
+                openCommentDrawer();
+                if (!walineInstance) {
+                    requestAnimationFrame(() => {
+                        doInitWaline();
+                    });
+                }
+                return;
+            }
+
             if (walineInstance) {
-                const visible = walineEl.classList.toggle("visible");
-                toggle.classList.toggle("active", visible);
-                toggle.textContent = visible ? labels.hide : labels.show;
+                syncCommentUi(!walineEl.classList.contains("visible"));
             } else {
-                walineEl.classList.add("visible");
-                toggle.classList.add("active");
-                toggle.textContent = labels.hide;
+                syncCommentUi(true);
                 requestAnimationFrame(() => {
                     doInitWaline();
                 });
+            }
+        });
+
+        const drawer = document.getElementById("waline-drawer");
+        if (!drawer || drawer.dataset.drawerReady) return;
+        drawer.dataset.drawerReady = "true";
+
+        drawer.querySelectorAll<HTMLElement>("[data-drawer-dismiss]").forEach((el) => {
+            el.addEventListener("click", () => {
+                closeCommentDrawer();
+            });
+        });
+
+        // 焦点陷阱：Tab / Shift+Tab 在抽屉内循环
+        drawer.addEventListener("keydown", (event) => {
+            if (event.key !== "Tab" || drawer.dataset.state !== "open") return;
+            const focusables = Array.from(drawer.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+                (el) => el.offsetWidth > 0 || el.offsetHeight > 0,
+            );
+            if (focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape" || drawer.dataset.state !== "open") return;
+            event.preventDefault();
+            closeCommentDrawer();
+        });
+
+        // 视口跨过断点：桌面不该残留 fixed 遮罩
+        window.matchMedia(MOBILE_QUERY).addEventListener("change", (event) => {
+            if (!event.matches && drawer.dataset.state === "open") {
+                closeCommentDrawer({ restoreFocus: false });
             }
         });
     }
@@ -257,10 +435,9 @@ const isEn = locale === "en";
         const walineEl = document.getElementById("waline");
         if (!toggle || !walineEl) return;
 
-        // 重置 UI 状态
-        walineEl.classList.remove("visible");
-        toggle.classList.remove("active");
-        toggle.textContent = (toggleLabels[getWalineLocale()] || toggleLabels.zh).show;
+        // 重置 UI 状态（抽屉/内联两种形态都要复位，回填滚动不该跨页生效）
+        closeCommentDrawer({ restoreFocus: false, restoreScroll: false });
+        syncCommentUi(false);
         toggle.style.display = "";
 
         setupWalineToggle();
@@ -268,6 +445,7 @@ const isEn = locale === "en";
 
     // View Transitions 切换前清理，避免 AbortError
     document.addEventListener("astro:before-swap", () => {
+        closeCommentDrawer({ restoreFocus: false, restoreScroll: false });
         destroyWaline();
     });
 
