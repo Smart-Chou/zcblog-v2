@@ -1,0 +1,417 @@
+---
+/**
+ * /design/components/quote-card/ — 金句卡 Canvas 渲染器 · 内部演示页（M7-3d-1）
+ *
+ * 这是一张**内部演示页**，不是产品页面：
+ *   · 不接文章正文选中（M7-3d 后续刀才做工具条），不新增任何公开路由或按钮；
+ *   · 文案是写死的 fixture（`data-quote` / `data-title` / `data-author`），页面脚本只读不改；
+ *   · noindex，不进主导航，也不出现在 `_docs` 的组件清单里（那份清单是 12 atom + 23 UI 的口径，
+ *     本页演示的是渲染器，不是组件契约）。
+ *
+ * 与 `design/index.astro` 同构：手写 html 壳 + 只 import tokens.css / fonts.css，
+ * 不套 BaseLayout —— 演示页要的是「画布就是全部」，站点导航与 swup 只会干扰
+ * 「0 外部请求」这条验收（本页所有请求都留在同源，且构建后只有 CSS/woff2 两个本地资源）。
+ */
+import "../../../styles/tokens/tokens.css";
+import "../../../styles/fonts.css";
+
+/** 固定 fixture：一段真实口吻的引文，长度足以走满三行（验收要看得见断行规则）。 */
+const FIXTURE = {
+    quote: "把博客当成一个产品来做，你会开始计较每一次首屏、每一行文案；把它当成一篇日记来写，你只会计较自己有没有说实话。",
+    title: "把博客当成一个产品来做",
+    author: "周聪",
+    kicker: "金句 · QUOTE",
+    site: "marxchou.com",
+};
+
+const CONTRACT = [
+    {
+        label: "画布",
+        value: "1080 × 1440（3:4），1:1 像素，不做 DPR 缩放",
+    },
+    {
+        label: "输入",
+        value: "quote / title / author（另有可选的 kicker 与 site）",
+    },
+    {
+        label: "输出",
+        value: "canvas.toBlob('image/png') → object URL → <a download>",
+    },
+    {
+        label: "字体",
+        value: "只读系统字体栈 + 本站自托管 woff2，不加载任何新字体",
+    },
+    {
+        label: "网络",
+        value: "0 第三方请求；卡片的每个像素都在本地画出来",
+    },
+    {
+        label: "不做的",
+        value: "不接文章选中、不做抽屉、不改文章正文与分享弹层",
+    },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>金句卡 Canvas 渲染器 · 内部演示</title>
+    </head>
+    <body>
+        <header class="page-head">
+            <p class="page-kicker">Design system · 内部演示 · M7-3d-1</p>
+            <h1 class="page-title">金句卡 Canvas 渲染器</h1>
+            <p class="page-lead">
+                一段引文、一个出处、一个署名，在浏览器本地画成 1080×1440（3:4）的 PNG。
+                不引第三方库、不发任何网络请求。这一页只用来证明渲染器成立：
+                <strong>还没有接文章选中</strong>，文章页上的入口会在 M7-3d 的下一刀出现。
+            </p>
+            <nav class="page-nav" aria-label="相关页面">
+                <a href="/design/">文档站首页</a>
+                <a href="/article/blog-as-a-product/">一篇文章（看现有分享入口）</a>
+            </nav>
+        </header>
+
+        <main class="page-main">
+            <section class="page-section" aria-labelledby="stage-title">
+                <h2 id="stage-title" class="page-h2">生成态</h2>
+                <p class="page-hint">
+                    进页面就自动画一张；下面按钮重画，下载走 <code class="tok">canvas.toBlob</code>
+                    的 PNG，文件名固定带 <code class="tok">quote</code>。
+                </p>
+
+                <div
+                    class="stage"
+                    data-quote-card-root
+                    data-quote={FIXTURE.quote}
+                    data-title={FIXTURE.title}
+                    data-author={FIXTURE.author}
+                    data-kicker={FIXTURE.kicker}
+                    data-site={FIXTURE.site}
+                    data-quote-state="idle"
+                >
+                    <div class="stage__frame">
+                        <canvas
+                            class="stage__canvas"
+                            data-quote-card
+                            width="1080"
+                            height="1440"
+                            role="img"
+                            aria-label="金句卡（生成中）"></canvas>
+                    </div>
+
+                    <div class="stage__controls">
+                        <button type="button" class="btn btn--primary" data-quote-generate>
+                            重新生成
+                        </button>
+                        <a
+                            class="btn"
+                            data-quote-download
+                            download="quote-card-1080x1440.png"
+                            aria-disabled="true">下载 PNG</a
+                        >
+                        <p class="stage__status" role="status" aria-live="polite" data-quote-status>
+                            正在生成…
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="page-section" aria-labelledby="fixture-title">
+                <h2 id="fixture-title" class="page-h2">固定 fixture</h2>
+                <p class="page-hint">写死在页面上的文案，脚本只读不改 —— 换文案是下一刀的事。</p>
+                <dl class="fixture">
+                    <div class="fixture__row">
+                        <dt>引文</dt>
+                        <dd>{FIXTURE.quote}</dd>
+                    </div>
+                    <div class="fixture__row">
+                        <dt>出处（title）</dt>
+                        <dd>《{FIXTURE.title}》</dd>
+                    </div>
+                    <div class="fixture__row">
+                        <dt>署名（author）</dt>
+                        <dd>{FIXTURE.author}</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="page-section" aria-labelledby="contract-title">
+                <h2 id="contract-title" class="page-h2">契约</h2>
+                <dl class="fixture">
+                    {
+                        CONTRACT.map((row) => (
+                            <div class="fixture__row">
+                                <dt>{row.label}</dt>
+                                <dd>{row.value}</dd>
+                            </div>
+                        ))
+                    }
+                </dl>
+                <p class="page-hint">
+                    排版保证：中文逐字可断、标点不顶行；引文放不下时先缩字号（60→36px），
+                    缩到下限仍放不下才截断并在
+                    <code class="tok">data-quote-truncated</code> 上留证据。
+                </p>
+            </section>
+        </main>
+
+        <script>
+            import { mountQuoteCard } from "~/scripts/quote-card";
+
+            mountQuoteCard();
+        </script>
+
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
+
+            html {
+                -webkit-text-size-adjust: 100%;
+            }
+
+            body {
+                margin: 0;
+                padding: var(--space-8) var(--space-6) var(--space-10);
+                background: var(--color-bg-canvas);
+                color: var(--color-fg-default);
+                font-family: var(--font-sans);
+                font-size: var(--text-base);
+                line-height: var(--leading-loose);
+                overflow-x: clip;
+            }
+
+            .page-head,
+            .page-main {
+                max-inline-size: 68rem;
+                margin-inline: auto;
+            }
+
+            .page-head {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-3);
+                padding-block-end: var(--space-6);
+                border-block-end: 1px solid var(--color-border-subtle);
+            }
+
+            .page-kicker {
+                margin: 0;
+                color: var(--color-fg-muted);
+                font-size: var(--text-xs);
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+            }
+
+            .page-title {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-family: var(--font-serif);
+                font-size: var(--text-3xl);
+                font-weight: 400;
+                line-height: var(--leading-tight);
+            }
+
+            .page-lead {
+                margin: 0;
+                max-inline-size: 52rem;
+                color: var(--color-fg-muted);
+            }
+
+            .page-nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-4);
+                font-size: var(--text-sm);
+            }
+
+            .page-nav a {
+                color: var(--color-fg-link);
+                text-underline-offset: 0.2em;
+            }
+
+            .page-main {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-8);
+                padding-block-start: var(--space-7);
+            }
+
+            .page-section {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .page-h2 {
+                margin: 0;
+                color: var(--color-fg-heading);
+                font-size: var(--text-lg);
+                font-weight: var(--font-weight-semibold);
+                line-height: var(--leading-snug);
+            }
+
+            .page-hint {
+                margin: 0;
+                max-inline-size: 52rem;
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+            }
+
+            .tok {
+                font-family: var(--font-mono);
+                font-size: var(--text-xs);
+                color: var(--color-fg-code);
+                background: var(--color-bg-sunken);
+                padding: 0 var(--space-1);
+                border-radius: var(--radius-xs);
+            }
+
+            /* ── 舞台：左画布 / 右控制（窄屏竖排） ── */
+
+            .stage {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-6);
+                align-items: flex-start;
+                padding: var(--space-5);
+                background: var(--color-bg-surface);
+                border: 1px solid var(--color-border-subtle);
+                border-radius: var(--radius-lg);
+            }
+
+            .stage__frame {
+                flex: 1 1 22rem;
+                min-inline-size: 0;
+                max-inline-size: 30rem;
+            }
+
+            .stage__canvas {
+                display: block;
+                inline-size: 100%;
+                block-size: auto;
+                aspect-ratio: 3 / 4;
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-md);
+                background: var(--color-bg-surface);
+            }
+
+            .stage__controls {
+                flex: 1 1 16rem;
+                min-inline-size: 0;
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: var(--space-2);
+                padding: var(--space-2) var(--space-5);
+                border: 1px solid var(--color-border-default);
+                border-radius: var(--radius-md);
+                background: var(--color-bg-raised);
+                color: var(--color-fg-default);
+                font: inherit;
+                font-size: var(--text-sm);
+                font-weight: var(--font-weight-medium);
+                text-decoration: none;
+                cursor: pointer;
+            }
+
+            .btn--primary {
+                border-color: var(--color-accent-solid);
+                background: var(--color-accent-solid);
+                color: var(--color-fg-on-accent);
+            }
+
+            .btn:hover {
+                background: var(--color-bg-hover);
+            }
+
+            .btn--primary:hover {
+                background: var(--color-accent-solid-hover);
+            }
+
+            .btn:focus-visible {
+                outline: 2px solid var(--color-ring-focus);
+                outline-offset: 2px;
+            }
+
+            .btn[aria-disabled="true"] {
+                color: var(--color-fg-disabled);
+                border-color: var(--color-border-subtle);
+                cursor: not-allowed;
+            }
+
+            .stage__status {
+                margin: 0;
+                min-block-size: 1.5em;
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+                font-variant-numeric: tabular-nums;
+            }
+
+            .stage__status[data-tone="error"] {
+                color: var(--color-status-danger-fg, var(--color-fg-default));
+            }
+
+            /* ── fixture / 契约表 ── */
+
+            .fixture {
+                display: grid;
+                gap: 0;
+                margin: 0;
+                border: 1px solid var(--color-border-subtle);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+            }
+
+            .fixture__row {
+                display: grid;
+                grid-template-columns: minmax(7rem, 12rem) minmax(0, 1fr);
+                gap: var(--space-4);
+                padding: var(--space-3) var(--space-4);
+                border-block-start: 1px solid var(--color-border-subtle);
+            }
+
+            .fixture__row:first-child {
+                border-block-start: 0;
+            }
+
+            .fixture dt {
+                color: var(--color-fg-muted);
+                font-size: var(--text-sm);
+            }
+
+            .fixture dd {
+                margin: 0;
+                min-inline-size: 0;
+                overflow-wrap: anywhere;
+            }
+
+            @media (max-width: 40rem) {
+                body {
+                    padding: var(--space-6) var(--space-4) var(--space-8);
+                }
+
+                .stage {
+                    padding: var(--space-3);
+                }
+
+                .fixture__row {
+                    grid-template-columns: minmax(0, 1fr);
+                    gap: var(--space-1);
+                }
+            }
+        </style>
+    </body>
+</html>
