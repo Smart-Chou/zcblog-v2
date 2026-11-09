@@ -112,7 +112,8 @@ function readToken(el: Element, name: string, fallback: string): string {
     if (!raw) return fallback;
     const probe = document.createElement("span");
     probe.setAttribute("aria-hidden", "true");
-    probe.style.cssText = "position:absolute;inline-size:0;block-size:0;opacity:0;pointer-events:none";
+    probe.style.cssText =
+        "position:absolute;inline-size:0;block-size:0;opacity:0;pointer-events:none";
     probe.style.color = raw;
     document.body.appendChild(probe);
     const resolved = getComputedStyle(probe).color;
@@ -130,12 +131,29 @@ interface Palette {
 }
 
 function readPalette(el: Element): Palette {
-    const theme = el.closest("[data-theme]")?.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const theme =
+        el.closest("[data-theme]")?.getAttribute("data-theme") === "dark" ? "dark" : "light";
     return {
-        paper: readToken(el, "--color-bg-canvas", theme === "dark" ? "rgb(16, 17, 21)" : "rgb(253, 249, 242)"),
-        ink: readToken(el, "--color-fg-heading", theme === "dark" ? "rgb(255, 255, 255)" : "rgb(28, 25, 20)"),
-        muted: readToken(el, "--color-fg-muted", theme === "dark" ? "rgb(180, 180, 180)" : "rgb(110, 100, 88)"),
-        subtle: readToken(el, "--color-border-subtle", theme === "dark" ? "rgb(56, 60, 70)" : "rgb(235, 228, 216)"),
+        paper: readToken(
+            el,
+            "--color-bg-canvas",
+            theme === "dark" ? "rgb(16, 17, 21)" : "rgb(253, 249, 242)",
+        ),
+        ink: readToken(
+            el,
+            "--color-fg-heading",
+            theme === "dark" ? "rgb(255, 255, 255)" : "rgb(28, 25, 20)",
+        ),
+        muted: readToken(
+            el,
+            "--color-fg-muted",
+            theme === "dark" ? "rgb(180, 180, 180)" : "rgb(110, 100, 88)",
+        ),
+        subtle: readToken(
+            el,
+            "--color-border-subtle",
+            theme === "dark" ? "rgb(56, 60, 70)" : "rgb(235, 228, 216)",
+        ),
         accent: readToken(el, "--color-accent-solid", "rgb(212, 160, 64)"),
         theme,
     };
@@ -147,6 +165,30 @@ const isWordChar = (ch: string): boolean => /[A-Za-z0-9'’\-_.@#$&*+/=]/.test(c
 
 /** 切成「不可再分的排版单元」：拉丁词整块、空白一块、其它（CJK/标点）一字一块。 */
 function tokenize(text: string): string[] {
+    // 中文按「词」断行：Intl.Segmenter 能识别「文案」「博客」这类双字词，
+    // 避免逐字断行把词拆到两行（纯字符 fallback 见下）。
+    const SegmenterCtor = (
+        Intl as unknown as {
+            Segmenter?: new (
+                locale: string,
+                options: { granularity: "word" },
+            ) => { segment: (value: string) => Iterable<{ segment: string }> };
+        }
+    ).Segmenter;
+    if (SegmenterCtor) {
+        const atoms: string[] = [];
+        for (const part of new SegmenterCtor("zh", { granularity: "word" }).segment(text)) {
+            const segment = part.segment;
+            if (!segment) continue;
+            if (/^\s+$/u.test(segment)) {
+                atoms.push(" ");
+            } else {
+                atoms.push(segment);
+            }
+        }
+        return atoms;
+    }
+
     const atoms: string[] = [];
     let word = "";
     const flush = () => {
@@ -345,7 +387,8 @@ export function renderQuoteCard(
         truncated = true;
         wrapped.lines = wrapped.lines.slice(0, maxLines);
         const last = wrapped.lines[wrapped.lines.length - 1] ?? "";
-        wrapped.lines[wrapped.lines.length - 1] = `${last.replace(/[\s、。，．,.：:；;！!？?]*$/u, "")}…`;
+        wrapped.lines[wrapped.lines.length - 1] =
+            `${last.replace(/[\s、。，．,.：:；;！!？?]*$/u, "")}…`;
         wrapped.widths = wrapped.lines.map((line) => ctx.measureText(line).width);
     }
 
@@ -357,7 +400,10 @@ export function renderQuoteCard(
     const blockHeight = wrapped.lines.length * lineHeight + BELOW_QUOTE - 60;
     const quoteTop =
         QUOTE_TOP +
-        Math.min(QUOTE_SHIFT_MAX, Math.max(0, Math.round((FOOTER_RULE_TOP - 56 - (QUOTE_TOP + blockHeight)) / 2)));
+        Math.min(
+            QUOTE_SHIFT_MAX,
+            Math.max(0, Math.round((FOOTER_RULE_TOP - 56 - (QUOTE_TOP + blockHeight)) / 2)),
+        );
 
     withAlpha(ctx, 0.35, (c) => {
         c.fillStyle = palette.accent;
@@ -431,7 +477,10 @@ export function renderQuoteCard(
     });
 
     const maxLineWidth = Math.max(...wrapped.widths, 0);
-    const bottom = Math.max(quoteBottom, titleTop + titleLines.length * TITLE_SIZE * TITLE_LINE_HEIGHT);
+    const bottom = Math.max(
+        quoteBottom,
+        titleTop + titleLines.length * TITLE_SIZE * TITLE_LINE_HEIGHT,
+    );
 
     return {
         width: QUOTE_CARD_WIDTH,

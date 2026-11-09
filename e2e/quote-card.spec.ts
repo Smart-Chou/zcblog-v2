@@ -19,7 +19,10 @@ import path from "node:path";
  */
 
 const PAGE_PATH = "/design/components/quote-card/";
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const THEMES = ["light", "dark"] as const;
 type Theme = (typeof THEMES)[number];
@@ -30,14 +33,19 @@ const CARD_H = 1440;
 const CONTENT_RIGHT = 992;
 
 async function setTheme(page: Page, theme: Theme): Promise<void> {
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
 async function settle(page: Page): Promise<void> {
     await page.evaluate(async () => {
         await document.fonts.ready;
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        await new Promise<void>((r) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => r())),
+        );
     });
 }
 
@@ -45,7 +53,14 @@ interface Metrics {
     width: number;
     height: number;
     theme: Theme;
-    quote: { fontSize: number; lines: string[]; lineWidths: number[]; maxLineWidth: number; top: number; bottom: number };
+    quote: {
+        fontSize: number;
+        lines: string[];
+        lineWidths: number[];
+        maxLineWidth: number;
+        top: number;
+        bottom: number;
+    };
     title: { lines: string[]; maxLineWidth: number };
     truncated: boolean;
     overflow: boolean;
@@ -82,18 +97,22 @@ async function axe(page: Page) {
     return page.evaluate(
         async ([tags]) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const result = await (window as any).axe.run(document, { runOnly: { type: "tag", values: tags } });
+            const result = await (window as any).axe.run(document, {
+                runOnly: { type: "tag", values: tags },
+            });
             const serious = result.violations.filter(
                 (v: { impact?: string }) => v.impact === "serious" || v.impact === "critical",
             );
             return {
                 serious: serious.length,
                 total: result.violations.length,
-                detail: result.violations.map((v: { id: string; impact?: string; nodes: unknown[] }) => ({
-                    id: v.id,
-                    impact: v.impact,
-                    nodes: v.nodes.length,
-                })),
+                detail: result.violations.map(
+                    (v: { id: string; impact?: string; nodes: unknown[] }) => ({
+                        id: v.id,
+                        impact: v.impact,
+                        nodes: v.nodes.length,
+                    }),
+                ),
             };
         },
         [TAGS],
@@ -178,10 +197,12 @@ for (const theme of THEMES) {
             },
             [CONTENT_RIGHT + 8, 340, 900],
         );
-        expect(ink.hits, `引文区在 x>${CONTENT_RIGHT + 8} 处仍有墨迹（最远 x=${ink.maxX}）`).toBe(0);
+        expect(ink.hits, `引文区在 x>${CONTENT_RIGHT + 8} 处仍有墨迹（最远 x=${ink.maxX}）`).toBe(
+            0,
+        );
 
         /* 标题/引文/作者都在 */
-        await expect(page.locator('dl.fixture dd').first()).not.toHaveText("");
+        await expect(page.locator("dl.fixture dd").first()).not.toHaveText("");
         await expect(page.locator("[data-quote-status]")).toContainText("1080 × 1440");
         expect(metrics.title.lines.join("")).toContain("把博客当成一个产品来做");
     });
@@ -237,7 +258,9 @@ test("0 外部请求、0 控制台报错、canvas 未被污染", async ({ page }
     await generate(page, { regenerate: true });
     await settle(page);
 
-    const foreign = requests.filter((url) => !/^(http:\/\/127\.0\.0\.1|http:\/\/localhost|blob:|data:)/.test(url));
+    const foreign = requests.filter(
+        (url) => !/^(http:\/\/127\.0\.0\.1|http:\/\/localhost|blob:|data:)/.test(url),
+    );
     expect(foreign, "演示页不许有任何跨域请求").toEqual([]);
     expect(errors, "控制台不允许有 error（含 canvas 污染）").toEqual([]);
     expect(failures, "不允许有失败请求").toEqual([]);
@@ -252,7 +275,10 @@ test("0 外部请求、0 控制台报错、canvas 未被污染", async ({ page }
             return { ok: false, message: String(error) };
         }
     });
-    expect(readable.ok, `canvas 被污染：${readable && "message" in readable ? readable.message : ""}`).toBe(true);
+    expect(
+        readable.ok,
+        `canvas 被污染：${readable && "message" in readable ? readable.message : ""}`,
+    ).toBe(true);
 });
 
 /* ───────────── 4. 390：无横向溢出 ───────────── */
@@ -273,7 +299,9 @@ test("390：卡片不溢出、页面不横向滚动、仍能生成与下载", as
             scrollWidth: document.documentElement.scrollWidth,
         };
     });
-    expect(mobile.pageOverflow, `390 页面横向溢出（scrollWidth=${mobile.scrollWidth}）`).toBe(false);
+    expect(mobile.pageOverflow, `390 页面横向溢出（scrollWidth=${mobile.scrollWidth}）`).toBe(
+        false,
+    );
     expect(mobile.ratio).toBeCloseTo(0.75, 2);
     expect(mobile.canvas[0]).toBeGreaterThanOrEqual(0);
     expect(mobile.canvas[0] + mobile.canvas[1]).toBeLessThanOrEqual(390 + 1);
@@ -326,7 +354,9 @@ test.describe("金句卡证据截图", () => {
 
                 /* 卡片本体按 1080×1440 原尺寸落盘，评审不必从缩略图里猜 */
                 const dataUrl = await page.evaluate(() =>
-                    document.querySelector<HTMLCanvasElement>("[data-quote-card]")!.toDataURL("image/png"),
+                    document
+                        .querySelector<HTMLCanvasElement>("[data-quote-card]")!
+                        .toDataURL("image/png"),
                 );
                 const base64 = dataUrl.split(",")[1] ?? "";
                 const { writeFileSync } = await import("node:fs");
