@@ -2,14 +2,24 @@
 /**
  * 文章分享（构建期静态化 + 少量客户端增强）
  * - 站外分享链接在构建期拼接渲染为 <a>，无 JS 也可用
- * - 微信二维码在构建期用 uqr 内联生成（无网络请求）
+ * - 微信二维码在点击后才本地生成（share.ts 按需 import("uqr")，关闭态 0 字节 / 0 请求）
  * - 交互增强见 ~/scripts/share.ts（弹层 / 复制 / 系统分享 / 微信内提示 / Umami）
+ *
+ * M7-3a：分享入口条 + 微信二维码弹层的视觉换壳（selection §4.17 的壳子，不做海报生成）。
+ * 结构与 class 钩子由 share.ts / overlay.ts 固定在契约里（D-0xxx）：
+ *   [data-post-share] · .share-label · .share-icons · .share-icon[--native|--copy]
+ *   .share-wechat-wrap[.open|.share-hidden|data-in-wechat] · .share-pop · .share-card
+ *   .share-close[data-share-close] · .share-qr / .share-qr-img[data-share-qr]
+ *   .share-qr-title · .share-qr-help · .share-in-wechat · .share-copied-chip
+ * 本卡只在骨架上加**描述性**节点（眉标 / 计数 / URL 脚注），不改任何行为。
  */
 import { share } from "~/config";
 import { iconMarkup } from "~/components/Icons/icon-markup";
 import { t, getLocale, contentLocaleOf } from "~/utils/i18n";
 // M2-5：分享 sheet 的表皮（[data-overlay="share"] 规则在 overlays.css）
 import "~/styles/pages/overlays.css";
+// M7-3a：入口条 + 二维码弹层的换壳样式（只增不改 overlays.css / article.css）
+import "~/styles/pages/share.css";
 
 interface Props {
     title: string;
@@ -32,6 +42,9 @@ interface Platform {
 
 const enc = encodeURIComponent;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const canonical = new URL(canonicalUrl);
+/** 脚注用的站内路径（长路径在 CSS 里截断，不撑破卡片） */
+const sharePath = `${canonical.host}${canonical.pathname}`;
 
 const PLATFORMS: Record<string, Platform> = {
     wechat: { zh: "微信", en: "WeChat", icon: "tabler:brand-wechat", action: "wechat" },
@@ -87,7 +100,10 @@ const items = (share.enable ? share.sites : []).flatMap((id) => {
 });
 
 const shareToLabel = t(locale, "article.shareTo");
+const qrTitle = t(locale, "article.qrcode");
 const closeLabel = locale === "en" ? "Close" : "关闭";
+/** 平台计数：纯装饰的等宽小字（"10" 紧贴赤陶圆点），语言无关 */
+const channelCount = String(items.length).padStart(2, "0");
 ---
 
 {
@@ -99,7 +115,13 @@ const closeLabel = locale === "en" ? "Close" : "关闭";
             data-share-title={title}
             data-share-slug={slug}
         >
-            <span class="share-label">{shareToLabel}</span>
+            <div class="share-head">
+                <span class="share-label">{shareToLabel}</span>
+                <span class="share-count" aria-hidden="true">
+                    <span class="share-count-dot" />
+                    {channelCount}
+                </span>
+            </div>
             <div class="share-icons">
                 {items.map((item) => {
                     const label = item[contentLocaleOf(locale)] ?? item.zh;
@@ -120,26 +142,32 @@ const closeLabel = locale === "en" ? "Close" : "关闭";
                                 </button>
                                 <div class="share-pop" aria-hidden="true" aria-label={shareToLabel}>
                                     <div class="share-card">
-                                        <button
-                                            type="button"
-                                            class="share-close"
-                                            data-share-close
-                                            data-ovl-close
-                                            aria-label={closeLabel}
-                                        >
-                                            <Fragment set:html={iconMarkup("tabler:x")} />
-                                        </button>
+                                        <div class="share-card-head">
+                                            <span class="share-eyebrow" aria-hidden="true">
+                                                WeChat&nbsp;QR
+                                            </span>
+                                            <button
+                                                type="button"
+                                                class="share-close"
+                                                data-share-close
+                                                data-ovl-close
+                                                aria-label={closeLabel}
+                                            >
+                                                <Fragment set:html={iconMarkup("tabler:x")} />
+                                            </button>
+                                        </div>
                                         <div class="share-qr">
+                                            <p class="share-qr-title">{qrTitle}</p>
                                             <div class="share-qr-img" data-share-qr />
-                                            <p class="share-qr-title">
-                                                {t(locale, "article.qrcode")}
-                                            </p>
                                             <p class="share-qr-help">
                                                 {t(locale, "article.share.wechatHelper")}
                                             </p>
                                         </div>
                                         <p class="share-in-wechat">
                                             {t(locale, "article.share.inWechatHint")}
+                                        </p>
+                                        <p class="share-url" aria-hidden="true">
+                                            {sharePath}
                                         </p>
                                     </div>
                                 </div>
@@ -183,7 +211,7 @@ const closeLabel = locale === "en" ? "Close" : "关闭";
     )
 }
 
-<!-- 样式已移到 src/styles/article.css（D-0085：并入全局样式链，避免文章页单独拉一份 CSS） -->
+<!-- 样式链：article.css（存量骨架）→ overlays.css（弹层基座）→ share.css（M7-3a 换壳） -->
 
 <script>
     import "~/scripts/share";

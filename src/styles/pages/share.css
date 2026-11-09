@@ -1,0 +1,346 @@
+/* ============================================================
+   M7-3a · 分享入口条 + 微信二维码弹层（selection §4.17 的壳子）
+
+   只做视觉：行为仍在 ~/scripts/share.ts（懒加载 QR / 复制 / 系统分享 /
+   外点 + Esc / Umami），弹层基座仍是 overlays.css 的 [data-overlay="share"]。
+
+   特异性口径：存量骨架写在 src/styles/article.css（`.post-sheet .share-*`）与
+   src/styles/pages/overlays.css（`.share-pop[data-overlay="share"]`）。
+   本文件**不改那两个文件**，所有覆盖一律走
+     `.share-bar.post-share[data-post-share] …`  → 至少 (0,3,0)
+     `.share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] …` → (0,4,0)
+   因此与打包顺序无关，也不靠 !important。
+
+   约束：
+   · 颜色零字面量（唯二例外是二维码白底的 #fff 与随之而来的深色墨块 —— 二维码必须在
+     浅底上才能被扫出来，深色主题也一样，故不接语义 token）；
+   · 关闭态 opacity / visibility / pointer-events 由 article.css 的 `.share-pop` 管，
+     这里**一行都不碰**（e2e：关闭态 opacity 0 + pointer-events none）。
+   ============================================================ */
+
+/* ── 入口条 ─────────────────────────────────────────────── */
+
+.share-bar.post-share[data-post-share] {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    max-width: var(--layout-article);
+    margin: var(--space-6) auto 0;
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-bg-sunken);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+/* 左侧 2px 赤陶竖条：全站「可操作区」的记号，和目录/搜索的连接一致 */
+.share-bar.post-share[data-post-share]::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: 2px;
+    background: var(--color-accent-solid);
+}
+
+.share-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    min-inline-size: 0;
+}
+
+.share-bar.post-share[data-post-share] .share-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    /* sunken 底上的小字：muted 只有 4.4:1（light）/ 4.24:1（dark），过不了 AA */
+    color: var(--color-fg-default);
+}
+
+.share-bar.post-share[data-post-share] .share-count {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-default);
+}
+
+.share-count-dot {
+    inline-size: 5px;
+    block-size: 5px;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-solid);
+}
+
+/* 图标托盘：桌面是一枚贴边的 surface 药盒，图标落在里面按等距排 */
+.share-bar.post-share[data-post-share] .share-icons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs);
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.share-bar.post-share[data-post-share] .share-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-9);
+    block-size: var(--space-9);
+    padding: 0;
+    color: var(--color-fg-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+.share-bar.post-share[data-post-share] .share-icon svg {
+    display: block;
+    inline-size: var(--text-lg);
+    block-size: var(--text-lg);
+}
+
+@media (hover: hover) {
+    .share-bar.post-share[data-post-share] .share-icon:hover {
+        color: var(--color-accent-solid);
+        background: var(--color-accent-subtle);
+        border-color: var(--color-border-accent);
+    }
+}
+
+.share-bar.post-share[data-post-share] .share-icon:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* 行为钩子必须原样保留：系统分享按钮平时不占位，share.ts 在支持的移动端加 .share-visible */
+.share-bar.post-share[data-post-share] .share-icon--native {
+    display: none;
+}
+
+.share-bar.post-share[data-post-share] .share-icon--native.share-visible {
+    display: inline-flex;
+}
+
+/* 复制成功的漂浮小签（opacity 由 article.css 的 .copied 管，这里只换皮） */
+.share-bar.post-share[data-post-share] .share-copied-chip {
+    padding: var(--space-2xs) var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-on-accent);
+    background: var(--color-accent-solid);
+    border-radius: var(--radius-pill);
+}
+
+/* ── 微信二维码弹层：桌面居中卡（selection §4.17 的 modal 基座） ── */
+
+.share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-card {
+    inline-size: min(22rem, 100%);
+    padding: var(--space-5) var(--space-5) var(--space-5);
+    text-align: start;
+    color: var(--color-fg-default);
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-default);
+    border-block-start: 2px solid var(--color-accent-solid);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-4);
+}
+
+.share-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    /* 关闭键是绝对定位（overlays.css），给眉标让出右侧空间 */
+    padding-inline-end: var(--space-8);
+    margin-block-end: var(--space-3);
+}
+
+.share-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    /* accent on surface：light 6.04 / dark 4.72，小字也过 AA */
+    color: var(--color-accent-solid);
+}
+
+.share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-close {
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border-radius: var(--radius-pill);
+    color: var(--color-fg-default);
+}
+
+.share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-qr-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+}
+
+/* 二维码取景框：白底 + 细描边（深色主题下也不反色，否则扫描率掉） */
+.share-bar.post-share[data-post-share] .share-qr-img {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: min(15rem, 100%);
+    margin: var(--space-3) 0;
+    padding: var(--space-3);
+    aspect-ratio: 1;
+    background: #fff;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.share-bar.post-share[data-post-share] .share-qr-img svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+}
+
+/* 懒加载窗口期（chunk 还没到）画斜纹骨架，避免一块死白 */
+.share-bar.post-share[data-post-share] .share-qr-img:empty {
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent 0 6px,
+        var(--color-bg-muted) 6px 7px
+    );
+}
+
+.share-bar.post-share[data-post-share] .share-qr-help {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-muted);
+}
+
+/* 微信内置浏览器（share.ts 打 data-in-wechat）：此时没有码可扫，显示「点右上角」，
+   显隐仍由 article.css 的 [data-in-wechat] 规则决定，这里只管字号与间距 */
+.share-bar.post-share[data-post-share] .share-in-wechat {
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-default);
+}
+
+/* 脚注：等宽老实地写清这枚码指向哪儿（长路径截断） */
+.share-bar.post-share[data-post-share] .share-url {
+    margin: var(--space-3) 0 0;
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--color-border-subtle);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── 窄版（≤640）：同一 DOM 换形态 —— 入口条变两行网格，弹层贴底成 sheet ── */
+
+@media (width <= 640px) {
+    .share-bar.post-share[data-post-share] {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-4) var(--space-3);
+    }
+
+    .share-head {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding-block-end: var(--space-3);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .share-bar.post-share[data-post-share] .share-icons {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--space-2);
+        padding: 0;
+        background: transparent;
+        border: 0;
+    }
+
+    .share-bar.post-share[data-post-share] .share-icon {
+        inline-size: 100%;
+        block-size: auto;
+        aspect-ratio: 1;
+        background: var(--color-bg-surface);
+        border-color: var(--color-border-subtle);
+    }
+
+    .share-bar.post-share[data-post-share] .share-wechat-wrap > .share-icon {
+        inline-size: 100%;
+        block-size: 100%;
+    }
+
+    /* 弹层：贴底 sheet（圆角只在上面两角），遮罩仍由基座铺满 */
+    .share-bar.post-share[data-post-share] .share-wechat-wrap.open .share-pop[data-overlay="share"] {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-card {
+        inline-size: 100%;
+        max-block-size: 88dvh;
+        overflow-y: auto;
+        padding: var(--space-6) var(--space-5) var(--space-5);
+        border: 0;
+        border-block-start: 2px solid var(--color-accent-solid);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+
+    /* 拖拽柄（纯视觉，不接手势） */
+    .share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-card::before {
+        content: "";
+        position: absolute;
+        inset-block-start: var(--space-2);
+        inset-inline: 0;
+        margin-inline: auto;
+        inline-size: 36px;
+        block-size: 3px;
+        border-radius: var(--radius-pill);
+        background: var(--color-border-default);
+    }
+}
+
+/* ── 减弱动画：只关动效，不隐藏内容 ─────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .share-bar.post-share[data-post-share] .share-icon,
+    .share-bar.post-share[data-post-share] .share-copied-chip {
+        transition: none;
+    }
+}
