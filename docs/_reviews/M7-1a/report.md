@@ -26,9 +26,9 @@ Pagefind 自带 CSS 用 `:is(*, #\#):is(*, #\#):is(*, #\#)`（特异性 3,0,0）
 ## 2. 源文件清单（3 个源文件 + 1 个测试，未越界）
 
 ```
-src/styles/search-global.css    724 行（重写）
-src/components/UI/Search.astro  340 行（头部三段 + 页脚键帽文案）
-e2e/search.spec.ts              251 行（新增 5 条：1440 形态 / 390 形态 / axe ×2 / 证据截图）
+src/styles/search-global.css    720 行（重写）
+src/components/UI/Search.astro  345 行（头部三段 + 页脚键帽文案）
+e2e/search.spec.ts              250 行（新增 5 条：1440 形态 / 390 形态 / axe ×2 / 证据截图）
 ```
 
 `src/utils/search-template.js` **未改**（模板 DOM 够用，分组标题不需要它改）——
