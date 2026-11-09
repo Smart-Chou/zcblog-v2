@@ -1,0 +1,50 @@
+---
+/**
+ * SkillMeter — C 层（M8-2 技能页）
+ *
+ * 四段刻度：`value` 决定亮几段；纯装饰（`aria-hidden`），等级语义由旁边的**文字**承担
+ * （规格 §4.6 / §4.8：读屏只念「熟练」，不念「四个方块」）。
+ * 不接收颜色 props：亮段固定 `--color-accent-solid`，暗段固定 `--color-border-subtle`。
+ */
+interface Props {
+    /** 亮段数（0–4）；未知等级传 0，刻度全暗但文字仍是「未知」。 */
+    value: number;
+    max?: number;
+    class?: string;
+}
+
+const { value, max = 4, class: className } = Astro.props;
+const safeMax = Math.max(1, Math.min(Math.round(max), 8));
+const filled = Math.max(0, Math.min(Math.round(value), safeMax));
+const segments = Array.from({ length: safeMax }, (_, index) => index + 1);
+---
+
+<span class:list={["skill__meter", className]} aria-hidden="true">
+    {
+        segments.map((segment) => (
+            <i
+                class:list={["skill__meter-seg", { "is-on": segment <= filled }]}
+                data-segment={segment}
+            />
+        ))
+    }
+</span>
+
+<style>
+    .skill__meter {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .skill__meter-seg {
+        inline-size: var(--space-5);
+        block-size: var(--space-1);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-border-subtle);
+    }
+
+    .skill__meter-seg.is-on {
+        background-color: var(--color-accent-solid);
+    }
+</style>

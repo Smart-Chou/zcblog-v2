@@ -1,0 +1,34 @@
+---
+/**
+ * FilterChip — C 层（M8-2）
+ *
+ * 单选 / 多选共用一个形态：`aria-pressed` 是状态真源，视觉由 `[aria-pressed="true"]` 驱动，
+ * 选中另有 check 图标做第二通道（只靠底色表达选中是不合格的）。
+ * 零计数选项由页面在生成数据时丢掉，因此这里没有 disabled。
+ * 样式在 `src/styles/pages/entities-projects.css`（`.entity-filter__chip*`）。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+
+interface Props {
+    label: string;
+    /** `all` 表示「全部」，由脚本识别为清空该组。 */
+    value: string;
+    count?: number;
+    selected?: boolean;
+}
+
+const { label, value, count, selected = false } = Astro.props;
+---
+
+<button
+    type="button"
+    class="entity-filter__chip"
+    data-filter-value={value}
+    aria-pressed={selected ? "true" : "false"}
+>
+    <span class="entity-filter__chip-label">{label}</span>
+    {typeof count === "number" && <span class="entity-filter__chip-count">{count}</span>}
+    <span class="entity-filter__chip-check" aria-hidden="true">
+        <Icon name="tabler:check" size="xs" />
+    </span>
+</button>

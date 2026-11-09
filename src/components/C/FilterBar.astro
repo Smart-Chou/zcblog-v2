@@ -1,0 +1,137 @@
+---
+/**
+ * FilterBar — C 层（M8-2）
+ *
+ * 单一选择组 + 多选组，跨组 AND、组内 OR；过滤只改 `hidden`（见 `scripts/entity-filter.ts`）。
+ *
+ * 结构决策（规格 §1.6.2）：
+ * - 一个 `<details>` 同时承担两种形态：≥768 由脚本强制展开并隐藏 `<summary>`（桌面上就是单行
+ *   吸顶条），≤768 收起成「筛选 (n) ▾」一行。原生 `<details>` 自带展开 / 收起语义与键盘支持，
+ *   比自己写 aria-expanded 少一半出错面。
+ * - 计数是 **aria-live**（面板里那份），`<summary>` 里那份是镜像且 `aria-hidden` —— 同一个数字
+ *   读两遍只会让读屏用户以为有两个东西。
+ * - 零计数选项由页面在生成 `options` 时丢弃（规格 K2），因此这里没有 disabled 态。
+ * - 无 JS 时本组件整体不显示（`<noscript>` 内联 style），列表仍是完整真实数据。
+ * 样式在 `src/styles/pages/entities-projects.css`（`.entity-filter*`）。
+ */
+import Button from "~/components/UI/atom/Button.astro";
+import FilterChip from "./FilterChip.astro";
+
+export interface FilterOption {
+    value: string;
+    label: string;
+    count: number;
+}
+
+export interface FilterGroup {
+    id: string;
+    label: string;
+    kind: "single" | "multi";
+    /** 条目上的匹配属性名（`data-status` / `data-stack`）。 */
+    attr: string;
+    /** `count === 0` 的选项不要传进来（规格 K2）。 */
+    options: FilterOption[];
+}
+
+interface Props {
+    groups: FilterGroup[];
+    /** 条目总数（「全部」chip 的计数）。 */
+    total: number;
+    /** 结果文案单位：`个项目` / `projects`。 */
+    unit: string;
+    /** 初始结果文案（无筛选时与 `total` 一致）。 */
+    resultLabel: string;
+    /** 过滤后 0 条时的文案。 */
+    noneLabel: string;
+    clearLabel: string;
+    /** 收起态 `<summary>` 上的组名。 */
+    collapsedLabel: string;
+    allLabel: string;
+    /** 读屏用区块标题（视觉隐藏）。 */
+    title: string;
+    class?: string;
+}
+
+const {
+    groups,
+    total,
+    unit,
+    resultLabel,
+    noneLabel,
+    clearLabel,
+    collapsedLabel,
+    allLabel,
+    title,
+    class: className,
+} = Astro.props;
+---
+
+<noscript
+    ><style is:inline>
+        .entity-filter {
+            display: none;
+        }
+    </style></noscript
+>
+
+<section
+    class:list={["entity-filter", className]}
+    data-entity-filter
+    data-total={total}
+    data-unit={unit}
+    data-label-none={noneLabel}
+    aria-labelledby="entity-filter-title"
+>
+    <h2 class="sr-only" id="entity-filter-title">{title}</h2>
+    <details class="entity-filter__details" open>
+        <summary class="entity-filter__summary">
+            <span class="entity-filter__summary-label">{collapsedLabel}</span>
+            <span class="entity-filter__summary-badge" data-filter-badge hidden></span>
+            <span class="entity-filter__summary-count" data-filter-result-mirror aria-hidden="true">
+                {resultLabel}
+            </span>
+        </summary>
+
+        <div class="entity-filter__panel">
+            {
+                groups.map((group) => (
+                    <div
+                        class="entity-filter__group"
+                        role="group"
+                        aria-label={group.label}
+                        data-filter-group={group.id}
+                        data-filter-attr={group.attr}
+                        data-filter-kind={group.kind}
+                    >
+                        <span class="entity-filter__group-label">{group.label}</span>
+                        <div class="entity-filter__chips">
+                            <FilterChip label={allLabel} value="all" count={total} selected />
+                            {group.options.map((option) => (
+                                <FilterChip
+                                    label={option.label}
+                                    value={option.value}
+                                    count={option.count}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))
+            }
+
+            <p
+                class="entity-filter__count"
+                data-filter-result
+                aria-live="polite"
+                aria-atomic="true"
+            >
+                {resultLabel}
+            </p>
+
+            <Button variant="ghost" size="sm" class="entity-filter__clear" disabled>
+                {clearLabel}
+            </Button>
+
+            <slot name="legend" />
+        </div>
+    </details>
+</section>

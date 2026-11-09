@@ -1,0 +1,36 @@
+---
+/**
+ * KpiTile — C 层（M8-2）
+ *
+ * 一块 KPI：`<dt>` 标签在上、`<dd>` 值在下（线框图横排只是为了省纸）。
+ * 不可交互（不可点、不可聚焦）：读数与控件是两种语义，混在一起读者会以为能筛。
+ * 样式在 `src/styles/pages/entities-projects.css`（`.entity-kpi*`），本组件不带 <style>。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+
+interface Props {
+    label: string;
+    value: string | number;
+    /** 单位（「个」/「项」），与值同基线、小一号、弱色。 */
+    unit?: string;
+    /** Icons/ 闭集里的名字；装饰性（aria-hidden 由 Icon 自理）。 */
+    icon?: string;
+    /** 数据过期：值下方加文字徽标（不带天数，见规格 K1）。 */
+    stale?: boolean;
+    staleLabel?: string;
+}
+
+const { label, value, unit, icon, stale = false, staleLabel = "" } = Astro.props;
+---
+
+<div class="entity-kpi__item">
+    <dt class="entity-kpi__label">
+        {icon && <Icon name={icon} size="sm" />}
+        <span>{label}</span>
+    </dt>
+    <dd class="entity-kpi__value">
+        <span class="entity-kpi__number">{value}</span>
+        {unit && <span class="entity-kpi__unit">{unit}</span>}
+        {stale && staleLabel && <span class="entity-kpi__stale">{staleLabel}</span>}
+    </dd>
+</div>
