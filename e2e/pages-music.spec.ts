@@ -277,6 +277,58 @@ for (const theme of THEMES) {
     });
 }
 
+/* ─────────── 5b. axe：播放器面板（打开态 / 错误态，2026-11 对比度修复的回归口） ───────────
+ *
+ * 关闭态页面上根本没有面板节点，所以 5 的 axe 从来扫不到 `.music-player__body`：
+ * 深色下 `fg-muted`(4.02) / `border-default`(2.59) 落在 `bg-raised` 上的缺陷就是这么漏出去的。
+ * 这里把面板的两种落地状态都扫一遍，锁住：
+ *   - 无源态：`__label` 用 fg-subtle、`__close` 边界用 border-strong（≥3:1）、notice 可达；
+ *   - 错误态：danger-bg 上的文案（danger-border 是装饰性 hairline，不在此断言）。
+ */
+
+for (const theme of THEMES) {
+    test(`axe music player panel ${theme}`, async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await openPage(page, MUSIC.url, theme);
+        await page.addStyleTag({ content: `${MUSIC.shell} * { transition: none !important; }` });
+
+        const assertClean = async (state: string) => {
+            const { violations, incomplete } = await runAxe(page, MUSIC.mount);
+            expect(
+                violations.map((v) => `${v.id} (${v.impact}) ${v.nodes[0]?.target ?? ""}`),
+                `player ${state} ${theme}: violations`,
+            ).toEqual([]);
+            expect(
+                incomplete.map((v) => `${v.id} ${v.nodes[0]?.target ?? ""}`),
+                `player ${state} ${theme}: incomplete（颜色没判定出来 = 没测到）`,
+            ).toEqual([]);
+        };
+
+        // ① 无源态：label / notice / 关闭按钮 同屏
+        await page.locator(".music-track").first().locator("[data-music-play]").click();
+        await expect(page.locator(MUSIC.mount)).toHaveAttribute(
+            "data-music-player-state",
+            "no-source",
+        );
+        await expect(page.locator(MUSIC.body)).toBeVisible();
+        await assertClean("no-source");
+
+        // ② 错误态：切到另一条并注入一个必然失败的源（同源、不出网）
+        const second = page.locator(".music-track").nth(1);
+        await second.evaluate((node) =>
+            node.setAttribute("data-music-audio", "/fixture/m8-1-missing-tone.wav"),
+        );
+        await second.locator("[data-music-play]").click();
+        await expect(page.locator(MUSIC.mount)).toHaveAttribute("data-music-player-state", "error");
+        await expect(page.locator(MUSIC.notice)).toBeVisible();
+        await assertClean("error");
+
+        console.log(
+            `[axe] player panel ${theme}: no-source + error 均 0 violations / 0 incomplete`,
+        );
+    });
+}
+
 /* ───────────────────────── 6. 关闭态 0 请求（本卡核心） ───────────────────────── */
 
 test("关闭态：0 个播放器 chunk、0 个音频请求、0 个 <audio>", async ({ page }) => {

@@ -220,7 +220,11 @@
     flex-direction: column;
     gap: var(--space-3);
     padding: var(--space-4);
-    border: 1px solid var(--color-border-default);
+    /* §3.8 Border Ground Rule 的纸边：装饰性 1px，只负责「这是一个抬升面」，
+       不承担「识别控件」职责 → 用 border-subtle（登记豁免，不设 3:1 门槛）。
+       原来用的 border-default 在 bg-raised(dark=ink-800) 上只有 2.59，反而低于它
+       自己承担的 3:1 契约；控件边界见下面 __close。 */
+    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
     background-color: var(--color-bg-raised);
     min-inline-size: 0;
@@ -243,7 +247,9 @@
     font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
+    /* 落在 bg-raised 上：fg-muted 在 dark 只有 4.02（< 4.5），改用 fg-subtle
+       （light 4.87 / dark 5.39）。light 两个 token 同值，所以亮色零视觉变化。 */
+    color: var(--color-fg-subtle);
 }
 
 .music-player__title {
@@ -261,7 +267,10 @@
     appearance: none;
     margin-inline-start: auto;
     padding: var(--space-1) var(--space-3);
-    border: 1px solid var(--color-border-default);
+    /* 真控件：按钮自身底色（bg-surface）与卡片底色（bg-raised）只差 1.17，
+       边界是它唯一「我按得动」的线索 → 按 1.4.11 必须 ≥3:1。
+       border-default 在这里只有 dark 2.59，故用 border-strong（light 4.87 / dark 4.02）。 */
+    border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-pill);
     background-color: var(--color-bg-surface);
     font-family: var(--font-mono);
@@ -303,17 +312,32 @@
     color: var(--color-fg-default);
 }
 
+/* 说明文字里的行内链接（浮层内）
+ *
+ * 这里有两处既有缺陷，是修上面两个 token 时用 axe 扫面板才暴露的：
+ *   1. 1.4.1：行内链接只靠颜色区分（DESIGN §Link：「正文里的链接必须常驻下划线」）
+ *      → 下划线改成常驻，不再等 hover。
+ *   2. 1.4.3：dark 下 `fg-link`(accent-400) 落在 bg-raised 上只有 4.02 < 4.5
+ *      （DESIGN 的契约只算过 fg-link / bg-canvas 5.15 与 / bg-surface 4.72）。
+ *      系统里没有「raised 上的链接文字」这一档：再上一档 accent-300 是 fg-link-hover，
+ *      被 hover 阶梯占着，借来当静止态就把 hover 的区分度吃掉了。
+ *      所以这里改成**正文色 + 强调色下划线**：字 9.39 / 8.27 两主题都过，
+ *      链接身份由下划线（装饰，不设门槛）承载。要不要新增 link-on-raised 一档
+ *      是 token 侧的判断，见 t_72873bbc。
+ */
 .music-player__link {
-    color: var(--color-fg-link);
-    text-decoration: none;
+    color: var(--color-fg-default);
+    text-decoration: underline;
+    text-decoration-color: var(--color-border-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: var(--space-1);
     border-radius: var(--radius-sm);
 }
 
 @media (hover: hover) {
     .music-player__link:hover {
-        color: var(--color-fg-link-hover);
-        text-decoration: underline;
-        text-underline-offset: var(--space-1);
+        color: var(--color-fg-heading);
+        text-decoration-color: var(--color-accent-solid);
     }
 }
 
@@ -326,6 +350,13 @@
 .music-player[data-music-player-state="error"] .music-player__body {
     border-color: var(--color-status-danger-border);
     background-color: var(--color-status-danger-bg);
+}
+
+/* 错误态把底换成 danger-bg，`fg-subtle` 的浅色档在上面只有 3.86（< 4.5）
+   —— 次级标签在这里必须回到正文色（7.44 / 9.15）。只改颜色，不动层级语义：
+   面板进入错误态本来就不是「正在播放」的次级状态。 */
+.music-player[data-music-player-state="error"] .music-player__label {
+    color: var(--color-fg-default);
 }
 
 /* ── 中屏：动作移到正文下方一行 ───────────────────────────── */
