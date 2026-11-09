@@ -65,7 +65,10 @@ function currentSelection(): SelectionInfo | null {
     if (!body) return null;
     if (!body.contains(range.commonAncestorContainer)) return null;
 
-    const text = selection.toString().replace(/[\s\u00a0]+/gu, " ").trim();
+    const text = selection
+        .toString()
+        .replace(/[\s\u00a0]+/gu, " ")
+        .trim();
     if (!text) return null;
 
     const start =
@@ -73,8 +76,7 @@ function currentSelection(): SelectionInfo | null {
             ? range.startContainer
             : range.startContainer.parentElement;
     const block =
-        start?.closest<HTMLElement>(BLOCK_SELECTOR) ??
-        (body instanceof HTMLElement ? body : null);
+        start?.closest<HTMLElement>(BLOCK_SELECTOR) ?? (body instanceof HTMLElement ? body : null);
     if (!block) return null;
 
     return { text, range, block };
@@ -145,9 +147,7 @@ async function paint(ui: Roots, quote: string): Promise<void> {
 
         const metrics = card.renderQuoteCard(ui.canvas, { quote, title, author });
         ui.canvas.dataset.quoteMetrics = JSON.stringify(metrics);
-        ui.canvas.dataset.quoteRender = String(
-            Number(ui.canvas.dataset.quoteRender ?? "0") + 1,
-        );
+        ui.canvas.dataset.quoteRender = String(Number(ui.canvas.dataset.quoteRender ?? "0") + 1);
         ui.canvas.setAttribute(
             "aria-label",
             `金句卡：${quote} —— 出自《${title}》${author ? `，${author}` : ""}。` +

@@ -28,9 +28,7 @@ const copy = {
     close: isEn ? "Close" : "关闭",
     download: isEn ? "Download PNG" : "下载 PNG",
     pending: isEn ? "Rendering…" : "正在渲染…",
-    canvasLabel: isEn
-        ? `Quote card preview, 1080 × 1440.`
-        : `金句卡预览，1080 × 1440。`,
+    canvasLabel: isEn ? `Quote card preview, 1080 × 1440.` : `金句卡预览，1080 × 1440。`,
     size: "3:4 · 1080 × 1440",
 };
 ---
@@ -86,8 +84,7 @@ const copy = {
                         width="1080"
                         height="1440"
                         role="img"
-                        aria-label={copy.canvasLabel}
-                    ></canvas>
+                        aria-label={copy.canvasLabel}></canvas>
                 </div>
                 <div class="quote-dialog__side">
                     <p class="quote-dialog__eyebrow">
