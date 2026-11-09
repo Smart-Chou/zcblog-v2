@@ -33,9 +33,12 @@
 
 ```
 src/components/UI/WalineComment.astro   抽屉 DOM + 开合逻辑（+ 移动端 Waline 皮肤/DOM 修补）
-src/styles/comments.css                 新文件（~330 行）：外壳零占位基线 + ≤640 抽屉
+src/styles/comments.css                 新文件（~275 行）：外壳零占位基线 + ≤640 抽屉 + 移动端 Waline token
+src/scripts/comment-drawer.ts           新文件：移动抽屉交互的按需模块（开合/焦点/滚动锁）
 e2e/pages-comments.spec.ts              新文件（~420 行）：12 条用例 + 截图门控
 ```
+
+`comment-drawer.ts` 是 operator 收口时补的第 4 个源文件：抽屉交互从主组件拆成动态 import，只在移动端首次点击时下载。否则 WalineComment 的页内 JS 会把 donate/friends/talks 的 page JS 推到 **30.4 KB**（门禁 30 KB），perf 6 页超预算。
 
 未触碰：`MarkdownLayout.astro`、`FriendsContent/TalksContent/DonateContent`、`overlays.css`、`article.css`、`package.json`、Waline server/config、内容 schema、tokens、视觉基线。
 
@@ -105,6 +108,6 @@ corepack pnpm run build:ci
 M72A_SHOTS=1 corepack pnpm exec playwright test e2e/pages-comments.spec.ts --reporter=line
 ```
 
-不跑全量 `pages.visual` / `gates:all` / Linux 容器（按卡面：不在本卡）。
+worker 未跑全量 `pages.visual` / `gates:all` / Linux 容器（按卡面）；operator 收口时已补跑 `gates:all` 8/8、`gates:surfaces` PASS、`type-check` PASS、`build:ci` 477 页、`perf-budget` over=0、本机 `pages.visual` 42 passed。
 
-> 构建说明（D-0150）：迭代用 `astro dev`；收口共 `build:ci` 两次 —— 第一次通过后查出关闭键圆角被 `.post button:focus-visible`（pages/article.css，(0,2,1)）压成 4px，修 CSS 后第二次构建出最终 dist 并跑完本 spec。除这两次外没有再构建。
+> 构建说明（D-0150）：迭代用 `astro dev`；收口共 `build:ci` 四次 —— 首版通过后查出关闭键圆角被 `.post button:focus-visible`（pages/article.css，(0,2,1)）压成 4px，修 CSS 后第二次构建；prettier 后第三次确认 dist=源；operator 为 perf 把抽屉交互拆成动态模块后第四次重建。除这四次外没有再构建。最终 perf：`over=0`，page JS max **30.0 KB**（门禁 30）；本地 `pages.visual` 42 passed。

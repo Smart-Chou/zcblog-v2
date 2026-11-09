@@ -261,6 +261,13 @@
         --waline-bq-color: var(--color-surface-secondary);
         --waline-badge-color: var(--color-accent);
     }
+
+    /* 图片上传仍是「暂未开放」的死入口（imageUploader 直接 reject），
+       其 <label aria-label> 没有合法 role，会在 axe 报 aria-prohibited-attr。
+       移动抽屉直接隐藏，桌面保持原样（本卡不改桌面皮肤）。 */
+    #comment-wrapper #waline label[for="wl-image-upload"] {
+        display: none;
+    }
 }
 
 /* ---------- 降低动态偏好 ---------- */
