@@ -1,0 +1,350 @@
+---
+/**
+ * M7-3d-2 · 文章选中文字 → 金句卡弹层
+ *
+ * 壳与样式都在这里；行为在 `~/scripts/quote-selection.ts`，且**只在正文里出现
+ * 非空选区之后的第一时间才 `import()`** —— 从没选过字的人不下载这段脚本，
+ * 金句卡渲染器（`~/scripts/quote-card.ts`）更是直到点「做成金句卡」才加载。
+ *
+ * 弹层复用 overlays.css 的基座（`.ovl` + `[data-overlay="quote"]`）：
+ * 关闭态无 `data-overlay`、元素 `hidden`、0 请求；打开态由 `overlay.ts` 负责
+ * 焦点归还 / Tab 循环 / 遮罩锁滚 / Esc，本组件不重复实现。
+ */
+import { getLocale } from "~/utils/i18n";
+
+interface Props {
+    title: string;
+    author?: string;
+    locale?: string;
+}
+
+const { title, author = "", locale: rawLocale = "zh" } = Astro.props;
+const locale = getLocale(rawLocale);
+const isEn = locale === "en";
+
+const copy = {
+    toolbar: isEn ? "Make a quote card" : "做成金句卡",
+    dialogTitle: isEn ? "Quote card" : "金句卡",
+    close: isEn ? "Close" : "关闭",
+    download: isEn ? "Download PNG" : "下载 PNG",
+    pending: isEn ? "Rendering…" : "正在渲染…",
+    canvasLabel: isEn
+        ? `Quote card preview, 1080 × 1440.`
+        : `金句卡预览，1080 × 1440。`,
+    size: "3:4 · 1080 × 1440",
+};
+---
+
+<div
+    class="quote-selection"
+    data-quote-selection
+    data-quote-title={title}
+    data-quote-author={author}
+    data-quote-download-name="quote-card-1080x1440.png"
+    data-quote-pending={copy.pending}
+>
+    <div class="quote-toolbar" data-quote-toolbar hidden>
+        <button
+            type="button"
+            class="quote-toolbar__btn"
+            data-quote-action="create"
+            aria-haspopup="dialog"
+        >
+            <span class="quote-toolbar__dot" aria-hidden="true"></span>
+            {copy.toolbar}
+        </button>
+    </div>
+
+    <div
+        class="ovl quote-dialog"
+        data-quote-dialog
+        data-quote-state="idle"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quote-dialog-title"
+        aria-hidden="true"
+        hidden
+    >
+        <div class="ovl__panel quote-dialog__panel">
+            <h2 class="ovl__title quote-dialog__title" id="quote-dialog-title">
+                {copy.dialogTitle}
+            </h2>
+            <button
+                class="ovl__close quote-dialog__close"
+                type="button"
+                data-quote-action="close"
+                data-ovl-close
+                aria-label={copy.close}
+            >
+                <span aria-hidden="true">×</span>
+            </button>
+            <div class="quote-dialog__body">
+                <div class="quote-dialog__stage">
+                    <canvas
+                        class="quote-dialog__canvas"
+                        data-quote-canvas
+                        width="1080"
+                        height="1440"
+                        role="img"
+                        aria-label={copy.canvasLabel}
+                    ></canvas>
+                </div>
+                <div class="quote-dialog__side">
+                    <p class="quote-dialog__eyebrow">
+                        <span class="quote-dialog__dot" aria-hidden="true"></span>
+                        {copy.size}
+                    </p>
+                    <p class="quote-dialog__status" data-quote-status role="status">
+                        {copy.pending}
+                    </p>
+                    <div class="quote-dialog__actions">
+                        <a class="quote-dialog__action" data-quote-download download>
+                            {copy.download}
+                        </a>
+                        <button
+                            class="quote-dialog__action quote-dialog__action--ghost"
+                            type="button"
+                            data-quote-action="close"
+                            data-ovl-close
+                        >
+                            {copy.close}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * 内联 bootstrap（随页面打包，约 0.4 KB gz）：只做「武装」——
+     * 正文里第一次出现非空选区时才 `import()` 行为模块。
+     * 页面 JS 预算 40 KB，渲染器与交互模块都不在这条静态链上。
+     */
+    const boot = window as unknown as { __quoteSelectionArmed?: boolean };
+    if (!boot.__quoteSelectionArmed) {
+        boot.__quoteSelectionArmed = true;
+        let armed = false;
+        const arm = () => {
+            if (armed) return;
+            const selection = document.getSelection();
+            if (!selection || selection.isCollapsed || !selection.toString().trim()) return;
+            if (!selection.anchorNode?.parentElement?.closest("#post-content .article-content"))
+                return;
+            armed = true;
+            void import("~/scripts/quote-selection").then((mod) => mod.initQuoteSelection());
+        };
+        document.addEventListener("selectionchange", arm, { passive: true });
+    }
+</script>
+
+<style>
+    /* ── 浮动工具条 ─────────────────────────────────────────── */
+
+    .quote-toolbar {
+        position: fixed;
+        z-index: 1050;
+        display: flex;
+        padding: var(--space-2xs);
+        background: var(--color-bg-surface);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-3, var(--shadow-md));
+        animation: quote-toolbar-in var(--duration-fast) var(--ease-standard) both;
+    }
+
+    /* `[hidden]` 的 UA display:none 会被上面的 display:flex 盖掉 —— 显式关死 */
+    .quote-selection .quote-toolbar[hidden] {
+        display: none;
+    }
+
+    .quote-toolbar__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-block-size: 2.75rem;
+        padding: var(--space-2) var(--space-4);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        color: var(--color-fg-heading);
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .quote-toolbar__dot {
+        inline-size: 6px;
+        block-size: 6px;
+        flex: none;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent-solid);
+    }
+
+    @media (hover: hover) {
+        .quote-toolbar__btn:hover {
+            background: var(--color-bg-hover, var(--color-bg-sunken));
+        }
+    }
+
+    .quote-toolbar__btn:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    @keyframes quote-toolbar-in {
+        from {
+            opacity: 0;
+            translate: 0 4px;
+        }
+        to {
+            opacity: 1;
+            translate: 0 0;
+        }
+    }
+
+    /* ── 弹层 ───────────────────────────────────────────────── */
+
+    /* `[data-overlay].ovl` 的 display:flex 会盖掉 [hidden] 的 display:none —— 关死它 */
+    .quote-selection .quote-dialog[hidden] {
+        display: none;
+    }
+
+    .quote-selection .quote-dialog__panel {
+        display: grid;
+        gap: var(--space-4);
+        inline-size: min(58rem, 100%);
+        max-block-size: min(88dvh, 56rem);
+        padding: var(--space-5);
+    }
+
+    .quote-dialog__close {
+        font-size: var(--text-lg);
+        line-height: 1;
+    }
+
+    .quote-dialog__body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+        align-items: start;
+        gap: var(--space-5);
+    }
+
+    .quote-dialog__stage {
+        display: flex;
+        justify-content: center;
+        min-inline-size: 0;
+    }
+
+    /* 画布按固有 1080×1440 等比缩放：不写死宽度，避免 max-height 压出变形 */
+    .quote-dialog__canvas {
+        display: block;
+        inline-size: auto;
+        block-size: auto;
+        max-inline-size: 100%;
+        max-block-size: min(64dvh, 32rem);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        background: var(--color-bg-surface);
+    }
+
+    .quote-dialog__side {
+        display: grid;
+        gap: var(--space-3);
+        min-inline-size: 0;
+    }
+
+    .quote-dialog__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2xs);
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        color: var(--color-fg-muted);
+    }
+
+    .quote-dialog__dot {
+        inline-size: 5px;
+        block-size: 5px;
+        flex: none;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent-solid);
+    }
+
+    .quote-dialog__status {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        line-height: 1.6;
+        color: var(--color-fg-muted);
+    }
+
+    .quote-dialog__status[data-tone="error"] {
+        color: var(--color-danger-text, var(--color-accent-solid));
+    }
+
+    .quote-dialog__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .quote-dialog__action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-block-size: 2.75rem;
+        padding: var(--space-2) var(--space-4);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--color-bg-surface);
+        background: var(--color-fg-heading);
+        border: 1px solid var(--color-fg-heading);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* 未就绪：视觉上弱化且不可点，但不用 aria-disabled（无 href 的 <a> 是 generic 角色） */
+    .quote-dialog__action[data-quote-download]:not([href]) {
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    .quote-dialog__action--ghost {
+        color: var(--color-fg-heading);
+        background: transparent;
+        border-color: var(--color-border-default, var(--color-border-subtle));
+    }
+
+    .quote-dialog__action:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    @media screen and (max-width: 640px) {
+        .quote-selection .quote-dialog__panel {
+            inline-size: 100%;
+            max-block-size: 92dvh;
+            padding: var(--space-4);
+        }
+
+        .quote-dialog__body {
+            grid-template-columns: minmax(0, 1fr);
+            gap: var(--space-3);
+        }
+
+        .quote-dialog__canvas {
+            max-block-size: 52dvh;
+        }
+
+        .quote-dialog__side {
+            justify-items: stretch;
+        }
+    }
+</style>
