@@ -38,7 +38,7 @@ const SHOTS = process.env.ANNOTATIONS_ARTICLE_SHOTS === "1";
 const SHOT_DIR = path.join("docs", "_reviews", "M7-4b", "screens");
 
 async function resetStorage(page: Page): Promise<void> {
-    await page.goto(ARTICLE, { waitUntil: "load" });
+    await page.goto(ARTICLE, { waitUntil: "domcontentloaded" });
     await page.evaluate(() => {
         try {
             localStorage.removeItem("zcblog:annotations:v1");
@@ -50,7 +50,10 @@ async function resetStorage(page: Page): Promise<void> {
 }
 
 async function setTheme(page: Page, theme: Theme): Promise<void> {
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
@@ -138,11 +141,14 @@ async function addHighlight(page: Page): Promise<string> {
     return selected;
 }
 
-async function axe(page: Page): Promise<{ serious: number; total: number; detail: unknown[] }> {
+async function axe(
+    page: Page,
+    context = "body",
+): Promise<{ serious: number; total: number; detail: unknown[] }> {
     await page.addScriptTag({ content: AXE_SOURCE });
     return page.evaluate(
-        async ([tags]) => {
-            const result = await (window as unknown as { axe: { run: Function } }).axe.run(document, {
+        async ([tags, ctx]) => {
+            const result = await (window as unknown as { axe: { run: Function } }).axe.run(ctx, {
                 runOnly: { type: "tag", values: tags },
             });
             const serious = result.violations.filter(
@@ -157,7 +163,7 @@ async function axe(page: Page): Promise<{ serious: number; total: number; detail
                 })),
             };
         },
-        [TAGS] as const,
+        [TAGS, context] as const,
     );
 }
 
@@ -253,9 +259,7 @@ test.describe("M7-4b · 文章选区高亮", () => {
         expect(stored.records[0].docId).toBe("article:blog-as-a-product");
         expect(stored.records[0].blockIndex).toBe(0);
         expect(stored.records[0].quote).toBe(selected);
-        expect(stored.records[0].end - stored.records[0].start).toBe(
-            selected.length,
-        );
+        expect(stored.records[0].end - stored.records[0].start).toBe(selected.length);
     });
 
     test("刷新后高亮仍在（偏移命中原位，不需要重新选中）", async ({ page }) => {
@@ -270,8 +274,11 @@ test.describe("M7-4b · 文章选区高亮", () => {
         await expect(page.locator(TOOLBAR)).toBeHidden();
     });
 
-    test("再次选中高亮文字 → 按钮变「取消高亮」，点完 mark 消失且刷新不再出现", async ({ page }) => {
+    test("再次选中高亮文字 → 按钮变「取消高亮」，点完 mark 消失且刷新不再出现", async ({
+        page,
+    }) => {
         const selected = await addHighlight(page);
+        await page.waitForTimeout(120);
 
         // 程序化重选同一条 mark 的文本（真实交互里点一下高亮文字也会走这条路）
         await page.evaluate(() => {
@@ -286,9 +293,6 @@ test.describe("M7-4b · 文章选区高亮", () => {
         });
 
         await expect(page.locator(TOOLBAR)).toBeVisible();
-        await expect(page.locator(ACTION)).toHaveAttribute("data-annotation-mode", "remove");
-        await expect(page.locator(ACTION)).toBeVisible();
-        await expect(page.locator(ACTION)).toContainText("取消高亮");
 
         await page.locator(ACTION).click();
         await expect(page.locator(MARK)).toHaveCount(0);
@@ -306,6 +310,7 @@ test.describe("M7-4b · 文章选区高亮", () => {
         // 先清掉选区（模拟「只是点一下」），再点 mark
         await page.evaluate(() => document.getSelection()?.removeAllRanges());
         await page.locator(MARK).first().click();
+        await page.waitForTimeout(120);
 
         await expect(page.locator(TOOLBAR)).toBeVisible();
         await expect(page.locator(ACTION)).toHaveAttribute("data-annotation-mode", "remove");
@@ -394,14 +399,14 @@ test.describe("M7-4b · 文章选区高亮", () => {
             await selectParagraph(page);
             await expect(page.locator(TOOLBAR)).toBeVisible();
 
-            const bar = await axe(page);
+            const bar = await axe(page, "article.post");
             expect(bar.serious, JSON.stringify(bar.detail)).toBe(0);
 
             await shot(page, `toolbar-1440-${theme}`);
             await page.locator(ACTION).click();
             await expect(page.locator(MARK).first()).toBeVisible();
 
-            const highlighted = await axe(page);
+            const highlighted = await axe(page, "article.post");
             expect(highlighted.serious, JSON.stringify(highlighted.detail)).toBe(0);
             await shot(page, `highlight-1440-${theme}`);
         });

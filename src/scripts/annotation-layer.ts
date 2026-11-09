@@ -58,9 +58,12 @@ interface Pending {
 }
 
 let pending: Pending | null = null;
-/** 鼠标按在工具条上时不要因为选区塌掉就把工具条收了。 */
+/** 点工具条按钮的那一下浏览器会先塌掉选区：给一个很短的宽限期，别把工具条收了。 */
+let holdUntil = 0;
+/** pointerdown 落在工具条内时保持工具条，避免 selectionchange 在 click 前把它收掉。 */
 let holding = false;
 let frame = 0;
+let runs = 0;
 
 /* ───────────────────────── DOM 定位 ───────────────────────── */
 
@@ -71,7 +74,13 @@ function roots(): Roots | null {
     const button = root.querySelector<HTMLButtonElement>(ACTION_SELECTOR);
     const label = root.querySelector<HTMLElement>(LABEL_SELECTOR);
     if (!toolbar || !button || !label) return null;
-    return { root, toolbar, button, label, status: root.querySelector<HTMLElement>(STATUS_SELECTOR) };
+    return {
+        root,
+        toolbar,
+        button,
+        label,
+        status: root.querySelector<HTMLElement>(STATUS_SELECTOR),
+    };
 }
 
 function bodyRoot(): HTMLElement | null {
@@ -276,6 +285,7 @@ function place(ui: Roots, range: Range): void {
         (rect) => rect.width > 1 && rect.height > 1,
     );
     if (rects.length === 0) {
+        ui.root.dataset.annotationDebug = "norects";
         hide(ui);
         return;
     }
@@ -314,16 +324,19 @@ function place(ui: Roots, range: Range): void {
 function update(ui: Roots): void {
     const info = currentSelection(ui);
     if (!info) {
+        ui.root.dataset.annotationDebug = "none";
         hide(ui);
         return;
     }
     const range = document.getSelection()?.getRangeAt(0);
     if (!range) {
+        ui.root.dataset.annotationDebug = "norange";
         hide(ui);
         return;
     }
 
     pending = info;
+    ui.root.dataset.annotationDebug = `${info.blockIndex}:${info.start}-${info.end}:${info.mode}`;
     ui.button.dataset.annotationMode = info.mode;
     ui.label.textContent =
         info.mode === "remove"
@@ -353,7 +366,9 @@ function apply(ui: Roots): void {
         announce(
             ui,
             result.ok
-                ? (result.duplicate ? copy(ui, "Duplicate") : copy(ui, "Added"))
+                ? result.duplicate
+                    ? copy(ui, "Duplicate")
+                    : copy(ui, "Added")
                 : copy(ui, "Rejected"),
         );
     } else {
@@ -362,6 +377,7 @@ function apply(ui: Roots): void {
     }
 
     document.getSelection()?.removeAllRanges();
+    holding = false;
     hide(ui);
     render(ui);
 }
@@ -396,6 +412,14 @@ function onPointerDown(event: Event): void {
     if (!ui || ui.toolbar.hidden) return;
     const target = event.target as Node | null;
     if (!target) return;
+    // 点已有高亮时不要在 pointerdown 阶段收工具条，也不要让浏览器
+    // 用默认 pointer 行为把接下来要建立的 mark Range 塌掉。
+    const element =
+        target.nodeType === Node.ELEMENT_NODE ? (target as HTMLElement) : target.parentElement;
+    if (element?.closest(MARK_SELECTOR)) {
+        event.preventDefault();
+        return;
+    }
     holding = ui.toolbar.contains(target);
     if (!holding) hide(ui);
 }
@@ -419,6 +443,9 @@ function onClick(event: Event): void {
     if (!mark) return;
     const selection = document.getSelection();
     if (selection && !selection.isCollapsed) return; // 正在拖选，别抢
+    // 点中高亮文字时，浏览器的默认 click 行为会把刚建好的 Range 塌成 caret；
+    // 阻止默认行为后再选中 mark，工具条才能稳定停在「取消高亮」。
+    event.preventDefault();
     selectMark(mark);
 }
 
