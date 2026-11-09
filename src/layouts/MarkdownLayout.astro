@@ -11,6 +11,7 @@ import PostFooter from "~/components/Article/PostFooter.astro";
 import PostNavigation from "~/components/Article/PostNavigation.astro";
 import PostShare from "~/components/Article/PostShare.astro";
 import QuoteSelection from "~/components/Article/QuoteSelection.astro";
+import AnnotationLayer from "~/components/Article/AnnotationLayer.astro";
 import SeriesNav from "~/components/Series/SeriesNav.astro";
 import Toc from "~/components/Article/Toc.astro";
 import BackToTop from "~/components/Layout/BackToTop.astro";
@@ -279,6 +280,8 @@ const showRail = showToc || showAuthor || relatedPosts.length > 0;
         author={siteAuthor.type}
         locale={isEn ? "en" : "zh"}
     />
+    {/* M7-4b：正文选区高亮 + 批注工具条（无批注、未选字时 0 请求） */}
+    <AnnotationLayer slug={slug} locale={isEn ? "en" : "zh"} />
     {postView.backtotop && <BackToTop />}
     {frontmatter.donate && donate.enable && <Donate locale={locale} />}
     {hasMermaid && <MermaidRenderer />}

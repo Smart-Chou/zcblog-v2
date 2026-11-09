@@ -1,0 +1,228 @@
+---
+/**
+ * M7-4b · 文章正文选区高亮层 + 批注工具条
+ *
+ * 组件只出「壳」：一个隐藏的工具条 + 一个 `role="status"` 播报位。高亮本身不是预渲染
+ * 出来的（数据在浏览器 localStorage 里），所以这里没有任何正文内容 —— 所有 `<mark>`
+ * 都由 `~/scripts/annotation-layer.ts` 在运行时包上去。
+ *
+ * 三层成本，逐层加载：
+ *   1. **关闭态**（没有批注、也没选过字）：只有本组件内联的那段 bootstrap（约 0.5 KB gz）
+ *      挂在页面静态链上，`import()` 一次都不发 → 0 额外请求；
+ *   2. **有历史批注**：`localStorage` 里出现了本文档的 docId 才 `import()` 行为模块，
+ *      刷新后高亮重新画出来；
+ *   3. **第一次在正文里选中文字**：同样只 `import()` 一次，之后常驻。
+ *
+ * 高亮外观复用 `src/styles/pages/annotations.css` 的 `mark.annotation-mark`
+ * （M7-4a 定稿的渲染态：只改底色与一条内阴影，零布局偏移）。本组件不重写它，
+ * 也不碰 `article.css` / `overlays.css`。
+ */
+import "~/styles/pages/annotations.css";
+import { getLocale } from "~/utils/i18n";
+
+interface Props {
+    /** 文章 slug：批注的 `docId` 由它派生（`article:<slug>`），中英文同名文章互不串味。 */
+    slug: string;
+    locale?: string;
+}
+
+const { slug, locale: rawLocale = "zh" } = Astro.props;
+const locale = getLocale(rawLocale);
+const isEn = locale === "en";
+const docId = `article:${slug}`;
+
+const copy = {
+    group: isEn ? "Annotations" : "批注",
+    add: isEn ? "Highlight" : "高亮",
+    remove: isEn ? "Remove highlight" : "取消高亮",
+    added: isEn ? "Highlighted." : "已高亮。",
+    removed: isEn ? "Highlight removed." : "已取消高亮。",
+    duplicate: isEn ? "Already highlighted." : "这段已经高亮过了。",
+    rejected: isEn ? "Cannot highlight this selection." : "这段高亮不了（与已有高亮重叠或超出范围）。",
+    idle: isEn ? "Nothing to remove." : "没有可取消的高亮。",
+};
+---
+
+<div
+    class="annotation-layer"
+    data-annotation-layer
+    data-annotation-doc={docId}
+    data-annotation-count="0"
+    data-annotation-painted="0"
+    data-annotation-label-add={copy.add}
+    data-annotation-label-remove={copy.remove}
+    data-annotation-msg-added={copy.added}
+    data-annotation-msg-removed={copy.removed}
+    data-annotation-msg-duplicate={copy.duplicate}
+    data-annotation-msg-rejected={copy.rejected}
+    data-annotation-msg-idle={copy.idle}
+>
+    <div
+        class="annotation-toolbar"
+        data-annotation-toolbar
+        role="group"
+        aria-label={copy.group}
+        hidden
+    >
+        <button
+            type="button"
+            class="annotation-toolbar__btn"
+            data-annotation-action="toggle"
+            data-annotation-mode="add"
+        >
+            <span class="annotation-toolbar__dot" aria-hidden="true"></span>
+            <span data-annotation-label>{copy.add}</span>
+        </button>
+    </div>
+    <p class="sr-only" role="status" aria-live="polite" data-annotation-status></p>
+</div>
+
+<script>
+    /**
+     * 内联 bootstrap（随页面静态链打包，约 0.5 KB gz）：
+     *   · 有本文档的批注 → 立刻 `import()` 行为模块把 `<mark>` 画回来；
+     *   · 否则只是「武装」——正文里第一次出现非空选区时才 `import()`。
+     * 两种情况下关闭态都不发任何额外请求。
+     */
+    const STORAGE_KEY = "zcblog:annotations:v1"; // = ANNOTATIONS_STORAGE_KEY（不静态 import 数据层，省 4 KB）
+    const LAYER = "[data-annotation-layer]";
+    const BODY = "#post-content .article-content";
+
+    const global = window as unknown as {
+        __annotationLayerBoot?: { loaded: boolean; bound: boolean };
+    };
+    const state = (global.__annotationLayerBoot ??= { loaded: false, bound: false });
+
+    function load(): Promise<unknown> {
+        state.loaded = true;
+        return import("~/scripts/annotation-layer").then((mod) => mod.initAnnotationLayer());
+    }
+
+    /** 只做字符串包含判断，不 parse JSON：bootstrap 要小，且误判只会多加载一次模块。 */
+    function stored(docId: string | undefined): boolean {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return Boolean(raw) && (!docId || raw.includes(docId));
+        } catch {
+            return false;
+        }
+    }
+
+    function hydrate(): void {
+        const root = document.querySelector<HTMLElement>(LAYER);
+        if (!root) return;
+        // 模块已经加载过（swup 换页）→ 无条件重跑一遍，给新文章重新落 mark。
+        if (state.loaded || stored(root.dataset.annotationDoc)) void load();
+    }
+
+    if (!state.bound) {
+        state.bound = true;
+        document.addEventListener(
+            "selectionchange",
+            () => {
+                const selection = document.getSelection();
+                if (!selection || selection.isCollapsed || !selection.toString().trim()) return;
+                const anchor = selection.anchorNode;
+                if (!anchor || !(anchor.parentElement?.closest(BODY))) return;
+                void load();
+            },
+            { passive: true },
+        );
+        document.addEventListener("astro:page-load", hydrate);
+    }
+
+    hydrate();
+</script>
+
+<style>
+    /* ── 浮动工具条 ───────────────────────────────────────────
+       与金句卡工具条（QuoteSelection.astro）同一套视觉语汇，但默认落在选区**上方**、
+       左缘对齐 —— 两个工具条会同时对一个选区出现，错开位置避免叠在一起。 */
+
+    .annotation-layer {
+        /* 组件本身不占版面：工具条是 fixed，状态位是 sr-only */
+        position: static;
+    }
+
+    .annotation-toolbar {
+        position: fixed;
+        z-index: 1050;
+        display: flex;
+        padding: var(--space-2xs);
+        background: var(--color-bg-surface);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-3, var(--shadow-md));
+        animation: annotation-toolbar-in var(--duration-fast) var(--ease-standard) both;
+    }
+
+    /* `[hidden]` 的 UA display:none 会被上面的 display:flex 盖掉 —— 显式关死 */
+    .annotation-layer .annotation-toolbar[hidden] {
+        display: none;
+    }
+
+    .annotation-toolbar__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-block-size: 2.75rem;
+        padding: var(--space-2) var(--space-4);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        color: var(--color-fg-heading);
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .annotation-toolbar__dot {
+        inline-size: 6px;
+        block-size: 6px;
+        flex: none;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent-solid);
+    }
+
+    /* 取消态：点已经高亮过的选区时，按钮语气收一点（不是危险操作，不刷红） */
+    .annotation-toolbar__btn[data-annotation-mode="remove"] .annotation-toolbar__dot {
+        background: transparent;
+        box-shadow: inset 0 0 0 1.5px var(--color-fg-muted);
+    }
+
+    @media (hover: hover) {
+        .annotation-toolbar__btn:hover {
+            background: var(--color-bg-hover, var(--color-bg-sunken));
+        }
+    }
+
+    .annotation-toolbar__btn:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    @keyframes annotation-toolbar-in {
+        from {
+            opacity: 0;
+            translate: 0 -4px;
+        }
+        to {
+            opacity: 1;
+            translate: 0 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .annotation-toolbar {
+            animation: none;
+        }
+    }
+
+    @media print {
+        .annotation-layer {
+            display: none;
+        }
+    }
+</style>
