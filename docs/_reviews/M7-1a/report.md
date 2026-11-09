@@ -105,3 +105,10 @@ M71A_SHOTS=1 corepack pnpm exec playwright test e2e/search.spec.ts --reporter=li
 ```
 
 不跑 `pages.visual` / 全量 `gates:all` / Linux 容器（按卡面：不在本卡）。
+
+
+## 7. Operator 复核补记（2026-11-09）
+
+- 搜索触发器/弹层的全局样式会改变页头闭合态，CI visual 在 `archives / albums / projects` 的 16 条用例报 20px 级差异（ratio 0.01）；判定为预期视觉变化，不是布局回归。
+- 已重生成受影响页面基线：macOS 18 张（`pages/`）、Linux 18 张（`pages-linux/`），均为 `archives / albums / projects × 3 视口 × 2 主题`；home / article / culture / 404 不变。
+- 本机两平台全量 `pages.visual` 复核均 **42 passed**；基线更新随本卡作为 `test(m7-1a)` 提交。
