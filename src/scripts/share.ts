@@ -40,6 +40,40 @@ async function renderQr(pop: HTMLElement, root: HTMLElement) {
 
 const isWeChatBrowser = /MicroMessenger/i.test(navigator.userAgent);
 
+/**
+ * M7-3c：海报预览按需加载。
+ *
+ * `<img data-share-poster="<slug>">` 在 HTML 里**没有 src**（否则关闭态就会拉一张
+ * ~1MB 的 1200×1600 PNG）。打开弹层时才由这里写 src；失败（文章没有海报产物）
+ * 就把 pop 标成 posterState=missing，CSS 收起预览、卡片退回单栏 —— 不留破图。
+ */
+function setPoster(pop: HTMLElement) {
+    const img = pop.querySelector<HTMLImageElement>("[data-share-poster]");
+    if (!img || img.dataset.posterState === "loading" || img.dataset.posterState === "ready") return;
+    const slug = img.dataset.sharePoster || "";
+    if (!slug) return;
+    img.dataset.posterState = "loading";
+    const base = import.meta.env.BASE_URL || "/";
+    img.addEventListener(
+        "load",
+        () => {
+            img.dataset.posterState = "ready";
+            pop.dataset.posterState = "ready";
+        },
+        { once: true },
+    );
+    img.addEventListener(
+        "error",
+        () => {
+            img.dataset.posterState = "missing";
+            pop.dataset.posterState = "missing";
+            img.removeAttribute("src");
+        },
+        { once: true },
+    );
+    img.src = `${base}poster/${encodeURIComponent(slug)}.png`;
+}
+
 type UmamiTracker = { track: (name: string, data?: Record<string, unknown>) => void };
 
 /**
@@ -130,6 +164,37 @@ function copyFeedback(button: Element) {
     window.setTimeout(() => button.classList.remove("copied"), 1400);
 }
 
+/** 「复制短链」的状态行：每次打开弹层都从空开始，避免上次的降级文案残留 */
+function resetShortlinkNote(root: HTMLElement) {
+    const note = root.querySelector<HTMLElement>("[data-share-note]");
+    if (!note) return;
+    note.textContent = "";
+    note.removeAttribute("data-tone");
+}
+
+/**
+ * M7-3c：「复制短链」。
+ *
+ * 本站没有短链服务（本卡明确不接第三方），因此**不伪造短链**：复制的就是
+ * canonical URL，并在状态行里明说「暂无短链服务，已复制完整文章链接」。
+ * 剪贴板被拒时同样有可见反馈（提示手动复制），不静默失败。
+ */
+function handleShortlink(actionEl: Element, root: HTMLElement) {
+    const url = root.dataset.shareUrl || location.href;
+    const note = root.querySelector<HTMLElement>("[data-share-note]");
+    void copyText(url).then((ok) => {
+        if (ok) {
+            copyFeedback(actionEl);
+            track("shortlink");
+        }
+        if (!note) return;
+        note.dataset.tone = ok ? "degraded" : "error";
+        note.textContent = ok
+            ? (root.dataset.shareShortlinkDegraded ?? "")
+            : (root.dataset.shareShortlinkError ?? "");
+    });
+}
+
 function handleAction(actionEl: Element, root: HTMLElement) {
     const action = actionEl.getAttribute("data-share-action");
     if (action === "wechat") {
@@ -145,6 +210,8 @@ function handleAction(actionEl: Element, root: HTMLElement) {
         if (open && pop) {
             track("wechat");
             void renderQr(pop, root);
+            setPoster(pop);
+            resetShortlinkNote(root);
             void loadOverlay().then((mod) => {
                 // 下载期间用户可能已经收起：只在仍打开时挂载
                 if (wrap.classList.contains("open"))
@@ -165,6 +232,10 @@ function handleAction(actionEl: Element, root: HTMLElement) {
                 track("copy");
             }
         });
+        return;
+    }
+    if (action === "shortlink") {
+        handleShortlink(actionEl, root);
         return;
     }
     if (action === "native") {
@@ -233,13 +304,25 @@ function initShareUi() {
             return;
         }
         if (coarsePointer) {
-            // 触摸设备（手机/平板）：隐藏微信入口——同一部手机无法方便地"扫码"。
-            // 系统分享面板可用时显示系统分享按钮；不可用（部分安卓浏览器/WebView）时
-            // 同样不再把微信放在第一位，避免"移动端第一个还是微信"。
-            wechatWrap?.classList.add("share-hidden");
+            // 触摸设备（手机/平板）：同一部手机扫不了自己的屏。
+            // 有海报时入口改叫「分享海报」（弹层现在主要是海报 + 下载 + 平台），
+            // 二维码由 CSS 按 [data-share-mode="poster"] 收起；没有海报时维持旧行为（隐藏）。
+            if (root.dataset.shareSlug) {
+                wechatWrap?.classList.remove("share-hidden");
+                root.dataset.shareMode = "poster";
+                const btn = wechatWrap?.querySelector<HTMLElement>("[data-share-action='wechat']");
+                const label = root.dataset.sharePosterLabel;
+                if (btn && label) {
+                    btn.setAttribute("aria-label", label);
+                    btn.title = label;
+                }
+            } else {
+                wechatWrap?.classList.add("share-hidden");
+            }
             nativeBtn?.classList.toggle("share-visible", canNativeShare);
         } else {
             wechatWrap?.classList.remove("share-hidden");
+            delete root.dataset.shareMode;
             nativeBtn?.classList.remove("share-visible");
         }
     });

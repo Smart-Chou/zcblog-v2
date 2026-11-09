@@ -11,7 +11,14 @@
  *   .share-wechat-wrap[.open|.share-hidden|data-in-wechat] · .share-pop · .share-card
  *   .share-close[data-share-close] · .share-qr / .share-qr-img[data-share-qr]
  *   .share-qr-title · .share-qr-help · .share-in-wechat · .share-copied-chip
- * 本卡只在骨架上加**描述性**节点（眉标 / 计数 / URL 脚注），不改任何行为。
+ *
+ * M7-3c：弹层接 M7-3b-2 的构建期海报 `/poster/<slug>.png`（3:4 / 1200×1600）。
+ *   · 桌面两栏（左海报预览 + 右 QR/平台/操作），移动单列 sheet；
+ *   · 预览图**不带 src**，`data-share-poster="<slug>"` 由 share.ts 在打开弹层时才写
+ *     src —— 关闭态 0 请求（e2e/share-poster.spec.ts 断言）；
+ *   · 下载链接是静态 href + download（属性不触发请求）；
+ *   · 「复制短链」没有短链后端：复制 canonical URL 并在 [data-share-note] 里
+ *     明说降级（文案走 data-* 传给 share.ts，不动 i18n 词典）。
  */
 import { share } from "~/config";
 import { iconMarkup } from "~/components/Icons/icon-markup";
@@ -104,6 +111,24 @@ const qrTitle = t(locale, "article.qrcode");
 const closeLabel = locale === "en" ? "Close" : "关闭";
 /** 平台计数：纯装饰的等宽小字（"10" 紧贴赤陶圆点），语言无关 */
 const channelCount = String(items.length).padStart(2, "0");
+
+/* ── M7-3c：海报预览 / 下载 / 短链降级（文案在组件内，不扩 i18n 词典） ── */
+const isEn = locale === "en";
+/** 构建期静态资产（M7-3b-2）；`<img>` 不带 src，打开弹层时由 share.ts 写入 */
+const posterPath = slug ? `/poster/${slug}.png` : "";
+const posterAlt = isEn ? `${title} — share poster` : `${title} 分享海报`;
+const downloadLabel = isEn ? "Download poster" : "下载海报";
+const shortlinkLabel = isEn ? "Copy short link" : "复制短链";
+const shortlinkDegraded = isEn
+    ? "Short links aren’t available yet — copied the full article link."
+    : "暂无短链服务，已复制完整文章链接。";
+const shortlinkError = isEn
+    ? "Copy blocked by the browser — select the link at the foot of this card."
+    : "浏览器拒绝了复制，请手动选取卡片底部的链接。";
+/** 移动端把同一个入口改叫「分享海报」（弹层里已是海报单，不再是纯二维码） */
+const posterEntryLabel = isEn ? "Share card" : "分享海报";
+/** 弹层右栏的平台直链（与入口条同一批 href，构建期写好，无 JS 也能转发） */
+const platformLinks = items.filter((item) => Boolean(item.href));
 ---
 
 {
@@ -114,6 +139,9 @@ const channelCount = String(items.length).padStart(2, "0");
             data-share-url={canonicalUrl}
             data-share-title={title}
             data-share-slug={slug}
+            data-share-poster-label={posterEntryLabel}
+            data-share-shortlink-degraded={shortlinkDegraded}
+            data-share-shortlink-error={shortlinkError}
         >
             <div class="share-head">
                 <span class="share-label">{shareToLabel}</span>
@@ -144,7 +172,7 @@ const channelCount = String(items.length).padStart(2, "0");
                                     <div class="share-card">
                                         <div class="share-card-head">
                                             <span class="share-eyebrow" aria-hidden="true">
-                                                WeChat&nbsp;QR
+                                                Share&nbsp;card
                                             </span>
                                             <button
                                                 type="button"
@@ -156,19 +184,93 @@ const channelCount = String(items.length).padStart(2, "0");
                                                 <Fragment set:html={iconMarkup("tabler:x")} />
                                             </button>
                                         </div>
-                                        <div class="share-qr">
-                                            <p class="share-qr-title">{qrTitle}</p>
-                                            <div class="share-qr-img" data-share-qr />
-                                            <p class="share-qr-help">
-                                                {t(locale, "article.share.wechatHelper")}
-                                            </p>
+                                        <div class="share-modal">
+                                            {posterPath && (
+                                                <figure class="share-poster">
+                                                    <div class="share-poster-frame">
+                                                        <img
+                                                            class="share-poster-img"
+                                                            data-share-poster={slug}
+                                                            alt={posterAlt}
+                                                            width="1200"
+                                                            height="1600"
+                                                            decoding="async"
+                                                        />
+                                                    </div>
+                                                    <figcaption class="share-poster-cap">
+                                                        <span class="share-poster-tag">
+                                                            3:4
+                                                        </span>
+                                                        <span class="share-poster-size">
+                                                            1200 × 1600
+                                                        </span>
+                                                    </figcaption>
+                                                </figure>
+                                            )}
+                                            <div class="share-panel">
+                                                <div class="share-qr">
+                                                    <p class="share-qr-title">{qrTitle}</p>
+                                                    <div class="share-qr-img" data-share-qr />
+                                                    <p class="share-qr-help">
+                                                        {t(locale, "article.share.wechatHelper")}
+                                                    </p>
+                                                </div>
+                                                <p class="share-in-wechat">
+                                                    {t(locale, "article.share.inWechatHint")}
+                                                </p>
+                                                {platformLinks.length > 0 && (
+                                                    <ul class="share-platforms" aria-label={shareToLabel}>
+                                                        {platformLinks.map((item) => (
+                                                            <li>
+                                                                <a
+                                                                    class="share-platform"
+                                                                    href={item.href}
+                                                                    target="_blank"
+                                                                    rel="noopener"
+                                                                    data-share-platform={item.id}
+                                                                >
+                                                                    <Fragment
+                                                                        set:html={iconMarkup(item.icon)}
+                                                                    />
+                                                                    <span>
+                                                                        {item[contentLocaleOf(locale)] ?? item.zh}
+                                                                    </span>
+                                                                </a>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                                <div class="share-modal-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="share-action share-action--shortlink"
+                                                        data-share-action="shortlink"
+                                                    >
+                                                        <Fragment
+                                                            set:html={iconMarkup("tabler:copy")}
+                                                        />
+                                                        {shortlinkLabel}
+                                                    </button>
+                                                    {posterPath && (
+                                                        <a
+                                                            class="share-action share-action--download"
+                                                            href={posterPath}
+                                                            download={`${slug}-poster.png`}
+                                                            data-share-download
+                                                        >
+                                                            <Fragment
+                                                                set:html={iconMarkup("tabler:photo")}
+                                                            />
+                                                            {downloadLabel}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <p class="share-note" data-share-note role="status" />
+                                                <p class="share-url" aria-hidden="true">
+                                                    {sharePath}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <p class="share-in-wechat">
-                                            {t(locale, "article.share.inWechatHint")}
-                                        </p>
-                                        <p class="share-url" aria-hidden="true">
-                                            {sharePath}
-                                        </p>
                                     </div>
                                 </div>
                             </span>

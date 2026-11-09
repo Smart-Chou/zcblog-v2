@@ -168,7 +168,10 @@
 }
 
 .share-bar.post-share[data-post-share] .share-pop[data-overlay="share"] .share-card {
-    inline-size: min(22rem, 100%);
+    /* M7-3c：两栏（左海报预览 + 右二维码/平台/操作）；没有海报时单栏仍按旧的窄卡 */
+    inline-size: min(52rem, 100%);
+    max-block-size: min(84dvh, 44rem);
+    overflow-y: auto;
     padding: var(--space-5) var(--space-5) var(--space-5);
     text-align: start;
     color: var(--color-fg-default);
@@ -177,6 +180,231 @@
     border-block-start: 2px solid var(--color-accent-solid);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-4);
+}
+
+/* 没有海报产物（老页面 / 图生成失败）时退回单栏窄卡，不做半边空 */
+.share-bar.post-share[data-post-share] .share-pop[data-poster-state="missing"] .share-card,
+.share-bar.post-share[data-post-share] .share-pop:not(:has([data-share-poster])) .share-card {
+    inline-size: min(22rem, 100%);
+}
+
+.share-pop[data-overlay="share"]:not(:has(.share-poster)) .share-modal {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.share-bar.post-share[data-post-share] .share-modal {
+    display: grid;
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-5);
+}
+
+/* ── 左栏：3:4 海报预览 ─────────────────────────────────── */
+
+.share-poster {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-inline-size: 0;
+    margin: 0;
+}
+
+/* 宽度由列宽决定，高度按 3:4 反推；卡片自身 84dvh 内滚动，
+   所以竖图再高也不会把弹层顶出视口。加载前是 sunken 骨架。 */
+.share-poster-frame {
+    position: relative;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    aspect-ratio: 3 / 4;
+    margin-inline: auto;
+    overflow: hidden;
+    background: var(--color-bg-sunken);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.share-poster-img {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    /* 预览只是取景：真正的 1200×1600 在下载里 */
+    object-fit: cover;
+    object-position: center top;
+}
+
+.share-poster-cap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.share-poster-tag {
+    padding: 0 var(--space-2xs);
+    color: var(--color-fg-on-accent);
+    background: var(--color-accent-solid);
+    border-radius: var(--radius-xs);
+}
+
+/* ── 右栏：二维码 / 平台 / 操作 ─────────────────────────── */
+
+.share-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-inline-size: 0;
+}
+
+.share-bar.post-share[data-post-share] .share-platforms {
+    /* 4 列等宽：7 个平台排成 4+3，末行只空一格（自适应 flex 会空半排） */
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2xs);
+    margin: 0;
+    padding: var(--space-3) 0 0;
+    list-style: none;
+    border-block-start: 1px solid var(--color-border-subtle);
+}
+
+.share-bar.post-share[data-post-share] .share-platform {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    min-inline-size: 0;
+    padding: 2px var(--space-2) 2px var(--space-2xs);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    color: var(--color-fg-default);
+    text-decoration: none;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+}
+
+.share-bar.post-share[data-post-share] .share-platform svg {
+    flex: none;
+    inline-size: var(--text-base);
+    block-size: var(--text-base);
+    color: var(--color-fg-muted);
+}
+
+.share-bar.post-share[data-post-share] .share-platform span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.share-bar.post-share[data-post-share] .share-platform:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 1px;
+}
+
+@media (hover: hover) {
+    .share-bar.post-share[data-post-share] .share-platform:hover {
+        color: var(--color-accent-solid);
+        background: var(--color-accent-subtle);
+    }
+}
+
+.share-modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.share-bar.post-share[data-post-share] .share-action {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xs);
+    min-block-size: 2.25rem;
+    padding: 0 var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    letter-spacing: var(--tracking-wide);
+    text-decoration: none;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard),
+        border-color var(--duration-fast) var(--ease-standard);
+}
+
+.share-bar.post-share[data-post-share] .share-action svg {
+    display: block;
+    inline-size: var(--text-base);
+    block-size: var(--text-base);
+}
+
+.share-bar.post-share[data-post-share] .share-action--shortlink {
+    color: var(--color-fg-default);
+    background: var(--color-bg-surface);
+}
+
+/* 下载是这层弹层的主行动：赤陶实底，与左侧海报标签同一套记号 */
+.share-bar.post-share[data-post-share] .share-action--download {
+    color: var(--color-fg-on-accent);
+    background: var(--color-accent-solid);
+    border-color: var(--color-accent-solid);
+}
+
+.share-bar.post-share[data-post-share] .share-action:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+.share-bar.post-share[data-post-share] .share-action.copied {
+    color: var(--color-accent-solid);
+    border-color: var(--color-border-accent);
+    background: var(--color-accent-subtle);
+}
+
+@media (hover: hover) {
+    .share-bar.post-share[data-post-share] .share-action--shortlink:hover {
+        border-color: var(--color-border-strong);
+        background: var(--color-bg-hover);
+    }
+
+    .share-bar.post-share[data-post-share] .share-action--download:hover {
+        background: var(--color-accent-solid-hover);
+        border-color: var(--color-accent-solid-hover);
+    }
+}
+
+/* 短链降级 / 失败的状态行：空态不占高（不留一条空沟），有字才出线 */
+.share-bar.post-share[data-post-share] .share-note {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-default);
+}
+
+.share-bar.post-share[data-post-share] .share-note:empty {
+    display: none;
+}
+
+.share-bar.post-share[data-post-share] .share-note[data-tone="degraded"] {
+    color: var(--color-fg-heading);
+    font-weight: var(--font-weight-medium);
+}
+
+.share-bar.post-share[data-post-share] .share-note[data-tone="error"] {
+    color: var(--color-accent-solid);
+}
+
+/* 手机上没有可扫的码（share.ts 打 data-share-mode="poster"）：
+   二维码连同「WeChat QR」眉标一起收起，弹层只剩海报 / 平台 / 下载 */
+.share-bar.post-share[data-post-share][data-share-mode="poster"] .share-qr,
+.share-bar.post-share[data-post-share][data-share-mode="poster"] .share-eyebrow {
+    display: none;
 }
 
 .share-card-head {
@@ -346,6 +574,35 @@
         block-size: 3px;
         border-radius: var(--radius-pill);
         background: var(--color-border-default);
+    }
+
+    /* M7-3c：sheet 单列 —— 海报（限高）→ 二维码/提示 → 平台 → 操作 → 脚注 */
+    .share-bar.post-share[data-post-share] .share-modal {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-4);
+    }
+
+    .share-bar.post-share[data-post-share] .share-poster-frame {
+        /* 3:4 的等比缩小版：操作行不用滚两屏才看到 */
+        max-inline-size: min(100%, 15rem);
+    }
+
+    /* 手机上没有二维码可扫：海报是唯一主角，可以再大一点 */
+    .share-bar.post-share[data-post-share][data-share-mode="poster"] .share-poster-frame {
+        max-inline-size: min(100%, 18rem);
+    }
+
+    .share-bar.post-share[data-post-share] .share-modal-actions {
+        flex-wrap: nowrap;
+    }
+
+    /* 335px 的 sheet 里 4 列会把 "Telegram" 截成省略号，窄版退到 3 列 */
+    .share-bar.post-share[data-post-share] .share-platforms {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .share-bar.post-share[data-post-share] .share-action {
+        min-block-size: 2.75rem;
     }
 }
 
