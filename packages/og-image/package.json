@@ -38,7 +38,7 @@
         "build": "node scripts/build.mjs",
         "prepack": "node scripts/build.mjs",
         "pretest": "node scripts/build.mjs",
-        "test": "node --test test/smoke.test.mjs"
+        "test": "node --test test/*.test.mjs"
     },
     "sideEffects": false,
     "dependencies": {
