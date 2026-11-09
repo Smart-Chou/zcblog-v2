@@ -14,6 +14,13 @@ interface Props {
 const { locale = "zh" } = Astro.props;
 const loc: Locale = getLocale(locale);
 const searchPlaceholder = t(loc, "common.searchPlaceholder");
+// M7-1a：状态芯片与页脚键帽文案。i18n 数据文件不在本卡文件边界内，
+// 只做 zh/en 二元回退（其余语言回落中文，与 defaultLocale 一致）。
+const isEn = loc === "en";
+const statusLabel = isEn ? "Pagefind · local index" : "Pagefind · 本地索引";
+const hintNav = isEn ? "navigate" : "导航";
+const hintOpen = isEn ? "open" : "打开";
+const hintClose = isEn ? "close" : "关闭";
 ---
 
 <script is:inline data-swup-ignore-script>
@@ -251,14 +258,24 @@ const searchPlaceholder = t(loc, "common.searchPlaceholder");
 
 <pagefind-modal reset-on-close>
     <pagefind-modal-header>
+        {/* M7-1a：图标块 + 裸输入 + 索引状态；三段都由 pagefind 收进 .pf-modal-header-content */}
+        <span class="search-head-icon" aria-hidden="true"></span>
         <pagefind-input></pagefind-input>
+        <span class="search-head-status" aria-hidden="true">
+            <span class="search-head-dot"></span>{statusLabel}
+        </span>
     </pagefind-modal-header>
     <pagefind-modal-body>
         <pagefind-summary></pagefind-summary>
         <pagefind-results max-sub-results="5"></pagefind-results>
     </pagefind-modal-body>
     <pagefind-modal-footer>
-        <div class="search-hints">{t(loc, "common.search")} · ↑↓ / Tab · Enter · Esc</div>
+        <div class="search-hints">
+            <span class="search-hint"><kbd>↑</kbd><kbd>↓</kbd>{hintNav}</span>
+            <span class="search-hint"><kbd>↵</kbd>{hintOpen}</span>
+            <span class="search-hint"><kbd>Tab</kbd>{isEn ? "filter" : "切换"}</span>
+            <span class="search-hint"><kbd>Esc</kbd>{hintClose}</span>
+        </div>
         <div class="footer-brand">
             Search by <strong>Pagefind</strong>
         </div>

@@ -1,54 +1,62 @@
 /* ============================================
-   Pagefind Component UI — 搜索变量
-   用于 <pagefind-modal-trigger> / <pagefind-modal>
+   Pagefind Component UI — 搜索 spotlight（M7-1a）
+   桌面 ≥641：680px 命令面板；移动 ≤640：同一弹层的全屏窄版
+   ------------------------------------------------------------
+   约定：
+   · 只用全局可用的语义 token（packages/tokens/variables.css +
+     src/styles/tokens.css）—— search-global.css 被 global.css 全局引入，
+     而 styles/tokens/tokens.css 只按页 import，这里不能依赖它。
+   · Pagefind 自带 CSS 用 `:is(*,#\#):is(*,#\#):is(*,#\#)` 把特异性抬到
+     (3,0,0)，所以覆盖它内部类名的规则必须用同款前缀，否则静默失效。
+   · 行为零改动：脚本、组件结构、CJK 分词都不动，本文件只负责外观。
    ============================================ */
+
 :root {
-    --search-primary: #5468ff;
-    --search-primary-light: rgba(84, 104, 255, 0.12);
-    --search-modal-bg: #ffffff;
-    --search-modal-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
-    --search-border: #e2e8f0;
-    --search-border-light: #f1f5f9;
-    --search-text: #1a202c;
-    --search-text-muted: #64748b;
-    /* A8：原 #94a3b8 在 #fbf8f4 上只有 2.42:1，改为 5.15:1 */
-    --search-text-subtle: #5b6b7f;
-    --search-bg-stripe: #f8fafc;
-    --search-footer-bg: #fafbfc;
+    --search-primary: var(--color-accent);
+    --search-primary-light: var(--color-selection);
+    --search-modal-bg: var(--color-surface);
+    --search-modal-bg-sunken: var(--color-surface-secondary);
+    --search-modal-shadow:
+        0 24px 56px -20px rgba(45, 40, 34, 0.28), 0 2px 8px -2px rgba(45, 40, 34, 0.12);
+    --search-border: var(--color-border);
+    --search-border-light: var(--color-border);
+    --search-text: var(--color-body);
+    --search-text-strong: var(--color-heading);
+    --search-text-muted: var(--color-muted);
+    /* A8：原 #94a3b8 在 #f3eee7 上只有 2.42:1 —— 落到 text-dimmed（4.5:1+） */
+    --search-text-subtle: var(--color-text-dimmed);
+    --search-bg-stripe: var(--color-surface-secondary);
+    --search-footer-bg: var(--color-surface-secondary);
     --search-modal-radius: 12px;
-    --search-highlight-bg: rgba(84, 104, 255, 0.15);
-    --search-highlight-color: #5468ff;
-    --search-backdrop: rgba(0, 0, 0, 0.4);
+    --search-highlight-bg: var(--color-selection);
+    /* 高亮字：纯 accent(#c2413b) 在 blush 底(#fde8e5) 上只有 4.34:1（14px 正文不达标）。
+       复用既有的 code-accent 深赤陶：浅色 6.48:1、暗色 8.08:1（脚本实测，见 report）。 */
+    --search-highlight-color: var(--color-code-accent);
+    --search-backdrop: rgba(45, 40, 34, 0.38);
 }
 
-html[data-theme="dark"] {
-    --search-primary: #7c8aff;
-    --search-primary-light: rgba(124, 138, 255, 0.15);
-    --search-modal-bg: #1e1e2e;
-    --search-modal-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
-    --search-border: #2d2d44;
-    --search-border-light: #252538;
-    --search-text: #e2e4e9;
-    --search-text-muted: #9ca3af;
-    --search-text-subtle: #6b7280;
-    --search-bg-stripe: #222236;
-    --search-footer-bg: #1a1a2e;
-    --search-highlight-bg: rgba(124, 138, 255, 0.2);
-    --search-highlight-color: #a5b0ff;
-    --search-backdrop: rgba(0, 0, 0, 0.6);
+[data-theme="dark"] {
+    --search-modal-shadow:
+        0 24px 56px -20px rgba(0, 0, 0, 0.66), 0 2px 10px -2px rgba(0, 0, 0, 0.5);
+    --search-backdrop: rgba(8, 7, 6, 0.66);
 }
 
 /* ============================================
-   Pagefind Component UI — 自定义属性
-   放在全局样式表中，避免 Astro scoping 导致 SPA 导航丢失
+   Pagefind 自定义属性（每个 pagefind-* 元素单独覆盖）
    ============================================ */
 pagefind-modal-trigger {
+    /* 尺寸/圆角维持原值：页头触发器由 Header.astro 的 scoped 规则接管
+       （`[data-astro-cid-…] pagefind-modal-trigger{--pf-border-radius:var(--shell-radius-md)}`，
+       特异性高于这里），本卡只换配色，不动它在页头里的几何 */
     --pf-border-radius: 40px;
     --pf-input-height: 38px;
     --pf-background: var(--search-modal-bg);
     --pf-border: var(--search-border);
-    --pf-text-secondary: var(--search-text-subtle);
+    --pf-text-secondary: var(--search-text-muted);
+    --pf-text-muted: var(--search-text-muted);
+    --pf-hover: var(--search-modal-bg-sunken);
     --pf-font: var(--font-body);
+    --pf-outline-focus: var(--search-primary);
 }
 
 pagefind-modal {
@@ -58,73 +66,261 @@ pagefind-modal {
     --pf-background: var(--search-modal-bg);
     --pf-border: var(--search-border);
     --pf-border-focus: var(--search-primary);
-    --pf-hover: var(--search-primary-light);
+    --pf-hover: var(--search-modal-bg-sunken);
     --pf-mark: var(--search-highlight-color);
     --pf-mark-background: var(--search-highlight-bg);
     --pf-skeleton: var(--search-bg-stripe);
     --pf-shadow-lg: var(--search-modal-shadow);
     --pf-modal-backdrop: var(--search-backdrop);
-    --pf-modal-max-width: 40rem;
+    --pf-modal-max-width: 680px;
+    --pf-modal-max-height: min(78dvh, 720px);
+    --pf-modal-top: 12vh;
     --pf-border-radius: var(--search-modal-radius);
-    --pf-input-height: 44px;
-    --pf-input-font-size: 16px;
+    --pf-input-height: 40px;
+    --pf-input-font-size: var(--text-xl);
+    --pf-summary-font-size: var(--text-xs);
     --pf-font: var(--font-body);
     --pf-outline-focus: var(--search-primary);
-}
-
-html[data-theme="dark"] pagefind-modal-trigger {
-    --pf-background: var(--search-modal-bg);
-    --pf-border: var(--search-border);
-    /* M2-13a/13b：触发器里的 `.pf-trigger-key`（Ctrl/⌘）走 --pf-text-secondary；
-       它原先取 --search-text-subtle，在 Linux/Chromium 的 dark 下实测被 axe 判为
-       serious color-contrast。与 modal 内同一取值统一到 --search-text-muted（≥4.5）。
-       --pf-hover 是快捷键 chip 的底色；pagefind 默认给的是浅色 #f5f5f5，
-       不覆盖会在 dark 下变成「浅灰底 + 浅灰字」，所以一并落到 --search-bg-stripe。 */
-    --pf-text-secondary: var(--search-text-muted);
-    --pf-hover: var(--search-bg-stripe);
-    /* M2-13a：.pf-trigger-text 取的是 --pf-text-muted（pagefind 默认 #767676），
-       在 #1e1e2e 上只有 3.61:1 —— 全站 546 页的搜索占位都在这一条上。
-       暗色提到 #9ca3af（6.46:1），浅色不动（#767676 on #fff = 4.54 已过线）。 */
-    --pf-text-muted: var(--search-text-muted);
-}
-
-html[data-theme="dark"] pagefind-modal {
-    --pf-text: var(--search-text);
-    --pf-text-secondary: var(--search-text-muted);
-    /* M2-13a：搜索框占位（placeholder）也走 --pf-text-muted；#6b7280 在 #1e1e2e 上 3.39:1，
-       与触发器同源同因，一起提到 #9ca3af（6.46:1） */
-    --pf-text-muted: var(--search-text-muted);
-    --pf-background: var(--search-modal-bg);
-    --pf-border: var(--search-border);
-    --pf-border-focus: var(--search-primary);
-    --pf-hover: var(--search-primary-light);
-    --pf-mark: var(--search-highlight-color);
-    --pf-mark-background: var(--search-highlight-bg);
-    --pf-skeleton: var(--search-bg-stripe);
-    --pf-shadow-lg: var(--search-modal-shadow);
-    --pf-modal-backdrop: var(--search-backdrop);
-}
-
-:is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-footer,
-:is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-footer {
-    justify-content: space-between;
+    --pf-outline-width: 2px;
+    --pf-outline-offset: 2px;
+    --pf-icon-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7.5'/%3E%3Cpath d='m20.5 20.5-4.7-4.7'/%3E%3C/svg%3E");
 }
 
 /* ============================================
-   Custom result — 主标题 + 树形子结果
-   必须放在全局样式表中，因为模板由 JS 动态生成
+   弹层外壳
    ============================================ */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) dialog.pf-modal {
+    border: 1px solid var(--search-border);
+    border-radius: var(--search-modal-radius);
+    background: var(--search-modal-bg);
+    box-shadow: var(--search-modal-shadow);
+    overscroll-behavior: contain;
+}
 
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) dialog.pf-modal::backdrop {
+    background: var(--search-backdrop);
+    backdrop-filter: blur(3px);
+}
+
+/* ============================================
+   Header：图标块 + 输入 + 索引状态 + 关闭键
+   ============================================ */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-header,
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 16px 14px;
+    border-bottom: 1px solid var(--search-border);
+    background: var(--search-modal-bg);
+    flex-shrink: 0;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+pagefind-modal-header pagefind-input,
+pagefind-modal-header .search-head-icon,
+pagefind-modal-header .search-head-status {
+    flex: 0 0 auto;
+}
+
+pagefind-modal-header pagefind-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* 图标块（替掉 pagefind 画在输入框里的裸放大镜） */
+.search-head-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+    background: var(--search-modal-bg-sunken);
+    color: var(--search-primary);
+}
+
+.search-head-icon::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask-image: var(--pf-icon-search);
+    mask-image: var(--pf-icon-search);
+    -webkit-mask-size: 100%;
+    mask-size: 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+/* 索引状态芯片：只说真实的事（Pagefind 本地索引），不编造条数/耗时 */
+.search-head-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    flex: 0 0 auto;
+    border-radius: 9999px;
+    background: var(--search-modal-bg-sunken);
+    color: var(--search-text-muted);
+    font-size: var(--text-xs);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.search-head-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-success);
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-wrapper {
+    position: relative;
+}
+
+/* 放大镜已由 .search-head-icon 承担，隐藏 pagefind 的 ::before，
+   并把输入框左侧留给图标块（padding 归零，靠 flex gap 定位） */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-wrapper::before {
+    display: none;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input {
+    height: var(--pf-input-height);
+    padding-inline: 0;
+    padding-inline-end: 36px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--search-text-strong);
+    font-family: var(--pf-font);
+    font-size: var(--pf-input-font-size);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input:focus-visible {
+    border-color: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
+/* 焦点可见：输入区底部一条赤陶细线（不靠边框，保持命令面板的裸输入观感） */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-wrapper::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -3px;
+    height: 2px;
+    border-radius: 9999px;
+    background: var(--search-primary);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-wrapper:focus-within::after {
+    opacity: 1;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input::placeholder {
+    color: var(--search-text-muted);
+    font-weight: 400;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-clear {
+    inset-inline-end: 0;
+    height: 26px;
+    min-width: 0;
+    padding: 0 8px;
+    border-radius: 9999px;
+    color: var(--search-text-muted);
+    font-size: var(--text-xs);
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-clear:hover {
+    background: var(--search-modal-bg-sunken);
+    color: var(--search-text-strong);
+}
+
+/* 关闭键：桌面也露出来（pagefind 默认只在 ≤640 显示） */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-close {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--search-text-muted);
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-close:hover {
+    background: var(--search-modal-bg-sunken);
+    border-color: var(--search-border);
+    color: var(--search-text-strong);
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-close:focus-visible {
+    outline: 2px solid var(--search-primary);
+    outline-offset: 1px;
+}
+
+/* ============================================
+   Body：摘要 + 结果
+   ============================================ */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-body,
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-body {
+    padding: 12px 12px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--search-border) transparent;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-body .pf-summary,
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-body .pf-summary {
+    padding: 2px 8px 10px;
+    margin: 0;
+    color: var(--search-text-muted);
+    font-size: var(--text-xs);
+    letter-spacing: 0.02em;
+}
+
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-results {
+    gap: 4px;
+}
+
+/* ============================================
+   结果模板（src/utils/search-template.js 生成的 DOM）
+   ============================================ */
 .custom-result-item {
     list-style: none;
-    padding: 14px 16px;
-    border-radius: 8px;
-    transition: background-color 0.15s ease;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
     cursor: pointer;
 }
 
-.custom-result-item:nth-child(even) {
-    background: var(--search-bg-stripe);
+/* 首条 = 最佳匹配：暖底 + 左侧赤陶细条（设计稿的 highlighted result） */
+.custom-result-item:first-child {
+    background: var(--search-modal-bg-sunken);
+    box-shadow: inset 3px 0 0 var(--search-primary);
+}
+
+.custom-result-item:hover,
+.custom-result-item:focus-within {
+    background: var(--search-modal-bg-sunken);
+    border-color: var(--search-border);
 }
 
 /* ---- 标题行（文件图标 + 标题链接）---- */
@@ -133,23 +329,6 @@ html[data-theme="dark"] pagefind-modal {
     align-items: center;
     gap: 10px;
     position: relative;
-    padding: 8px 12px;
-    margin: -8px -12px;
-    border-radius: 8px;
-    transition: background-color 0.15s ease;
-}
-
-/* 标题行 hover / 键盘选中 */
-@media (hover: hover) {
-    .custom-header:hover,
-    .custom-header:focus-within {
-        background: var(--search-primary-light);
-        box-shadow: inset 3px 0 0 var(--search-primary);
-    }
-}
-.custom-header:focus-within {
-    background: var(--search-primary-light);
-    box-shadow: inset 3px 0 0 var(--search-primary);
 }
 
 .custom-icon {
@@ -159,29 +338,25 @@ html[data-theme="dark"] pagefind-modal {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
-    background: var(--search-primary-light);
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--search-highlight-bg);
     color: var(--search-primary);
     transition:
         transform 0.2s ease,
         background 0.2s ease;
 }
 
-/* 标题行 hover/focus 时图标放大变色 */
 @media (hover: hover) {
     .custom-header:hover .custom-icon,
     .custom-header:focus-within .custom-icon {
-        transform: scale(1.05);
-        background: var(--search-primary);
-        color: #fff;
+        transform: scale(1.04);
     }
 }
+
 .custom-header:focus-within .custom-icon {
-    transform: scale(1.05);
-    background: var(--search-primary);
-    color: #fff;
+    transform: scale(1.04);
 }
 
 /* 图标向下连接线（连通到 tree-body 主干） */
@@ -192,7 +367,7 @@ html[data-theme="dark"] pagefind-modal {
     top: 100%;
     transform: translateX(-50%);
     width: 2px;
-    height: 14px;
+    height: 12px;
     background: var(--search-border);
     border-radius: 1px;
     transition: background 0.2s ease;
@@ -203,23 +378,23 @@ html[data-theme="dark"] pagefind-modal {
     display: none;
 }
 
-/* 标题行 hover/focus 时图标连接线变色 */
 @media (hover: hover) {
     .custom-header:hover .custom-icon::after,
     .custom-header:focus-within .custom-icon::after {
         background: var(--search-primary);
     }
 }
+
 .custom-header:focus-within .custom-icon::after {
     background: var(--search-primary);
 }
 
 .custom-link {
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--search-primary);
+    font-weight: 600;
+    font-size: var(--text-base);
+    color: var(--search-text-strong);
     text-decoration: none;
-    line-height: 1.5;
+    line-height: 1.45;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -233,27 +408,28 @@ html[data-theme="dark"] pagefind-modal {
         text-decoration: underline;
         text-decoration-thickness: 1.5px;
         text-underline-offset: 3px;
-        color: var(--search-text);
+        color: var(--search-primary);
     }
 }
 
 .custom-link:focus-visible {
-    outline: none;
+    outline: 2px solid var(--search-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 /* ---- 摘要 + 子结果树容器（wrapper 保证竖线连续）---- */
 .custom-tree-body {
     position: relative;
-    margin-left: 15px; /* 对齐图标中心 */
+    margin-left: 13px;
 }
 
-/* 主干竖线：贯穿摘要 + 子结果树，对齐图标中心 */
 .custom-tree-body::before {
     content: "";
     position: absolute;
-    left: -1px; /* 对齐图标中心 */
+    left: 0;
     top: 0;
-    bottom: 0;
+    bottom: 2px;
     width: 2px;
     background: var(--search-border);
     border-radius: 1px;
@@ -261,11 +437,11 @@ html[data-theme="dark"] pagefind-modal {
 
 /* ---- 主摘要 ---- */
 .custom-excerpt {
-    margin: 6px 0 0 14px;
-    font-size: 13px;
+    margin: 6px 0 0 13px;
+    font-size: var(--text-sm);
     color: var(--search-text-muted);
     overflow-wrap: anywhere;
-    line-height: 1.6;
+    line-height: 1.65;
 }
 
 /* ---- 高亮 ---- */
@@ -273,8 +449,8 @@ html[data-theme="dark"] pagefind-modal {
     color: var(--search-highlight-color);
     background: var(--search-highlight-bg);
     font-weight: 600;
-    border-radius: 2px;
-    padding: 0 2px;
+    border-radius: 4px;
+    padding: 0 3px;
 }
 
 /* ---- 子结果树 ---- */
@@ -282,55 +458,52 @@ html[data-theme="dark"] pagefind-modal {
     position: relative;
 }
 
-/* ---- 子结果（树枝 + 节点）---- */
 .custom-sub {
     position: relative;
-    margin-top: 5px;
-    padding: 0 10px 6px 30px;
-    margin-right: -10px;
-    margin-left: -10px;
+    margin-top: 4px;
+    padding: 2px 8px 4px 26px;
     border-radius: 6px;
-    transition: background-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
 }
 
-/* 子结果 hover / 键盘选中 */
 @media (hover: hover) {
     .custom-sub:hover,
     .custom-sub:focus-within {
-        background: var(--search-primary-light);
-        box-shadow: inset 3px 0 0 var(--search-primary);
+        background: var(--color-hover);
     }
 }
+
 .custom-sub:focus-within {
-    background: var(--search-primary-light);
-    box-shadow: inset 3px 0 0 var(--search-primary);
+    background: var(--color-hover);
 }
 
 /* 树枝：从主干向右延伸的横线 */
 .custom-branch {
     position: absolute;
-    left: 10px;
-    top: 10px;
-    width: 14px;
+    left: 0;
+    top: 12px;
+    width: 12px;
     height: 2px;
     background: var(--search-border);
     border-radius: 1px;
     transition: background 0.15s ease;
 }
 
-/* 子结果 hover/focus 时树枝变色 */
 @media (hover: hover) {
     .custom-sub:hover .custom-branch,
     .custom-sub:focus-within .custom-branch {
         background: var(--search-primary);
     }
 }
+
 .custom-sub:focus-within .custom-branch {
     background: var(--search-primary);
 }
 
 .custom-sub-link {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--search-text);
     text-decoration: none;
@@ -346,61 +519,109 @@ html[data-theme="dark"] pagefind-modal {
         text-decoration: underline;
         text-decoration-thickness: 1.5px;
         text-underline-offset: 3px;
+        color: var(--search-primary);
     }
 }
 
 .custom-sub-link:focus-visible {
-    outline: none;
+    outline: 2px solid var(--search-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .custom-sub-excerpt {
-    margin: 3px 0 0 0;
-    font-size: 13px;
+    margin: 2px 0 0 0;
+    font-size: var(--text-sm);
     color: var(--search-text-muted);
     line-height: 1.5;
 }
 
-/* ---- 高亮 ---- */
 .custom-sub-excerpt mark {
     color: var(--search-highlight-color);
     background: var(--search-highlight-bg);
     font-weight: 600;
-    border-radius: 2px;
-    padding: 0 2px;
+    border-radius: 4px;
+    padding: 0 3px;
 }
 
-/* ---- Footer ---- */
+/* ============================================
+   Footer：键盘提示（键帽）+ 品牌
+   ============================================ */
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-footer,
+:is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-footer {
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--search-border);
+    background: var(--search-footer-bg);
+    color: var(--search-text-muted);
+    font-size: var(--text-xs);
+    flex-shrink: 0;
+}
+
+.search-hints {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    min-width: 0;
+}
+
+.search-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.search-hint kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border: 1px solid var(--search-border);
+    border-radius: 4px;
+    background: var(--search-modal-bg);
+    color: var(--search-text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+}
+
 .footer-brand {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--search-text-subtle);
+    white-space: nowrap;
 }
 
 .footer-brand strong {
-    /* A8：--search-primary(#5468ff) 在浅底上 4.13:1，这里单独压深到 6.7:1 */
-    color: #3b47cc;
+    /* A8：原先压深的蓝在暖底上仍只有 4.1:1 —— 品牌字改走 heading 色 */
+    color: var(--search-text-strong);
     font-weight: 700;
 }
 
-/* ---- 移动端：只显示搜索图标 ---- */
+/* ============================================
+   ≤640：同一弹层的窄版（全屏 sheet）
+   ============================================ */
 @media (max-width: 640px) {
-    /* 隐藏文字和快捷键 */
+    /* 触发器收成圆形图标（既有行为，保持不变） */
     pagefind-modal-trigger .pf-trigger-text,
     pagefind-modal-trigger .pf-trigger-shortcut {
         display: none !important;
     }
 
-    /* 按钮变正方形 + 圆形，不依赖 .pf-trigger-btn 类名 */
     pagefind-modal-trigger {
         --pf-input-height: 36px;
-        --pf-border-radius: 50%;
+        --pf-border-radius: 9999px;
         max-width: 36px;
         overflow: hidden;
     }
 
-    /* 回退选择器：兼容 Pagefind 不同版本的内部结构 */
     .pf-trigger-btn,
     pagefind-modal-trigger::part(button) {
         width: 36px !important;
@@ -409,19 +630,69 @@ html[data-theme="dark"] pagefind-modal {
         align-items: center !important;
         justify-content: center !important;
     }
+
+    /* 弹层：贴边全屏，头部只留「图标 + 输入 + 关闭」 */
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) dialog.pf-modal {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-header,
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-header {
+        gap: 8px;
+        padding: 12px 12px 12px;
+        padding-top: max(12px, env(safe-area-inset-top));
+    }
+
+    .search-head-status {
+        display: none;
+    }
+
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input {
+        font-size: var(--text-lg);
+    }
+
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-body,
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-body {
+        padding: 10px 10px 12px;
+    }
+
+    .custom-result-item {
+        padding: 10px;
+    }
+
+    /* 窄版摘要收成两行，减少滚动 */
+    .custom-excerpt {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* 窄版子结果只留命中标题（目录式），不重复正文片段 ——
+       一屏能看到的范围从 1 条变成 2-3 条，仍可逐条点进去 */
+    .custom-sub-excerpt {
+        display: none;
+    }
+
+    .custom-sub {
+        padding-block: 4px;
+    }
+
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) pagefind-modal-footer,
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-modal-footer {
+        flex-wrap: wrap;
+        row-gap: 6px;
+        padding: 10px 12px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
 }
 
-/* --- 首屏占位（D-0066） -------------------------------------------------
-   pagefind 的组件 JS 是按需加载的（悬停/⌘K/点击才拉），升级前
-   <pagefind-modal-trigger> 是空元素、宽高都是 0，首屏等于「搜索框消失了」。
-   这里用 :not(:defined) 渲染一个同款胶囊占位，元素升级后由 :defined 规则隐藏。
-   注意：占位只负责「看起来对」，点击行为仍由 Search.astro 的捕获监听处理
-   （未升级时点击会先拦下、加载模块、再补一次 click）。 */
-/* ⚠️ 类名刻意不用 pf- 前缀：@pagefind/component-ui 自带一条
-   `:is(*, #\#):is(*, #\#) [class^="pf-"]{all:revert}` 的 reset，
-   特异性是 (2,1,0)，任何 .pf-* 自定义类都会被整体重置成裸元素。 */
-/* 模态框在组件升级前同样会把 light DOM（含页脚「Search by Pagefind」）内联渲染出来，
-   实测直接压在导航条中间，所以未升级时整块藏掉。 */
+/* ============================================
+   首屏占位（D-0066 / D-0071）—— 未升级前的静态触发器
+   ============================================ */
+/* 模态框在组件升级前会把 light DOM 内联渲染出来，整块藏掉 */
 pagefind-modal:not(:defined),
 pagefind-modal-footer:not(:defined) {
     display: none;
@@ -431,9 +702,19 @@ pagefind-modal-trigger:not(:defined) {
     display: inline-flex;
 }
 
-/* 占位按钮复用 pagefind 自己的类名（.pf-trigger-btn / .pf-trigger-icon / .pf-trigger-text /
-   .pf-trigger-key），样式全部由它自带的 CSS 提供，所以首屏看到的和升级后像素级一致。
-   这里只负责「升级后撤掉」，不再维护第二套尺寸/配色。 */
+/* 占位复用 pagefind 自己的类名，样式由它自带 CSS 提供，这里只负责升级后撤掉 */
 pagefind-modal-trigger:defined .search-trigger-fallback {
     display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-result-item,
+    .custom-icon,
+    .custom-icon::after,
+    .custom-sub,
+    .custom-branch,
+    .custom-link,
+    :is(*, #\#):is(*, #\#):is(*, #\#):is(*, #\#) .pf-input-wrapper::after {
+        transition: none;
+    }
 }
