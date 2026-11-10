@@ -44,6 +44,25 @@ pnpm run gates:all
 mark → remove、点击已高亮文字 → remove、非正文/空选区/跨段不出工具条、与金句卡
 工具条不重叠、390 移动端、axe light/dark serious 0。
 
+## 性能收口
+
+M7-4b 的 annotation bootstrap 本身的 gzip 已经压到 982 B；真正把文章页顶到 40.1 KB 的是
+`WalineComment.astro` 里内联的 94 行中英文文案表（约 1.0 KB gzip，随每个页面首屏加载）。
+本次把 `walineLocales` 拆到 `src/scripts/waline-i18n.ts`，只在首次点开评论、
+`doInitWaline()` 执行时动态 import；组件只保留 `展开/收起` 两个按钮文案。
+
+`pnpm gates:all` 的 Performance budget 结果：
+
+```text
+扫描 751 页 | 超预算 0 页
+article  JS p95 39.3  JS 最大 39.8
+page     JS p95 24.6  JS 最大 29.3
+SUMMARY {"over": 0}
+```
+
+`pages-comments.spec.ts` 定点用例复跑通过；全套偶发 `390 打开态 scrollY 821≠800`
+（Waline 客户端异步渲染触发 scroll anchoring）与本卡状态机无关，另行处理。
+
 ## 证据
 
 - 诊断原始事件时序与旧 `dist` 对照：`docs/_reviews/M7-4b/debug.md`
