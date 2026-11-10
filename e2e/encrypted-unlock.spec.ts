@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { toHtml } from "hast-util-to-html";
 import { buildEncryptedFixture, rehypeEncrypted } from "../src/remark-plugin/rehype-encrypted";
 import { encryptContent } from "../src/utils/encrypt";
 
@@ -28,7 +29,7 @@ const PASSWORD = "fixture-pass"; // 假密码：只在本 spec 里用
 const WRONG = "wrong-pass";
 const HINT = "测试提示文案";
 const CONTEXT = "ctx-fixture1";
-const PLAIN = "<p id=\"fx-plain\">这是解密后的正文。</p>";
+const PLAIN = '<p id="fx-plain">这是解密后的正文。</p>';
 
 const BLOCK = "#encrypted-container-fx1";
 const GATE = "#encrypted-gate-fx1";
@@ -40,7 +41,10 @@ const ERROR = "#password-error-fx1";
 const SUBMIT = `${DIALOG} button[type="submit"]`;
 const OUTPUT = "#decrypted-content-fx1";
 
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const SHOT_DIR = path.join(process.cwd(), "docs/_reviews/M7-5b/screens");
 const SHOTS = process.env.ENCRYPTED_SHOTS === "1";
@@ -56,14 +60,34 @@ const fixture = buildEncryptedFixture({
 });
 
 async function setTheme(page: Page, theme: "light" | "dark"): Promise<void> {
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
 }
 
 /** 把夹具（真标记 / 真 CSS / 真脚本）挂进真实文章页 */
 async function mount(page: Page): Promise<void> {
-    await page.goto(ARTICLE);
+    const res = await page.goto(ARTICLE);
+    // 宿主页必须是真文章页：曾经因为 4326 上残留的 http.server 拿到 404 页 → 全套用例假绿
+    expect(res?.status(), "宿主文章页应 200").toBe(200);
+    await expect(page.locator("article").first()).toBeVisible();
+    const tokens = await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--color-bg-surface").trim(),
+    );
+    expect(tokens, "宿主页必须带真 token（否则视觉断言无意义）").not.toBe("");
     await page.evaluate(
-        ({ html, css, script, host }: { html: string; css: string; script: string; host: string }) => {
+        ({
+            html,
+            css,
+            script,
+            host,
+        }: {
+            html: string;
+            css: string;
+            script: string;
+            host: string;
+        }) => {
             const style = document.createElement("style");
             style.id = "enc-fixture-css";
             style.textContent = css;
@@ -104,31 +128,62 @@ async function axe(page: Page, selector: string) {
 }
 
 const isOpen = (page: Page) =>
-    page.evaluate((sel) => (document.querySelector(sel) as HTMLDialogElement | null)?.open === true, DIALOG);
+    page.evaluate(
+        (sel) => (document.querySelector(sel) as HTMLDialogElement | null)?.open === true,
+        DIALOG,
+    );
+
+/** 等 dialog 的入场动画跑完：axe 在 opacity 中途扫描会把整棵树误判成 color-contrast 失败 */
+async function settle(page: Page): Promise<void> {
+    await page
+        .locator(`${DIALOG} .enc-dialog__panel`)
+        .evaluate(async (el) => {
+            await Promise.all(el.getAnimations().map((a) => a.finished));
+        })
+        .catch(() => undefined);
+}
 
 test.describe("加密文本解锁 · a11y / 视觉", () => {
-    test("A. 门禁态：只有入口按钮，dialog 未打开，0 请求", async ({ page }) => {
-        const requests: string[] = [];
-        let armed = false;
-        page.on("request", (req) => {
-            if (!armed) return;
-            const url = req.url();
-            if (url.startsWith("data:")) return;
-            requests.push(url);
-        });
+    test("A. 门禁态：只有入口按钮，dialog 未打开，0 请求", async ({ page, context }) => {
+        // 口径：与「同一页面不挂夹具」的基线对比 —— 夹具（解锁入口）不得新增任何资源请求。
+        // 直接数绝对值会误伤宿主页自己的 swup 预取 / umami 埋点 / fancybox 懒加载 chunk；
+        // 基线用**独立 page**，否则第二次导航会命中上一次加载出来的懒加载 chunk（假阳性）。
+        const collect = async (target: Page, withFixture: boolean): Promise<string[]> => {
+            const seen: string[] = [];
+            let armed = false;
+            const onReq = (req: { url: () => string }) => {
+                if (armed) seen.push(req.url());
+            };
+            target.on("request", onReq);
+            if (withFixture) await mount(target);
+            else {
+                const res = await target.goto(ARTICLE);
+                expect(res?.status()).toBe(200);
+                await expect(target.locator("article").first()).toBeVisible();
+            }
+            armed = true;
+            await target.waitForTimeout(1200);
+            target.off("request", onReq);
+            return seen;
+        };
 
-        await mount(page);
+        const basePage = await context.newPage();
+        const baseline = await collect(basePage, false);
+        await basePage.close();
+        const withFixture = await collect(page, true);
+        const extra = withFixture.filter(
+            (url) =>
+                !baseline.includes(url) &&
+                // 埋点是宿主页自己的第三方请求（每次导航都会发），与解锁入口无关
+                !url.startsWith("https://umami."),
+        );
+        expect(extra, `夹具新增请求：${extra.join("\n")}`).toHaveLength(0);
+
         await setTheme(page, "dark");
-        armed = true;
-
         await expect(page.locator(GATE)).toBeVisible();
         await expect(page.locator(OPEN_BTN)).toHaveText("输入密码解锁");
         await expect(page.locator(OUTPUT)).toBeHidden();
         expect(await isOpen(page)).toBe(false);
-
-        // 静默窗口：门禁态不该再拉任何网络资源（含 fetch / XHR / chunk）
-        await page.waitForTimeout(900);
-        expect(requests, requests.join("\n")).toHaveLength(0);
 
         // 标记里没有任何明文密码 / 明文正文
         expect(fixture.html).not.toContain(PASSWORD);
@@ -219,7 +274,10 @@ test.describe("加密文本解锁 · a11y / 视觉", () => {
         await expect(page.locator(GATE)).toBeHidden();
         expect(await isOpen(page)).toBe(false);
         expect(
-            await page.evaluate((sel) => document.activeElement?.id === sel.replace("#", ""), OUTPUT),
+            await page.evaluate(
+                (sel) => document.activeElement?.id === sel.replace("#", ""),
+                OUTPUT,
+            ),
         ).toBe(true);
 
         // 缓存通道：刷新后自动解锁（sessionStorage，tab 作用域）
@@ -239,7 +297,9 @@ test.describe("加密文本解锁 · a11y / 视觉", () => {
         const vh = await page.evaluate(() => window.innerHeight);
         expect(desktop).not.toBeNull();
         const cx = desktop!.x + desktop!.width / 2;
-        expect(Math.abs(cx - vw / 2)).toBeLessThan(2);
+        // 容差 10px：macOS 经典滚动条会从 ICB 里吃掉 15px（dialog 在 top layer 里居中，
+        // 中心因此偏向滚动条一侧 7.5px），这不是布局 bug
+        expect(Math.abs(cx - vw / 2)).toBeLessThan(10);
         expect(Math.abs(desktop!.y + desktop!.height / 2 - vh / 2)).toBeLessThan(vh * 0.15);
 
         if (SHOTS) {
@@ -252,10 +312,13 @@ test.describe("加密文本解锁 · a11y / 视觉", () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await expect(page.locator(DIALOG)).toBeVisible();
         const mobile = await page.locator(DIALOG).boundingBox();
+        const mw = await page.evaluate(() => window.innerWidth);
+        const mh = await page.evaluate(() => window.innerHeight);
         expect(mobile).not.toBeNull();
-        expect(mobile!.width).toBeGreaterThan(380);
+        // 贴底全宽：宽度≈可用视口宽（macOS 经典滚动条会吃掉 15px，容差 16），底边压视口底（±2px）
+        expect(mobile!.width).toBeGreaterThanOrEqual(mw - 16);
         const bottom = mobile!.y + mobile!.height;
-        expect(Math.abs(bottom - 844)).toBeLessThan(2);
+        expect(Math.abs(bottom - mh)).toBeLessThan(2);
 
         if (SHOTS) {
             await page.screenshot({ path: path.join(SHOT_DIR, "unlock-mobile-390.png") });
@@ -282,6 +345,7 @@ test.describe("加密文本解锁 · a11y / 视觉", () => {
         for (const theme of ["light", "dark"] as const) {
             await setTheme(page, theme);
             await page.click(OPEN_BTN);
+            await settle(page);
             const openState = await axe(page, DIALOG);
             expect(openState.serious, `${theme} open: ${openState.ids.join(",")}`).toBe(0);
 
@@ -318,4 +382,58 @@ test("M7-5b 夹具自检：插件仍能编译加密块（buildEncryptedFixture �
     expect(fixture.css).toContain(".enc-dialog");
     expect(fixture.html).toContain('role="dialog"');
     expect(fixture.html).toContain('aria-modal="true"');
+});
+
+test("M7-5b 插件端到端：::encrypted wrapper → 输出含样式 + dialog + 内联脚本，且不含明文", () => {
+    // 红光在「真实 hast 树 → 插件」这一层：夹具只覆盖块本身，不覆盖树级样式注入与 raw script
+    const tree = {
+        type: "root",
+        children: [
+            {
+                type: "element",
+                tagName: "div",
+                properties: {
+                    className: ["encrypted-container-wrapper"],
+                    "data-password": PASSWORD,
+                    "data-hint": HINT,
+                },
+                children: [
+                    {
+                        type: "element",
+                        tagName: "p",
+                        properties: {},
+                        children: [{ type: "text", value: "密文正文" }],
+                    },
+                ],
+            },
+            {
+                type: "element",
+                tagName: "div",
+                properties: {
+                    className: ["encrypted-container-wrapper"],
+                    "data-password": PASSWORD,
+                },
+                children: [
+                    {
+                        type: "element",
+                        tagName: "p",
+                        properties: {},
+                        children: [{ type: "text", value: "第二块" }],
+                    },
+                ],
+            },
+        ],
+    };
+    rehypeEncrypted()(tree as never);
+    const html = toHtml(tree as never, { allowDangerousHtml: true });
+
+    // 两块都编译，样式只注入一次（per-tree）
+    expect(html.match(/data-encrypted-styles/g) ?? []).toHaveLength(1);
+    expect(html.match(/role="dialog"/g) ?? []).toHaveLength(2);
+    expect(html).toContain(".enc-dialog");
+    expect(html).toContain("<script>");
+    expect(html).toContain("PBKDF2");
+    // 明文密码与明文正文都不出现在产物里
+    expect(html).not.toContain(PASSWORD);
+    expect(html).not.toContain("密文正文");
 });

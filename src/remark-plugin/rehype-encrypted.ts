@@ -37,7 +37,10 @@ function childrenToHtml(nodes: any) {
  * 用 cwd 而不是 `import.meta.url`：astro.config 会被 Vite 打包成临时文件，
  * 那时 `import.meta.url` 指向临时目录，相对路径会失效。
  */
-const ENCRYPTED_CSS = readFileSync(join(process.cwd(), "src/styles/pages/encrypted.css"), "utf8").trim();
+const ENCRYPTED_CSS = readFileSync(
+    join(process.cwd(), "src/styles/pages/encrypted.css"),
+    "utf8",
+).trim();
 
 const CLOSE_ICON =
     '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5 5 15M5 5l10 10"></path></svg>';
@@ -157,12 +160,21 @@ function buildDialog(hint: string, uid: string) {
                 el("span", ["enc-dialog__close-text"], [txt("关闭")]),
             ],
         },
-        el("p", ["enc-dialog__desc"], [txt("密码只在本机浏览器里用于解密，不会发送到服务器。")], descId),
+        el(
+            "p",
+            ["enc-dialog__desc"],
+            [txt("密码只在本机浏览器里用于解密，不会发送到服务器。")],
+            descId,
+        ),
         hint ? el("p", ["enc-dialog__hint"], [txt(`提示：${hint}`)]) : null,
         {
             type: "element",
             tagName: "form",
-            properties: { id: `password-form-${uid}`, className: ["enc-dialog__form"], novalidate: true },
+            properties: {
+                id: `password-form-${uid}`,
+                className: ["enc-dialog__form"],
+                novalidate: true,
+            },
             children: [
                 {
                     type: "element",
@@ -341,7 +353,10 @@ export function buildEncryptedFixture(opts: {
     // 夹具把脚本单独返回：注入用 innerHTML 时 <script> 不会执行，由调用方显式重建
     const children = (block.children as any[]).slice(0, 3);
     return {
-        html: toHtml({ type: "root", children: [{ ...block, children }] } as any),
+        html: toHtml({ type: "root", children: [{ ...block, children }] } as any, {
+            // CLOSE_ICON 是 raw 节点：不开这个开关会被转义成文本（生产管线本来就开）
+            allowDangerousHtml: true,
+        }),
         css: ENCRYPTED_CSS,
         script: buildScript(uid),
     };
