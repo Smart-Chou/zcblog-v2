@@ -166,7 +166,15 @@ const lang = htmlLangOf(getLocale(locale));
             // 不会重新执行（脚本在 head，容器替换不带它），所以必须放在 BaseLayout。
             import "~/scripts/fancybox-handler";
             import "~/scripts/fancybox-essay";
-            import "~/scripts/fancybox-album";
+            // 相册灯箱只在含相册网格的页面加载：模块本身按需 import，避免文章页背上
+            // 相册专用代码（perf 预算 article JS 40KB）。swup 换页后由事件再判一次。
+            const loadAlbumLightbox = () => {
+                if (document.querySelector("#fancybox-gallery")) {
+                    void import("~/scripts/fancybox-album");
+                }
+            };
+            loadAlbumLightbox();
+            document.addEventListener("astro:page-load", loadAlbumLightbox);
         </script>
     </body>
 </html>

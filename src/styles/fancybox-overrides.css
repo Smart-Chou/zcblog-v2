@@ -78,3 +78,123 @@
         animation-duration: 0.01ms !important;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+ * M8-3c · 相册灯箱（桌面大图 + 底部缩略条 / 移动全屏 sheet）
+ * ----------------------------------------------------------------------
+ * 全部规则作用域在 `.fancybox--album`（fancybox 的 `mainClass`，只有相册
+ * bind 带），文章/随笔灯箱一个像素都不动。
+ *
+ * 选择器统一加 `html` 前缀：fancybox.css 是运行时 append 到 <head> 的
+ * （D-0057 按需注入），永远排在本文件之后 —— 同特异性会输。前缀是给
+ * 「来源顺序」补一级特异性，不用 !important 硬顶（冲突到 0 的那几条除外）。
+ */
+
+/* 1 · 桌面：居中的大图，最大 92% 视口（padding 4vh/4vw = 上下左右各 4%） */
+html .fancybox__container.fancybox--album {
+    --f-carousel-slide-padding: 4vh 4vw;
+    --f-carousel-gap: 0;
+    --f-thumb-width: 88px;
+    --f-thumb-height: 66px;
+    --f-thumb-border-radius: 6px;
+    --f-thumb-selected-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.92);
+}
+
+html .fancybox--album .f-panzoom__content {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+html .fancybox--album .f-caption {
+    padding: 10px 8px 0;
+    font-size: 13px;
+    opacity: 0.82;
+}
+
+/* 2 · 底部缩略条：横向原生滚动（fancybox 的 scrollable 默认是竖排侧栏） */
+/* scrollable 会给容器加 has-vertical-thumbs → row-reverse（侧栏）。相册要底部横条，
+ * 把主轴掰回 column，条带高度锁在「缩略图高 + 上下 padding」。 */
+html .fancybox__container.fancybox--album.has-vertical-thumbs {
+    flex-direction: column;
+}
+
+html .fancybox--album .fancybox__thumbs {
+    width: 100%;
+    max-width: none;
+    border-top: 1px solid rgba(127, 127, 127, 0.28);
+}
+
+html .fancybox--album .fancybox__thumbs.is-scrollable {
+    --f-thumbs-padding-x: 12px;
+    --f-thumbs-padding-y: 10px;
+    /* 基类用 max-width 把侧栏卡成一列宽，横向条必须整宽、限高 */
+    max-width: none !important;
+    max-height: calc(var(--f-thumb-height) + var(--f-thumbs-padding-y) * 2 + 4px);
+}
+
+html .fancybox--album .fancybox__thumbs.is-scrollable.is-hidden {
+    max-height: 0;
+    padding-block: 0;
+}
+
+html .fancybox--album .f-thumbs.is-scrollable .f-thumbs__viewport {
+    grid-template-columns: none !important;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--f-thumb-width);
+    gap: var(--f-thumbs-gap);
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+}
+
+html .fancybox--album .f-thumbs.is-scrollable .f-thumbs__slide {
+    scroll-snap-align: center;
+}
+
+html .fancybox--album .f-thumbs.is-scrollable .f-thumbs__slide img {
+    border-radius: inherit;
+}
+
+/* 3 · 移动 ≤640：全屏 sheet（图贴边、遮罩取主题底色、留 safe-area） */
+@media (max-width: 640px) {
+    html .fancybox__container.fancybox--album {
+        --f-carousel-slide-padding: 0;
+        --f-thumb-width: 64px;
+        --f-thumb-height: 48px;
+        /* 满屏 sheet：遮罩直接吃主题背景，透出「一整页」而不是浮层 */
+        --fancybox-backdrop-bg: var(--color-bg, #101012);
+    }
+
+    html .fancybox--album .f-carousel__toolbar {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+    }
+
+    html .fancybox--album .fancybox__thumbs.is-scrollable {
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    }
+
+    html .fancybox--album .f-caption {
+        padding: 8px 12px 0;
+        font-size: 12px;
+    }
+
+    /* 触摸设备上左右滑动就是翻页，箭头只是两块压图的浮标 */
+    html .fancybox--album .f-button.is-arrow {
+        display: none;
+    }
+}
+
+/* 4 · reduced-motion：灯箱子树内 0 动画（JS 侧同时关掉 fancybox 自己的过渡） */
+@media (prefers-reduced-motion: reduce) {
+    html .fancybox--album,
+    html .fancybox--album *,
+    html .fancybox--album *::before,
+    html .fancybox--album *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
