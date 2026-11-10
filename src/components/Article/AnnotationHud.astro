@@ -116,74 +116,6 @@ const copy = {
     </aside>
 </div>
 
-<script>
-    /**
-     * 内联 bootstrap（随页面静态链打包）：无批注 = 只武装、不 import。
-     */
-    const STORAGE_KEY = "zcblog:annotations:v1"; // = ANNOTATIONS_STORAGE_KEY（不静态 import 数据层）
-    const HUD = "[data-annotation-hud]";
-    const LAYER = "[data-annotation-layer]";
-
-    const global = window as unknown as {
-        __annotationHudBoot?: {
-            loaded: boolean;
-            bound: boolean;
-            watcher: MutationObserver | null;
-            layer: HTMLElement | null;
-        };
-    };
-    const state = (global.__annotationHudBoot ??= {
-        loaded: false,
-        bound: false,
-        watcher: null,
-        layer: null,
-    });
-
-    function load(): Promise<unknown> {
-        state.loaded = true;
-        return import("~/scripts/annotation-hud").then((mod) => mod.initAnnotationHud());
-    }
-
-    /** 只做字符串包含判断，不 parse JSON：bootstrap 要小，误判只会多加载一次模块。 */
-    function stored(docId: string | undefined): boolean {
-        try {
-            const raw: string | null = localStorage.getItem(STORAGE_KEY);
-            if (raw === null || raw === "") return false;
-            return !docId || raw.includes(docId);
-        } catch {
-            return false;
-        }
-    }
-
-    /** 首个高亮是在本页从工具条加出来的（之前 localStorage 里没有本文档）：等计数变非零。 */
-    function watch(layer: HTMLElement | null): void {
-        if (!layer || state.layer === layer) return;
-        state.watcher?.disconnect();
-        state.layer = layer;
-        if (typeof MutationObserver === "undefined") return;
-        state.watcher = new MutationObserver(() => {
-            if (state.loaded) return;
-            if ((layer.dataset.annotationCount ?? "0") !== "0") void load();
-        });
-        state.watcher.observe(layer, { attributes: true, attributeFilter: ["data-annotation-count"] });
-    }
-
-    function hydrate(): void {
-        const root = document.querySelector<HTMLElement>(HUD);
-        if (!root) return;
-        watch(root.closest<HTMLElement>(LAYER) ?? document.querySelector<HTMLElement>(LAYER));
-        // 模块已经加载过（swup 换页）→ 无条件重跑一遍，给新文章重装列表。
-        if (state.loaded || stored(root.dataset.annotationHudDoc)) void load();
-    }
-
-    if (!state.bound) {
-        state.bound = true;
-        document.addEventListener("astro:page-load", hydrate);
-    }
-
-    hydrate();
-</script>
-
 <style>
     /* ── 入口按钮 ─────────────────────────────────────────────
        位置与「回到顶部」同一条右缘（right: 30px），但抬高到它上方，两者不会叠。 */
@@ -239,8 +171,8 @@ const copy = {
 
     .annotation-hud__trigger:focus-visible,
     .annotation-hud__close:focus-visible,
-    .annotation-hud__jump:focus-visible,
-    .annotation-hud__delete:focus-visible {
+    :global(.annotation-hud__jump:focus-visible),
+    :global(.annotation-hud__delete:focus-visible) {
         outline: 2px solid var(--color-ring-focus);
         outline-offset: 2px;
     }
@@ -267,7 +199,8 @@ const copy = {
         display: flex;
         flex-direction: column;
         max-block-size: 72dvh;
-        padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+        padding: var(--space-4) var(--space-4)
+            calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
         background: var(--color-bg-surface);
         border-block-start: 1px solid var(--color-border-subtle);
         border-start-start-radius: var(--radius-lg);
@@ -344,18 +277,20 @@ const copy = {
         overscroll-behavior: contain;
     }
 
-    .annotation-hud__item {
+    /* 条目由脚本在运行时创建（没有 Astro 的 scoped cid），所以这一段的类名必须
+       走 :global()：名字全部带 annotation-hud__ 前缀，不会外溢到别处。 */
+    :global(.annotation-hud__item) {
         display: flex;
         align-items: flex-start;
         gap: var(--space-1);
         border-block-end: 1px solid var(--color-border-subtle);
     }
 
-    .annotation-hud__item:last-child {
+    :global(.annotation-hud__item:last-child) {
         border-block-end: 0;
     }
 
-    .annotation-hud__jump {
+    :global(.annotation-hud__jump) {
         flex: 1 1 auto;
         min-inline-size: 0;
         display: flex;
@@ -371,12 +306,12 @@ const copy = {
     }
 
     @media (hover: hover) {
-        .annotation-hud__jump:hover {
+        :global(.annotation-hud__jump:hover) {
             background: var(--color-bg-hover, var(--color-bg-sunken));
         }
     }
 
-    .annotation-hud__quote {
+    :global(.annotation-hud__quote) {
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
@@ -386,13 +321,13 @@ const copy = {
         color: var(--color-fg-heading);
     }
 
-    .annotation-hud__time {
+    :global(.annotation-hud__time) {
         font-family: var(--font-mono);
         font-size: var(--text-xs);
         color: var(--color-fg-muted);
     }
 
-    .annotation-hud__delete {
+    :global(.annotation-hud__delete) {
         flex: none;
         display: inline-flex;
         align-items: center;
@@ -407,13 +342,13 @@ const copy = {
         cursor: pointer;
     }
 
-    .annotation-hud__delete svg {
+    :global(.annotation-hud__delete svg) {
         inline-size: 1rem;
         block-size: 1rem;
     }
 
     @media (hover: hover) {
-        .annotation-hud__delete:hover {
+        :global(.annotation-hud__delete:hover) {
             color: var(--color-danger, var(--color-accent-solid));
             background: var(--color-bg-hover, var(--color-bg-sunken));
         }
@@ -444,10 +379,13 @@ const copy = {
     /* ── 桌面：右侧浮层（不压正文主栏，落在目录/作者卡那一列） ── */
     @media (min-width: 1100px) {
         .annotation-hud__panel {
-            inset-block: calc(var(--shell-header-h, var(--header-height, 4.25rem)) + var(--space-4)) auto;
+            inset-block: calc(var(--shell-header-h, var(--header-height, 4.25rem)) + var(--space-4))
+                auto;
             inset-inline: auto var(--space-6);
             inline-size: min(22rem, 26vw);
-            max-block-size: calc(100dvh - var(--shell-header-h, var(--header-height, 4.25rem)) - var(--space-8));
+            max-block-size: calc(
+                100dvh - var(--shell-header-h, var(--header-height, 4.25rem)) - var(--space-8)
+            );
             padding: var(--space-4);
             border: 1px solid var(--color-border-subtle);
             border-radius: var(--radius-lg);
@@ -471,17 +409,17 @@ const copy = {
 
     /* 跳转时的短暂强调：高亮本身由 annotations.css 负责，这里只叠一圈焦点色 */
     :global(mark.annotation-mark.is-annotation-focus) {
-        background-color: color-mix(in oklab, var(--palette-accent-500) 46%, transparent);
+        background-color: color-mix(in oklab, var(--color-accent-solid) 46%, transparent);
         box-shadow:
             0 0 0 2px var(--color-ring-focus),
-            inset 0 -0.08em 0 var(--palette-accent-600);
+            inset 0 -0.08em 0 var(--color-accent-solid-hover);
     }
 
     :global([data-theme="dark"] mark.annotation-mark.is-annotation-focus) {
-        background-color: color-mix(in oklab, var(--palette-accent-400) 55%, transparent);
+        background-color: color-mix(in oklab, var(--color-accent-solid) 55%, transparent);
         box-shadow:
             0 0 0 2px var(--color-ring-focus),
-            inset 0 -0.08em 0 var(--palette-accent-300);
+            inset 0 -0.08em 0 var(--color-accent-solid-hover);
     }
 
     @media (prefers-reduced-motion: reduce) {

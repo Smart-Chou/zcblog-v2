@@ -491,6 +491,9 @@ export function initAnnotationLayer(): void {
     // 模块通常是在「已经存在的选区」之后才被 import 进来的，那次 selectionchange
     // 已经过去了 —— 初始化时补算一次，否则第一次选中看不到工具条。
     onSelectionChange();
+    // HUD 是同一批注数据的第二层呈现：跟随高亮层按需加载，避免每个文章页
+    // 首屏为它多背 ~0.6 KB gzip 的 bootstrap。
+    void import("~/scripts/annotation-hud").then((mod) => mod.initAnnotationHud());
 }
 
 function onPageLoad(): void {
@@ -498,4 +501,5 @@ function onPageLoad(): void {
     if (!ui) return;
     render(ui);
     onSelectionChange();
+    void import("~/scripts/annotation-hud").then((mod) => mod.initAnnotationHud());
 }

@@ -317,8 +317,9 @@ test.describe("M7-4c · 批注 HUD", () => {
         }));
         expect(panel).not.toBeNull();
         expect(panel!.x).toBeLessThanOrEqual(1);
-        expect(Math.abs(panel!.width - box.width)).toBeLessThanOrEqual(1);
-        expect(Math.abs(panel!.y + panel!.height - box.height)).toBeLessThanOrEqual(1);
+        // 抽屉满宽贴底；经典滚动条在视口里可能占 15px，这里允许这个量级
+        expect(panel!.width).toBeGreaterThanOrEqual(box.width - 16);
+        expect(Math.abs(panel!.y + panel!.height - box.height)).toBeLessThanOrEqual(16);
 
         await expect(page.locator(SCRIM)).toBeVisible();
         const locked = await page.evaluate(() => ({
