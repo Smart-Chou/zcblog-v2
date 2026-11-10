@@ -24,6 +24,8 @@ export const projects: Project[] = [
         status: "active",
         started: "2025-10",
         ended: null,
+        category: "website",
+        featured: true,
         role: { zh: "独立开发（设计 + 前端 + 部署）", en: "Solo build (design, frontend, deploy)" },
         stack: ["Astro", "TypeScript", "设计 Token", "Cloudflare Pages", "Playwright"],
         highlights: [
@@ -44,6 +46,11 @@ export const projects: Project[] = [
             { label: "marxchou.com", href: "https://marxchou.com" },
             { label: "GitHub", href: "https://github.com/Smart-Chou/zcblog" },
         ],
+        metrics: [
+            { label: { zh: "语义色 Token", en: "Semantic colour tokens" }, value: "52" },
+            { label: { zh: "原子组件", en: "Atom components" }, value: "10" },
+            { label: { zh: "构建门禁", en: "Build gates" }, value: "10" },
+        ],
         updated: "2026-11-02",
     },
     {
@@ -56,6 +63,8 @@ export const projects: Project[] = [
         status: "active",
         started: "2025-09",
         ended: null,
+        category: "agent",
+        featured: true,
         role: { zh: "自建自用", en: "Built for personal use" },
         stack: ["Hermes Agent", "Node.js", "SQLite", "MCP", "Cron"],
         highlights: [
@@ -85,6 +94,8 @@ export const projects: Project[] = [
         status: "maintained",
         started: "2025-06",
         ended: null,
+        category: "infrastructure",
+        featured: true,
         role: { zh: "运维", en: "Operations" },
         stack: ["Arch Linux", "Docker Compose", "1Panel", "Cloudflare Tunnel", "Tailscale"],
         highlights: [
@@ -114,6 +125,7 @@ export const projects: Project[] = [
         status: "active",
         started: "2026-09",
         ended: null,
+        category: "tool",
         role: { zh: "独立开发", en: "Solo build" },
         stack: ["Python", "标准库", "PWA", "Hermes 插件"],
         highlights: [
@@ -131,6 +143,10 @@ export const projects: Project[] = [
             },
         ],
         links: [],
+        metrics: [
+            { label: { zh: "代码行数", en: "Lines of code" }, value: "577" },
+            { label: { zh: "运行时依赖", en: "Runtime dependencies" }, value: "0" },
+        ],
         updated: "2026-10-12",
     },
     {
@@ -143,6 +159,7 @@ export const projects: Project[] = [
         status: "maintained",
         started: "2026-07",
         ended: null,
+        category: "infrastructure",
         role: { zh: "独立开发", en: "Solo build" },
         stack: ["Arch Linux", "Bash", "1Panel", "镜像打包"],
         highlights: [

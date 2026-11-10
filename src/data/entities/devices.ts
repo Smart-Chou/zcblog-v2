@@ -25,6 +25,15 @@ export const devices: Device[] = [
             zh: "24×7 的服务节点：Docker、本地推理、监控和存储都在这台。整机满载不到 150W，放角落里不心疼电费。",
             en: "The 24×7 service node: Docker, local inference, monitoring and storage all live here. Under 150W at full load, so leaving it in a corner costs nothing.",
         },
+        model: "NUC9 Extreme Kit · Ghost Canyon",
+        specPairs: [
+            { label: "CPU", value: "i9-9980HK · 8C16T" },
+            { label: "GPU", value: "Radeon RX 6600 · 7.8GB" },
+            { label: "RAM", value: "32GB DDR4" },
+            { label: "OS", value: "fnOS" },
+            { label: "Storage", value: "NVMe" },
+        ],
+        featured: true,
         updated: "2026-11-04",
     },
     {
