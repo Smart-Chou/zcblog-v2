@@ -59,7 +59,9 @@ const { id, name, cover, description, date, location, tags, photoCount } = Astro
                 location && (
                     <span class="album-card__place">
                         <DynamicIcon name="tabler:map-pin-filled" width="12" height="12" />
-                        {location}
+                        {/* 地点文字单独占一个盒子：ellipsis 只能落在自己的块上，直接给
+                            inline-flex 容器写 text-overflow 是不生效的（M8-3a） */}
+                        <span class="album-card__place-text">{location}</span>
                     </span>
                 )
             }
@@ -72,6 +74,9 @@ const { id, name, cover, description, date, location, tags, photoCount } = Astro
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
+        /* 等高格子（M8-3a）：相册墙是 grid-auto-rows:1fr + stretch，卡片撑满行高；
+           说明区 flex:1 把 meta 压到卡片底部，同一行的日期/地点永远在同一条基线上。 */
+        block-size: 100%;
         text-decoration: none;
         color: inherit;
         min-inline-size: 0;
@@ -80,6 +85,7 @@ const { id, name, cover, description, date, location, tags, photoCount } = Astro
     .album-card__cover {
         position: relative;
         display: block;
+        /* 比例锁：1 / 2 / 3 列都用 4:3，列数变化不改比例（改比例 = 卡片高度跳） */
         aspect-ratio: 4 / 3;
         overflow: hidden;
         border-radius: var(--radius-lg);
@@ -117,16 +123,26 @@ const { id, name, cover, description, date, location, tags, photoCount } = Astro
         font-family: var(--font-mono);
         font-size: var(--text-xs);
         letter-spacing: var(--tracking-wide);
+        /* 徽标永远不越出封面（1 列 320px 的手机也不会把「1234 张」挤出圆角） */
+        white-space: nowrap;
+        max-inline-size: calc(100% - var(--space-4));
     }
 
     .album-card__body {
         display: flex;
+        flex: 1 1 auto;
         flex-direction: column;
         gap: var(--space-1);
         min-inline-size: 0;
     }
 
+    /* 标题最多 2 行：长相册名（尤其英文）不再把卡片撑高、把同行的卡片推成锯齿 */
     .album-card__name {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        overflow-wrap: anywhere;
         margin: 0;
         font-family: var(--font-serif);
         font-size: var(--text-lg);
@@ -136,27 +152,49 @@ const { id, name, cover, description, date, location, tags, photoCount } = Astro
     }
 
     .album-card__desc {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        overflow-wrap: anywhere;
         font-size: var(--text-sm);
         line-height: var(--leading-relaxed);
         color: var(--color-fg-muted);
     }
 
+    /* 元信息锁一行：日期不换行，地点先让位（省略号），两者都带不掉行高 */
     .album-card__meta {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         gap: var(--space-2);
         margin-block-start: var(--space-1);
+        overflow: hidden;
         font-family: var(--font-mono);
         font-size: var(--text-xs);
         letter-spacing: var(--tracking-wide);
         color: var(--color-fg-muted);
+        white-space: nowrap;
+    }
+
+    .album-card__date {
+        flex: 0 0 auto;
     }
 
     .album-card__place {
         display: inline-flex;
         align-items: center;
         gap: var(--space-1);
+        min-inline-size: 0;
+    }
+
+    .album-card__place :global(svg) {
+        flex: 0 0 auto;
+    }
+
+    .album-card__place-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .album-card:focus-visible {

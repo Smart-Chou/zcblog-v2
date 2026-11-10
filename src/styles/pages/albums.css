@@ -20,11 +20,19 @@
 
 /* ── 相册墙（列表页） ─────────────────────────────────────── */
 
+/* 列数是断点契约（M8-3a）：< 768 → 1 列 · 768 → 2 列 · ≥ 1280 → 3 列。
+   3 列的起点定在 1280 而不是 1024：1200 外框下 3 列每格 ≈ 384px，
+   1024 起就分 3 列的话封面只剩 240×180，卡片从「照片」退化成「邮票」。
+   不做瀑布流（R3）：索引页要的是可扫读的等高等宽格子，不是错落拼图。 */
 .albums-wall {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-5);
-    align-items: start;
+    /* 等高：行高由该行最高的卡片决定，其余行补到同一高度。
+       卡片本身 block-size:100% + 说明区 flex 撑满，所以标题换成两行时
+       只在行内长高，不会把整面墙推成锯齿。 */
+    grid-auto-rows: 1fr;
+    gap: var(--space-4);
+    align-items: stretch;
     min-inline-size: 0;
 }
 
@@ -109,24 +117,33 @@
     color: var(--color-fg-muted);
 }
 
-/* ── 断点：列数是契约（390 / 768 / 1440 三档 e2e 断言） ────── */
+/* ── 断点：列数是契约（375 / 768 / 1280 三档 e2e 断言） ─────
+   列表页：< 768 → 1、768 → 2、≥ 1280 → 3（M8-3a）
+   详情页：640 → 2、1024 → 3（M8-3b 接手，本卡不动）         */
 
 @media (min-width: 640px) {
-    .albums-wall {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .album-grid {
         column-count: 2;
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
     .albums-wall {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-5);
     }
+}
 
+@media (min-width: 1024px) {
     .album-grid {
         column-count: 3;
+    }
+}
+
+@media (min-width: 1280px) {
+    .albums-wall {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        /* DESIGN 基线：3 列画廊 24px gap */
+        gap: var(--space-6);
     }
 }
