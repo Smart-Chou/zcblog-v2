@@ -18,8 +18,13 @@
  * ESM 后在 node 里直接跑，所以这里放的必须是纯函数。
  */
 
-/** 契约版本；schema 破坏性变更时 +1，门禁会打印出来。 */
-export const ENTITY_CONTRACT_VERSION = 1;
+/**
+ * 契约版本；schema 破坏性变更时 +1，门禁会打印出来。
+ * v2（M8-1a）只做加法：Project / Device / Skill 17 个可选字段 + `EntityLink.kind?`，
+ * 全部 present-only —— 缺省 = v1 行为，旧数据原样通过（`dropped = 0` 是硬断言）。
+ * 两处减法：不加 `Device.yearPurchased`（`since` 现算年份）、`links` 不换形状。
+ */
+export const ENTITY_CONTRACT_VERSION = 2;
 
 /** 数据新鲜度阈值（天）。超过只 warning，不 fail（14 §7 硬性规则 3）。 */
 export const ENTITY_FRESHNESS_DAYS = 180;
@@ -85,11 +90,24 @@ export interface EntityCollection<T> {
 
 export type ProjectStatus = "active" | "maintained" | "archived";
 
+/** 链接语义标签（v2，可选）：只做视觉分组，缺省 = 普通外链。闭集故意小。 */
+export type EntityLinkKind = "github" | "demo" | "docs" | "other";
+
 export interface EntityLink {
     /** 链接文案；技术名/站点名不翻译，给什么显示什么。 */
     label: string;
     /** 只接受 http(s) 绝对地址；门禁会校验。 */
     href: string;
+    /** v2 语义标签；缺省 = 普通外链。 */
+    kind?: EntityLinkKind;
+}
+
+/** 项目 KPI（v2）：`value` 是已经成文的数字串，不在这里做单位换算。 */
+export interface ProjectMetric {
+    label: LocalizedText;
+    /** 展示值，≤12 字符（`99.9` / `1.2k` / `40h`）。 */
+    value: string;
+    unit?: string;
 }
 
 export interface Project {
@@ -107,6 +125,14 @@ export interface Project {
     stack: string[];
     highlights?: LocalizedText[];
     links?: EntityLink[];
+    /** v2 内容分类：**开放集合**，只卡 kebab slug 形状（≤24）；缺省 = 不渲染分类 chip。 */
+    category?: string;
+    /** v2：首页/列表置顶；缺省 = false。 */
+    featured?: boolean;
+    /** v2：封面（站内 `/images/…` 或 https 绝对地址）；缺省 = v1 无封面版式。 */
+    coverImage?: string;
+    /** v2：KPI 块（≤6 条）；缺省 = 页面回落「状态 / 栈数 / 起始年」派生值。 */
+    metrics?: ProjectMetric[];
     /** 条目最后更新 `YYYY-MM-DD`，新鲜度按它算。 */
     updated: string;
 }
@@ -122,6 +148,18 @@ export interface Skill {
     /** 起始年份（`YYYY`），可空。 */
     since?: string;
     note?: LocalizedText;
+    /** v2 展示用百分比 0–100：**只是展示辅助，不替代 `level` 四档**。 */
+    percent?: number;
+    /** v2：年资 0–60；缺省时页面按 `since` 现算，不落字段。 */
+    years?: number;
+    /** v2：图标 sprite id（`collection:name`，如 `mingcute:code-line`）；命中检查在门禁。 */
+    icon?: string;
+    /** v2：高亮（技能页置顶/加粗）；缺省 = false。 */
+    highlight?: boolean;
+    /** v2：关联项目（元素必须是真实 `Project.id`）；悬空 id 由门禁 E10 判 FAIL。 */
+    relatedProjects?: string[];
+    /** v2：关联文章 slug；文章在私有内容仓，门禁只能 WARN，不能 FAIL。 */
+    relatedArticles?: string[];
 }
 
 export interface SkillGroup {
@@ -140,6 +178,12 @@ export type DeviceCategory = "computer" | "display" | "audio" | "peripheral" | "
 /** 三态里没有「坏了」——设备只有在用 / 备用 / 退役。 */
 export type DeviceStatus = "in-use" | "backup" | "retired";
 
+/** 设备规格对（v2）：`label` 是键（不翻译，如 `CPU`），`value` 是值。 */
+export interface DeviceSpecPair {
+    label: string;
+    value: string;
+}
+
 export interface Device {
     /** 稳定键（slug 形状，小写连字符）。 */
     id: string;
@@ -156,6 +200,20 @@ export interface Device {
     /** 退役年月 `YYYY-MM`；`null` / 缺省 = 仍在役。退役（retired）必须填。 */
     until?: string | null;
     links?: EntityLink[];
+    /** v2：精确型号（≤48 字符）；缺省时页面显示 `name`。 */
+    model?: string;
+    /** v2：设备图（站内 `/images/…` 或 https 绝对地址）；缺省 = 无图版式。 */
+    image?: string;
+    /** v2：个人评分 1–5、0.5 步进；缺省 = 不显示评分（不是 0 分）。 */
+    rating?: number;
+    /** v2 推广/返利链接，**只收 https**；有它就必须有 `affiliateDisclosure`（合规）。 */
+    affiliateLink?: string;
+    /** v2：推广披露文案（双语，必填可见）；没有推广关系就别写这个字段。 */
+    affiliateDisclosure?: LocalizedText;
+    /** v2：键值型规格（≤8 条）；缺省 = 继续渲染 `specs[]`。 */
+    specPairs?: DeviceSpecPair[];
+    /** v2：置顶；缺省 = false。 */
+    featured?: boolean;
     /** 条目最后更新 `YYYY-MM-DD`。 */
     updated: string;
 }
@@ -308,8 +366,18 @@ const ISO_DAY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const YEAR = /^\d{4}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HTTP = /^https?:\/\/[^\s]+$/;
+const HTTPS = /^https:\/\/[^\s]+$/;
 /** 站点内静态图路径：构建期已在 public/ 下，带扩展名；用来挡住 `/assets/x.mp3` 式的糊写。 */
 const SITE_IMAGE = /^\/[a-z0-9][a-z0-9/_.-]*\.(?:webp|avif|png|jpe?g|svg)$/i;
+/** 图标 sprite id（`collection:name` 形状）；是否命中闭集由门禁查，契约零依赖。 */
+const ICON_ID = /^[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*$/;
+
+/** v2 展示上限；与 docs/28 §2.1 同源，改这里就要改文档（门禁报告逐字引用这些数）。 */
+const CATEGORY_MAX = 24;
+const METRIC_MAX = 6;
+const METRIC_VALUE_MAX = 12;
+const MODEL_MAX = 48;
+const SPEC_PAIR_MAX = 8;
 /**
  * 图床照片路径：以 `/` 开头、**不带扩展名**、不许出现 `..`（图床地址就是无扩展名的 key）。
  * 大写字母是真实存在的（相机导出的 `CRnall_` / `IMG_` / `MVIMG_`），不能按小写卡。
@@ -427,6 +495,45 @@ export function isHttpUrl(value: unknown): value is string {
     return typeof value === "string" && HTTP.test(value);
 }
 
+/** 站内静态图（`/images/…`）或 **https** 绝对地址；挡 `data:`、相对路径与 http 明文。 */
+export function isImageRef(value: unknown): value is string {
+    return typeof value === "string" && (SITE_IMAGE.test(value) || HTTPS.test(value));
+}
+
+/** 有限数值 + 闭区间；显式判掉 `NaN` / `Infinity`。 */
+const isNumberIn = (value: unknown, min: number, max: number): value is number =>
+    typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+
+/** 非空字符串且 ≤max 字符（v2 的 `model` / `category` 长度上限共用）。 */
+const isBoundedString = (value: unknown, max: number): value is string =>
+    isNonEmptyString(value) && value.length <= max;
+
+/** 小写连字符 slug 且 ≤max 字符（`category` 这种开放集合只卡形状，不卡枚举）。 */
+const isKebabSlug = (value: unknown, max: number): value is string =>
+    isBoundedString(value, max) && SLUG.test(value);
+
+/** 1–5、0.5 步进；`*2` 判整避开浮点 `% 0.5` 的噪声（`4.3 * 2 = 8.6` 立刻判红）。 */
+const isRating = (value: unknown): value is number =>
+    isNumberIn(value, 1, 5) && (value * 2) % 1 === 0;
+
+/** 只收 https 绝对地址（返利链接；图片走 `isImageRef`）。 */
+const isHttpsUrl = (value: unknown): value is string =>
+    typeof value === "string" && HTTPS.test(value);
+
+/** 字符串数组且元素是 slug（v2 的 `relatedProjects` / `relatedArticles` 共用）。 */
+const isSlugArray = (value: unknown): value is string[] =>
+    Array.isArray(value) && value.every((item) => isNonEmptyString(item) && SLUG.test(item));
+
+/** 链接语义标签闭集（v2）；只有这几个值能进 `EntityLink.kind`。 */
+const LINK_KINDS: readonly EntityLinkKind[] = ["github", "demo", "docs", "other"];
+
+/** `EntityLink` 的形状：label + http(s) href + 可选 kind（四处 `links` 校验共用一份）。 */
+export function isEntityLink(value: unknown): value is EntityLink {
+    if (!isRecord(value)) return false;
+    if (!isNonEmptyString(value.label) || !isHttpUrl(value.href)) return false;
+    return value.kind === undefined || LINK_KINDS.includes(value.kind as EntityLinkKind);
+}
+
 /** 单条项目的结构问题；返回空数组 = 合法。 */
 export function validateProject(value: unknown): string[] {
     if (!isRecord(value)) return ["不是对象"];
@@ -457,12 +564,34 @@ export function validateProject(value: unknown): string[] {
         (!Array.isArray(value.highlights) || !value.highlights.every(isLocalizedText))
     )
         problems.push(`${at("highlights")} 必须是双语条目数组`);
-    if (value.links !== undefined) {
+    // ── v2 可选字段：present-only（缺省一律通过，有值才校验形状/范围） ──
+    if (value.category !== undefined && !isKebabSlug(value.category, CATEGORY_MAX))
+        problems.push(`${at("category")} 必须是小写连字符 slug（≤${CATEGORY_MAX} 字符）`);
+    if (value.featured !== undefined && typeof value.featured !== "boolean")
+        problems.push(`${at("featured")} 必须是 boolean（缺省 = false）`);
+    if (value.coverImage !== undefined && !isImageRef(value.coverImage))
+        problems.push(
+            `${at("coverImage")} 必须是站内图片路径（以 / 开头、带扩展名）或 https 绝对地址`,
+        );
+    if (value.metrics !== undefined) {
         const ok =
-            Array.isArray(value.links) &&
-            value.links.every(
-                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
+            Array.isArray(value.metrics) &&
+            value.metrics.length <= METRIC_MAX &&
+            value.metrics.every(
+                (metric) =>
+                    isRecord(metric) &&
+                    isLocalizedText(metric.label) &&
+                    isNonEmptyString(metric.value) &&
+                    metric.value.length <= METRIC_VALUE_MAX &&
+                    (metric.unit === undefined || isNonEmptyString(metric.unit)),
             );
+        if (!ok)
+            problems.push(
+                `${at("metrics")} 必须是 ≤${METRIC_MAX} 条 { label(zh+en), value(≤${METRIC_VALUE_MAX} 字符), unit? }`,
+            );
+    }
+    if (value.links !== undefined) {
+        const ok = Array.isArray(value.links) && value.links.every(isEntityLink);
         if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
     }
     if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
@@ -501,6 +630,19 @@ export function validateSkillGroup(value: unknown): string[] {
             problems.push(`${where}.since 必须是 YYYY`);
         if (item.note !== undefined && !isLocalizedText(item.note))
             problems.push(`${where}.note 需要 zh + en 两个非空字符串`);
+        // ── v2 可选字段：present-only（缺省一律通过，有值才校验） ──
+        if (item.percent !== undefined && !isNumberIn(item.percent, 0, 100))
+            problems.push(`${where}.percent 必须是 0–100 的数值（展示辅助，不替代 level）`);
+        if (item.years !== undefined && !isNumberIn(item.years, 0, 60))
+            problems.push(`${where}.years 必须是 0–60 的数值`);
+        if (item.icon !== undefined && !(typeof item.icon === "string" && ICON_ID.test(item.icon)))
+            problems.push(`${where}.icon 必须是 sprite id 形状（如 mingcute:code-line）`);
+        if (item.highlight !== undefined && typeof item.highlight !== "boolean")
+            problems.push(`${where}.highlight 必须是 boolean（缺省 = false）`);
+        if (item.relatedProjects !== undefined && !isSlugArray(item.relatedProjects))
+            problems.push(`${where}.relatedProjects 必须是项目 id 数组（小写连字符 slug）`);
+        if (item.relatedArticles !== undefined && !isSlugArray(item.relatedArticles))
+            problems.push(`${where}.relatedArticles 必须是文章 slug 数组（小写连字符）`);
     });
 
     return problems;
@@ -536,12 +678,38 @@ export function validateDevice(value: unknown): string[] {
         problems.push(`${at("until")} 状态为 retired 时必须填退役年月`);
     if (isIsoMonth(value.since) && isIsoMonth(value.until) && value.until < value.since)
         problems.push(`${at("until")} 不能早于 since（${value.until} < ${value.since}）`);
-    if (value.links !== undefined) {
+    // ── v2 可选字段：present-only（缺省一律通过，有值才校验形状/范围） ──
+    if (value.model !== undefined && !isBoundedString(value.model, MODEL_MAX))
+        problems.push(`${at("model")} 必须是非空字符串且 ≤${MODEL_MAX} 字符`);
+    if (value.image !== undefined && !isImageRef(value.image))
+        problems.push(`${at("image")} 必须是站内图片路径（以 / 开头、带扩展名）或 https 绝对地址`);
+    // 0.5 步进见 `isRating`：`4.3 * 2 = 8.6` 不是整数 → 判红。
+    if (value.rating !== undefined && !isRating(value.rating))
+        problems.push(`${at("rating")} 必须是 1–5 且以 0.5 步进的数值（不打分就别写这个字段）`);
+    if (value.affiliateLink !== undefined && !isHttpsUrl(value.affiliateLink))
+        problems.push(`${at("affiliateLink")} 必须是 https 绝对地址（返利链接不走明文 http）`);
+    if (value.affiliateDisclosure !== undefined && !isLocalizedText(value.affiliateDisclosure))
+        problems.push(`${at("affiliateDisclosure")} 需要 zh + en 两个非空字符串`);
+    // 合规硬约束：有推广链接就必须有披露文案（页面必须可见），缺一即判红。
+    if (value.affiliateLink !== undefined && value.affiliateDisclosure === undefined)
+        problems.push(`${at("affiliateDisclosure")} 有 affiliateLink 时必须同时给出披露文案`);
+    if (value.specPairs !== undefined) {
         const ok =
-            Array.isArray(value.links) &&
-            value.links.every(
-                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
+            Array.isArray(value.specPairs) &&
+            value.specPairs.length <= SPEC_PAIR_MAX &&
+            value.specPairs.every(
+                (pair) =>
+                    isRecord(pair) && isNonEmptyString(pair.label) && isNonEmptyString(pair.value),
             );
+        if (!ok)
+            problems.push(
+                `${at("specPairs")} 必须是 ≤${SPEC_PAIR_MAX} 条 { label, value } 的非空字符串对`,
+            );
+    }
+    if (value.featured !== undefined && typeof value.featured !== "boolean")
+        problems.push(`${at("featured")} 必须是 boolean（缺省 = false）`);
+    if (value.links !== undefined) {
+        const ok = Array.isArray(value.links) && value.links.every(isEntityLink);
         if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
     }
     if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
@@ -624,11 +792,7 @@ export function validateTimelineEvent(value: unknown): string[] {
     )
         problems.push(`${at("tags")} 必须是非空字符串数组（至少一项）`);
     if (value.links !== undefined) {
-        const ok =
-            Array.isArray(value.links) &&
-            value.links.every(
-                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
-            );
+        const ok = Array.isArray(value.links) && value.links.every(isEntityLink);
         if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
     }
     if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
@@ -661,11 +825,7 @@ export function validateMusicTrack(value: unknown): string[] {
     if (value.audio !== undefined && !isHttpUrl(value.audio))
         problems.push(`${at("audio")} 必须是 http(s) 绝对地址（本站不自托管音频；没有源就别写）`);
     if (value.links !== undefined) {
-        const ok =
-            Array.isArray(value.links) &&
-            value.links.every(
-                (link) => isRecord(link) && isNonEmptyString(link.label) && isHttpUrl(link.href),
-            );
+        const ok = Array.isArray(value.links) && value.links.every(isEntityLink);
         if (!ok) problems.push(`${at("links")} 每项需要 label 与非空 http(s) href`);
     }
     if (!isIsoDay(value.updated)) problems.push(`${at("updated")} 必须是 YYYY-MM-DD`);
@@ -741,6 +901,12 @@ export interface EntitySpec<T> {
 
 /* ───────────────────────── 样例（门禁用） ───────────────────────── */
 
+const projectMetricList = (count: number, value = "42"): Record<string, unknown>[] =>
+    Array.from({ length: count }, (_, index) => ({
+        label: { zh: `指标 ${index}`, en: `Metric ${index}` },
+        value,
+    }));
+
 const projectSample = (): Record<string, unknown> => ({
     id: "demo",
     title: { zh: "示例", en: "Demo" },
@@ -749,15 +915,58 @@ const projectSample = (): Record<string, unknown> => ({
     started: "2026-01",
     ended: null,
     stack: ["Astro"],
+    // v2 可选字段也进样例：E8 会逐个删掉非必填字段要求仍然合法，正反两向自动覆盖。
+    category: "site-infra",
+    featured: true,
+    coverImage: "/images/projects/demo.webp",
+    metrics: [{ label: { zh: "页面", en: "Pages" }, value: "42", unit: "页" }],
     updated: "2026-01-01",
 });
 
 const skillGroupSample = (): Record<string, unknown> => ({
     id: "demo",
     title: { zh: "示例", en: "Demo" },
-    items: [{ name: "Astro", level: "solid" }],
+    items: [
+        {
+            name: "Astro",
+            level: "solid",
+            percent: 85,
+            years: 3,
+            icon: "mingcute:code-line",
+            highlight: true,
+            relatedProjects: ["demo"],
+            relatedArticles: ["demo-post"],
+        },
+    ],
     updated: "2026-01-01",
 });
+
+const skillItem = (overrides: Record<string, unknown>): Record<string, unknown> => ({
+    name: "Astro",
+    level: "solid",
+    ...overrides,
+});
+
+/** 技能的坏样例底座：只覆盖条目里要坏的那一个字段。 */
+const skillNeg = (overrides: Record<string, unknown>): Record<string, unknown> => ({
+    ...skillGroupSample(),
+    items: [skillItem(overrides)],
+});
+
+/** 设备的坏样例底座。 */
+const deviceNeg = (overrides: Record<string, unknown>): Record<string, unknown> => ({
+    ...deviceSample(),
+    ...overrides,
+});
+
+const nineSpecPairs = (): Record<string, unknown>[] =>
+    Array.from({ length: SPEC_PAIR_MAX + 1 }, () => ({ label: "CPU", value: "Demo" }));
+
+/** 推广披露文案（负向样例里的「合法一半」：链接错、披露对，才能证明是链接被判红）。 */
+const DISCLOSURE: LocalizedText = {
+    zh: "含推广链接，购买后我可能获得佣金",
+    en: "Affiliate link — I may earn a commission",
+};
 
 const deviceSample = (): Record<string, unknown> => ({
     id: "demo-box",
@@ -767,6 +976,13 @@ const deviceSample = (): Record<string, unknown> => ({
     specs: ["Demo CPU", "16GB"],
     note: { zh: "示例设备", en: "Demo device" },
     since: "2024-01",
+    // affiliateLink / affiliateDisclosure **故意不进样例**：条件必填的一对字段会被 E8 的
+    //「删掉非必填字段仍须合法」误判；只在 negatives() 里正反两面验（M8-1b 落地后再纳入）。
+    model: "Demo Box 1",
+    image: "/images/devices/demo.webp",
+    rating: 4.5,
+    specPairs: [{ label: "CPU", value: "Demo CPU" }],
+    featured: true,
     updated: "2026-01-01",
 });
 
@@ -800,6 +1016,21 @@ export const projectSpec: EntitySpec<Project> = {
             { ...projectSample(), links: [{ label: "x", href: "javascript:alert(1)" }] },
         ],
         ["id 不是 slug", { ...projectSample(), id: "Demo Project" }],
+        // ── v2 可选字段：present-only 的值级坏样例（缺省方向由 E8 的「删字段仍合法」覆盖） ──
+        ["category 不是 slug", { ...projectSample(), category: "Site Infra" }],
+        ["category 超 24 字符", { ...projectSample(), category: "a".repeat(25) }],
+        ["featured 非 boolean", { ...projectSample(), featured: "yes" }],
+        ["coverImage 相对路径", { ...projectSample(), coverImage: "images/a.webp" }],
+        ["coverImage 是 data:", { ...projectSample(), coverImage: "data:image/png;base64,AA" }],
+        ["metrics 超 6 条", { ...projectSample(), metrics: projectMetricList(7) }],
+        [
+            "metric value 超 12 字符",
+            { ...projectSample(), metrics: projectMetricList(1, "1".repeat(13)) },
+        ],
+        [
+            "metrics label 缺 en",
+            { ...projectSample(), metrics: [{ label: { zh: "页" }, value: "1" }] },
+        ],
         // 正则能过、日历不存在：Date.parse 会静默归一成 03-03，必须判出
         ["updated 不是真实日历日", { ...projectSample(), updated: "2026-02-31" }],
     ],
@@ -820,6 +1051,13 @@ export const skillGroupSpec: EntitySpec<SkillGroup> = {
             "条目的 since 不是 YYYY",
             { ...skillGroupSample(), items: [{ name: "Astro", level: "solid", since: "26" }] },
         ],
+        // ── v2 可选字段：present-only 的值级坏样例 ──
+        ["percent 越界（101）", skillNeg({ percent: 101 })],
+        ["years 越界（61）", skillNeg({ years: 61 })],
+        ["icon 不是 sprite id", skillNeg({ icon: "code" })],
+        ["highlight 非 boolean", skillNeg({ highlight: 1 })],
+        ["relatedProjects 非 slug", skillNeg({ relatedProjects: ["Demo"] })],
+        ["relatedArticles 空串", skillNeg({ relatedArticles: [" "] })],
     ],
 };
 
@@ -839,6 +1077,24 @@ export const deviceSpec: EntitySpec<Device> = {
         ["retired 但缺 until", { ...deviceSample(), status: "retired" }],
         ["until 早于 since", { ...deviceSample(), since: "2024-06", until: "2024-01" }],
         ["since 不是 YYYY-MM", { ...deviceSample(), since: "2024" }],
+        // ── v2 可选字段：present-only 的值级坏样例（含跨字段矛盾） ──
+        ["model 超 48 字符", deviceNeg({ model: "M".repeat(49) })],
+        ["image 相对路径", deviceNeg({ image: "images/a.webp" })],
+        ["rating 非 0.5 步进", deviceNeg({ rating: 4.3 })],
+        ["rating 越界（6）", deviceNeg({ rating: 6 })],
+        // 合规：有返利链接却没有披露文案，必须判红
+        ["affiliateLink 无披露", deviceNeg({ affiliateLink: "https://a.co/buy" })],
+        [
+            "affiliateLink 非 https",
+            deviceNeg({ affiliateLink: "http://a.co/buy", affiliateDisclosure: DISCLOSURE }),
+        ],
+        ["affiliateDisclosure 缺 en", deviceNeg({ affiliateDisclosure: { zh: "披露" } })],
+        ["specPairs 超 8 条", deviceNeg({ specPairs: nineSpecPairs() })],
+        ["featured 非 boolean", deviceNeg({ featured: 1 })],
+        [
+            "links kind 越界",
+            deviceNeg({ links: [{ label: "x", href: "https://a.co", kind: "repo" }] }),
+        ],
         ["links 非 http", { ...deviceSample(), links: [{ label: "x", href: "/relative" }] }],
         ["updated 不是真实日历日", { ...deviceSample(), updated: "2026-02-31" }],
     ],
