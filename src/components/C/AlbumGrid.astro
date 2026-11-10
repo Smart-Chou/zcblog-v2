@@ -1,14 +1,20 @@
 ---
 /**
- * C-2 · 相册照片瀑布流（M2-8c）
+ * C-2 · 相册照片网格（M2-8c → M8-3b）
  * ------------------------------------------------------------------
- * 只做一件事：把一条相册实体渲染成「缩略图墙 + 原图链接」。
+ * 只做一件事：把一条相册实体渲染成「缩略图网格 + 原图链接」。
  *
  * 缩略图与原图的分离在这里是**结构性**的，不靠 CSS：
  *   <a href={原图}>   ← 灯箱读它（无宽度，图床原图）
  *     <img src={缩略图}> ← 页面读它（站点 /cdn-cgi/image 按宽度转码）
  * e2e 直接对账：`a[href]` 数量 = `img[src]` 数量 = photos.length，且两组地址互不相等。
- * 数据里没有尺寸字段，所以这里也不编宽高比：图片按自身比例排（瀑布流就是靠这个）。
+ *
+ * M8-3b 把版式从「按自身比例的多列瀑布流」改成「比例锁定的 1/2/3 列网格」：
+ * 数据里没有宽高（`photos` 只存图床相对路径），瀑布流就等于把页面高度交给图片下载速度
+ * —— 图一到位就整页往下推。瓦片统一 `aspect-ratio: 4/3` 后，图片到货前后盒子尺寸一致
+ * （0 布局偏移），列数也回到与索引页同一口径：< 768 → 1、768 → 2、≥ 1280 → 3。
+ * 比例与列数都写在 `albums.css`（版式归 CSS，本组件 0 行 JS 布局计算），
+ * 组件只把契约挂成 data 属性，好让 e2e 有据可断。
  *
  * 灯箱是复用：容器 id `#fancybox-gallery` 由 BaseLayout 常驻的
  * `~/scripts/fancybox-album` 绑定（`a[href]` 全组），本组件不引任何灯箱代码。
@@ -25,6 +31,9 @@ interface Props {
 }
 
 const { album, locale, thumbWidth = 640 } = Astro.props;
+
+/** 瓦片比例锁（与 albums.css 的 `.album-grid__item { aspect-ratio }` 同一口径）。 */
+const TILE_RATIO = "4 / 3";
 
 const photos = album.photos.map((path, index) => ({
     path,
@@ -43,6 +52,7 @@ const photos = album.photos.map((path, index) => ({
     data-album-id={album.id}
     data-album-thumb-width={thumbWidth}
     data-album-photo-count={photos.length}
+    data-album-tile-ratio={TILE_RATIO}
 >
     {
         photos.map((photo) => (

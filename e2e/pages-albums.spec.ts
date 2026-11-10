@@ -14,7 +14,7 @@ import path from "node:path";
  *  5. **缩略图 / 原图分离**（本卡核心）：`img[src]` 走站点 `/cdn-cgi/image/…width=640`，
  *     `a[href]` 走图床原图；两组数量都等于 photos.length，且没有一个地址两边通用
  *  6. **三视口列数**（本卡核心）：390 → 1、768 → 2、1440 → 3；
- *     列表页断 `grid-template-columns` 轨道数，详情页断 computed `column-count`
+ *     列表页与详情页都断 `grid-template-columns` 轨道数（M8-3b 起详情页也是 grid）
  *  7. **灯箱复用**（本卡核心）：点照片 → Fancybox 打开且显示的是**原图**；
  *     Esc 关闭 → 焦点回到点过的那一张（没有焦点返回，键盘用户就丢了位置）
  *  8. light/dark × 390/768/1440：无横向溢出（列表页 + 详情页）
@@ -342,13 +342,21 @@ test("三视口列数：390 → 1、768 → 2、1440 → 3（列表页 + 详情�
         expect(wall.tracks, `${width}px: 相册墙列数`).toBe(expected[width]);
 
         await openPage(page, DETAIL, "light", width);
-        const grid = await page.locator(GRID.container).evaluate((node) => ({
-            columnCount: getComputedStyle(node).columnCount,
-        }));
-        expect(Number(grid.columnCount), `${width}px: 照片瀑布流列数`).toBe(expected[width]);
+        /* M8-3b：详情页从多列瀑布流改成与索引页同一口径的 grid，
+           列数因此读轨道数（grid-template-columns），不再读 column-count。 */
+        const grid = await page.locator(GRID.container).evaluate((node) => {
+            const style = getComputedStyle(node);
+            return {
+                display: style.display,
+                tracks: style.gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length,
+                value: style.gridTemplateColumns,
+            };
+        });
+        expect(grid.display, `${width}px: 照片网格必须是 grid`).toBe("grid");
+        expect(grid.tracks, `${width}px: 照片网格列数（${grid.value}）`).toBe(expected[width]);
 
         console.log(
-            `[columns] ${width}px → 墙 ${wall.tracks} 列（${wall.value}）· 照片 ${grid.columnCount} 列`,
+            `[columns] ${width}px → 墙 ${wall.tracks} 列（${wall.value}）· 照片 ${grid.tracks} 列（${grid.value}）`,
         );
     }
 });

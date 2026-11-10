@@ -2,14 +2,17 @@
    C-2 · 相册（M2-8c）
    ------------------------------------------------------------
    版式：编辑式页头（复用 entities.css）→ 相册墙（卡片 1/2/3 列）
-        → 相册详情：页头 + 照片瀑布流（1/2/3 列）。
+        → 相册详情：页头 + 照片网格（1/2/3 列，瓦片比例锁 4/3）。
    约束：
    - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl() / --palette-*。
    - 尺寸走 --space-* / --text-* / --radius-*；px 只出现在 1px/2px 描边与断点里。
-   - 列数是**断点决定的**（不是 auto-fill）：390 → 1、768 → 2、1440 → 3。
+   - 列数是**断点决定的**（不是 auto-fill）：< 768 → 1、768 → 2、≥ 1280 → 3。
      用 auto-fill 的话「768 上恰好 2 列」只是碰巧，e2e 断出来的数字没有契约意义。
-   - 瀑布流用 CSS 多列（column-count）：照片比例未知（数据里没有尺寸），
-     定高裁切会把人像裁成证件照；多列让每张按自身比例排，列高自然错落。
+   - 详情页照片网格走 CSS grid（M8-3b）：瓦片比例统一锁 4/3，图片 cover 裁切。
+     原来是多列瀑布流（column-count）——每张按自身比例排、列高错落，代价是
+     「图片到货前不知道高度」，图一到位整页往下推。实测照片比例是混的
+     （1920×1301 / 1920×1440 / 1554×2943 / 1920×2778 / 1920×1663），
+     只有锁瓦片比例才能做到 0 布局偏移；全貌由灯箱给（原图不带宽度参数）。
    - 本文件只管版式：灯箱样式由 fancybox 自己按需注入（D-0057）。
    ============================================================ */
 
@@ -70,22 +73,26 @@
     }
 }
 
-/* ── 照片瀑布流（详情页） ─────────────────────────────────── */
+/* ── 照片网格（详情页） ─────────────────────────────────────
+   列数与索引页同一口径（M8-3b）：< 768 → 1 列 · 768 → 2 列 · ≥ 1280 → 3 列，
+   由下面的断点块决定（不用 auto-fill，「768 上恰好 2 列」才是契约）。 */
 
 .album-grid {
-    column-count: 1;
-    column-gap: var(--space-3);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
     min-inline-size: 0;
 }
 
 .album-grid__item {
     display: block;
-    break-inside: avoid;
-    margin-block-end: var(--space-3);
+    /* 比例锁：瓦片在图片到货前就占满这块盒子，图加载完不推动页面（CLS = 0），
+       也让同一行的瓦片严格等高等宽（瀑布流的错落在网格里是噪声）。
+       与索引页封面同一口径 4/3；裁掉的部分在灯箱里看原图全貌。 */
+    aspect-ratio: 4 / 3;
     border-radius: var(--radius-lg);
     overflow: hidden;
-    /* 图片没有内在尺寸（数据里没有宽高）：加载中先给一块底色，
-       否则整列会先塌成一条线再弹开，滚动位置跟着跳。 */
     background-color: var(--color-bg-muted);
     box-shadow: var(--shadow-1);
     cursor: zoom-in;
@@ -106,7 +113,11 @@
 .album-grid__image {
     display: block;
     inline-size: 100%;
-    block-size: auto;
+    block-size: 100%;
+    /* 瓦片比例固定，图片按 cover 居中裁切：竖图不会被压扁成横图，
+       横图也不会在瓦片里留出上下两条底色。 */
+    object-fit: cover;
+    object-position: center;
 }
 
 /* 灯箱提示：只在有脚本的浏览器里出现（无 JS 时点开就是原图，不需要这句话） */
@@ -118,25 +129,18 @@
 }
 
 /* ── 断点：列数是契约（375 / 768 / 1280 三档 e2e 断言） ─────
-   列表页：< 768 → 1、768 → 2、≥ 1280 → 3（M8-3a）
-   详情页：640 → 2、1024 → 3（M8-3b 接手，本卡不动）         */
-
-@media (min-width: 640px) {
-    .album-grid {
-        column-count: 2;
-    }
-}
+   索引页与详情页同一口径（M8-3a / M8-3b）：
+   < 768 → 1 列 · 768 → 2 列 · ≥ 1280 → 3 列；gap 16 / 20 / 24 分档。 */
 
 @media (min-width: 768px) {
     .albums-wall {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--space-5);
     }
-}
 
-@media (min-width: 1024px) {
     .album-grid {
-        column-count: 3;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-5);
     }
 }
 
@@ -144,6 +148,11 @@
     .albums-wall {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         /* DESIGN 基线：3 列画廊 24px gap */
+        gap: var(--space-6);
+    }
+
+    .album-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: var(--space-6);
     }
 }
