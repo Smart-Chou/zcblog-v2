@@ -111,7 +111,7 @@ jobs:
                   retention-days: 7
                   if-no-files-found: ignore
 
-    # ---- 视觉门禁：/design/atoms 72 张 + 页面级 54 张像素基线（Linux）----
+    # ---- 视觉门禁：/design/atoms 72 张 + 页面级 42 张像素基线（Linux）----
     # 与 test/gates 平行跑。四条硬约束：
     #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），
     #     镜像里的浏览器构建号跟版本绑定，跨版本截图不可比。
@@ -122,7 +122,7 @@ jobs:
     #  4. 页面级基线跑在固定内容上（scripts/visual/build-pages-baseline.mjs）：内容仓加一篇
     #     文章不该让视觉门禁红。因此这里**不** checkout 私有文章仓，构建命令也换成该脚本。
     visual:
-        name: visual (atoms 72 + pages 54 · linux baselines)
+        name: visual (atoms 72 + pages 42 · linux baselines)
         runs-on: ubuntu-latest
         timeout-minutes: 25
         container:
@@ -174,28 +174,27 @@ jobs:
             - name: Visual regression · atoms 2/2 (stability)
               run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
 
-            # M5-11 / V-0 建立 6 页；M6-6a 加 /404/ → 7 页；M8-2 加 /devices/ 与 /skills/ → 9 页
-            # → 9 页 × 3 视口 × 2 主题 = 54。三张页卡全部落地后本数字不再变。
+            # M5-11 / V-0 建立 6 页；M6-6a 加 /404/ → 7 页 × 3 视口 × 2 主题 = 42。
             # 同上看条数，不信退出码。
-            - name: Visual regression · pages 54 (pass 1/2)
+            - name: Visual regression · pages 42 (pass 1/2)
               shell: bash
               run: |
                   set -o pipefail
                   corepack pnpm exec playwright test e2e/pages.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-visual-1.log"
-                  if ! grep -qE "^ +54 passed" "$RUNNER_TEMP/pages-visual-1.log"; then
-                    echo "::error::页面级视觉基线用例数不是 54（9 页 × 2 主题 × 3 视口）"
+                  if ! grep -qE "^ +42 passed" "$RUNNER_TEMP/pages-visual-1.log"; then
+                    echo "::error::页面级视觉基线用例数不是 42（7 页 × 2 主题 × 3 视口）"
                     tail -40 "$RUNNER_TEMP/pages-visual-1.log"
                     exit 1
                   fi
 
-            - name: Visual regression · pages 54 (pass 2/2 · stability)
+            - name: Visual regression · pages 42 (pass 2/2 · stability)
               shell: bash
               run: |
                   set -o pipefail
                   corepack pnpm exec playwright test e2e/pages.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-visual-2.log"
-                  if ! grep -qE "^ +54 passed" "$RUNNER_TEMP/pages-visual-2.log"; then
+                  if ! grep -qE "^ +42 passed" "$RUNNER_TEMP/pages-visual-2.log"; then
                     echo "::error::页面级视觉基线第二遍未全绿（不稳定）"
                     tail -40 "$RUNNER_TEMP/pages-visual-2.log"
                     exit 1

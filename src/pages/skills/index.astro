@@ -1,25 +1,17 @@
 ---
 /**
- * C-1 技能（M8-2 视觉重做，中文路由）
+ * C-1 技能（M2-7a，中文路由）
  * ------------------------------------------------------------------
- * 骨架：页头 → KPI(4) → 筛选（领域 / 等级）→ 分组面板 → 末页标记
- * （`26-m8-2-entities-design-spec.md` §4）。移动版按 768 折叠筛选、单列面板。
- *
- * 数据链路不变：`normalizeCollection()` 的真实返回决定 ok / empty / error；
- * `loading` 只是构建期预览值（`PUBLIC_SKILLS_STATE=loading`），**不进归一化、不伪造条目**。
- * 筛选是对已渲染 DOM 的纯客户端过滤（`src/scripts/entity-filter.ts`），不发请求、不写 URL。
+ * 与 `/projects/` 同源同构：实体契约归一化 → C 层分组组件 → 页面级三态。
+ * 空态 / 错误态都是页面状态：路由永远 200。
+ * 构建期可用 `PUBLIC_SKILLS_STATE=empty|error` 预览另两态。
  */
 import "~/styles/tokens/tokens.css";
 import "~/styles/pages/entities.css";
-import "~/styles/pages/skills.css";
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import Alert from "~/components/UI/atom/Alert.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
-import Skeleton from "~/components/UI/atom/Skeleton.astro";
-import KpiRow from "~/components/C/KpiRow.astro";
-import FilterBar, { type FilterGroup } from "~/components/C/FilterBar.astro";
-import SkillGroupPanel from "~/components/C/SkillGroupPanel.astro";
-import SkillMeter from "~/components/C/SkillMeter.astro";
+import Alert from "~/components/UI/atom/Alert.astro";
+import SkillGroup from "~/components/C/SkillGroup.astro";
 import { skills, skillsMeta } from "~/data/entities/skills";
 import {
     SKILL_LEVEL_RANK,
@@ -33,24 +25,12 @@ import { site } from "~/config";
 const loc = getLocale(Astro.currentLocale || "zh");
 const isEn = loc === "en";
 
-const previewState = import.meta.env.PUBLIC_SKILLS_STATE;
-const isLoading = previewState === "loading";
+const feed = normalizeCollection(skills, skillsMeta, skillGroupSpec, {
+    force: import.meta.env.PUBLIC_SKILLS_STATE,
+});
 
-// 加载骨架是预览态：命中即在归一化之前分支，绝不进入数据校验，也不产生假条目。
-const feed = isLoading
-    ? null
-    : normalizeCollection(skills, skillsMeta, skillGroupSpec, { force: previewState });
-
-const status = isLoading ? "loading" : (feed?.status ?? "empty");
-const isOk = status === "ok";
-
-const items = feed ? [...feed.items].sort((a, b) => b.updated.localeCompare(a.updated)) : [];
+const items = [...feed.items].sort((a, b) => b.updated.localeCompare(a.updated));
 const skillCount = items.reduce((sum, group) => sum + group.items.length, 0);
-const deepCount = items.reduce(
-    (sum, group) => sum + group.items.filter((skill) => skill.level === "deep").length,
-    0,
-);
-const updatedLabel = feed?.updated ?? "—";
 
 const copy = isEn
     ? {
@@ -59,27 +39,9 @@ const copy = isEn
           lede: "What I actually use, grouped by the kind of problem it solves. Four levels, no percentages — a skill list is not an exam score.",
           listTitle: "By discipline",
           listMeta: "Four levels: exploring → deep",
-          kpiLabel: "Skill numbers",
-          kpiGroups: "Disciplines",
-          kpiSkills: "Skills",
-          kpiDeep: "Deep",
-          kpiUpdated: "Data updated",
-          unitGroups: "total",
-          unitSkills: "total",
-          unitDeep: "total",
-          staleLabel: "Needs refresh",
-          filterTitle: "Filter skills",
-          filterLabel: "Filter",
-          disciplineLabel: "Discipline",
-          levelLabel: "Level",
-          allLabel: "All",
-          clearLabel: "Clear filters",
-          countUnit: "skills",
-          panelUnit: "skills",
+          groupOne: "groups",
+          skillOne: "skills",
           legendTitle: "How to read the levels",
-          filteredTitle: "No skills match",
-          filteredText:
-              "The data has skills — the filters are just too narrow. Clear them to see the full list.",
           emptyTitle: "No skills yet",
           emptyText:
               "This site has not filled in its skill data yet. The empty state is part of the page: the route still resolves.",
@@ -87,7 +49,6 @@ const copy = isEn
           errorText:
               "The skill file exists but its shape is invalid, so nothing is listed here. The rest of the page still works.",
           reason: "Reason code",
-          loadingLabel: "Loading skills",
       }
     : {
           kicker: "技能 · 能力地图",
@@ -95,102 +56,24 @@ const copy = isEn
           lede: "按「解决哪类问题」分组，只列真正在用的东西。四档而不是百分比——技能不是考试分数。",
           listTitle: "按领域",
           listMeta: "四档：探索中 → 深耕",
-          kpiLabel: "技能读数",
-          kpiGroups: "领域",
-          kpiSkills: "技能",
-          kpiDeep: "深耕",
-          kpiUpdated: "数据更新",
-          unitGroups: "个",
-          unitSkills: "项",
-          unitDeep: "项",
-          staleLabel: "数据需更新",
-          filterTitle: "技能筛选",
-          filterLabel: "筛选",
-          disciplineLabel: "领域",
-          levelLabel: "等级",
-          allLabel: "全部",
-          clearLabel: "清除筛选",
-          countUnit: "项技能",
-          panelUnit: "项",
+          groupOne: "个领域",
+          skillOne: "项技能",
           legendTitle: "分档怎么读",
-          filteredTitle: "没有匹配的技能",
-          filteredText: "数据里有技能，是筛选条件太窄。清除筛选即可看到全部条目。",
           emptyTitle: "还没有技能条目",
           emptyText: "这个站点还没填技能数据。空态也是页面的一部分：路由照常可访问。",
           errorTitle: "技能数据读取失败",
           errorText: "技能数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。",
           reason: "原因代码",
-          loadingLabel: "正在加载技能",
       };
 
-const kpiItems = [
-    {
-        label: copy.kpiGroups,
-        value: items.length,
-        unit: copy.unitGroups,
-        icon: "tabler:tags",
-    },
-    {
-        label: copy.kpiSkills,
-        value: skillCount,
-        unit: copy.unitSkills,
-        icon: "tabler:tool",
-    },
-    {
-        label: copy.kpiDeep,
-        value: deepCount,
-        unit: copy.unitDeep,
-        icon: "tabler:brain",
-    },
-    {
-        label: copy.kpiUpdated,
-        value: updatedLabel,
-        icon: "tabler:clock",
-        stale: feed?.stale ?? false,
-        staleLabel: copy.staleLabel,
-    },
-];
-
+const groupLabel = `${items.length} ${copy.groupOne}`;
+const skillLabel = `${skillCount} ${copy.skillOne}`;
 const levels = (["exploring", "working", "solid", "deep"] as const).map((level) => ({
     level,
     rank: SKILL_LEVEL_RANK[level],
     label: skillLevelLabel(level, loc),
-    count: items.reduce(
-        (sum, group) => sum + group.items.filter((skill) => skill.level === level).length,
-        0,
-    ),
 }));
-
-// 零计数的选项不渲染（决策 K2）：「全部」始终在，且带全部技能数。
-const filterGroups: FilterGroup[] = [
-    {
-        id: "discipline",
-        label: copy.disciplineLabel,
-        kind: "single",
-        attr: "data-group-id",
-        options: items
-            .filter((group) => group.items.length > 0)
-            .map((group) => ({
-                value: group.id,
-                label: group.title[loc],
-                count: group.items.length,
-            })),
-    },
-    {
-        id: "level",
-        label: copy.levelLabel,
-        kind: "single",
-        attr: "data-level",
-        options: levels
-            .filter((entry) => entry.count > 0)
-            .map((entry) => ({ value: entry.level, label: entry.label, count: entry.count })),
-    },
-];
-
-const resultLabel = `${skillCount} ${copy.countUnit}`;
-const endLabel = isEn
-    ? `${items.length} disciplines · ${skillCount} skills · all shown`
-    : `共 ${items.length} 个领域 · ${skillCount} 项技能 · 已全部显示`;
+const segments = [1, 2, 3, 4] as const;
 ---
 
 <BaseLayout
@@ -201,169 +84,100 @@ const endLabel = isEn
 >
     <article
         class="entities entities--skills"
-        data-entity="skills"
-        data-skills-status={status}
+        data-skills-status={feed.status}
         data-skills-groups={items.length}
         data-skills-total={skillCount}
-        data-skills-stale={String(feed?.stale ?? false)}
-        data-density={skillCount >= 24 ? "compact" : undefined}
+        data-skills-stale={String(feed.stale)}
         aria-labelledby="skills-title"
     >
         <header class="entities-hero">
             <p class="entities-kicker">{copy.kicker}</p>
             <h1 class="entities-title" id="skills-title">{copy.title}</h1>
             <p class="entities-lede">{copy.lede}</p>
+            <div class="entities-hero__meta">
+                <span class="entities-chip">
+                    <Icon name="tabler:categories" size="xs" />
+                    {groupLabel}
+                </span>
+                <span class="entities-chip">
+                    <Icon name="tabler:tool" size="xs" />
+                    {skillLabel}
+                </span>
+            </div>
         </header>
 
-        {
-            isOk && (
-                <>
-                    <KpiRow items={kpiItems} label={copy.kpiLabel} />
-                    <FilterBar
-                        groups={filterGroups}
-                        total={skillCount}
-                        unit={copy.countUnit}
-                        resultLabel={resultLabel}
-                        noneLabel={copy.filteredTitle}
-                        clearLabel={copy.clearLabel}
-                        collapsedLabel={copy.filterLabel}
-                        allLabel={copy.allLabel}
-                        title={copy.filterTitle}
-                    >
-                        <Fragment slot="legend">
-                            <p class="entity-legend__title">{copy.legendTitle}</p>
-                            <ul class="entity-legend" role="list">
-                                {levels.map((entry) => (
-                                    <li class="entity-legend__item">
-                                        <SkillMeter value={entry.rank} />
-                                        <span>{entry.label}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </Fragment>
-                    </FilterBar>
-                </>
-            )
-        }
-
-        <section
-            class="entities-section"
-            aria-labelledby="skills-list-title"
-            aria-busy={status === "loading" ? "true" : undefined}
-        >
+        <section class="entities-section" aria-labelledby="skills-list-title">
             <div class="entities-section__head">
                 <h2 class="entities-section__title" id="skills-list-title">{copy.listTitle}</h2>
                 <p class="entities-section__meta">{copy.listMeta}</p>
             </div>
 
             {
-                isOk && feed?.issue?.code === "entry-dropped" && (
-                    <p class="entities-notice" data-skills-dropped={feed?.dropped}>
+                feed.status === "ok" && feed.issue?.code === "entry-dropped" && (
+                    <p class="entities-notice" data-skills-dropped={feed.dropped}>
                         {isEn
-                            ? `${feed?.dropped} entries failed validation and are not listed below.`
-                            : `有 ${feed?.dropped} 条数据未通过校验，未在下方列出。`}
+                            ? `${feed.dropped} entries failed validation and are not listed below.`
+                            : `有 ${feed.dropped} 条数据未通过校验，未在下方列出。`}
                     </p>
                 )
             }
 
             {
-                isOk && (
+                feed.status === "ok" && (
                     <>
-                        <div class="skill-groups" data-entity-list>
+                        <div class="skill-legend">
+                            <p class="skill-legend__title">{copy.legendTitle}</p>
+                            <ul class="skill-legend__list" role="list">
+                                {levels.map((entry) => (
+                                    <li class="skill-legend__item">
+                                        <span class="skill-legend__meter" aria-hidden="true">
+                                            {segments.map((segment) => (
+                                                <i
+                                                    class:list={[
+                                                        "skill__meter-seg",
+                                                        { "is-on": segment <= entry.rank },
+                                                    ]}
+                                                />
+                                            ))}
+                                        </span>
+                                        <span class="skill-legend__label">{entry.label}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div class="skill-groups">
                             {items.map((group, index) => (
-                                <SkillGroupPanel
-                                    group={group}
-                                    index={index + 1}
-                                    locale={loc}
-                                    unit={copy.panelUnit}
-                                />
+                                <SkillGroup group={group} index={index + 1} locale={loc} />
                             ))}
                         </div>
-
-                        <div
-                            class="entities-state entities-state--empty entity-empty--filtered"
-                            data-entity-filtered-empty
-                            data-empty="filtered"
-                            hidden
-                        >
-                            <span class="entities-state__icon" aria-hidden="true">
-                                <Icon name="tabler:focus-centered" size="lg" />
-                            </span>
-                            <h2 class="entities-state__title">{copy.filteredTitle}</h2>
-                            <p class="entities-state__text">{copy.filteredText}</p>
-                            <button
-                                type="button"
-                                class="entity-filter__clear entity-filter__clear--inline"
-                                data-filter-reset
-                            >
-                                {copy.clearLabel}
-                            </button>
-                        </div>
-
-                        <footer class="entity-list__end" data-entity-end>
-                            {endLabel}
-                        </footer>
                     </>
                 )
             }
 
             {
-                status === "loading" && (
-                    <div class="entity-loading" aria-busy="true">
-                        <div class="entity-loading__kpi">
-                            {[1, 2, 3, 4].map(() => (
-                                <Skeleton
-                                    variant="block"
-                                    loadingLabel={copy.loadingLabel}
-                                    class="entity-loading__tile"
-                                />
-                            ))}
-                        </div>
-                        <Skeleton
-                            variant="text"
-                            lines={2}
-                            loadingLabel={copy.loadingLabel}
-                            class="entity-loading__filter"
-                        />
-                        <div class="entity-loading__panels">
-                            {[1, 2].map(() => (
-                                <Skeleton
-                                    variant="block"
-                                    loadingLabel={copy.loadingLabel}
-                                    class="entity-loading__panel"
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )
-            }
-
-            {
-                status === "error" && (
-                    <div class="entities-state" data-skills-error={feed?.issue?.code ?? "unknown"}>
-                        <Alert tone="warning" title={copy.errorTitle} live="assertive">
+                feed.status === "error" && (
+                    <div class="entities-state" data-skills-error={feed.issue?.code ?? "unknown"}>
+                        <Alert tone="warning" title={copy.errorTitle}>
                             {copy.errorText}
                         </Alert>
                         <p class="entities-state__hint">
-                            {copy.reason}：{feed?.issue?.code ?? "unknown"}
+                            {copy.reason}：{feed.issue?.code ?? "unknown"}
                         </p>
-                        <a class="entities-state__retry" href={Astro.url.pathname}>
-                            {isEn ? "Reload this page" : "重新加载本页"}
-                        </a>
                     </div>
                 )
             }
 
             {
-                status === "empty" && (
+                feed.status === "empty" && (
                     <div
                         class="entities-state entities-state--empty"
-                        data-skills-empty={feed?.issue?.code ?? "unknown"}
+                        data-skills-empty={feed.issue?.code ?? "unknown"}
                     >
                         <span class="entities-state__icon" aria-hidden="true">
                             <Icon name="tabler:tool" size="lg" />
                         </span>
-                        <h2 class="entities-state__title">{copy.emptyTitle}</h2>
+                        <p class="entities-state__title">{copy.emptyTitle}</p>
                         <p class="entities-state__text">{copy.emptyText}</p>
                     </div>
                 )
@@ -371,8 +185,3 @@ const endLabel = isEn
         </section>
     </article>
 </BaseLayout>
-
-<script>
-    // 筛选模块常驻（onPageReady：首屏 + 每次 swup 换页都重新绑定当前 DOM）。
-    import "~/scripts/entity-filter";
-</script>

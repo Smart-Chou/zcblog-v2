@@ -3,15 +3,10 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * Page-level visual baselines — M5-11 (V-0).
  *
- * 7 pages × 2 themes × 3 viewports = 42 shots per platform (M6-6a adds `/404/`):
+ * 6 pages × 2 themes × 3 viewports = 36 shots per platform (M6-6a adds `/404/` → 42):
  *   /                                     home
  *   /article/beszel-server-monitoring-guide/  long-form representative
  *   /archives/  /albums/  /culture/  /projects/  /404/
- *
- * M8-2 (t_0edb8cfb) adds `/skills/` → 8 pages × 6 = 48 shots per platform.
- * `/devices/` was added by its own card; the count in `.github/workflows/ci.yml`
- * (job name + two `grep -qE "^ +N passed"` assertions) must equal the number of
- * page/viewport/theme combinations in `PAGES` — update all three places together.
  *
  * Stored at `e2e/__screenshots__/pages{,-linux}/<page>-<theme>-<width>.png`
  * (the dir is chosen by the Playwright project in `playwright.config.ts`).
@@ -50,9 +45,6 @@ const PAGES = [
     { name: "albums", path: "/albums/" },
     { name: "culture", path: "/culture/" },
     { name: "projects", path: "/projects/" },
-    { name: "devices", path: "/devices/" },
-    // M8-2: 技能页视觉重做（KPI / 筛选 / 分组面板 / 四类状态），页面级基线随卡片生成。
-    { name: "skills", path: "/skills/" },
     // M6-6a: the 404 shell is a user-visible page, so it gets the same baseline treatment.
     { name: "404", path: "/404/" },
 ] as const;
