@@ -874,6 +874,21 @@ export function validateMeta(value: unknown): string[] {
 
 /* ───────────────────────── 实体规格 ───────────────────────── */
 
+/**
+ * 可选字段声明（v2，门禁 E2b / E9 用），与 `requiredFields` 对称：契约只声明边界与坏值，
+ * 门禁据此组装 fixture —— 必填「删掉必须红」，可选「缺省必须绿 + 有值必须校验」。 */
+export interface OptionalField {
+    /** 字段名（报告用）。 */
+    name: string;
+    /** 样例里的定位路径；缺省 = name（技能字段在 `items[0].` 下）。 */
+    path?: string;
+    /** 值级边界：回填后必须被判红（枚举越界 / 正则 / 数值越界）。 */
+    invalid?: readonly unknown[];
+    /** 条件必填 / 至少共存一：E9 据此生成跨字段矛盾样例。 */
+    requires?: readonly string[];
+    alternatives?: readonly string[];
+}
+
 export interface EntitySpec<T> {
     kind: EntityKind;
     /** 结构校验；空数组 = 通过。 */
@@ -887,6 +902,8 @@ export interface EntitySpec<T> {
      * 门禁会逐字段删掉再校验，删掉能过 = 这份清单和校验器脱节。
      */
     requiredFields: readonly string[];
+    /** v2 可选字段（E2b 缺省必绿 / E9 值级与跨字段必红）；没有可选字段的实体给 `[]`。 */
+    optionalFields: readonly OptionalField[];
     /**
      * 一条最小合法样例（门禁 E8 的负向基准，不进页面）。
      * E8 不硬编码样例：加实体的人只在这里写一次，负向覆盖自动长出来。
@@ -976,8 +993,10 @@ const deviceSample = (): Record<string, unknown> => ({
     specs: ["Demo CPU", "16GB"],
     note: { zh: "示例设备", en: "Demo device" },
     since: "2024-01",
-    // affiliateLink / affiliateDisclosure **故意不进样例**：条件必填的一对字段会被 E8 的
-    //「删掉非必填字段仍须合法」误判；只在 negatives() 里正反两面验（M8-1b 落地后再纳入）。
+    // 条件必填对**成对**进样例：单缺 disclosure 会被 `requires` 判红，
+    // 所以 E8 的「删非必填字段仍须合法」按 optionalFields.requires 豁免这两个字段（E2b/E9 正反两面验）。
+    affiliateLink: "https://example.com/demo-box?tag=demo",
+    affiliateDisclosure: DISCLOSURE,
     model: "Demo Box 1",
     image: "/images/devices/demo.webp",
     rating: 4.5,
@@ -1004,6 +1023,12 @@ export const projectSpec: EntitySpec<Project> = {
     updatedOf: (project) => (isIsoDay(project.updated) ? project.updated : null),
     keyOf: (project) => project.id,
     requiredFields: PROJECT_REQUIRED_FIELDS,
+    optionalFields: [
+        { name: "category", invalid: ["Site Infra", "a".repeat(25)] },
+        { name: "featured", invalid: ["yes"] },
+        { name: "coverImage", invalid: ["images/a.webp", "data:image/png;base64,AA"] },
+        { name: "metrics", invalid: [projectMetricList(7), projectMetricList(1, "1".repeat(13))] },
+    ],
     sample: projectSample,
     negatives: () => [
         ["en 为空串", { ...projectSample(), title: { zh: "示例", en: "" } }],
@@ -1042,6 +1067,14 @@ export const skillGroupSpec: EntitySpec<SkillGroup> = {
     updatedOf: (group) => (isIsoDay(group.updated) ? group.updated : null),
     keyOf: (group) => group.id,
     requiredFields: SKILL_GROUP_REQUIRED_FIELDS,
+    optionalFields: [
+        { name: "percent", path: "items[0].percent", invalid: [101, -1] },
+        { name: "years", path: "items[0].years", invalid: [61, -1] },
+        { name: "icon", path: "items[0].icon", invalid: ["code", "Mingcute:Code"] },
+        { name: "highlight", path: "items[0].highlight", invalid: [1] },
+        { name: "relatedProjects", path: "items[0].relatedProjects", invalid: [["Demo"], "demo"] },
+        { name: "relatedArticles", path: "items[0].relatedArticles", invalid: [[" "]] },
+    ],
     sample: skillGroupSample,
     negatives: () => [
         ["items 空数组", { ...skillGroupSample(), items: [] }],
@@ -1067,6 +1100,16 @@ export const deviceSpec: EntitySpec<Device> = {
     updatedOf: (device) => (isIsoDay(device.updated) ? device.updated : null),
     keyOf: (device) => device.id,
     requiredFields: DEVICE_REQUIRED_FIELDS,
+    optionalFields: [
+        { name: "model", invalid: ["M".repeat(49), "  "] },
+        { name: "image", invalid: ["images/a.webp", "data:image/png;base64,AA"] },
+        { name: "rating", invalid: [6, 4.3, 0] },
+        // 合规对：有 affiliateLink 必须有披露；specPairs 与 specs 不能同时缺
+        { name: "affiliateLink", invalid: ["http://a.co/buy"], requires: ["affiliateDisclosure"] },
+        { name: "affiliateDisclosure", invalid: [{ zh: "披露" }] },
+        { name: "specPairs", invalid: [nineSpecPairs()], alternatives: ["specs"] },
+        { name: "featured", invalid: ["yes"] },
+    ],
     sample: deviceSample,
     negatives: () => [
         ["category 越界", { ...deviceSample(), category: "tablet" }],
@@ -1082,8 +1125,11 @@ export const deviceSpec: EntitySpec<Device> = {
         ["image 相对路径", deviceNeg({ image: "images/a.webp" })],
         ["rating 非 0.5 步进", deviceNeg({ rating: 4.3 })],
         ["rating 越界（6）", deviceNeg({ rating: 6 })],
-        // 合规：有返利链接却没有披露文案，必须判红
-        ["affiliateLink 无披露", deviceNeg({ affiliateLink: "https://a.co/buy" })],
+        // 合规：有返利链接却没有披露文案，必须判红（样例里成对，故显式抹掉 disclosure）
+        [
+            "affiliateLink 无披露",
+            deviceNeg({ affiliateLink: "https://a.co/buy", affiliateDisclosure: undefined }),
+        ],
         [
             "affiliateLink 非 https",
             deviceNeg({ affiliateLink: "http://a.co/buy", affiliateDisclosure: DISCLOSURE }),
@@ -1106,6 +1152,7 @@ export const gameSpec: EntitySpec<Game> = {
     updatedOf: (game) => (isIsoDay(game.updated) ? game.updated : null),
     keyOf: (game) => game.id,
     requiredFields: GAME_REQUIRED_FIELDS,
+    optionalFields: [],
     sample: gameSample,
     negatives: () => [
         ["platforms 空数组", { ...gameSample(), platforms: [] }],
@@ -1137,6 +1184,7 @@ export const timelineSpec: EntitySpec<TimelineEvent> = {
     updatedOf: (event) => (isIsoDay(event.updated) ? event.updated : null),
     keyOf: (event) => event.id,
     requiredFields: TIMELINE_REQUIRED_FIELDS,
+    optionalFields: [],
     sample: timelineSample,
     negatives: () => [
         ["date 既不是月也不是日（斜杠）", { ...timelineSample(), date: "2026/01" }],
@@ -1172,6 +1220,7 @@ export const musicSpec: EntitySpec<MusicTrack> = {
     updatedOf: (track) => (isIsoDay(track.updated) ? track.updated : null),
     keyOf: (track) => track.id,
     requiredFields: MUSIC_REQUIRED_FIELDS,
+    optionalFields: [],
     sample: musicSample,
     negatives: () => [
         ["format 越界（ep）", { ...musicSample(), format: "ep" }],
@@ -1207,6 +1256,7 @@ export const albumSpec: EntitySpec<Album> = {
     updatedOf: (album) => (isIsoDay(album.updated) ? album.updated : null),
     keyOf: (album) => album.id,
     requiredFields: ALBUM_REQUIRED_FIELDS,
+    optionalFields: [],
     sample: albumSample,
     negatives: () => [
         ["place 越界（beijing）", { ...albumSample(), place: "beijing" }],

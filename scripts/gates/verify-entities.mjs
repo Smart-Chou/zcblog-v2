@@ -12,6 +12,8 @@
  * 门禁清单
  *   E1 数据文件存在且导出数组 + meta
  *   E2 schema 通过（`src/types/entities.ts` 里该实体的 validate；meta 必填含 owner）
+ *   E2b 可选字段 present-only：`spec.optionalFields` 逐字段缺省仍须合法（条件必填对连触发字段一起删）
+ *   E2c 契约版本断言：`ENTITY_CONTRACT_VERSION` 必须等于门禁期望值；`--json` 汇总带 `contractVersion`
  *   E3 条目 id 唯一（页面锚点与去重的前提）
  *   E4 页面路由存在（zh + en 两份都要）
  *   E5 导航入口存在（`src/config/ui.ts` 的 navLinks）
@@ -19,6 +21,10 @@
  *   E7 新鲜度 warning：meta 或任一条目超过 180 天 → WARN（**不 fail**，14 §7 规则 3）
  *   E8 负向自检（数据驱动）：从注册表 + 各 spec 的 `requiredFields` 自动生成「逐字段删除」样例，
  *      再叠加各 spec 自带的 `negatives()` 值级坏样例；旧数据必须判 stale 且不 fail
+ *   E9 可选字段负向自检（门禁生成）：类型错 / 枚举越界 / 正则 / 数值越界 / 跨字段矛盾，
+ *      样例由 `sample()` + `optionalFields` 声明组装，门禁里没有一份硬编码样例
+ *   E10 参照完整性：`Skill.relatedProjects ⊂ projects.id` 悬空 = FAIL；`relatedArticles` 内容仓不可用时 WARN
+ *   E11 真实数据 `dropped = 0` 硬断言（逐实体进 `--json` 与报告头）
  *
  * E8 为什么改成数据驱动（M2-7a 会签）：旧版把坏样例硬编码在两个 validate 上，新增实体即使
  * 校验器形同虚设也照样 PASS。现在加一个实体 = 在 ENTITIES 加一条 + spec 里给出 requiredFields
@@ -28,7 +34,7 @@
  * 两者共用同一份校验器，避免「页面能跑、门禁说没事、数据其实烂了」。
  */
 
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -42,6 +48,7 @@ const asJson = argv.includes("--json");
 const TYPES_REL = "src/types/entities.ts";
 const UI_CONFIG_REL = "src/config/ui.ts";
 const FRESHNESS_DAYS = 180; // 与 src/types/entities.ts 的 ENTITY_FRESHNESS_DAYS 对齐（E8 会核对）
+const EXPECTED_CONTRACT_VERSION = 2; // M8-1b：契约 v2 是数据契约 v2 的前提，降回去必须门禁先红
 
 /** 实体注册表：新增实体只在这里加一条 + 在契约里给出对应 spec。 */
 const ENTITIES = [
@@ -119,7 +126,14 @@ const ENTITIES = [
 
 const results = [];
 const warnings = [];
-const add = (r) => results.push(r);
+const add = (...items) => results.push(...items);
+const check = (id, title, detail, problems) => ({
+    id,
+    title,
+    ok: problems.length === 0,
+    detail,
+    problems,
+});
 const today = process.env.VERIFY_ENTITIES_TODAY ?? new Date().toISOString().slice(0, 10);
 
 /* ───────────────────────── TS → ESM（node 里直接跑数据文件） ───────────────────────── */
@@ -304,6 +318,134 @@ function checkEmptyBuild(contract) {
     };
 }
 
+/* ───────────────────────── E2c 契约版本 ───────────────────────── */
+
+function checkContractVersion(contract) {
+    const actual = contract.ENTITY_CONTRACT_VERSION;
+    return check(
+        "E2c",
+        "契约版本断言",
+        `ENTITY_CONTRACT_VERSION = ${actual}（期望 ${EXPECTED_CONTRACT_VERSION}）· --json 带 contractVersion`,
+        actual === EXPECTED_CONTRACT_VERSION
+            ? []
+            : [`版本 ${actual} ≠ ${EXPECTED_CONTRACT_VERSION}：先对齐 entities.ts 与 docs/28 §2.3`],
+    );
+}
+
+/* ───────────────────────── E2b / E9 可选字段 ───────────────────────── */
+
+/** `items[0].percent` → `["items", 0, "percent"]`；路径语法只有 `.` 与 `[n]`。 */
+const splitPath = (p) =>
+    p
+        .replace(/\[(\d+)\]/g, ".$1")
+        .split(".")
+        .filter(Boolean);
+const pathOf = (field) => field.path ?? field.name;
+const conditionalNames = (spec) =>
+    new Set((spec.optionalFields ?? []).flatMap((field) => field.requires ?? []));
+
+function locate(root, path) {
+    const parts = splitPath(path);
+    const key = parts.pop();
+    const node = parts.reduce((current, part) => current?.[part], root);
+    return { node, key, ok: Boolean(node) && typeof node === "object" && key !== undefined };
+}
+
+/** 回填或删除（`undefined` = 删）一个/多个可选字段；修的是克隆，样例本身不动。 */
+function settle(fixture, paths, value) {
+    const copy = structuredClone(fixture);
+    for (const path of paths) {
+        const { node, key, ok } = locate(copy, path);
+        if (!ok) continue;
+        if (value === undefined) delete node[key];
+        else node[key] = structuredClone(value);
+    }
+    return copy;
+}
+
+/** 与合法值类型不同的替换值：类型错样例按现值自动生成，不写在契约里。 */
+const WRONG_TYPE = { string: 12345, number: "not-a-number", boolean: "not-a-boolean" };
+const wrongType = (value) => WRONG_TYPE[typeof value] ?? "not-an-object";
+
+/**
+ * E2b 缺省必须绿（条件必填对连触发字段一起删才算缺省）；E9 有值必须校验（类型 / 值级边界 /
+ * 跨字段矛盾）。坏样例由门禁组装，不硬编码。
+ */
+function checkOptionalFields(contract) {
+    const present = [];
+    const negative = [];
+    let checked = 0;
+    let generated = 0;
+    for (const entity of ENTITIES) {
+        const spec = contract[entity.specExport];
+        const fields = spec?.optionalFields ?? [];
+        if (!spec || fields.length === 0) continue;
+        const sample = spec.sample();
+        const sampleProblems = spec.validate(sample);
+        if (sampleProblems.length > 0) {
+            present.push(`${entity.kind}: 全量样例被误杀 —— ${sampleProblems[0]}`);
+            continue;
+        }
+        const conditional = conditionalNames(spec);
+        const pathByName = (name) => pathOf(fields.find((item) => item.name === name) ?? { name });
+        for (const field of fields) {
+            const path = pathOf(field);
+            const { node, key, ok } = locate(sample, path);
+            if (!ok || node[key] === undefined) {
+                present.push(`${entity.kind}: sample() 缺可选字段 ${path}（E2b/E9 无基准）`);
+                continue;
+            }
+            const name = field.name;
+            const triggers = fields.filter((f) => (f.requires ?? []).includes(name)).map(pathOf);
+            const paths = conditional.has(field.name) ? [path, ...triggers] : [path];
+            const missing = spec.validate(settle(sample, paths, undefined));
+            if (missing.length > 0)
+                present.push(`${entity.kind}: 缺省 ${paths.join(" + ")} 仍被判红 —— ${missing[0]}`);
+            checked += 1;
+
+            const alternatives = field.alternatives ?? [];
+            const cases = [
+                ["类型错", settle(sample, [path], wrongType(node[key]))],
+                ...(field.invalid ?? []).map((bad) => [
+                    `坏值 ${JSON.stringify(bad)?.slice(0, 40)}`,
+                    settle(sample, [path], bad),
+                ]),
+                ...(field.requires ?? []).map((name) => [
+                    `缺 ${name}`,
+                    settle(sample, [pathByName(name)], undefined),
+                ]),
+                ...(alternatives.length === 0
+                    ? []
+                    : [
+                          [
+                              `与 ${alternatives.join("+")} 同时缺`,
+                              settle(sample, [path, ...alternatives.map(pathByName)], undefined),
+                          ],
+                      ]),
+            ];
+            for (const [label, fixture] of cases) {
+                generated += 1;
+                if (spec.validate(fixture).length === 0)
+                    negative.push(`${entity.kind}: ${field.name} 放过「${label}」`);
+            }
+        }
+    }
+    return [
+        check(
+            "E2b",
+            "可选字段 present-only（缺省必须合法）",
+            `${checked} 个可选字段 · 缺省不报错`,
+            present,
+        ),
+        check(
+            "E9",
+            "可选字段负向自检（门禁生成）",
+            `${generated} 个生成式坏样例全部被判出`,
+            negative,
+        ),
+    ];
+}
+
 /* ───────────────────────── E8 负向自检（数据驱动） ───────────────────────── */
 
 /**
@@ -351,8 +493,12 @@ function checkNegative(contract) {
                 );
         }
 
+        const conditional = conditionalNames(spec);
         for (const field of Object.keys(sample)) {
             if (required.includes(field)) continue;
+            // 条件必填对（affiliateLink ↔ affiliateDisclosure）单删会跟着红：正面由 E2b（成对缺省）
+            // 与 E9（跨字段矛盾）验，这里跳过，否则 E8 会把 disclosure 误判成「事实上必填」。
+            if (conditional.has(field)) continue;
             const fixture = { ...sample };
             delete fixture[field];
             generated += 1;
@@ -420,10 +566,94 @@ function checkNegative(contract) {
     };
 }
 
+/* ───────────────────────── E10 参照完整性 ───────────────────────── */
+
+/** 引用检查：真实数据与自检样例共用一份口径（= 页面上点了会不会 404）。 */
+function checkSkillRefs(groups, projectIds, articleSlugs) {
+    const problems = [];
+    const warnings = [];
+    for (const group of groups) {
+        for (const item of group.items ?? []) {
+            const where = `skills[${group.id}].${item.name}`;
+            for (const id of item.relatedProjects ?? [])
+                if (!projectIds.has(id)) problems.push(`${where}.relatedProjects 悬空：${id}`);
+            for (const slug of item.relatedArticles ?? []) {
+                if (articleSlugs === null)
+                    warnings.push(`${where}.relatedArticles 未校验（内容仓不可用）`);
+                else if (!articleSlugs.has(slug))
+                    warnings.push(`${where}.relatedArticles 指向不存在的文章：${slug}`);
+            }
+        }
+    }
+    return { problems, warnings };
+}
+
+function checkReferences(modules) {
+    const problems = [];
+    const projects = modules.get("projects")?.projects ?? [];
+    const projectIds = new Set(projects.map((project) => project.id));
+    const dir = path.join(repoRoot, "src/content/article"); // gitignore 的私有内容
+    const files = existsSync(dir) ? readdirSync(dir).filter((file) => /\.mdx?$/.test(file)) : [];
+    const articleSlugs =
+        files.length > 0 ? new Set(files.map((file) => file.replace(/\.mdx?$/, ""))) : null;
+    const real = checkSkillRefs(modules.get("skills")?.skills ?? [], projectIds, articleSlugs);
+    problems.push(...real.problems);
+    warnings.push(...real.warnings);
+
+    // 自检：悬空必须判出、合法不许误判、坏文章 slug 必须 WARN —— 否则这层门禁是摆设。
+    const probe = (extra) =>
+        checkSkillRefs(
+            [{ id: "probe", items: [{ name: "probe", level: "solid", ...extra }] }],
+            projectIds,
+            articleSlugs,
+        );
+    if (probe({ relatedProjects: ["no-such-project"] }).problems.length === 0)
+        problems.push("自检失败：悬空的 relatedProjects 没被判出");
+    if (projectIds.size > 0 && probe({ relatedProjects: [projects[0].id] }).problems.length > 0)
+        problems.push(`自检失败：合法 relatedProjects 被误判（${projects[0].id}）`);
+    if (
+        articleSlugs !== null &&
+        probe({ relatedArticles: ["no-such-article"] }).warnings.length === 0
+    )
+        problems.push("自检失败：不存在的 relatedArticles 没被 WARN");
+
+    const source =
+        articleSlugs === null
+            ? "内容仓不可用 → relatedArticles 降级 WARN"
+            : `${articleSlugs.size} 篇文章可校验`;
+    return check(
+        "E10",
+        "参照完整性（relatedProjects ⊂ projects.id）",
+        `${projectIds.size} 个 project.id · ${source}`,
+        problems,
+    );
+}
+
+/* ───────────────────────── E11 dropped = 0 ───────────────────────── */
+
+function checkDropped(contract, entityResults) {
+    const problems = entityResults
+        .filter((result) => result.dropped !== 0)
+        .map((result) => `${result.kind}: dropped=${result.dropped}（真实数据逐条必须 0）`);
+
+    const spec = contract.deviceSpec;
+    const probe = contract.normalizeCollection(
+        [spec.sample(), { ...spec.sample(), id: "Bad Id" }],
+        { updated: today, owner: "someone" },
+        spec,
+        { now: today },
+    );
+    if (probe.dropped !== 1)
+        problems.push(`自检失败：混入 1 条坏条目后 dropped=${probe.dropped}（期望 1）`);
+
+    const detail = entityResults.map((result) => `${result.kind} ${result.dropped}`).join(" · ");
+    return check("E11", "真实数据 dropped = 0（硬断言）", `${detail} · 自检计数器可动`, problems);
+}
+
 /* ───────────────────────── 主流程 ───────────────────────── */
 
 async function main() {
-    console.log("zcblog-v2 · C 层实体门禁（M2-7a）");
+    console.log("zcblog-v2 · C 层实体门禁（M2-7a；M8-1b 加 E2b/E2c/E9–E11）");
     console.log(`  repo   ${repoRoot}`);
     console.log(`  基准日 ${today}（VERIFY_ENTITIES_TODAY 可覆盖）`);
     console.log("");
@@ -435,15 +665,23 @@ async function main() {
         return 1;
     }
     const contract = loaded.modules.get("entities");
+    const entityResults = ENTITIES.map((entity) => {
+        const result = checkEntity(entity, contract, loaded.modules.get(entity.kind));
+        return { ...result, ok: result.problems.length === 0 };
+    });
     console.log(`  契约版本 v${contract.ENTITY_CONTRACT_VERSION} · ${TYPES_REL}`);
+    console.log(
+        `  真实数据 dropped  ${entityResults.map((r) => `${r.kind} ${r.dropped}`).join(" · ")}`,
+    );
     console.log("");
 
-    for (const entity of ENTITIES) {
-        const result = checkEntity(entity, contract, loaded.modules.get(entity.kind));
-        add({ ...result, ok: result.problems.length === 0 });
-    }
+    add(checkContractVersion(contract));
+    for (const result of entityResults) add(result);
+    add(...checkOptionalFields(contract));
     add(checkEmptyBuild(contract));
     add(checkNegative(contract));
+    add(checkReferences(loaded.modules));
+    add(checkDropped(contract, entityResults));
 
     for (const r of results) {
         const mark = r.ok ? "PASS" : "FAIL";
@@ -480,6 +718,7 @@ async function main() {
                 ok: r.ok,
             })),
         warnings,
+        droppedTotal: results.filter((r) => r.kind).reduce((sum, r) => sum + (r.dropped ?? 0), 0),
         passed,
         failed,
     };
