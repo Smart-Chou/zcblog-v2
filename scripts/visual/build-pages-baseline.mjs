@@ -54,7 +54,11 @@ if (missingUpDate.length > 0) {
 }
 
 const astroBin = path.join(ROOT, "node_modules", ".bin", "astro");
-console.log(`▶ 视觉基线构建：${files.length} 篇固定文章 → dist/`);
+const freezeClock = path.join(ROOT, "scripts", "visual", "freeze-clock.cjs");
+const nodeOptions = [process.env.NODE_OPTIONS, `--require=${freezeClock}`]
+    .filter(Boolean)
+    .join(" ");
+console.log(`▶ 视觉基线构建：${files.length} 篇固定文章 → dist/（时钟冻结 ${freezeClock}）`);
 
 const result = spawnSync(astroBin, ["build"], {
     cwd: ROOT,
@@ -65,6 +69,7 @@ const result = spawnSync(astroBin, ["build"], {
         ARTICLE_REPO_PATH: path.join(ROOT, ".visual-baseline-no-content-repo"),
         // 视觉运行不碰第三方抓取；任何 fetch:* 都不在构建脚本里，这里只是显式表态。
         CI: process.env.CI ?? "",
+        NODE_OPTIONS: nodeOptions,
     },
 });
 
