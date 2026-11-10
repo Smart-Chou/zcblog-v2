@@ -14,6 +14,10 @@ import { open as openOverlay, close as closeOverlay } from "./overlay";
 const DIALOG_ID = "shortcut-help";
 const FALLBACK_OPENER_ID = "nav-menu-btn";
 
+/** 与 overlay.ts / comment-drawer.ts 同一张可聚焦选择器表 */
+const FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 let wired = false;
 let savedOverflow: string | null = null;
 
@@ -38,6 +42,31 @@ function wire(dialog: HTMLDialogElement): void {
         button.addEventListener("click", () => dialog.close());
     });
 
+    // 焦点陷阱：dialog 只有关闭键一个可聚焦元素时，Chromium 的 Tab 会跑出顶层面板
+    //（overlays.spec 的「Tab 循环」判据要求始终在遮罩内），这里自己收口。
+    dialog.addEventListener("keydown", (event) => {
+        if (event.key !== "Tab") return;
+        const list = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+            (el) => el.getClientRects().length > 0,
+        );
+        if (list.length === 0) {
+            event.preventDefault();
+            dialog.focus({ preventScroll: true });
+            return;
+        }
+        const first = list[0];
+        const last = list[list.length - 1];
+        const current = document.activeElement;
+        const outside = !current || !dialog.contains(current);
+        if (event.shiftKey && (outside || current === first)) {
+            event.preventDefault();
+            last.focus({ preventScroll: true });
+        } else if (!event.shiftKey && (outside || current === last)) {
+            event.preventDefault();
+            first.focus({ preventScroll: true });
+        }
+    });
+
     // 遮罩点击：::backdrop 上的点击会重定向到 dialog 本身（面板是它的子节点，不算）
     dialog.addEventListener("click", (event) => {
         if (event.target === dialog) dialog.close();
@@ -54,12 +83,15 @@ function wire(dialog: HTMLDialogElement): void {
 }
 
 function focusFirst(dialog: HTMLDialogElement): void {
-    const target =
-        dialog.querySelector<HTMLElement>("[data-shortcut-close]") ?? dialog;
+    const target = dialog.querySelector<HTMLElement>("[data-shortcut-close]") ?? dialog;
     target.focus({ preventScroll: true });
 }
 
-export function openShortcutHelp(): void {
+export function openShortcutHelp(event?: KeyboardEvent): void {
+    const target = event?.target as HTMLElement | null;
+    if (target?.closest("input, textarea, select, [contenteditable]")) return;
+    event?.preventDefault();
+
     const dialog = getDialog();
     if (!dialog || dialog.open) return;
     wire(dialog);

@@ -110,45 +110,12 @@ const CLOSE_ICON =
 </dialog>
 
 <script>
-    /**
-     * 常驻的手指很轻：一个 window 捕获监听（关掉一个键就 return），首次命中才 import 逻辑 chunk。
-     *
-     * 为什么挂在 `window` 捕获阶段并 `stopImmediatePropagation`：M2-5 的 overlay.ts 在
-     * `document` 捕获阶段也认 `?`（打开旧速查 sheet）。两个入口都活着会同时开出两块面板，
-     * 而本卡的源文件边界不允许改 overlay.ts —— 在 window 捕获层截断，键位从此只归 dialog。
-     * 后续把 overlay.ts 里那段 `?` 分支删掉即可移除此闸（见卡内交接说明）。
-     */
-    const EDITABLE = "input, textarea, select, [contenteditable]:not([contenteditable='false'])";
-
-    const isHelpKey = (event: KeyboardEvent): boolean => {
-        if (event.altKey) return false;
-        if (event.key === "?") return !event.metaKey && !event.ctrlKey;
-        // Ctrl/Cmd + /（美式布局）；部分布局下 key 是 "?" + 修饰键，上面分支已覆盖
-        return event.key === "/" && (event.metaKey || event.ctrlKey);
-    };
-
-    let pending = false;
-
     window.addEventListener(
         "keydown",
-        (event) => {
-            if (!isHelpKey(event)) return;
-            const target = event.target as HTMLElement | null;
-            if (target?.closest(EDITABLE)) return;
-            const dialog = document.getElementById("shortcut-help") as HTMLDialogElement | null;
-            if (!dialog || dialog.open) return;
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            if (pending) return;
-            pending = true;
-            import("~/scripts/shortcuts")
-                .then((mod) => {
-                    pending = false;
-                    mod.openShortcutHelp();
-                })
-                .catch(() => {
-                    pending = false;
-                });
+        (e: KeyboardEvent) => {
+            if (e.key !== "?" && (e.key !== "/" || !(e.metaKey || e.ctrlKey))) return;
+            e.cancelBubble = true;
+            import("~/scripts/shortcuts").then((m) => m.openShortcutHelp(e));
         },
         true,
     );

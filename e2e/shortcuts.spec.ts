@@ -224,10 +224,14 @@ test("390：`?` 打开贴底全宽 sheet，关闭后回到关闭态", async ({ p
     await expect(page.locator(DIALOG)).toBeVisible();
     const box = await page.locator(`${DIALOG} .shortcut-help__panel`).boundingBox();
     expect(box).not.toBeNull();
-    // 视口宽要扣掉经典滚动条，所以拿 clientWidth 比
-    const layoutWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(Math.round(box!.width), "移动端面板应吃满视口宽").toBeGreaterThanOrEqual(
-        layoutWidth - 1,
+    // 滚动锁是 `html{overflow:hidden}` + base.css 的 scrollbar-gutter:stable —— 滚动条那 15px
+    // 继续被占着（正是它保证开合 0 偏移），所以固定层能用的宽度是 clientWidth 减槽位。
+    const layout = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(Math.round(box!.x), "贴左边缘（sheet 不是居中卡片）").toBe(0);
+    expect(Math.round(box!.width), "移动端面板应吃满可视宽度").toBeGreaterThanOrEqual(
+        layout.clientWidth - 16,
     );
     expect(Math.round(box!.y + box!.height), "面板贴底").toBeGreaterThanOrEqual(842);
     await page.waitForTimeout(200);
