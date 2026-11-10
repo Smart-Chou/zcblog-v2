@@ -1,0 +1,498 @@
+---
+/**
+ * M7-4c · 批注 HUD（列表 / 跳转 / 删除）
+ *
+ * 组件只出「壳」：一个常驻但默认隐藏的入口按钮 + 一个空列表容器 + 一个空态位。
+ * 条目由 `~/scripts/annotation-hud.ts` 读 localStorage 后渲染 —— 批注不在服务端，
+ * 预渲染只会产出一段永远不该被看到的假条目。
+ *
+ * 三层成本（与 AnnotationLayer 的 bootstrap 同一套纪律）：
+ *   1. **无批注**：本组件内联的 bootstrap（约 0.4 KB gz）只做一次字符串包含判断，
+ *      行为模块一次 `import()` 都不发 → 关闭态 0 请求；
+ *   2. **有历史批注**：`localStorage` 里出现本文档 docId 才 `import()`，入口按钮
+ *      立刻带出条数；
+ *   3. **本页新加了第一条高亮**（之前没有任何批注）：盯 `[data-annotation-layer]`
+ *      的 `data-annotation-count`，从 "0" 变成非零时才 `import()`。
+ *
+ * 版式：≥1100px 右侧浮层（避开正文主栏，压在目录/卡片那一列上）；窄屏是贴底抽屉
+ * （遮罩 + 滚动锁 + 焦点陷阱 + 关闭后回填）。
+ */
+import { getLocale } from "~/utils/i18n";
+
+interface Props {
+    /** 与 AnnotationLayer 同一个 slug：docId 派生规则必须一致（`article:<slug>`）。 */
+    slug: string;
+    locale?: string;
+}
+
+const { slug, locale: rawLocale = "zh" } = Astro.props;
+const locale = getLocale(rawLocale);
+const isEn = locale === "en";
+const docId = `article:${slug}`;
+
+const copy = {
+    trigger: isEn ? "Annotations" : "批注",
+    title: isEn ? "Annotations" : "批注",
+    close: isEn ? "Close annotations" : "关闭批注",
+    empty: isEn
+        ? "No annotations yet. Select text in the article to highlight it."
+        : "还没有批注。在正文里选中文字即可划线。",
+    remove: isEn ? "Delete annotation" : "删除批注",
+    removed: isEn ? "Annotation deleted." : "已删除批注。",
+    missing: isEn
+        ? "That highlight is no longer in the page."
+        : "这条高亮当前不在正文里（正文可能已改动）。",
+    opened: isEn ? "Annotation list opened." : "批注列表已打开。",
+};
+---
+
+<div
+    class="annotation-hud"
+    data-annotation-hud
+    data-annotation-hud-doc={docId}
+    data-annotation-hud-label={copy.trigger}
+    data-annotation-hud-sr={isEn ? ", {n} annotations, open list" : "，{n} 条批注，打开列表"}
+    data-annotation-hud-empty-text={copy.empty}
+    data-annotation-hud-remove={copy.remove}
+    data-annotation-hud-removed={copy.removed}
+    data-annotation-hud-missing={copy.missing}
+    data-annotation-hud-opened={copy.opened}
+>
+    <button
+        type="button"
+        class="annotation-hud__trigger"
+        data-annotation-hud-trigger
+        aria-expanded="false"
+        aria-controls="annotation-hud-panel"
+        hidden
+    >
+        <svg class="annotation-hud__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+                d="M4 6h16M4 12h10M4 18h13"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"></path>
+        </svg>
+        <span class="annotation-hud__trigger-label">{copy.trigger}</span>
+        <span class="annotation-hud__badge" data-annotation-hud-count aria-hidden="true">0</span>
+        <span class="sr-only" data-annotation-hud-sr></span>
+    </button>
+
+    <div class="annotation-hud__scrim" data-annotation-hud-close aria-hidden="true"></div>
+
+    <aside
+        class="annotation-hud__panel"
+        id="annotation-hud-panel"
+        data-annotation-hud-panel
+        role="dialog"
+        aria-labelledby="annotation-hud-title"
+        hidden
+    >
+        <header class="annotation-hud__head">
+            <h2 class="annotation-hud__title" id="annotation-hud-title">
+                {copy.title}
+                <span class="annotation-hud__title-count" data-annotation-hud-panel-count>0</span>
+            </h2>
+            <button
+                type="button"
+                class="annotation-hud__close"
+                data-annotation-hud-close
+                aria-label={copy.close}
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                        d="M6 6l12 12M18 6L6 18"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"></path>
+                </svg>
+            </button>
+        </header>
+        <ul class="annotation-hud__list" data-annotation-hud-list></ul>
+        <p class="annotation-hud__empty" data-annotation-hud-empty hidden>{copy.empty}</p>
+        <p class="sr-only" role="status" aria-live="polite" data-annotation-hud-status></p>
+    </aside>
+</div>
+
+<script>
+    /**
+     * 内联 bootstrap（随页面静态链打包）：无批注 = 只武装、不 import。
+     */
+    const STORAGE_KEY = "zcblog:annotations:v1"; // = ANNOTATIONS_STORAGE_KEY（不静态 import 数据层）
+    const HUD = "[data-annotation-hud]";
+    const LAYER = "[data-annotation-layer]";
+
+    const global = window as unknown as {
+        __annotationHudBoot?: {
+            loaded: boolean;
+            bound: boolean;
+            watcher: MutationObserver | null;
+            layer: HTMLElement | null;
+        };
+    };
+    const state = (global.__annotationHudBoot ??= {
+        loaded: false,
+        bound: false,
+        watcher: null,
+        layer: null,
+    });
+
+    function load(): Promise<unknown> {
+        state.loaded = true;
+        return import("~/scripts/annotation-hud").then((mod) => mod.initAnnotationHud());
+    }
+
+    /** 只做字符串包含判断，不 parse JSON：bootstrap 要小，误判只会多加载一次模块。 */
+    function stored(docId: string | undefined): boolean {
+        try {
+            const raw: string | null = localStorage.getItem(STORAGE_KEY);
+            if (raw === null || raw === "") return false;
+            return !docId || raw.includes(docId);
+        } catch {
+            return false;
+        }
+    }
+
+    /** 首个高亮是在本页从工具条加出来的（之前 localStorage 里没有本文档）：等计数变非零。 */
+    function watch(layer: HTMLElement | null): void {
+        if (!layer || state.layer === layer) return;
+        state.watcher?.disconnect();
+        state.layer = layer;
+        if (typeof MutationObserver === "undefined") return;
+        state.watcher = new MutationObserver(() => {
+            if (state.loaded) return;
+            if ((layer.dataset.annotationCount ?? "0") !== "0") void load();
+        });
+        state.watcher.observe(layer, { attributes: true, attributeFilter: ["data-annotation-count"] });
+    }
+
+    function hydrate(): void {
+        const root = document.querySelector<HTMLElement>(HUD);
+        if (!root) return;
+        watch(root.closest<HTMLElement>(LAYER) ?? document.querySelector<HTMLElement>(LAYER));
+        // 模块已经加载过（swup 换页）→ 无条件重跑一遍，给新文章重装列表。
+        if (state.loaded || stored(root.dataset.annotationHudDoc)) void load();
+    }
+
+    if (!state.bound) {
+        state.bound = true;
+        document.addEventListener("astro:page-load", hydrate);
+    }
+
+    hydrate();
+</script>
+
+<style>
+    /* ── 入口按钮 ─────────────────────────────────────────────
+       位置与「回到顶部」同一条右缘（right: 30px），但抬高到它上方，两者不会叠。 */
+    .annotation-hud__trigger {
+        position: fixed;
+        right: 30px;
+        bottom: 100px;
+        z-index: 1040;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-block-size: 2.75rem;
+        padding: var(--space-2) var(--space-4);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-wide);
+        color: var(--color-fg-heading);
+        background: var(--color-bg-surface);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-3, var(--shadow-md));
+        cursor: pointer;
+    }
+
+    /* `[hidden]` 的 UA display:none 会被上面的 display:inline-flex 盖掉 —— 显式关死 */
+    .annotation-hud__trigger[hidden] {
+        display: none;
+    }
+
+    .annotation-hud__icon {
+        inline-size: 1rem;
+        block-size: 1rem;
+        flex: none;
+        color: var(--color-fg-muted);
+    }
+
+    .annotation-hud__badge {
+        min-inline-size: 1.25rem;
+        padding-inline: 0.35em;
+        font-size: var(--text-xs);
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        color: var(--color-bg-surface);
+        background: var(--color-accent-solid);
+        border-radius: var(--radius-pill);
+    }
+
+    @media (hover: hover) {
+        .annotation-hud__trigger:hover {
+            background: var(--color-bg-hover, var(--color-bg-sunken));
+        }
+    }
+
+    .annotation-hud__trigger:focus-visible,
+    .annotation-hud__close:focus-visible,
+    .annotation-hud__jump:focus-visible,
+    .annotation-hud__delete:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    /* ── 遮罩：只在窄屏（抽屉形态）出现 ─────────────────────── */
+    .annotation-hud__scrim {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1055;
+        background: var(--color-bg-scrim);
+    }
+
+    .annotation-hud[data-annotation-hud-open="true"] .annotation-hud__scrim {
+        display: block;
+    }
+
+    /* ── 面板：默认 = 贴底抽屉 ─────────────────────────────── */
+    .annotation-hud__panel {
+        position: fixed;
+        inset-inline: 0;
+        inset-block-end: 0;
+        z-index: 1060;
+        display: flex;
+        flex-direction: column;
+        max-block-size: 72dvh;
+        padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+        background: var(--color-bg-surface);
+        border-block-start: 1px solid var(--color-border-subtle);
+        border-start-start-radius: var(--radius-lg);
+        border-start-end-radius: var(--radius-lg);
+        box-shadow: var(--shadow-5, var(--shadow-lg));
+        animation: annotation-hud-rise var(--duration-normal, 180ms) var(--ease-standard) both;
+    }
+
+    /* 同工具条：`[hidden]` 必须真的不占版面 */
+    .annotation-hud__panel[hidden] {
+        display: none;
+    }
+
+    .annotation-hud__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding-block-end: var(--space-2);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .annotation-hud__title {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        margin: 0;
+        font-size: var(--text-md, 1rem);
+        font-family: var(--font-mono);
+        letter-spacing: var(--tracking-wide);
+        color: var(--color-fg-heading);
+    }
+
+    .annotation-hud__title-count {
+        font-size: var(--text-xs);
+        font-variant-numeric: tabular-nums;
+        color: var(--color-fg-muted);
+    }
+
+    .annotation-hud__close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 2.75rem;
+        block-size: 2.75rem;
+        margin-inline-end: calc(var(--space-2) * -1);
+        color: var(--color-fg-muted);
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+    }
+
+    .annotation-hud__close svg {
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+    }
+
+    @media (hover: hover) {
+        .annotation-hud__close:hover {
+            color: var(--color-fg-heading);
+            background: var(--color-bg-hover, var(--color-bg-sunken));
+        }
+    }
+
+    .annotation-hud__list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        margin: 0;
+        padding: var(--space-2) 0 0;
+        list-style: none;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .annotation-hud__item {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-1);
+        border-block-end: 1px solid var(--color-border-subtle);
+    }
+
+    .annotation-hud__item:last-child {
+        border-block-end: 0;
+    }
+
+    .annotation-hud__jump {
+        flex: 1 1 auto;
+        min-inline-size: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        padding: var(--space-3) var(--space-2);
+        text-align: start;
+        color: inherit;
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius-md, var(--radius));
+        cursor: pointer;
+    }
+
+    @media (hover: hover) {
+        .annotation-hud__jump:hover {
+            background: var(--color-bg-hover, var(--color-bg-sunken));
+        }
+    }
+
+    .annotation-hud__quote {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        font-size: var(--text-sm);
+        line-height: var(--leading-snug, 1.45);
+        color: var(--color-fg-heading);
+    }
+
+    .annotation-hud__time {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        color: var(--color-fg-muted);
+    }
+
+    .annotation-hud__delete {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 2.5rem;
+        block-size: 2.5rem;
+        margin-block-start: var(--space-1);
+        color: var(--color-fg-muted);
+        background: transparent;
+        border: 0;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+    }
+
+    .annotation-hud__delete svg {
+        inline-size: 1rem;
+        block-size: 1rem;
+    }
+
+    @media (hover: hover) {
+        .annotation-hud__delete:hover {
+            color: var(--color-danger, var(--color-accent-solid));
+            background: var(--color-bg-hover, var(--color-bg-sunken));
+        }
+    }
+
+    .annotation-hud__empty {
+        margin: 0;
+        padding: var(--space-6) var(--space-3);
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed, 1.6);
+        color: var(--color-fg-muted);
+        text-align: center;
+    }
+
+    .annotation-hud__empty[hidden] {
+        display: none;
+    }
+
+    @keyframes annotation-hud-rise {
+        from {
+            translate: 0 12px;
+        }
+        to {
+            translate: 0 0;
+        }
+    }
+
+    /* ── 桌面：右侧浮层（不压正文主栏，落在目录/作者卡那一列） ── */
+    @media (min-width: 1100px) {
+        .annotation-hud__panel {
+            inset-block: calc(var(--shell-header-h, var(--header-height, 4.25rem)) + var(--space-4)) auto;
+            inset-inline: auto var(--space-6);
+            inline-size: min(22rem, 26vw);
+            max-block-size: calc(100dvh - var(--shell-header-h, var(--header-height, 4.25rem)) - var(--space-8));
+            padding: var(--space-4);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-5, var(--shadow-lg));
+            animation-name: annotation-hud-fade;
+        }
+
+        .annotation-hud[data-annotation-hud-open="true"] .annotation-hud__scrim {
+            display: none;
+        }
+    }
+
+    @keyframes annotation-hud-fade {
+        from {
+            translate: 0 -4px;
+        }
+        to {
+            translate: 0 0;
+        }
+    }
+
+    /* 跳转时的短暂强调：高亮本身由 annotations.css 负责，这里只叠一圈焦点色 */
+    :global(mark.annotation-mark.is-annotation-focus) {
+        background-color: color-mix(in oklab, var(--palette-accent-500) 46%, transparent);
+        box-shadow:
+            0 0 0 2px var(--color-ring-focus),
+            inset 0 -0.08em 0 var(--palette-accent-600);
+    }
+
+    :global([data-theme="dark"] mark.annotation-mark.is-annotation-focus) {
+        background-color: color-mix(in oklab, var(--palette-accent-400) 55%, transparent);
+        box-shadow:
+            0 0 0 2px var(--color-ring-focus),
+            inset 0 -0.08em 0 var(--palette-accent-300);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .annotation-hud__panel {
+            animation: none;
+        }
+    }
+
+    @media print {
+        .annotation-hud {
+            display: none;
+        }
+    }
+</style>

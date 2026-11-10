@@ -19,6 +19,7 @@
  */
 import "~/styles/pages/annotations.css";
 import { getLocale } from "~/utils/i18n";
+import AnnotationHud from "~/components/Article/AnnotationHud.astro";
 
 interface Props {
     /** 文章 slug：批注的 `docId` 由它派生（`article:<slug>`），中英文同名文章互不串味。 */
@@ -77,6 +78,8 @@ const copy = {
         </button>
     </div>
     <p class="sr-only" role="status" aria-live="polite" data-annotation-status></p>
+    {/* M7-4c：批注列表 HUD（无批注时入口隐藏、0 请求） */}
+    <AnnotationHud slug={slug} locale={rawLocale} />
 </div>
 
 <script>
@@ -103,8 +106,9 @@ const copy = {
     /** 只做字符串包含判断，不 parse JSON：bootstrap 要小，且误判只会多加载一次模块。 */
     function stored(docId: string | undefined): boolean {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return Boolean(raw) && (!docId || raw.includes(docId));
+            const raw: string | null = localStorage.getItem(STORAGE_KEY);
+            if (raw === null || raw === "") return false;
+            return !docId || raw.includes(docId);
         } catch {
             return false;
         }
