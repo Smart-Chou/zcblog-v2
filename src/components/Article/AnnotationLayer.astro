@@ -124,6 +124,9 @@ const copy = {
                 if (!selection || selection.isCollapsed || !selection.toString().trim()) return;
                 const anchor = selection.anchorNode;
                 if (!anchor || !(anchor.parentElement?.closest(BODY))) return;
+                // 模块已加载后，选区变化由 annotation-layer 自己处理；这里再 load 会
+                // render() → unwrap 当前选区所在的 <mark>，把选区节点整段移出文档。
+                if (state.loaded) return;
                 void load();
             },
             { passive: true },

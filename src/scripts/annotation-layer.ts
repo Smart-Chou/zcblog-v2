@@ -457,7 +457,17 @@ function onKeyDown(event: KeyboardEvent): void {
 
 function onViewportChange(): void {
     const ui = roots();
-    if (ui) hide(ui);
+    if (!ui) return;
+    // 滚动时选区仍然有效：把工具条重新贴到选区，而不是直接收掉。
+    // 这既避免程序化滚动把工具条误收，也符合「选区在那儿，工具条就在那儿」。
+    const info = currentSelection(ui);
+    const range = document.getSelection()?.getRangeAt(0);
+    if (info && range) {
+        pending = info;
+        place(ui, range);
+        return;
+    }
+    hide(ui);
 }
 
 export function initAnnotationLayer(): void {

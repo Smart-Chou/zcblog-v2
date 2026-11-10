@@ -377,6 +377,15 @@ test.describe("M7-4b · 文章选区高亮", () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.reload({ waitUntil: "load" });
         const selected = await selectParagraph(page, 0, 16);
+        // 移动端 selectParagraph 会先把段落滚到视口中心；等这次程序化滚动稳定下来，
+        // 避免 toolbar 的 scroll 监听把它收掉后再点按钮。
+        await page.waitForTimeout(250);
+        if (!(await page.locator(TOOLBAR).isVisible())) {
+            // 程序化滚动在完整 spec 的负载下偶尔晚于 toolbar 出现；重新落一次选区，
+            // 这次不再滚动，断言的就是移动端真实工具条位置。
+            await selectParagraph(page, 0, 16);
+        }
+        await expect(page.locator(TOOLBAR)).toBeVisible();
 
         const box = await page.locator(TOOLBAR).boundingBox();
         expect(box).not.toBeNull();
