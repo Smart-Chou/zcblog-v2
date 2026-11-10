@@ -20,7 +20,10 @@ const PAGE_PATH = "/design/components/annotations/";
 const STORAGE_KEY = "zcblog:annotations:v1";
 const DEMO_DOC_ID = "design/components/annotations";
 
-const AXE_SOURCE = readFileSync(path.join(process.cwd(), "node_modules/axe-core/axe.min.js"), "utf8");
+const AXE_SOURCE = readFileSync(
+    path.join(process.cwd(), "node_modules/axe-core/axe.min.js"),
+    "utf8",
+);
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const THEMES = ["light", "dark"] as const;
 type Theme = (typeof THEMES)[number];
@@ -36,38 +39,51 @@ const PRESET_QUOTES = [
 
 async function open(page: Page): Promise<void> {
     await page.goto(PAGE_PATH, { waitUntil: "load" });
-    await page.waitForFunction(() => Boolean((window as { __annotations?: unknown }).__annotations));
+    await page.waitForFunction(() =>
+        Boolean((window as { __annotations?: unknown }).__annotations),
+    );
 }
 
 async function setTheme(page: Page, theme: Theme): Promise<void> {
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
 async function addPreset(page: Page, index: number): Promise<void> {
     await page.locator("[data-annotation-add]").nth(index).click();
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-state", "ready");
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-state",
+        "ready",
+    );
 }
 
 async function axe(page: Page): Promise<{ serious: number; total: number; detail: unknown[] }> {
     await page.addScriptTag({ content: AXE_SOURCE });
     return page.evaluate(
         async ([tags]) => {
-            const result = await (window as unknown as { axe: { run: Function } }).axe.run(document, {
-                runOnly: { type: "tag", values: tags },
-            });
+            const result = await (window as unknown as { axe: { run: Function } }).axe.run(
+                document,
+                {
+                    runOnly: { type: "tag", values: tags },
+                },
+            );
             const serious = result.violations.filter(
                 (v: { impact?: string }) => v.impact === "serious" || v.impact === "critical",
             );
             return {
                 serious: serious.length,
                 total: result.violations.length,
-                detail: result.violations.map((v: { id: string; impact?: string; nodes: Array<{ target: unknown }> }) => ({
-                    id: v.id,
-                    impact: v.impact,
-                    nodes: v.nodes.length,
-                    targets: v.nodes.map((n) => n.target),
-                })),
+                detail: result.violations.map(
+                    (v: { id: string; impact?: string; nodes: Array<{ target: unknown }> }) => ({
+                        id: v.id,
+                        impact: v.impact,
+                        nodes: v.nodes.length,
+                        targets: v.nodes.map((n) => n.target),
+                    }),
+                ),
             };
         },
         [TAGS],
@@ -97,9 +113,18 @@ test("数据层：偏移切回原文、越界/空区间拒绝、重叠判定按�
             invalidFraction: a.isValidSpan(0.5, 2),
             blank: a.isBlankText("  \n "),
             notBlank: a.isBlankText("批注"),
-            overlapSameBlock: a.spansOverlap({ blockIndex: 0, start: 2, end: 8 }, { blockIndex: 0, start: 6, end: 9 }),
-            touchOnly: a.spansOverlap({ blockIndex: 0, start: 2, end: 6 }, { blockIndex: 0, start: 6, end: 9 }),
-            otherBlock: a.spansOverlap({ blockIndex: 0, start: 2, end: 8 }, { blockIndex: 1, start: 2, end: 8 }),
+            overlapSameBlock: a.spansOverlap(
+                { blockIndex: 0, start: 2, end: 8 },
+                { blockIndex: 0, start: 6, end: 9 },
+            ),
+            touchOnly: a.spansOverlap(
+                { blockIndex: 0, start: 2, end: 6 },
+                { blockIndex: 0, start: 6, end: 9 },
+            ),
+            otherBlock: a.spansOverlap(
+                { blockIndex: 0, start: 2, end: 8 },
+                { blockIndex: 1, start: 2, end: 8 },
+            ),
             findFirst: a.findQuoteOffset("甲-批注-乙-批注-丙", "批注"),
             findSecond: a.findQuoteOffset("甲-批注-乙-批注-丙", "批注", 1),
             findMissing: a.findQuoteOffset(text, "压根不存在的句子"),
@@ -143,13 +168,21 @@ test("数据层：同一段落上偏移稳定，重定位只在引文唯一命�
         const twice = `${text}（再说一次：${quote}）`;
         const ambiguous = a.resolveSpan(twice, { start: 0, end: quote.length, quote });
         // 引文被删掉 → 失联
-        const removed = a.resolveSpan(text.split(quote).join("同步后再说"), { start, end: start + quote.length, quote });
+        const removed = a.resolveSpan(text.split(quote).join("同步后再说"), {
+            start,
+            end: start + quote.length,
+            quote,
+        });
 
         return { start, exact, relocated, ambiguous, removed };
     });
 
     expect(out.start).toBeGreaterThan(-1);
-    expect(out.exact).toEqual({ start: out.start, end: out.start + "本地优先".length, mode: "exact" });
+    expect(out.exact).toEqual({
+        start: out.start,
+        end: out.start + "本地优先".length,
+        mode: "exact",
+    });
     expect(out.relocated.mode).toBe("relocated");
     expect(out.relocated.start).toBe(out.start + "（新增的一句。）".length);
     expect(out.ambiguous).toBeNull();
@@ -169,16 +202,50 @@ test("数据层：空白/零长度/越界/引文不一致/重叠都不落盘，�
         const start = text.indexOf(quote);
 
         const results = {
-            blank: store.add({ docId, blockIndex: 0, start: 0, end: 3, text: padded, quote: "   " }),
+            blank: store.add({
+                docId,
+                blockIndex: 0,
+                start: 0,
+                end: 3,
+                text: padded,
+                quote: "   ",
+            }),
             zero: store.add({ docId, blockIndex: 0, start: 5, end: 5, quote: "" }),
             reversed: store.add({ docId, blockIndex: 0, start: 9, end: 4, text }),
-            overflow: store.add({ docId, blockIndex: 0, start: text.length - 2, end: text.length + 6, text }),
-            mismatch: store.add({ docId, blockIndex: 0, start, end: start + quote.length, quote: "对不上的引文", text }),
+            overflow: store.add({
+                docId,
+                blockIndex: 0,
+                start: text.length - 2,
+                end: text.length + 6,
+                text,
+            }),
+            mismatch: store.add({
+                docId,
+                blockIndex: 0,
+                start,
+                end: start + quote.length,
+                quote: "对不上的引文",
+                text,
+            }),
             noTarget: store.add({ docId: "", blockIndex: 0, start: 0, end: 3, quote: "abc" }),
         };
 
-        const first = store.add({ docId, blockIndex: 0, start, end: start + quote.length, quote, text });
-        const duplicate = store.add({ docId, blockIndex: 0, start, end: start + quote.length, quote, text });
+        const first = store.add({
+            docId,
+            blockIndex: 0,
+            start,
+            end: start + quote.length,
+            quote,
+            text,
+        });
+        const duplicate = store.add({
+            docId,
+            blockIndex: 0,
+            start,
+            end: start + quote.length,
+            quote,
+            text,
+        });
         const overlapLeft = store.add({
             docId,
             blockIndex: 0,
@@ -217,7 +284,11 @@ test("数据层：空白/零长度/越界/引文不一致/重叠都不落盘，�
         return {
             results,
             first: { ok: first.ok, id: first.record?.id, quote: first.record?.quote },
-            duplicate: { ok: duplicate.ok, duplicate: duplicate.duplicate === true, id: duplicate.record?.id },
+            duplicate: {
+                ok: duplicate.ok,
+                duplicate: duplicate.duplicate === true,
+                id: duplicate.record?.id,
+            },
             overlapLeft: overlapLeft.reason,
             overlapRight: overlapRight.reason,
             adjacent: { ok: adjacent.ok, reason: adjacent.reason },
@@ -225,7 +296,8 @@ test("数据层：空白/零长度/越界/引文不一致/重叠都不落盘，�
             count: records.length,
             ids: records.map((r: { id: string }) => r.id),
             sorted: records.every(
-                (r: { blockIndex: number }, i: number) => i === 0 || records[i - 1].blockIndex <= r.blockIndex,
+                (r: { blockIndex: number }, i: number) =>
+                    i === 0 || records[i - 1].blockIndex <= r.blockIndex,
             ),
         };
     }, DEMO_DOC_ID);
@@ -299,7 +371,14 @@ test("数据层：add → 刷新仍在；remove/clear 后刷新不在", async ({
         const text = a.texts[0] as string;
         const quote = "划线本身不是目的";
         const start = text.indexOf(quote);
-        const added = a.store.add({ docId, blockIndex: 0, start, end: start + quote.length, quote, text });
+        const added = a.store.add({
+            docId,
+            blockIndex: 0,
+            start,
+            end: start + quote.length,
+            quote,
+            text,
+        });
         return { id: added.record?.id, count: a.store.list(docId).length };
     }, DEMO_DOC_ID);
     expect(seeded.count).toBe(1);
@@ -315,7 +394,10 @@ test("数据层：add → 刷新仍在；remove/clear 后刷新不在", async ({
     const removed = await page.evaluate(
         ([docId, id]) => {
             const a = (window as unknown as { __annotations: any }).__annotations;
-            return { removed: a.store.remove(id as string), count: a.store.list(docId as string).length };
+            return {
+                removed: a.store.remove(id as string),
+                count: a.store.list(docId as string).length,
+            };
         },
         [DEMO_DOC_ID, seeded.id as string],
     );
@@ -342,7 +424,10 @@ test("数据层：损坏 JSON / 旧版本 / 坏信封 → 安全忽略并清掉 
     expect(corrupt.raw).toBeNull();
 
     const oldVersion = await page.evaluate((key) => {
-        localStorage.setItem(key, JSON.stringify({ schema: "zcblog.annotations", version: 0, records: [{ id: "x" }] }));
+        localStorage.setItem(
+            key,
+            JSON.stringify({ schema: "zcblog.annotations", version: 0, records: [{ id: "x" }] }),
+        );
         const a = (window as unknown as { __annotations: any }).__annotations;
         return { count: a.store.list().length, raw: localStorage.getItem(key) };
     }, STORAGE_KEY);
@@ -394,7 +479,12 @@ test("数据层：损坏 JSON / 旧版本 / 坏信封 → 安全忽略并清掉 
                     schema: "zcblog.annotations",
                     version: 1,
                     updatedAt: 1,
-                    records: [good, { id: "broken" }, null, { ...good, id: "wrong-length", end: good.end + 5 }],
+                    records: [
+                        good,
+                        { id: "broken" },
+                        null,
+                        { ...good, id: "wrong-length", end: good.end + 5 },
+                    ],
                 }),
             );
             const records = a.store.list(docId as string);
@@ -414,7 +504,9 @@ test("数据层：损坏 JSON / 旧版本 / 坏信封 → 安全忽略并清掉 
 
 /* ═════════════ B. 演示页 ═════════════ */
 
-test("演示页：添加高亮 → mark 出现、文字不变、段落高度不变；重复去重、重叠被拒", async ({ page }) => {
+test("演示页：添加高亮 → mark 出现、文字不变、段落高度不变；重复去重、重叠被拒", async ({
+    page,
+}) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await open(page);
 
@@ -425,51 +517,86 @@ test("演示页：添加高亮 → mark 出现、文字不变、段落高度不�
     await addPreset(page, 0);
     await expect(page.locator("mark.annotation-mark")).toHaveCount(1);
     await expect(block.locator("mark.annotation-mark")).toHaveText(PRESET_QUOTES[0]);
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-count", "1");
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-last", "added");
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-count",
+        "1",
+    );
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-last",
+        "added",
+    );
 
     // 高亮只包 mark：文字一字不多、一字不少
     expect(await block.evaluate((el) => el.textContent)).toBe(textBefore);
     // 零布局偏移：同样的字、同样的行高，段落高度必须一模一样
     expect(await block.evaluate((el) => el.getBoundingClientRect().height)).toBe(heightBefore);
     // 不靠 padding/margin 撑开，只有底色和 inset 阴影
-    const markBox = await page.locator("mark.annotation-mark").first().evaluate((el) => {
-        const style = getComputedStyle(el);
-        return {
-            padding: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].join(" "),
-            margin: [style.marginTop, style.marginRight, style.marginBottom, style.marginLeft].join(" "),
-            display: style.display,
-        };
-    });
+    const markBox = await page
+        .locator("mark.annotation-mark")
+        .first()
+        .evaluate((el) => {
+            const style = getComputedStyle(el);
+            return {
+                padding: [
+                    style.paddingTop,
+                    style.paddingRight,
+                    style.paddingBottom,
+                    style.paddingLeft,
+                ].join(" "),
+                margin: [
+                    style.marginTop,
+                    style.marginRight,
+                    style.marginBottom,
+                    style.marginLeft,
+                ].join(" "),
+                display: style.display,
+            };
+        });
     expect(markBox.padding).toBe("0px 0px 0px 0px");
     expect(markBox.margin).toBe("0px 0px 0px 0px");
 
     // 重复同一条 → 去重，不新增
     await addPreset(page, 3);
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-last", "duplicate");
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-last",
+        "duplicate",
+    );
     await expect(page.locator("mark.annotation-mark")).toHaveCount(1);
 
     // 故意重叠 → 拒绝，mark 数量不变
     await addPreset(page, 4);
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-last", "overlap");
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-last",
+        "overlap",
+    );
     await expect(page.locator("mark.annotation-mark")).toHaveCount(1);
     await expect(page.locator("[data-annotation-status]")).toHaveAttribute("data-tone", "warn");
 
     // 第二段再加一条 → 两条都在，且各自落在正确的段落
     await addPreset(page, 1);
     await expect(page.locator("mark.annotation-mark")).toHaveCount(2);
-    await expect(page.locator('[data-annotation-block="1"] mark.annotation-mark')).toHaveText(PRESET_QUOTES[1]);
+    await expect(page.locator('[data-annotation-block="1"] mark.annotation-mark')).toHaveText(
+        PRESET_QUOTES[1],
+    );
 
     // 刷新后仍在（数据层 + 渲染都过一遍）
     await page.reload({ waitUntil: "load" });
     await expect(page.locator("mark.annotation-mark")).toHaveCount(2);
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-count", "2");
-    await expect(page.locator('[data-annotation-block="1"] mark.annotation-mark')).toHaveText(PRESET_QUOTES[1]);
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-count",
+        "2",
+    );
+    await expect(page.locator('[data-annotation-block="1"] mark.annotation-mark')).toHaveText(
+        PRESET_QUOTES[1],
+    );
 
     // 清除 → 归零，且存储里也没有残留记录
     await page.locator("[data-annotation-clear]").click();
     await expect(page.locator("mark.annotation-mark")).toHaveCount(0);
-    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute("data-annotation-last", "cleared");
+    await expect(page.locator("[data-annotation-demo]")).toHaveAttribute(
+        "data-annotation-last",
+        "cleared",
+    );
     const storedAfterClear = await page.evaluate((key) => {
         const raw = localStorage.getItem(key);
         return raw === null ? [] : (JSON.parse(raw).records as unknown[]);
@@ -484,19 +611,27 @@ for (const theme of THEMES) {
         await addPreset(page, 0);
         await setTheme(page, theme);
 
-        const sample = await page.locator("mark.annotation-mark").first().evaluate((el) => {
-            const style = getComputedStyle(el);
-            return { background: style.backgroundColor, shadow: style.boxShadow, color: style.color };
-        });
+        const sample = await page
+            .locator("mark.annotation-mark")
+            .first()
+            .evaluate((el) => {
+                const style = getComputedStyle(el);
+                return {
+                    background: style.backgroundColor,
+                    shadow: style.boxShadow,
+                    color: style.color,
+                };
+            });
         expect(sample.background).not.toBe("rgba(0, 0, 0, 0)");
         expect(sample.background.length).toBeGreaterThan(0);
         expect(sample.shadow).not.toBe("none");
 
         // 同一页在另一主题下的底色必须不同（否则 dark 下靠「看不见」混过去了）
         await setTheme(page, theme === "dark" ? "light" : "dark");
-        const other = await page.locator("mark.annotation-mark").first().evaluate(
-            (el) => getComputedStyle(el).backgroundColor,
-        );
+        const other = await page
+            .locator("mark.annotation-mark")
+            .first()
+            .evaluate((el) => getComputedStyle(el).backgroundColor);
         expect(other).not.toBe(sample.background);
 
         // 截图时换回本主题，保证证据与断言口径一致
@@ -518,7 +653,10 @@ test("演示页：0 网络请求（全部同源，只拿页面自己的 CSS/JS�
         const parsed = new URL(url);
         if (parsed.origin !== base.origin) return true;
         // 同源但不该出现的东西：字体、图片、埋点、外部接口
-        return /\.(woff2?|ttf|png|jpe?g|gif|svg|webp)$/i.test(parsed.pathname) || parsed.pathname.startsWith("/api/");
+        return (
+            /\.(woff2?|ttf|png|jpe?g|gif|svg|webp)$/i.test(parsed.pathname) ||
+            parsed.pathname.startsWith("/api/")
+        );
     });
     expect(foreign, `意外请求：${foreign.join(", ")}`).toEqual([]);
     expect(requests.length).toBeGreaterThan(0);
@@ -561,7 +699,10 @@ for (const theme of THEMES) {
         await addPreset(page, 0);
         const highlighted = await axe(page);
         console.log(`[axe] annotations 高亮态 @${theme} ${JSON.stringify(highlighted)}`);
-        expect(highlighted.serious, `高亮态 axe serious/critical: ${JSON.stringify(highlighted.detail)}`).toBe(0);
+        expect(
+            highlighted.serious,
+            `高亮态 axe serious/critical: ${JSON.stringify(highlighted.detail)}`,
+        ).toBe(0);
     });
 }
 

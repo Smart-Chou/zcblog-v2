@@ -176,7 +176,10 @@ export interface ResolvedSpan {
  * 2. 否则在段落里找 `quote`：**只出现一次**才认（`relocated`），出现多次说明这段
  *    文本重复度太高（比如「的」这种），画错的风险大于不画，返回 `null`。
  */
-export function resolveSpan(text: string, record: Pick<AnnotationRecord, "start" | "end" | "quote">): ResolvedSpan | null {
+export function resolveSpan(
+    text: string,
+    record: Pick<AnnotationRecord, "start" | "end" | "quote">,
+): ResolvedSpan | null {
     const { start, end, quote } = record;
     if (isValidSpan(start, end, text.length) && text.slice(start, end) === quote) {
         return { start, end, mode: "exact" };
@@ -362,13 +365,22 @@ export function createAnnotationStore(options: AnnotationStoreOptions = {}): Ann
             return load().find(
                 (r) =>
                     r.docId === input.docId &&
-                    spansOverlap(r, { blockIndex: input.blockIndex, start: input.start, end: input.end }),
+                    spansOverlap(r, {
+                        blockIndex: input.blockIndex,
+                        start: input.start,
+                        end: input.end,
+                    }),
             );
         },
 
         add(input) {
             const { docId, blockIndex, start, end } = input;
-            if (typeof docId !== "string" || docId.length === 0 || !Number.isInteger(blockIndex) || blockIndex < 0) {
+            if (
+                typeof docId !== "string" ||
+                docId.length === 0 ||
+                !Number.isInteger(blockIndex) ||
+                blockIndex < 0
+            ) {
                 return { ok: false, reason: "invalid-target" };
             }
 
@@ -376,7 +388,8 @@ export function createAnnotationStore(options: AnnotationStoreOptions = {}): Ann
             if (typeof total === "number" && end > total) return { ok: false, reason: "overflow" };
             if (!isValidSpan(start, end, total)) return { ok: false, reason: "invalid-span" };
 
-            const quote = input.quote ?? (typeof input.text === "string" ? input.text.slice(start, end) : "");
+            const quote =
+                input.quote ?? (typeof input.text === "string" ? input.text.slice(start, end) : "");
             if (isBlankText(quote)) return { ok: false, reason: "blank" };
             if (typeof input.text === "string" && input.text.slice(start, end) !== quote) {
                 return { ok: false, reason: "quote-mismatch" };
@@ -387,14 +400,24 @@ export function createAnnotationStore(options: AnnotationStoreOptions = {}): Ann
             const existing = records.find((r) => r.id === id);
             if (existing) return { ok: true, record: existing, duplicate: true };
 
-            const overlap = records.find((r) => r.docId === docId && spansOverlap(r, { blockIndex, start, end }));
+            const overlap = records.find(
+                (r) => r.docId === docId && spansOverlap(r, { blockIndex, start, end }),
+            );
             if (overlap) return { ok: false, reason: "overlap" };
 
             if (records.filter((r) => r.docId === docId).length >= max) {
                 return { ok: false, reason: "limit" };
             }
 
-            const record: AnnotationRecord = { id, docId, blockIndex, start, end, quote, createdAt: now() };
+            const record: AnnotationRecord = {
+                id,
+                docId,
+                blockIndex,
+                start,
+                end,
+                quote,
+                createdAt: now(),
+            };
             save([...records, record]);
             return { ok: true, record };
         },

@@ -30,16 +30,27 @@ const BLOCKS = [
 const PRESETS = [
     { block: 0, quote: "把批注当成一次对话", label: "添加高亮 · 第 1 段", tone: "primary" },
     { block: 1, quote: "批注先落在你自己的浏览器里", label: "添加高亮 · 第 2 段", tone: "default" },
-    { block: 2, quote: "写过的段落会教你下次读到哪里该停下来", label: "添加高亮 · 第 3 段", tone: "default" },
+    {
+        block: 2,
+        quote: "写过的段落会教你下次读到哪里该停下来",
+        label: "添加高亮 · 第 3 段",
+        tone: "default",
+    },
 ];
 
 const CONTRACT = [
-    { label: "存储", value: "localStorage · key = zcblog:annotations:v1 · 值带 schema/version 信封" },
-    { label: "定位", value: "docId + blockIndex + [start, end)，UTF-16 code unit，与 Selection 同口径" },
+    {
+        label: "存储",
+        value: "localStorage · key = zcblog:annotations:v1 · 值带 schema/version 信封",
+    },
+    {
+        label: "定位",
+        value: "docId + blockIndex + [start, end)，UTF-16 code unit，与 Selection 同口径",
+    },
     { label: "去重", value: "同段同区间重复写入 → duplicate，不新增记录" },
     { label: "拒绝", value: "空白 / 零长度 / 越界 / 与已有批注重叠 → 返回 reason，不落盘" },
     { label: "自愈", value: "非 JSON / 旧版本 / 结构不对 → 清 key 并当空库，绝不猜测迁移" },
-    { label: "渲染", value: "只包 <mark class=\"annotation-mark\">，不改字号间距，零布局偏移" },
+    { label: "渲染", value: '只包 <mark class="annotation-mark">，不改字号间距，零布局偏移' },
     { label: "不做的", value: "不接文章选中、不出工具条、不做侧栏与同步（M7-4b / M7-4c）" },
 ];
 ---
@@ -88,7 +99,10 @@ const CONTRACT = [
                             PRESETS.map((preset) => (
                                 <button
                                     type="button"
-                                    class:list={["btn", preset.tone === "primary" && "btn--primary"]}
+                                    class:list={[
+                                        "btn",
+                                        preset.tone === "primary" && "btn--primary",
+                                    ]}
                                     data-annotation-add
                                     data-block={String(preset.block)}
                                     data-quote={preset.quote}
@@ -115,8 +129,15 @@ const CONTRACT = [
                         >
                             加一条重叠的（应被拒绝）
                         </button>
-                        <button type="button" class="btn btn--ghost" data-annotation-clear>清除全部高亮</button>
-                        <p class="stage__status" role="status" aria-live="polite" data-annotation-status>
+                        <button type="button" class="btn btn--ghost" data-annotation-clear
+                            >清除全部高亮</button
+                        >
+                        <p
+                            class="stage__status"
+                            role="status"
+                            aria-live="polite"
+                            data-annotation-status
+                        >
                             尚未添加任何高亮。
                         </p>
                         <p class="stage__meta" data-annotation-meta>
@@ -194,15 +215,26 @@ const CONTRACT = [
                         // 宁可少画一条也不要画到别的句子上。
                         const spans = records
                             .filter((record) => record.blockIndex === index)
-                            .map((record) => ({ record, span: annotations.resolveSpan(text, record) }))
-                            .filter((item): item is { record: annotations.AnnotationRecord; span: NonNullable<ReturnType<typeof annotations.resolveSpan>> } => item.span !== null)
+                            .map((record) => ({
+                                record,
+                                span: annotations.resolveSpan(text, record),
+                            }))
+                            .filter(
+                                (
+                                    item,
+                                ): item is {
+                                    record: annotations.AnnotationRecord;
+                                    span: NonNullable<ReturnType<typeof annotations.resolveSpan>>;
+                                } => item.span !== null,
+                            )
                             .sort((a, b) => a.span.start - b.span.start);
 
                         const fragment = document.createDocumentFragment();
                         let cursor = 0;
                         for (const { record, span } of spans) {
                             if (span.start < cursor) continue; // 渲染层再挡一次重叠，绝不套娃
-                            if (span.start > cursor) fragment.append(text.slice(cursor, span.start));
+                            if (span.start > cursor)
+                                fragment.append(text.slice(cursor, span.start));
                             const mark = document.createElement("mark");
                             mark.className = "annotation-mark";
                             mark.dataset.annotationId = record.id;
@@ -284,14 +316,21 @@ const CONTRACT = [
                         const removed = store.clear(DOC_ID);
                         render();
                         root.dataset.annotationLast = "cleared";
-                        announce(removed > 0 ? `已清除 ${removed} 条高亮。` : "本来就没有高亮。", "muted");
+                        announce(
+                            removed > 0 ? `已清除 ${removed} 条高亮。` : "本来就没有高亮。",
+                            "muted",
+                        );
                     }
                 });
 
-                root.dataset.annotationStorage = store.list(DOC_ID).length >= 0 ? "ready" : "degraded";
+                root.dataset.annotationStorage =
+                    store.list(DOC_ID).length >= 0 ? "ready" : "degraded";
                 render();
                 const count = Number(root.dataset.annotationCount ?? "0");
-                announce(count > 0 ? `从本地恢复 ${count} 条高亮。` : "尚未添加任何高亮。", "muted");
+                announce(
+                    count > 0 ? `从本地恢复 ${count} 条高亮。` : "尚未添加任何高亮。",
+                    "muted",
+                );
 
                 // 测试钩子：数据层是纯逻辑，e2e 用它直接验边界（损坏 JSON、旧版本、重叠…），
                 // 不必把每种失败路径都做成一个按钮。这是 noindex 的内部演示页，不对外暴露。

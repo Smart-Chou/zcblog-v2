@@ -38,7 +38,9 @@ const copy = {
     added: isEn ? "Highlighted." : "已高亮。",
     removed: isEn ? "Highlight removed." : "已取消高亮。",
     duplicate: isEn ? "Already highlighted." : "这段已经高亮过了。",
-    rejected: isEn ? "Cannot highlight this selection." : "这段高亮不了（与已有高亮重叠或超出范围）。",
+    rejected: isEn
+        ? "Cannot highlight this selection."
+        : "这段高亮不了（与已有高亮重叠或超出范围）。",
     idle: isEn ? "Nothing to remove." : "没有可取消的高亮。",
 };
 ---
@@ -123,7 +125,7 @@ const copy = {
                 const selection = document.getSelection();
                 if (!selection || selection.isCollapsed || !selection.toString().trim()) return;
                 const anchor = selection.anchorNode;
-                if (!anchor || !(anchor.parentElement?.closest(BODY))) return;
+                if (!anchor || !anchor.parentElement?.closest(BODY)) return;
                 // 模块已加载后，选区变化由 annotation-layer 自己处理；这里再 load 会
                 // render() → unwrap 当前选区所在的 <mark>，把选区节点整段移出文档。
                 if (state.loaded) return;
