@@ -60,6 +60,32 @@ type PageSpec = (typeof PAGES)[number];
 const MAX_SHOT_HEIGHT = 3600;
 
 /**
+ * The archives/albums/projects heatmap derives its 52/26-week window from `new Date()`.
+ * Without a frozen clock, a baseline captured on 2026-11-09 fails on 2026-11-10 even though
+ * no CSS moved (the week offset shifts the month labels and active cells by one day).
+ * Keep this date in sync with the committed Linux baselines; bump it only with a baseline
+ * regeneration commit.
+ */
+const FROZEN_NOW = "2026-11-09T12:00:00.000Z";
+
+async function freezePageClock(page: Page): Promise<void> {
+    await page.addInitScript((iso) => {
+        const NativeDate = Date;
+        const fixed = NativeDate.parse(iso);
+        class FrozenDate extends NativeDate {
+            constructor(...args: unknown[]) {
+                if (args.length === 0) super(fixed);
+                else super(...(args as [value: string | number]));
+            }
+            static now(): number {
+                return fixed;
+            }
+        }
+        window.Date = FrozenDate as unknown as DateConstructor;
+    }, FROZEN_NOW);
+}
+
+/**
  * Known, pre-existing horizontal overflow (px of document-level scrollWidth extra).
  *
  * Empty since M6-3: the article page's long tables/wide code now scroll inside their own
@@ -96,6 +122,7 @@ async function stubThirdParty(page: Page): Promise<void> {
 /** Load the page, pin the theme, settle every async render, and return to the top. */
 async function openPage(page: Page, spec: PageSpec, theme: Theme): Promise<void> {
     await stubThirdParty(page);
+    await freezePageClock(page);
 
     const response = await page.goto(spec.path, { waitUntil: "load" });
     expect(response?.status(), `GET ${spec.path}`).toBe(200);

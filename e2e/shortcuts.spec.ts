@@ -30,7 +30,10 @@ async function watchCls(page: Page): Promise<void> {
         w.__cls = 0;
         new PerformanceObserver((list) => {
             for (const entry of list.getEntries() as PerformanceEntry[]) {
-                const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
+                const shift = entry as PerformanceEntry & {
+                    value: number;
+                    hadRecentInput: boolean;
+                };
                 if (!shift.hadRecentInput) w.__cls = (w.__cls ?? 0) + shift.value;
             }
         }).observe({ type: "layout-shift", buffered: true });
@@ -41,7 +44,10 @@ const cls = (page: Page) =>
     page.evaluate(() => (window as unknown as { __cls?: number }).__cls ?? 0);
 
 async function setTheme(page: Page, theme: "light" | "dark"): Promise<void> {
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
 
@@ -89,7 +95,10 @@ test("关闭态：dialog 关闭、0 个 [data-overlay]、不下载 shortcuts/ove
 
     expect(await page.locator("[data-overlay]").count()).toBe(0);
     expect(await page.locator(DIALOG).isVisible()).toBe(false);
-    expect(seen.filter((url) => CHUNK.test(url)), "关闭态不该下载速查 chunk").toEqual([]);
+    expect(
+        seen.filter((url) => CHUNK.test(url)),
+        "关闭态不该下载速查 chunk",
+    ).toEqual([]);
     expect(await cls(page), "关闭态 0 布局偏移").toBeLessThan(0.01);
 
     await page.screenshot({ path: path.join(SHOTS, "shortcuts-closed-1440.png") });
@@ -184,7 +193,8 @@ test("输入框内输入 `?` 不打开 dialog（input / textarea / contenteditab
     await page.evaluate(() => {
         const host = document.createElement("div");
         host.id = "probe-host";
-        host.style.cssText = "position:fixed;inset:40px auto auto 40px;z-index:99999;background:#fff";
+        host.style.cssText =
+            "position:fixed;inset:40px auto auto 40px;z-index:99999;background:#fff";
         host.innerHTML =
             '<input id="probe-input" type="text" aria-label="probe input">' +
             '<textarea id="probe-textarea" aria-label="probe textarea"></textarea>' +
@@ -253,7 +263,9 @@ for (const theme of ["light", "dark"] as const) {
         await page.evaluate(() =>
             document
                 .querySelectorAll("[data-overlay]")
-                .forEach((node) => node.getAnimations({ subtree: true }).forEach((a) => a.finish())),
+                .forEach((node) =>
+                    node.getAnimations({ subtree: true }).forEach((a) => a.finish()),
+                ),
         );
         await page.waitForTimeout(120);
         const result = await axeOpenState(page);

@@ -307,7 +307,9 @@ function remove(ui: Hud, id: string): void {
         return;
     }
     announce(ui, copy(ui, "Removed"));
-    const next = ui.list.querySelector<HTMLElement>(FOCUSABLE) ?? ui.panel.querySelector<HTMLElement>(CLOSE_SELECTOR);
+    const next =
+        ui.list.querySelector<HTMLElement>(FOCUSABLE) ??
+        ui.panel.querySelector<HTMLElement>(CLOSE_SELECTOR);
     next?.focus({ preventScroll: true });
 }
 
@@ -383,7 +385,9 @@ function onClick(event: Event): void {
     if (jumpBtn && ui.list.contains(jumpBtn)) {
         event.preventDefault();
         const id = jumpBtn.dataset.annotationHudJump ?? "";
-        const record = getAnnotationStore().list(docIdOf(ui)).find((r) => r.id === id);
+        const record = getAnnotationStore()
+            .list(docIdOf(ui))
+            .find((r) => r.id === id);
         if (record) jump(ui, record);
         return;
     }
