@@ -1,0 +1,137 @@
+---
+/**
+ * 友链申请弹层（M8-5c）
+ *
+ * 只做三件事：讲清申请步骤 / 复制本站信息 / 打开 GitHub issue 模板。
+ * 边界（刻意保持）：前端不持 token、不调 GitHub API、不代提交、不自动合并 ——
+ * CTA 就是一个指向仓库 `.github/ISSUE_TEMPLATE/friend-link.yml` 的普通外链。
+ *
+ * 语义：原生 `<dialog>`（Esc / 焦点陷阱 / ::backdrop 由浏览器负责），
+ * 关闭态带 `hidden`（friends.css 里显式 display:none）；行为在 ~/scripts/overlay-sheets.ts。
+ * 触发入口：页面上既有的「通过 GitHub 申请」链接（a.friends-gh），脚本按 class 升级为
+ * aria-haspopup=dialog —— 没有 JS 时它仍是直链，功能不降级。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+import { site, author } from "~/config";
+import { t, getLocale } from "~/utils/i18n";
+
+interface Props {
+    locale?: string;
+}
+
+const { locale = "zh" } = Astro.props;
+const loc = getLocale(locale);
+const isEn = loc === "en";
+
+/** 固定到模板文件本身：改模板只需改仓库，不在前端留第二份字段定义 */
+const REPO = "Smart-Chou/zcblog";
+const ISSUE_TEMPLATE = "friend-link.yml";
+const issueUrl = `https://github.com/${REPO}/issues/new?template=${ISSUE_TEMPLATE}`;
+
+const copy = isEn
+    ? {
+          title: "Apply for a friend link",
+          lede: "This sheet only opens the GitHub issue form. Nothing is submitted for you, nothing is merged automatically, and no credentials are stored in your browser.",
+          close: "Close this sheet",
+          copyAll: "Copy all site info",
+          copyLabel: "Copy",
+          cta: "Open issue template",
+          steps: [
+              ["Add us first", "Put the four fields below on your own friend-links page — links are exchanged both ways."],
+              ["Copy our info", "Use the copy button next to a field, or copy all four lines at once."],
+              ["Submit the form", `The issue form comes from .github/ISSUE_TEMPLATE/${ISSUE_TEMPLATE}. Paste the info, submit, and the site owner reviews it by hand.`],
+          ] as const,
+      }
+    : {
+          title: "申请友链",
+          lede: "这个弹层只负责打开 GitHub issue 表单：不代你提交、不自动合并，也不会在你的浏览器里存任何凭据。",
+          close: "关闭此弹层",
+          copyAll: "复制全部",
+          copyLabel: "复制",
+          cta: "打开 issue 模板",
+          steps: [
+              ["先添加本站友链", "把下面四个字段加到你的友链页面 —— 友链是互换的。"],
+              ["复制本站信息", "点字段右侧的复制按钮，或一次复制全部四行。"],
+              ["提交 issue 表单", `表单来自仓库里的 .github/ISSUE_TEMPLATE/${ISSUE_TEMPLATE}，粘贴信息后提交，站长人工审核后合并。`],
+          ] as const,
+      };
+
+const fields = [
+    { key: "siteName", label: t(loc, "friends.fieldLabels.siteName"), value: site.title },
+    { key: "siteDescription", label: t(loc, "friends.fieldLabels.siteDescription"), value: t(loc, "site.subtitle") },
+    { key: "siteLink", label: t(loc, "friends.fieldLabels.siteLink"), value: site.url },
+    { key: "avatarLink", label: t(loc, "friends.fieldLabels.avatarLink"), value: `${site.url}/${author.avatar}` },
+];
+---
+
+<dialog id="friend-apply" class="fa" hidden aria-labelledby="fa-title">
+    <div class="fa__inner">
+        <div class="fa__head">
+            <h2 class="fa__title" id="fa-title">{copy.title}</h2>
+            <button type="button" class="fa__close" data-fa-close aria-label={copy.close}>
+                <Icon name="tabler:x" size="sm" />
+            </button>
+        </div>
+
+        <p class="fa__lede">{copy.lede}</p>
+
+        <ol class="fa__steps">
+            {
+                copy.steps.map(([title, text], index) => (
+                    <li class="fa__step">
+                        <span class="fa__step-no" aria-hidden="true">
+                            {index + 1}
+                        </span>
+                        <div class="fa__step-body">
+                            <h3 class="fa__step-title">{title}</h3>
+                            <p class="fa__step-text">{text}</p>
+                        </div>
+                    </li>
+                ))
+            }
+        </ol>
+
+        <dl class="fa__fields">
+            {
+                fields.map((field) => (
+                    <div class="fa__field" data-fa-field data-fa-key={field.key}>
+                        <dt class="fa__field-label">{field.label}</dt>
+                        <dd class="fa__field-value">
+                            <span class="fa__field-text" data-fa-value>
+                                {field.value}
+                            </span>
+                            <button
+                                type="button"
+                                class="fa__copy"
+                                data-fa-copy
+                                aria-label={`${copy.copyLabel}：${field.label}`}
+                            >
+                                <Icon name="tabler:copy" size="xs" />
+                            </button>
+                        </dd>
+                    </div>
+                ))
+            }
+        </dl>
+
+        <div class="fa__actions">
+            <button type="button" class="fa__all" data-fa-copy-all>
+                <Icon name="tabler:copy" size="xs" />
+                {copy.copyAll}
+            </button>
+            <a class="fa__cta" href={issueUrl} target="_blank" rel="noopener noreferrer">
+                {copy.cta}
+                <Icon name="tabler:external-link" size="xs" />
+            </a>
+        </div>
+
+        <p class="fa__status" role="status" aria-live="polite" data-fa-status></p>
+    </div>
+</dialog>
+
+<script>
+    import { mountFriendApply } from "~/scripts/overlay-sheets";
+    mountFriendApply();
+    // swup 换页换了 DOM（含触发链接）：只补 aria，事件早已委托在 document 上
+    document.addEventListener("astro:page-load", () => mountFriendApply());
+</script>

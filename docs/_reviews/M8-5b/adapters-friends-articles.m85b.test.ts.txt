@@ -1,0 +1,128 @@
+/**
+ * M8-5b 临时验收 spec（不提交仓库：跑完归档到 docs/_reviews/M8-5b/）
+ *
+ * 口径与页面一致：loadFriendsArticles 是纯函数，永不抛异常；三态 + 新鲜度 + last-known-good
+ * 都是它的返回值，页面不需要再判任何东西。用例顺序有意义（模块内 last-known-good 是进程级缓存）：
+ *   A 组先跑「首个快照就不可用」→ 只能拿到空态/错误态；
+ *   B 组跑正常快照 → 顺便喂出 last-known-good；
+ *   C 组再跑坏快照 → 必须回退到 B 组的结果而不是塌成空壳。
+ */
+import { describe, expect, it } from "vitest";
+import { loadFriendsArticles, type FriendsArticlesFeed } from "./friends";
+
+const NOW = Date.parse("2026-11-11T00:00:00Z");
+const fresh = { now: NOW, snapshotAt: NOW - 2 * 86_400_000, maxAgeDays: 7 };
+const stale = { now: NOW, snapshotAt: NOW - 30 * 86_400_000, maxAgeDays: 7 };
+
+const row = (i: number) => ({
+    name: `站${i}`,
+    title: `文章 ${i}`,
+    url: `https://example.com/${i}`,
+    updated: "2 天前",
+    avatar: "data:image/svg+xml,<svg/>",
+});
+
+const snapshot = JSON.stringify(Array.from({ length: 15 }, (_, i) => row(i)));
+
+function invariant(feed: FriendsArticlesFeed, label: string) {
+    expect(Number.isInteger(feed.total), `${label} total 整数`).toBe(true);
+    expect(feed.total, `${label} total = articles.length`).toBe(feed.articles.length);
+    expect(["ok", "empty", "error"], `${label} status 闭集`).toContain(feed.status);
+    expect(["snapshot", "last-known-good", "none"], `${label} source 闭集`).toContain(feed.source);
+}
+
+describe("A · 首个快照就不可用（无 last-known-good）", () => {
+    it("缺失 → 空态 snapshot-missing，0 条", () => {
+        const feed = loadFriendsArticles(undefined, fresh);
+        invariant(feed, "missing");
+        expect(feed.status).toBe("empty");
+        expect(feed.issue?.code).toBe("snapshot-missing");
+        expect(feed.articles).toEqual([]);
+    });
+
+    it("空数组 → 空态 snapshot-empty", () => {
+        const feed = loadFriendsArticles("[]", fresh);
+        expect(feed.status).toBe("empty");
+        expect(feed.issue?.code).toBe("snapshot-empty");
+    });
+
+    it("JSON 损坏 → 错误态 snapshot-corrupt（不抛异常）", () => {
+        const feed = loadFriendsArticles('{ "broken": ', fresh);
+        invariant(feed, "corrupt");
+        expect(feed.status).toBe("error");
+        expect(feed.issue?.code).toBe("snapshot-corrupt");
+        expect(feed.articles).toEqual([]);
+    });
+
+    it("顶层不是数组 → 错误态 snapshot-not-array", () => {
+        const feed = loadFriendsArticles({ items: [row(0)] }, fresh);
+        expect(feed.status).toBe("error");
+        expect(feed.issue?.code).toBe("snapshot-not-array");
+    });
+
+    it("条目全废 → 错误态 no-valid-articles，并记 dropped", () => {
+        const feed = loadFriendsArticles([null, { name: "x" }, { name: "y", title: "t", url: "ftp://z" }], fresh);
+        expect(feed.status).toBe("error");
+        expect(feed.issue?.code).toBe("no-valid-articles");
+        expect(feed.dropped).toBe(3);
+    });
+
+    it("任意垃圾输入都不抛异常", () => {
+        for (const input of [0, false, "nope", [], [[]], { a: 1 }, NaN]) {
+            expect(() => loadFriendsArticles(input as unknown, fresh)).not.toThrow();
+        }
+    });
+});
+
+describe("B · 正常快照（并喂出 last-known-good）", () => {
+    it("15 条 → 取前 6 条，脏条目计数为 0", () => {
+        const feed = loadFriendsArticles(snapshot, fresh);
+        invariant(feed, "ok");
+        expect(feed.status).toBe("ok");
+        expect(feed.total).toBe(6);
+        expect(feed.dropped).toBe(0);
+        expect(feed.source).toBe("snapshot");
+        expect(feed.stale).toBe(false);
+        expect(feed.ageDays).toBeCloseTo(2, 5);
+    });
+
+    it("脏条目 + 重复 URL → 保留可用条目并按条丢弃", () => {
+        const feed = loadFriendsArticles([row(0), row(0), { name: "" , title: "t", url: "https://a.b" }], fresh);
+        expect(feed.status).toBe("ok");
+        expect(feed.total).toBe(1);
+        expect(feed.dropped).toBe(2);
+    });
+
+    it("过期 → 仍然 ok 且照常给文章，只标 stale", () => {
+        const feed = loadFriendsArticles(snapshot, stale);
+        expect(feed.status).toBe("ok");
+        expect(feed.stale).toBe(true);
+        expect(feed.ageDays).toBeCloseTo(30, 5);
+        expect(feed.total).toBe(6);
+    });
+
+    it("拿不到时间戳 → ageDays=null，不做新鲜度判定", () => {
+        const feed = loadFriendsArticles(snapshot, { now: NOW, snapshotAt: null });
+        expect(feed.ageDays).toBeNull();
+        expect(feed.stale).toBe(false);
+    });
+});
+
+describe("C · last-known-good 回退", () => {
+    it("坏快照 → 沿用上一次可用快照，不渲染空壳", () => {
+        const feed = loadFriendsArticles('{ "broken": ', fresh);
+        invariant(feed, "fallback");
+        expect(feed.status).toBe("ok");
+        expect(feed.source).toBe("last-known-good");
+        expect(feed.issue?.code).toBe("snapshot-fallback");
+        expect(feed.issue?.detail).toBe("snapshot-corrupt");
+        expect(feed.total).toBe(6);
+    });
+
+    it("缺失快照同样回退（不是空态）", () => {
+        const feed = loadFriendsArticles(undefined, fresh);
+        expect(feed.status).toBe("ok");
+        expect(feed.source).toBe("last-known-good");
+        expect(feed.articles.length).toBe(6);
+    });
+});

@@ -10,6 +10,7 @@
  * 数据形状来自 `src/data/adapters/friends.ts`，本组件不自己判空/判重复。
  */
 import Icon from "~/components/UI/atom/Icon.astro";
+import { getLocalImage } from "~/utils/image-map";
 
 interface Props {
     name: string;
@@ -20,6 +21,14 @@ interface Props {
 }
 
 const { name, url, avatar, description } = Astro.props;
+
+/**
+ * M8-5a：头像只许「本站内 / data: URI」两种来源 —— 外链头像（avatars.githubusercontent.com
+ * 等）不再直出，避免好友页打开就产生第三方请求；命中不到本地图时走首字母兜底。
+ */
+const localAvatar = avatar ? getLocalImage(avatar)?.src : undefined;
+const inlineAvatar = avatar && /^data:image\//i.test(avatar) ? avatar : undefined;
+const avatarSrc = localAvatar ?? inlineAvatar;
 
 const initial = name.replace(/^@/, "").trim().charAt(0).toUpperCase() || "?";
 
@@ -37,10 +46,10 @@ const caption = description ?? host;
     <a class="friend-card" href={url} target="_blank" rel="noopener noreferrer nofollow">
         <span class="friend-card__avatar">
             {
-                avatar ? (
+                avatarSrc ? (
                     <img
                         class="friend-card__img"
-                        src={avatar}
+                        src={avatarSrc}
                         alt=""
                         width="48"
                         height="48"
@@ -132,7 +141,9 @@ const caption = description ?? host;
         font-size: var(--text-lg);
         font-weight: var(--font-weight-semibold);
         line-height: var(--leading-none);
-        color: var(--color-fg-muted);
+        /* M8-5a：首字母是可见文本，必须过 4.5:1 —— --color-fg-muted 在 bg-muted 上只有
+           ~3.4（light）/ 3.3（dark），改用 heading 前景色（≈13:1 / 11:1）。 */
+        color: var(--color-fg-heading);
     }
 
     .friend-card__body {

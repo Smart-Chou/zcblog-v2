@@ -3,19 +3,49 @@
  * P-05 友链（中文路由）
  * M2-6a：页面视觉全部走 src/styles/pages/friends.css + tokens.css；本文件只做「取数 + 交给组件」。
  *
- * 数据注入：`src/data/<friendsPage.dataFile>`（默认 friends.json）→ friends adapter。
+ * 数据注入：
+ *  - 友链本体：`src/data/<friendsPage.dataFile>`（默认 friends.json）→ friends adapter。
+ *  - 友圈文章：`src/data/friends-articles.json` 快照（scripts/fetch-friends.mjs 抓 RSSHub 生成）。
+ *    M8-5b：本页只消费 `loadSnapshotArticles()` —— 形状校验、过期判定、last-known-good、
+ *    空态/错误态全部在 adapter 里；快照缺失/损坏/过期都不许阻塞朋友卡片栅格，路由永远 200。
+ *    adapter 判定无可用数据 → articles 为空 → 组件侧不渲染「友圈」区块（不留空壳）。
+ *
  * 槽位文件缺失 / 内容为空 → 空态；内容坏 → 错误态；两种都是页面状态，路由永远 200。
- * 构建期可用 `PUBLIC_FRIENDS_STATE=empty|error` 预览另两态（验收/截图用，不改数据文件）。
+ * 构建期可用 `PUBLIC_FRIENDS_STATE=empty|error` 预览友链两态、
+ * `PUBLIC_FRIENDS_ARTICLES_STATE=empty|error|stale` 预览友圈三态（都不改数据文件）。
  */
 import "~/styles/tokens/tokens.css";
 import "~/styles/pages/friends.css";
 import { getLocale } from "~/utils/i18n";
 import { friendsPage } from "~/config";
-import { loadSiteFriends } from "~/data/adapters/friends";
+import {
+    FRIENDS_ARTICLES_LIMIT,
+    loadSiteFriends,
+    loadSnapshotArticles,
+} from "~/data/adapters/friends";
 import FriendsContent from "~/components/Pages/FriendsContent.astro";
 
 const locale = getLocale(Astro.currentLocale || "zh");
 const feed = loadSiteFriends(friendsPage.dataFile);
+
+/** 友圈列表上限：与首页「朋友连接」5 条同量级，太长会压过友链卡片本身。 */
+const snapshot = loadSnapshotArticles({ limit: FRIENDS_ARTICLES_LIMIT });
+const { articles } = snapshot;
+
+// 构建期留痕（不阻塞）：stale / fallback 是「数据还在但不新鲜」，必须能从日志看出来。
+if (snapshot.issue?.code === "snapshot-fallback") {
+    console.warn(
+        `[friends] 友圈快照本轮不可用（${snapshot.issue.detail ?? "-"}），沿用 last-known-good`,
+    );
+} else if (snapshot.status !== "ok") {
+    console.warn(
+        `[friends] 友圈快照不可用：status=${snapshot.status} code=${snapshot.issue?.code ?? "-"}`,
+    );
+} else if (snapshot.stale) {
+    console.warn(
+        `[friends] 友圈快照过期 ${snapshot.ageDays?.toFixed(1)} 天 (>${snapshot.maxAgeDays})，沿用 last-known-good`,
+    );
+}
 ---
 
-<FriendsContent locale={locale} feed={feed} />
+<FriendsContent locale={locale} feed={feed} articles={articles} />

@@ -20,6 +20,8 @@ import Card from "~/components/UI/atom/Card.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
 import Alert from "~/components/UI/atom/Alert.astro";
 import FriendPill from "~/components/UI/FriendPill.astro";
+import FriendCard from "~/components/UI/FriendCard.astro";
+import FriendApply from "~/components/UI/FriendApply.astro";
 import WalineComment from "~/components/UI/WalineComment.astro";
 import { site, author, waline, friendsPage } from "~/config";
 import siteAvatar from "~/assets/logo.svg";
@@ -30,9 +32,23 @@ interface Props {
     locale?: string;
     /** friends adapter 的三态产物；缺省为空态（组件被单独渲染时也不炸）。 */
     feed?: FriendsFeed;
+    /**
+     * 友圈文章（构建期快照归一化产物）。M8-5a：空数组 = 快照缺失/为空/全条目非法
+     * → 整个「友圈」区块不渲染（不留空壳），页面其余部分照常。
+     */
+    articles?: readonly FriendsArticle[];
 }
 
-const { locale = "zh", feed } = Astro.props;
+/** 友圈文章条目（与 FriendCard 的 props 同形）。 */
+interface FriendsArticle {
+    site: string;
+    title: string;
+    url: string;
+    updated: string;
+    avatar?: string;
+}
+
+const { locale = "zh", feed, articles = [] } = Astro.props;
 const loc: Locale = getLocale(locale);
 const isEn = loc === "en";
 
@@ -190,6 +206,41 @@ const countLabel = isEn ? `${resolved.total} friends` : `${resolved.total} 位�
             }
         </section>
 
+        {
+            articles.length > 0 && (
+                <section
+                    class="friends-section"
+                    id="friends-feed"
+                    aria-labelledby="friends-feed-title"
+                >
+                    <div class="friends-section__head">
+                        <h2 class="friends-section__title" id="friends-feed-title">
+                            {isEn ? "Latest from friends" : "友圈最新文章"}
+                        </h2>
+                        <p class="friends-section__meta">
+                            {isEn
+                                ? `${articles.length} posts from friends' RSS`
+                                : `来自友链 RSS 的 ${articles.length} 篇文章`}
+                        </p>
+                    </div>
+
+                    <ul class="friends-articles" role="list" data-friends-feed={articles.length}>
+                        {articles.map((article) => (
+                            <FriendCard
+                                as="li"
+                                site={article.site}
+                                name={article.site}
+                                avatar={article.avatar}
+                                title={article.title}
+                                url={article.url}
+                                updated={article.updated}
+                            />
+                        ))}
+                    </ul>
+                </section>
+            )
+        }
+
         <section class="friends-section" id="friends-apply" aria-labelledby="friends-apply-title">
             <div class="friends-section__head">
                 <h2 class="friends-section__title" id="friends-apply-title">
@@ -318,6 +369,9 @@ const countLabel = isEn ? `${resolved.total} friends` : `${resolved.total} 位�
             </ul>
         </section>
     </article>
+
+    {/* M8-5c：申请弹层（原生 dialog，关闭态 hidden；触发入口 = 上面那张卡里的「通过 GitHub 申请」） */}
+    <FriendApply locale={loc} />
 
     {waline.enable && <WalineComment locale={loc} />}
 </BaseLayout>

@@ -1,43 +1,73 @@
 ---
+/**
+ * FriendCard — 友圈文章条目卡（P-05 / M8-5a）
+ *
+ * 两种消费位共用同一个组件，DOM 形状由 props 决定：
+ *  - 首页「朋友连接」：`name` + `avatar` + `title` + `url` + `updated`（不传 `site`/`as`，
+ *    输出与 M2-2 完全一致，首页视觉基线不受影响）。
+ *  - 友链页「友圈最新文章」：额外传 `site`（来源站名，卡片里显示）与 `as="li"`（放进 <ul>）。
+ *
+ * 头像：站点内路径经 image-map 映射到本地资源；外链 / data: URI 原样；缺省不渲染 img。
+ * 卡片自身 0 请求：没有任何 onerror / 埋点脚本，也不拉第三方图。
+ */
 import { getLocalImage } from "~/utils/image-map";
 
 interface Props {
+    /** 站点名（来源站名）。 */
     name: string;
-    avatar: string;
+    /** 头像：站点内路径 → 本地映射；外链 / data: URI 原样；缺省回退到无图布局。 */
+    avatar?: string;
+    /** 文章标题（链接文本）。 */
     title: string;
     url: string;
+    /** 快照里的相对时间文案（如「17 小时前」），原样展示，不在前端换算。 */
     updated: string;
+    /** 友链页专用：来源站名标签；首页不传 → 不渲染该行。 */
+    site?: string;
+    /** 列表语义：默认 div（首页容器是 <div>），友链页传 li（容器是 <ul>）。 */
+    as?: "div" | "li";
 }
 
-const { name, avatar, title, url, updated } = Astro.props;
-const avatarSrc = getLocalImage(avatar)?.src ?? avatar;
+const { name, avatar, title, url, updated, site, as: Tag = "div" } = Astro.props;
+const avatarSrc = avatar ? (getLocalImage(avatar)?.src ?? avatar) : undefined;
+/** 卡片里已有站名文案时，头像纯装饰（不把站名念两遍）。 */
+const avatarAlt = site ? "" : name;
 ---
 
 <style>
-    .fri-item:nth-child(n + 6) {
+    /* 首页长列表性能：第 6 条起跳过离屏渲染。只对首页的 <div> 生效，
+       友链页的 <li> 不命中（否则截图/全页渲染会漏画最后一条）。 */
+    div.fri-item:nth-child(n + 6) {
         content-visibility: auto;
         contain-intrinsic-size: auto 64px;
     }
+
+    li.fri-item {
+        list-style: none;
+    }
 </style>
 
-<div class="fri-item">
-    <img
-        src={avatarSrc}
-        alt={name}
-        width="48"
-        height="48"
-        loading="lazy"
-        decoding="async"
-        class="fri-avatar"
-    />
+<Tag class="fri-item">
+    {
+        avatarSrc && (
+            <img
+                src={avatarSrc}
+                alt={avatarAlt}
+                width="48"
+                height="48"
+                loading="lazy"
+                decoding="async"
+                class="fri-avatar"
+            />
+        )
+    }
     <div class="fri-cont">
+        {site && <div class="fri-site">{site}</div>}
         <div class="fri-title">
             <a target="_blank" rel="noopener nofollow" href={url || "#"}>
                 {title}
             </a>
         </div>
-        <div class="fri-updated" title={new Date().toISOString()}>
-            {updated}
-        </div>
+        <div class="fri-updated">{updated}</div>
     </div>
-</div>
+</Tag>

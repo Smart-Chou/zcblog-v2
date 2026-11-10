@@ -11,9 +11,13 @@
  */
 
 import { readFile, stat } from "node:fs/promises";
+import { join } from "node:path";
 import { loadEnvFile } from "./lib/env.mjs";
 
 loadEnvFile();
+
+/** 数据目录根（默认 `src/data`）；验收注入三态时用 `VERIFY_DATA_ROOT` 指向 fixture 目录。 */
+const DATA_ROOT = process.env.VERIFY_DATA_ROOT ?? "";
 
 const DATA_FILES = [
     {
@@ -33,6 +37,9 @@ const DATA_FILES = [
         label: "友链文章",
         requires: [],
         maxAgeDays: 7,
+        /** M8-5b：形状按 adapter 口径校验；快照里只有「17 小时前」相对串，新鲜度看文件 mtime。 */
+        shape: "friends-articles",
+        freshnessFrom: "mtime",
     },
     {
         path: "src/data/bangumi.json",
@@ -98,9 +105,34 @@ function getRecordCount(data) {
 
 const isConfigured = (requires) => requires.every((key) => Boolean(process.env[key]));
 
+/**
+ * 友圈快照形状校验（M8-5b），与 `src/data/adapters/friends.ts` 的 normalizeFriendsArticle 同口径：
+ * 顶层必须是数组；条目需有非空 name/title 且 url 是 http(s)，否则算「被丢弃」的脏条目。
+ */
+function validateFriendsArticles(data) {
+    if (!Array.isArray(data)) {
+        return { ok: false, total: 0, usable: 0, dropped: 0, reason: `顶层不是数组（${typeof data}）` };
+    }
+    const isText = (value) => typeof value === "string" && value.trim() !== "";
+    const usable = data.filter(
+        (row) =>
+            row &&
+            typeof row === "object" &&
+            !Array.isArray(row) &&
+            isText(row.name) &&
+            isText(row.title) &&
+            /^https?:\/\//i.test((row.url ?? "").trim()),
+    ).length;
+    return { ok: true, total: data.length, usable, dropped: data.length - usable, reason: "" };
+}
+
+const SHAPE_VALIDATORS = { "friends-articles": validateFriendsArticles };
+
 let hasError = false;
 
-for (const { path, label, requires, maxAgeDays = 7 } of DATA_FILES) {
+for (const entry of DATA_FILES) {
+    const { path: declaredPath, label, requires, maxAgeDays = 7, shape, freshnessFrom } = entry;
+    const path = DATA_ROOT ? join(DATA_ROOT, declaredPath.split("/").pop()) : declaredPath;
     const configured = isConfigured(requires);
     // 仅「有必填环境变量 且 已配置」的数据源才做硬性校验；无约束的源（如友链）空数据只提示
     const strict = configured && requires.length > 0;
@@ -145,6 +177,28 @@ for (const { path, label, requires, maxAgeDays = 7 } of DATA_FILES) {
         continue;
     }
 
+    const shapeResult = shape && SHAPE_VALIDATORS[shape] ? SHAPE_VALIDATORS[shape](data) : null;
+    if (shapeResult) {
+        if (!shapeResult.ok || shapeResult.usable === 0) {
+            const detail = shapeResult.reason || `可用条目 0/${shapeResult.total}`;
+            if (strict) {
+                console.warn(`❌ [fetch:verify] ${label} 快照形状异常（数据源已配置）—— ${detail}: ${path}`);
+                hasError = true;
+            } else {
+                console.warn(`⚠️  [fetch:verify] ${label} 快照形状异常（非阻断）—— ${detail}: ${path}`);
+            }
+            continue;
+        }
+        if (shapeResult.dropped > 0) {
+            console.warn(
+                `⚠️  [fetch:verify] ${label} 快照有 ${shapeResult.dropped}/${shapeResult.total} 条脏条目（页面会丢弃）: ${path}`,
+            );
+        }
+        console.log(
+            `🧪 [fetch:verify] ${label} 形状正常: 可用 ${shapeResult.usable}/${shapeResult.total} 条`,
+        );
+    }
+
     const count = getRecordCount(data);
     if (count === 0) {
         if (strict) {
@@ -160,10 +214,16 @@ for (const { path, label, requires, maxAgeDays = 7 } of DATA_FILES) {
 
     // 时效性检查：仅警告，不阻断
     let ageInfo = "";
-    const latest = getLatestTimestamp(data);
+    // 快照里的 updated 是「17 小时前」这类相对串（抓取那一刻冻结），解析不出绝对时间 →
+    // 该数据源按文件 mtime 判新鲜度（快照多久没刷新 = 数据多久没更新）。
+    let latest = getLatestTimestamp(data);
+    if (!latest && freshnessFrom === "mtime") {
+        latest = s.mtime;
+        ageInfo = "，快照时间取文件 mtime";
+    }
     if (latest) {
         const ageDays = (Date.now() - latest.getTime()) / (1000 * 60 * 60 * 24);
-        ageInfo = `，最新数据: ${latest.toISOString().slice(0, 10)} (${ageDays.toFixed(1)} 天前)`;
+        ageInfo = `，最新数据: ${latest.toISOString().slice(0, 10)} (${ageDays.toFixed(1)} 天前)${ageInfo}`;
         if (ageDays > maxAgeDays) {
             console.warn(
                 `⚠️  [fetch:verify] ${label} 数据过期 (>${maxAgeDays} 天)${ageInfo}: ${path}`,

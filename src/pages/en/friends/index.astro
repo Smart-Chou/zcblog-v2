@@ -2,14 +2,21 @@
 /**
  * P-05 友链（英文路由）
  * 与 `/friends/` 同源：同一个 adapter、同一份站点数据、同一套样式表 —— 只切 locale。
+ * M8-5b：友圈文章与中文页共用 `loadSnapshotArticles()`（形状/过期/last-known-good 只在一处判），
+ * 快照坏了英文页同样不该跟着构建失败 —— 所以这里也不能静态 import 那个 JSON。
  */
 import "~/styles/tokens/tokens.css";
 import "~/styles/pages/friends.css";
 import { friendsPage } from "~/config";
-import { loadSiteFriends } from "~/data/adapters/friends";
+import {
+    FRIENDS_ARTICLES_LIMIT,
+    loadSiteFriends,
+    loadSnapshotArticles,
+} from "~/data/adapters/friends";
 import FriendsContent from "~/components/Pages/FriendsContent.astro";
 
 const feed = loadSiteFriends(friendsPage.dataFile);
+const { articles } = loadSnapshotArticles({ limit: FRIENDS_ARTICLES_LIMIT });
 ---
 
-<FriendsContent locale="en" feed={feed} />
+<FriendsContent locale="en" feed={feed} articles={articles} />

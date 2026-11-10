@@ -184,6 +184,96 @@
     list-style: none;
 }
 
+/* ── 友圈文章（M8-5a） ────────────────────────────────────── */
+
+.friends-articles {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.friends-articles .fri-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    min-inline-size: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-raised);
+    list-style: none;
+    transition:
+        border-color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .friends-articles .fri-item:hover {
+        border-color: var(--color-border-strong);
+        background-color: var(--color-bg-surface);
+    }
+
+    .friends-articles .fri-title a:hover {
+        color: var(--color-fg-link);
+    }
+}
+
+.friends-articles .fri-avatar {
+    flex: none;
+    inline-size: var(--space-10);
+    block-size: var(--space-10);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-bg-muted);
+    object-fit: cover;
+}
+
+.friends-articles .fri-cont {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-inline-size: 0;
+}
+
+.friends-articles .fri-site {
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    line-height: var(--leading-snug);
+    /* 小字压在 bg-raised 上：--color-fg-muted 只有 4.01:1（dark）→ 用默认前景色 */
+    color: var(--color-fg-default);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friends-articles .fri-title {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.friends-articles .fri-title a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.friends-articles .fri-updated {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-default);
+}
+
 /* ── 空态 / 错误态 ────────────────────────────────────────── */
 
 .friends-state {
@@ -486,7 +576,8 @@
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-pill);
     font-size: var(--text-xs);
-    color: var(--color-fg-muted);
+    /* M8-5c：暗色下 fg-muted 在 bg-canvas 上只有 3.49:1，申请入口是 <a> 文本 → 默认前景色。 */
+    color: var(--color-fg-default);
     text-decoration: none;
     transition:
         color var(--duration-fast) var(--ease-standard),
@@ -544,6 +635,10 @@
     .friends-notes {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .friends-articles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (min-width: 1024px) {
@@ -578,7 +673,287 @@
     .friends-jump,
     .friends-copy,
     .friends-state__cta,
-    .friends-gh {
+    .friends-gh,
+    .friends-articles .fri-item,
+    .friends-articles .fri-title a {
         transition: none;
+    }
+}
+
+/* ── 友链申请弹层（M8-5c） ─────────────────────────────────────
+   桌面 = 居中卡片；≤640 = 贴底 sheet（含 safe-area 兜底）。
+   关闭态用 `[hidden]` 显式 display:none：UA 只有 `dialog:not([open])`，
+   作者样式一旦给 display 就会把「关闭」顶掉。
+   颜色一律语义 token → 暗色自动可读；尺寸走 --space-*，px 只有 1px 边框与断点。 */
+
+.fa[hidden] {
+    display: none !important;
+}
+
+.fa {
+    inline-size: min(calc(100% - var(--space-8)), 34rem);
+    max-block-size: min(90dvh, 44rem);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xl);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-default);
+    box-shadow: var(--shadow-5);
+    overflow: hidden;
+}
+
+.fa::backdrop {
+    background-color: var(--color-bg-scrim);
+}
+
+.fa__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-block-size: inherit;
+    padding: var(--space-6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.fa__head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.fa__title {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-tight);
+    color: var(--color-fg-heading);
+}
+
+.fa__close {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-8);
+    block-size: var(--space-8);
+    margin-inline-start: auto;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+}
+
+.fa__close:hover {
+    border-color: var(--color-border-subtle);
+    background-color: var(--color-bg-hover);
+    color: var(--color-fg-heading);
+}
+
+.fa__lede {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+.fa__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fa__step {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-3);
+}
+
+.fa__step-no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-6);
+    block-size: var(--space-6);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-muted);
+}
+
+.fa__step-body {
+    min-inline-size: 0;
+}
+
+.fa__step-title {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-heading);
+}
+
+.fa__step-text {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+.fa__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-sunken);
+}
+
+.fa__field {
+    min-inline-size: 0;
+}
+
+.fa__field-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    /* 同 .friends-field__label：--color-fg-subtle 在 --color-bg-sunken 上 axe 判
+       color-contrast serious（实测 4 个 label 全中），deep 档用 default。 */
+    color: var(--color-fg-default);
+}
+
+.fa__field-value {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-1) 0 0;
+}
+
+/* 长 URL / 长头像地址：必须在弹层内换行，否则 390 下必然横向溢出 */
+.fa__field-text {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-fg-code);
+    overflow-wrap: anywhere;
+}
+
+.fa__copy {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--space-8);
+    block-size: var(--space-8);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-muted);
+    cursor: pointer;
+}
+
+.fa__copy:hover {
+    border-color: var(--color-border-strong);
+    color: var(--color-fg-link);
+}
+
+.fa__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.fa__all,
+.fa__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.fa__all {
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-bg-surface);
+    color: var(--color-fg-default);
+}
+
+.fa__all:hover {
+    border-color: var(--color-border-strong);
+}
+
+.fa__cta {
+    border: 1px solid transparent;
+    background-color: var(--color-accent-solid);
+    color: var(--color-fg-on-accent);
+}
+
+.fa__cta:hover {
+    background-color: var(--color-accent-solid-hover);
+}
+
+/* 复制结果：成功 / 失败都必须**看得见**（失败还带手动复制的选中态） */
+.fa__status {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+}
+
+.fa__status:empty {
+    display: none;
+}
+
+.fa__status[data-tone="ok"] {
+    color: var(--color-status-success-fg);
+}
+
+.fa__status[data-tone="error"] {
+    color: var(--color-status-danger-fg);
+}
+
+.fa :where(a[href], button):focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ≤640：贴底 sheet —— 关掉左右边框（content-box 下 100% + 2px 会顶出横向滚动） */
+@media (max-width: 640px) {
+    .fa {
+        inline-size: 100%;
+        max-inline-size: 100%;
+        max-block-size: 88dvh;
+        margin: auto 0 0;
+        border-inline: 0;
+        border-block-end: 0;
+        border-start-start-radius: var(--radius-xl);
+        border-start-end-radius: var(--radius-xl);
+    }
+
+    .fa__inner {
+        padding: var(--space-5) var(--space-4)
+            calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+    }
+
+    .fa__actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .fa__all,
+    .fa__cta {
+        justify-content: center;
     }
 }

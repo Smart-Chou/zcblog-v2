@@ -4,9 +4,12 @@
  *
  * M2-2（D-0110）：最多 5 条友链更新，Card atom 包裹；列表项仍复用 FriendCard
  * （保持该组件 1 处引用，P9 清单不产生 0 引用债）。样式在 pages/home.css。
+ *
+ * M8-5b：不再静态 import 快照 —— 静态 import 遇到 JSON 语法坏了会让**整站构建失败**，
+ * 首页跟着 500；改走 friends adapter，坏快照退化成空列表（整块不渲染），页面照常构建。
  */
 import FriendCard from "~/components/UI/FriendCard.astro";
-import friends from "~/data/friends-articles.json";
+import { loadSnapshotArticles } from "~/data/adapters/friends";
 import { t, defaultLocale, type Locale } from "~/utils/i18n";
 import Card from "~/components/UI/atom/Card.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
@@ -18,7 +21,7 @@ interface Props {
 
 const { title, locale } = Astro.props;
 const MAX_FRIENDS = 5;
-const entries = friends.slice(0, MAX_FRIENDS);
+const entries = loadSnapshotArticles({ limit: MAX_FRIENDS }).articles;
 const friendsUrl = locale === defaultLocale ? "/friends/" : "/en/friends/";
 ---
 
@@ -41,13 +44,13 @@ const friendsUrl = locale === defaultLocale ? "/friends/" : "/en/friends/";
                 </a>
             </div>
             <div id="friArticle" class="friends-list">
-                {entries.map((friend) => (
+                {entries.map((entry) => (
                     <FriendCard
-                        name={friend.name}
-                        avatar={friend.avatar}
-                        title={friend.title}
-                        url={friend.url}
-                        updated={friend.updated}
+                        name={entry.site}
+                        avatar={entry.avatar}
+                        title={entry.title}
+                        url={entry.url}
+                        updated={entry.updated}
                     />
                 ))}
             </div>
