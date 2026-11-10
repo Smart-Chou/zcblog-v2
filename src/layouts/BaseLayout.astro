@@ -13,6 +13,7 @@ import Footer from "~/components/Layout/Footer.astro";
 import Notice from "~/components/UI/Notice.astro";
 import Watermark from "~/components/UI/Watermark.astro";
 import Sidebar from "~/components/Layout/Sidebar.astro";
+import ShortcutHelp from "~/components/Layout/ShortcutHelp.astro";
 import { config } from "~/config";
 import { sidebarConfig } from "~/config/ui";
 import { getLocale, htmlLangOf } from "~/utils/i18n";
@@ -149,6 +150,8 @@ const lang = htmlLangOf(getLocale(locale));
             {!isSplash && <Footer />}
         </div>
         <Watermark />
+        {/* M7-5a：全站快捷键速查（`?` / Ctrl-Cmd + /）。关闭态 = display:none，零布局零请求 */}
+        <ShortcutHelp locale={locale} />
         {config.redirect && <script>import "~/scripts/redirect-handler";</script>}
         <script>
             import "~/scripts/a11y-scroll";
