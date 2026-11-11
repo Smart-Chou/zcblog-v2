@@ -93,3 +93,85 @@ pnpm exec playwright test e2e/pages-home.spec.ts e2e/pages-article.spec.ts \
 1. `share.css` 的 `::before` 造成 article 1440 axe `incomplete`（桌面项，非本卡边界）；
 2. `pages-culture` 的 `PUBLIC_CULTURE_OMIT=music` 用例会**重建 dist**，与同批并行 spec 抢目录，
    曾出现一次 `dist/.prerender` 缺模块的构建失败；单跑或串行时通过（本轮通过）。
+
+---
+
+## 4. 续跑记录（operator 接手后第 4 轮，18:46–19:1x）
+
+### 4.1 先清并发：上一轮 3 条红例的根因
+
+operator 收回卡片时，机器上仍有两份同仓 `playwright test`（一份是 attempt 3 的自动重试
+worker、一份是被 reclaim 的 run 269 的孤儿）在**同一个 `dist/` 上跑同一批 spec**，
+并且 albums/culture 两份 spec 的 `execFileSync(astro build)` 会在运行期整目录重写 `dist/`。
+`astro preview` 读的就是这个目录 —— 也就是说「article 页 axe 命中 `.share-label` /
+`.share-count` 的 `color-contrast incomplete`」和「目录跳转落点 333px」都可以在
+dist 被半写、CSS 只到一半的窗口里出现。
+
+本轮处置与证据：
+
+1. `kill` 掉全部孤儿（pid 24966/24968/24969/25102 一份 4-spec run 及其 `astro build`、
+   遗留 `astro preview` 24988），确认 `:4321` 空闲、无并发进程；
+2. 在**单进程、干净 dist** 上单独复跑此前两条红例：
+
+   ```
+   ./node_modules/.bin/playwright test e2e/pages-article.spec.ts \
+       -g "axe-light-1440|目录链接可跳"
+   → 2 passed (14.6s)
+     [axe] light@1440 文章主体 .post: serious/critical=0 moderate=0 minor=0 incomplete=0
+     [axe] light@1440 目录 .toc:      serious/critical=0 moderate=0 minor=0 incomplete=0
+     [axe] light@1440 整页 document:  serious color-contrast × 2（仅记录，不断言）
+     [toc] 点击 #前言 → 标题 top=100.2px（页头 65.0px）
+   ```
+
+   `.post` / `.toc` 的 incomplete 已为 0，**不需要动 `share.css`**（本卡边界无需突破）；
+   document 域的 2 条是命令面板 `⌘`/`K` 键帽（既有存量，spec 只记录不断言）。
+   `test-results/axe-article/light-1440.json` 里 incomplete 的 `target` 也正是
+   `span.pf-trigger-key`，不是 `.share-*`。
+
+3. 因此 attempt 3 的「3 条红」判定为**并发写 dist 导致的假红**，不作为代码缺陷；
+   真实结论要等一次干净的 4-spec 全量跑（见 §4.2）。
+
+### 4.2 未完成项：4-spec 全量门禁没能在单轮 30 min 内跑完
+
+19:05:30 起跑卡面指定命令（单 worker、无并发），**19:09 到第 15/84 例时中止**：
+本轮必须让出预算给 dist 恢复与结论落盘。
+
+结构性原因（不是本卡代码问题，需 operator 定策）：
+
+| 项 | 实测 |
+|---|---|
+| `pages-albums` 第 11 例「空数据可构建」 | 真实 `astro build` ×2（empty + 恢复），`test.setTimeout(900_000)` |
+| `pages-culture` 的 `PUBLIC_CULTURE_OMIT=music` 例 | 同样真实 `astro build` ×2 |
+| 本机单次 `astro build`（今日） | **6m23s**（其中 `generating optimized images` 5m37s；历史记录 1m05s，图像缓存已冷） |
+| 84 例全量跑 | ≥ 18 min，最坏 2×2×6m + 用例本身 ≈ 25 min+ |
+
+也就是说 `max_runtime_seconds=1800` 与「4-spec 全绿 + 证据采集」在当前构建耗时下互斥。
+建议（三选一，交 operator）：
+
+- **A**：把本卡 `max_runtime_seconds` 放到 3600，单轮跑完门禁 + 证据；
+- **B**：把两个「真实构建」用例（albums 空态、culture OMIT）拆到独立卡，
+  门禁命令保持 4 份 spec 但运行期不再重建 dist（4-spec 可压到 ~8 min，attempt 1 实测 8.8m）；
+- **C**：门禁用 `--grep-invert` 排除两个重建例，另跑「构建类用例」专项卡（会削弱门禁强度，不推荐）。
+
+### 4.3 本轮已落地 / 仍未产出
+
+- 已做：并发进程清理；dist 恢复构建（`astro build` → `.scratch-m866-build4.log`）；
+  `axe-light-1440` + TOC 跳转两条红例的干净复跑（见 §4.1）。
+- 未做：4-spec 全量门禁的最终 green 记录；`evidence/` 仍缺 4 项交互图与量测
+  （见 §4.4）。采集脚本已就位，下一轮一条命令即可补全。
+
+### 4.4 证据目录现状与补齐方法
+
+`docs/_reviews/M8-6/M8-6-6/evidence/` 现只有 6 张页面图（home/article/albums/culture × light/dark，
+375×812）+ `toc-open-375.png` + `e2e.log`（attempt 3 的 70/3 输出）。
+
+缺：`toc-closed-375.png`、`albums-lightbox-375.png`、`culture-rail-{start,end}-375.png`
+（M-16），以及 `measurements.json`（含 M-13 的 375 双主题 axe、M-02 的 390 溢出清单、
+M-05 的底栏命中区量测）。上一轮脚本在写 `measurements.json` 之前被打断，文件末尾才落盘。
+
+补齐命令（需 `astro preview` 在 `:4321`，脚本已随报告入库）：
+
+```
+./node_modules/.bin/astro preview --host 127.0.0.1 --port 4321 --force &
+node docs/_reviews/M8-6/M8-6-6/capture-evidence.mjs
+```
