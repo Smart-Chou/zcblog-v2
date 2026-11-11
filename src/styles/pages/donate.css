@@ -336,6 +336,9 @@
     .donations-ledger__table tbody td {
         padding: 0;
         border: 0;
+        /* 表头走 nowrap 隐形化；单元格必须能折行，否则窄屏会被文字撑出横向滚动。 */
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .donations-ledger__table tbody th[scope="row"] {
