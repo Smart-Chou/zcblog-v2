@@ -70,6 +70,12 @@ const { label, columns, rows } = Astro.props;
         overflow-wrap: anywhere;
     }
 
+    td:first-child {
+        /* 状态 / 字段名是短标识，不允许在中间断词（default → defa/ult） */
+        overflow-wrap: normal;
+        white-space: nowrap;
+    }
+
     th {
         background-color: var(--color-bg-muted);
         color: var(--color-fg-heading);
