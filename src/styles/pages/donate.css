@@ -92,6 +92,10 @@
     font-size: var(--text-sm);
     line-height: var(--leading-snug);
     text-align: start;
+    /* caption 继承表格的 white-space 计算值；显式声明折行，否则窄屏被表头规则带成 nowrap，
+       一行 caption 会把整张表撑出横向滚动。 */
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .donations-ledger__table th,
