@@ -1,0 +1,152 @@
+---
+/**
+ * CultureHeatmap — C 层（M8-6-2）豆瓣入账热力图
+ *
+ * **数据口径（写死在这里，改之前先读卡）**：只吃 `douban.json` 的 `date` 字段
+ * （条目进库/抓取的时间戳），标题必须写「豆瓣入账日期」。
+ * **禁止**用 bangumi 的 `updated_at` 冒充消费日期 —— 那是同一批抓取快照
+ * （全库集中在 2026-05-14），画出来是一条竖线，不是打卡。
+ *
+ * 形态：GitHub 风格的 7 行 × 53 列格子，按年对齐；格子的可访问性交给整块
+ * `role="img"` + aria-label 摘要（365 个格子逐条朗读是噪音，且装饰性色块
+ * 不该参与对比度判定）。等级 0–4 由当天条数分档，图例在标题行右侧。
+ *
+ * 样式在 `src/styles/pages/culture.css`（`.culture-heatmap*`），本组件不带 <style>。
+ */
+export interface HeatmapDay {
+    /** `YYYY-MM-DD`（本地口径，已由页面切好时区）。 */
+    date: string;
+    count: number;
+}
+
+interface Props {
+    /** 年份（取豆瓣记录里最新的那条）。 */
+    year: number;
+    days: HeatmapDay[];
+    title: string;
+    /** 右侧图例两端文案（「较少」/「频繁」）。 */
+    legendLow: string;
+    legendHigh: string;
+    /** 图例档位说明（读屏用）。 */
+    legendLabel: string;
+    /** 底部统计行（已格式化的自然语言，页面注入）。 */
+    summary: string;
+    /** 口径脚注（「只统计 douban.json 的 date」）。 */
+    footnote: string;
+    /** `<section aria-labelledby>` 的标题 id。 */
+    id: string;
+    /** 月份行标签（12 个，i18n 由页面注入）。 */
+    months: string[];
+    /** 7 行星期标签（空格 = 不标）。 */
+    weekRows: string[];
+}
+
+const {
+    year,
+    days,
+    title,
+    legendLow,
+    legendHigh,
+    legendLabel,
+    summary,
+    footnote,
+    id,
+    months,
+    weekRows,
+} = Astro.props;
+
+/** 行标签：只标周一/三/五/日（与稿一致，密度够读、不塞满）。 */
+
+const countByDay = new Map(days.map((day) => [day.date, day.count]));
+const total = days.reduce((sum, day) => sum + day.count, 0);
+
+/** 档位：1 / 2–3 / 4–6 / ≥7 条 —— 阈值写死，保证同一份数据每次构建同一张图。 */
+const levelOf = (count: number): number => {
+    if (count <= 0) return 0;
+    if (count === 1) return 1;
+    if (count <= 3) return 2;
+    if (count <= 6) return 3;
+    return 4;
+};
+
+const pad = (value: number) => String(value).padStart(2, "0");
+const iso = (date: Date) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+/* 网格：从当年 1 月 1 日所在周的周日起算，到 12 月 31 日所在周的周六止。 */
+const first = new Date(year, 0, 1);
+const gridStart = new Date(first);
+gridStart.setDate(first.getDate() - first.getDay());
+const last = new Date(year, 11, 31);
+const gridEnd = new Date(last);
+gridEnd.setDate(last.getDate() + (6 - last.getDay()));
+
+const cells: Array<{ date: string; count: number; level: number; inYear: boolean }> = [];
+for (const cursor = new Date(gridStart); cursor <= gridEnd; cursor.setDate(cursor.getDate() + 1)) {
+    const key = iso(cursor);
+    const count = countByDay.get(key) ?? 0;
+    cells.push({ date: key, count, level: levelOf(count), inYear: cursor.getFullYear() === year });
+}
+const weeks = Math.ceil(cells.length / 7);
+
+/* 月份标签：取每月 1 日所在的列，避免标签互相压住。 */
+const monthColumns = months.map((label, index) => {
+    const firstOfMonth = new Date(year, index, 1);
+    const offset = Math.round((firstOfMonth.getTime() - gridStart.getTime()) / 86_400_000);
+    return { label, column: Math.floor(offset / 7) + 1 };
+}).filter((entry, index, list) => index === 0 || entry.column > list[index - 1].column);
+
+const activeDays = days.filter((day) => day.count > 0).length;
+---
+
+<section class="culture-heatmap" aria-labelledby={id} data-culture-heatmap={year} data-culture-heatmap-days={activeDays} data-culture-heatmap-total={total}>
+    <div class="culture-heatmap__head">
+        <h2 class="culture-heatmap__title" id={id}>{title}</h2>
+        <p class="culture-heatmap__legend">
+            <span class="culture-heatmap__legend-text">{legendLow}</span>
+            <span class="culture-heatmap__legend-scale" aria-hidden="true">
+                {[0, 1, 2, 3, 4].map((level) => (
+                    <span class:list={["culture-heatmap__swatch", `culture-heatmap__swatch--${level}`]} />
+                ))}
+            </span>
+            <span class="culture-heatmap__legend-text">{legendHigh}</span>
+            <span class="sr-only">{legendLabel}</span>
+        </p>
+    </div>
+
+    <div class="culture-heatmap__body">
+        <div class="culture-heatmap__months" aria-hidden="true">
+            {monthColumns.map((entry) => (
+                <span class="culture-heatmap__month" style={`grid-column: ${entry.column}`}>{entry.label}</span>
+            ))}
+        </div>
+        <div class="culture-heatmap__plot">
+            <ul class="culture-heatmap__weekdays" aria-hidden="true">
+                {weekRows.map((label) => (
+                    <li class="culture-heatmap__weekday">{label}</li>
+                ))}
+            </ul>
+            <div
+                class="culture-heatmap__grid"
+                role="img"
+                aria-label={`${title} · ${summary}`}
+                style={`--heatmap-weeks: ${weeks}`}
+            >
+                {cells.map((cell) => (
+                    <span
+                        class:list={[
+                            "culture-heatmap__cell",
+                            `culture-heatmap__cell--${cell.level}`,
+                            !cell.inYear && "culture-heatmap__cell--outside",
+                        ]}
+                        aria-hidden="true"
+                        title={`${cell.date} · ${cell.count}`}
+                    />
+                ))}
+            </div>
+        </div>
+    </div>
+
+    <p class="culture-heatmap__summary">{summary}</p>
+    <p class="culture-heatmap__footnote">{footnote}</p>
+</section>

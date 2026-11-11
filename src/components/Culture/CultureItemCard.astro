@@ -1,0 +1,66 @@
+---
+/**
+ * CultureItemCard — C 层（M8-6-2）文化生活轨上的一张条目卡
+ *
+ * 契约：只吃 `CultureMedia`（本文件导出）。0 数据读取、0 站点私有文案 ——
+ * 标题 / 元信息 / 评分 / 标签全由页面从真实 JSON 里算好传进来。
+ * 数据诚实性：bangumi 的 `ep_status` 全库为 0（没有观看进度），所以这里**没有**
+ * 进度条；设计稿上的「Ep 09 / 12」「75%」在真实数据里不存在，不画。
+ *
+ * 结构：来源 kicker / 标题 + 箭头（外链）/ 元信息 / 我的评分。
+ * 一张卡只有一个链接，`::after` 铺满整卡做热区（与 CultureCard 同一判据）。
+ *
+ * 样式在 `src/styles/pages/culture.css`（`.culture-media*`），本组件不带 <style>。
+ */
+import Icon from "~/components/UI/atom/Icon.astro";
+
+export interface CultureMedia {
+    /** 稳定键（`bgm-1773` / `douban-35517044` / `music-3711014`）。 */
+    id: string;
+    title: string;
+    /** 一行元信息（「2006 · 37 话」/「豆瓣 · 2026 · 在看」）。 */
+    meta: string;
+    /** 我的评分（已带口径前缀）；没评分就不传，不填 0 冒充。 */
+    rating?: string;
+    /** 分类/来源小标签（「推理」/「单曲」/「想读」）；空则不渲染。 */
+    tag?: string;
+    /** 外链（bgm.tv / douban.com），构建期已验证 http(s)。 */
+    href: string;
+    /** 来源名（Bangumi / 豆瓣 / 歌单），kicker 用。 */
+    source: string;
+}
+
+interface Props {
+    item: CultureMedia;
+}
+
+const { item } = Astro.props;
+---
+
+<li class="culture-media__cell">
+    <article
+        class="culture-media"
+        data-culture-media={item.id}
+        data-culture-media-source={item.source}
+    >
+        <p class="culture-media__source">
+            <span class="culture-media__source-name">{item.source}</span>
+            {item.tag && <span class="culture-media__tag">{item.tag}</span>}
+        </p>
+        <h3 class="culture-media__title">
+            <a
+                class="culture-media__link"
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="culture-media__title-text">{item.title}</span>
+                <span class="culture-media__arrow" aria-hidden="true">
+                    <Icon name="tabler:chevron-right" size="sm" />
+                </span>
+            </a>
+        </h3>
+        <p class="culture-media__meta">{item.meta}</p>
+        {item.rating && <p class="culture-media__rating">{item.rating}</p>}
+    </article>
+</li>

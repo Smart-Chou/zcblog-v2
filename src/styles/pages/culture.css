@@ -43,7 +43,7 @@
     inline-size: 100%;
     padding: var(--space-6);
     border: 1px solid var(--color-border-subtle);
-    border-block-start: 2px solid var(--color-border-strong);
+    border-block-start: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
     background-color: var(--color-bg-surface);
     transition:
@@ -55,7 +55,7 @@
     .culture-card:hover {
         border-color: var(--color-border-default);
         border-block-start-color: var(--color-accent-solid);
-        box-shadow: var(--shadow-2);
+        box-shadow: var(--shadow-3);
     }
 
     .culture-card:hover .culture-card__title-link {
@@ -141,7 +141,7 @@
    选择器写到四级：Icon 自己的 `.icon--md` 带 Astro 作用域属性，同权重下组件样式
    后注入会赢，所以这里刻意加长链。 */
 .culture-card .culture-card__title-link .culture-card__arrow .icon {
-    font-size: var(--space-6);
+    font-size: var(--text-2xl);
 }
 
 .culture-card__note {
@@ -240,7 +240,7 @@
     }
 
     .culture-card .culture-card__title-link .culture-card__arrow .icon {
-        font-size: var(--space-8);
+        font-size: var(--text-3xl);
     }
 
     .culture-card__stats {
@@ -259,6 +259,360 @@
 
 /* ── 降低动效 ─────────────────────────────────────────────── */
 
+/* ── 文化生活四段轨（M8-6-2） ─────────────────────────────── */
+
+.culture-rails {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-block-start: var(--space-16);
+}
+
+.culture-rails__kicker {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.culture-rails__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--color-fg-heading);
+}
+
+.culture-rails__meta {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+}
+
+.culture-rails__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    margin-block-start: var(--space-5);
+}
+
+.culture-rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* 轨道：桌面 = 追更轨（横滑），≤768 = 四段 snap 段之一。同一份 DOM，纯 CSS。 */
+.culture-rail__track {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0 0 var(--space-2);
+    list-style: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--space-1);
+    overscroll-behavior-x: contain;
+    box-sizing: border-box;
+}
+
+.culture-media__cell {
+    display: flex;
+    flex: 0 0 clamp(16rem, 24vw, 20rem);
+    min-inline-size: 0;
+    scroll-snap-align: start;
+}
+
+.culture-media {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    inline-size: 100%;
+    box-sizing: border-box;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-surface);
+    transition:
+        border-color var(--duration-base) var(--ease-standard),
+        box-shadow var(--duration-base) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .culture-media:hover {
+        border-color: var(--color-border-default);
+        box-shadow: var(--shadow-3);
+    }
+}
+
+.culture-media__source {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+}
+
+.culture-media__tag {
+    padding-inline: var(--space-2);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    text-transform: none;
+    color: var(--color-fg-default);
+}
+
+.culture-media__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+}
+
+/* 触控目标 ≥44×44（G-22）：文字链接靠 padding 补足，不靠鼠标悬停才出现 */
+.culture-media__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-block-size: var(--space-11);
+    color: var(--color-fg-heading);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.culture-media__link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md);
+}
+
+.culture-media__link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: var(--space-1);
+    border-radius: var(--radius-xs);
+}
+
+.culture-media__arrow {
+    display: inline-flex;
+    align-self: center;
+    color: var(--color-fg-muted);
+}
+
+.culture-media__meta,
+.culture-media__rating {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+.culture-media__rating {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-fg-default);
+}
+
+/* ── 豆瓣入账热力图（M8-6-2） ─────────────────────────────── */
+
+.culture-heatmap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-block-start: var(--space-16);
+    padding: var(--space-6);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-sizing: border-box;
+}
+
+.culture-heatmap__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+}
+
+.culture-heatmap__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-snug);
+    color: var(--color-fg-heading);
+}
+
+.culture-heatmap__legend {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+}
+
+.culture-heatmap__legend-scale {
+    display: inline-flex;
+    gap: var(--space-1);
+}
+
+.culture-heatmap__swatch {
+    inline-size: var(--space-3);
+    block-size: var(--space-3);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-bg-muted);
+}
+
+/* 自有的横滑容器：53 列在 375 下必然超宽，滚它自己，不让整页溢出（G-19 例外项） */
+.culture-heatmap__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-block-end: var(--space-1);
+    box-sizing: border-box;
+}
+
+.culture-heatmap__months {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--space-3);
+    gap: var(--space-1);
+    margin-inline-start: calc(var(--space-8) + var(--space-2));
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+}
+
+.culture-heatmap__plot {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.culture-heatmap__weekdays {
+    display: grid;
+    grid-template-rows: repeat(7, var(--space-3));
+    gap: var(--space-1);
+    flex: 0 0 var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--space-3);
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+}
+
+.culture-heatmap__grid {
+    display: grid;
+    grid-template-rows: repeat(7, var(--space-3));
+    grid-auto-flow: column;
+    grid-auto-columns: var(--space-3);
+    gap: var(--space-1);
+}
+
+.culture-heatmap__cell {
+    inline-size: var(--space-3);
+    block-size: var(--space-3);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-bg-muted);
+}
+
+.culture-heatmap__cell--outside {
+    background-color: transparent;
+}
+
+/* 色阶全部从 accent token 派生（0 hex）：opacity 混色即档位 */
+.culture-heatmap__cell--1,
+.culture-heatmap__swatch--1 {
+    background-color: color-mix(in oklab, var(--color-accent-solid) 22%, var(--color-bg-surface));
+}
+
+.culture-heatmap__cell--2,
+.culture-heatmap__swatch--2 {
+    background-color: color-mix(in oklab, var(--color-accent-solid) 44%, var(--color-bg-surface));
+}
+
+.culture-heatmap__cell--3,
+.culture-heatmap__swatch--3 {
+    background-color: color-mix(in oklab, var(--color-accent-solid) 68%, var(--color-bg-surface));
+}
+
+.culture-heatmap__cell--4,
+.culture-heatmap__swatch--4 {
+    background-color: var(--color-accent-solid);
+}
+
+.culture-heatmap__summary {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-default);
+}
+
+.culture-heatmap__footnote {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    color: var(--color-fg-muted);
+}
+
+/* ── 断点：≤768 单列 + 四段 snap（段间整卡对齐） ──────────── */
+
+@media (max-width: 768px) {
+    .culture-rails {
+        margin-block-start: var(--space-12);
+    }
+
+    .culture-rails__list {
+        gap: var(--space-8);
+    }
+
+    /* 卡宽 78% + 4px 间隙：滑到头不会留半张卡（P2-06「不裁半张卡」） */
+    .culture-media__cell {
+        flex-basis: 78%;
+    }
+
+    .culture-heatmap {
+        padding: var(--space-4);
+    }
+}
+
+@media (max-width: 450px) {
+    .culture-media__cell {
+        flex-basis: 86%;
+    }
+
+    .culture-rails__title {
+        font-size: var(--text-xl);
+    }
+
+    .culture-heatmap {
+        margin-block-start: var(--space-12);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .culture-card,
     .culture-card__title-link,
@@ -268,5 +622,15 @@
 
     .culture-card:hover .culture-card__arrow {
         transform: none;
+    }
+
+    .culture-media,
+    .culture-media__link {
+        transition: none;
+    }
+
+    .culture-rail__track,
+    .culture-heatmap__body {
+        scroll-behavior: auto;
     }
 }

@@ -29,8 +29,13 @@ import "~/styles/pages/entities.css";
 import "~/styles/pages/culture.css";
 
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import Icon from "~/components/UI/atom/Icon.astro";
+import PageHero from "~/components/UI/molecule/PageHero.astro";
+import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import DataState from "~/components/UI/molecule/DataState.astro";
 import CultureGrid from "~/components/Culture/CultureGrid.astro";
+import CultureRail from "~/components/Culture/CultureRail.astro";
+import CultureHeatmap from "~/components/Culture/CultureHeatmap.astro";
+import type { CultureMedia } from "~/components/Culture/CultureItemCard.astro";
 import type { CultureEntry, CultureStat } from "~/components/Culture/CultureCard.astro";
 import { site } from "~/config";
 import bangumiJson from "~/data/bangumi.json";
@@ -59,9 +64,12 @@ interface BangumiItem {
 
 /** douban.json 的形状（只取本页要用的三栏）。 */
 interface DoubanItem {
+    title?: string;
     url?: string;
     type?: string;
     date?: string;
+    rating?: number;
+    status?: string;
 }
 
 const BANGUMI_KEYS = ["anime", "book", "music", "game", "tv"] as const;
@@ -234,6 +242,191 @@ const ledeDedupe =
 /** 顺序说明只列真的在页面上的入口：缺了一个来源时，别在标题旁边点它的名。 */
 const orderLabel = entries.map((entry) => entry.title).join(" → ");
 
+/* ───────────────────── 7. 文化生活四段轨（M8-6-2） ─────────── */
+
+/**
+ * 四段轨只吃真实字段：标题 / 年份 / 集数或卷数 / 我的评分 / 分类标签。
+ * **没有**观看进度：bangumi 的 `ep_status` 全库为 0，稿子上的「Ep 09 / 12」「75%」
+ * 在数据里不存在，画出来就是造假（G-07）。缺字段就少一行，不补 0。
+ */
+interface BangumiSubject {
+    id?: number;
+    date?: string | null;
+    name?: string;
+    name_cn?: string;
+    eps?: number;
+    volumes?: number;
+}
+
+interface BangumiCollection {
+    rate?: number;
+    tags?: string[];
+    subject?: BangumiSubject;
+}
+
+const bgmCollection = bangumiJson as unknown as Record<string, BangumiCollection[] | undefined>;
+const bgmHref = (id: number | undefined) => (id ? `https://bgm.tv/subject/${id}` : "");
+const yearOf = (value?: string | null) => (/^\d{4}/.test(value ?? "") ? String(value).slice(0, 4) : "");
+
+const pickTag = (tags?: string[]) => (tags ?? []).find((tag) => tag.trim().length > 0);
+
+const bangumiMedia = (key: "anime" | "book" | "tv" | "music", unit: "话" | "卷" | ""): CultureMedia[] =>
+    [...(bgmCollection[key] ?? [])]
+        .sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0))
+        .flatMap((item) => {
+            const subject = item.subject ?? {};
+            const title = (subject.name_cn || subject.name || "").trim();
+            const href = bgmHref(subject.id);
+            if (!title || !href) return [];
+            const year = yearOf(subject.date);
+            const amount = unit === "卷" ? subject.volumes : unit === "话" ? subject.eps : 0;
+            const parts = [year, amount && unit ? `${amount} ${unit}` : ""].filter(Boolean);
+            return [{
+                id: `bgm-${subject.id}`,
+                title,
+                meta: parts.length > 0 ? parts.join(" · ") : isEn ? "Year not recorded" : "年份未录",
+                rating:
+                    (item.rate ?? 0) > 0
+                        ? isEn
+                            ? `My rating ${item.rate} / 10`
+                            : `我的评分 ${item.rate} / 10`
+                        : undefined,
+                tag: pickTag(item.tags),
+                href,
+                source: "Bangumi",
+            } satisfies CultureMedia];
+        });
+
+const DOUBAN_STATUS: Record<string, { zh: string; en: string }> = {
+    wish: { zh: "想读/想看", en: "wishlist" },
+    watching: { zh: "在看", en: "watching" },
+    watched: { zh: "看过", en: "watched" },
+    listened: { zh: "听过", en: "listened" },
+};
+
+const doubanMedia = (type: "book" | "movie" | "music"): CultureMedia[] =>
+    doubanItems
+        .filter((item) => item.type === type)
+        .flatMap((item) => {
+            const href = /^https?:\/\//.test(item.url ?? "") ? String(item.url) : "";
+            const title = (item.title ?? "").trim();
+            if (!title || !href) return [];
+            const status = DOUBAN_STATUS[item.status ?? ""];
+            const parts = [yearOf(item.date), status ? (isEn ? status.en : status.zh) : ""].filter(Boolean);
+            return [{
+                id: `douban-${doubanSubjectId(href) || title}`,
+                title,
+                meta: parts.length > 0 ? parts.join(" · ") : isEn ? "Date not recorded" : "日期未录",
+                rating:
+                    (item.rating ?? 0) > 0
+                        ? isEn
+                            ? `Douban ${item.rating} / 5`
+                            : `豆瓣 ${item.rating} / 5`
+                        : undefined,
+                tag: isEn ? "Douban" : "豆瓣",
+                href,
+                source: isEn ? "Douban" : "豆瓣",
+            } satisfies CultureMedia];
+        });
+
+const musicMedia: CultureMedia[] = musicTracks.flatMap((track) => {
+    const href = (track.links ?? []).find((link) => /^https?:\/\//.test(link.href))?.href ?? "";
+    if (!href) return [];
+    return [{
+        id: `music-${doubanSubjectId(href) || track.title}`,
+        title: track.title,
+        meta: [track.artist, track.year].filter(Boolean).join(" · "),
+        tag: track.format === "single" ? (isEn ? "Single" : "单曲") : isEn ? "Album" : "专辑",
+        href,
+        source: isEn ? "Playlist" : "歌单",
+    } satisfies CultureMedia];
+});
+
+interface CultureRailData {
+    id: string;
+    title: string;
+    meta: string;
+    items: CultureMedia[];
+}
+
+const cultureRails: CultureRailData[] = [
+    {
+        id: "anime",
+        title: isEn ? "Anime" : "番剧",
+        meta: isEn ? "Bangumi collection · by my rating" : "Bangumi 收藏 · 按我的评分",
+        items: bangumiMedia("anime", "话"),
+    },
+    {
+        id: "bookshelf",
+        title: isEn ? "Bookshelf" : "书架",
+        meta: isEn ? "Bangumi manga + Douban books" : "Bangumi 漫画/小说 + 豆瓣图书",
+        items: [...bangumiMedia("book", "卷"), ...doubanMedia("book")],
+    },
+    {
+        id: "cinema",
+        title: isEn ? "Cinema" : "电影",
+        meta: isEn ? "Douban films + Bangumi series" : "豆瓣影视 + Bangumi 剧集",
+        items: [...doubanMedia("movie"), ...bangumiMedia("tv", "话")],
+    },
+    {
+        id: "music",
+        title: isEn ? "Music" : "音乐",
+        meta: isEn ? "Playlist + Bangumi soundtracks" : "歌单 + Bangumi 原声",
+        items: [...musicMedia, ...bangumiMedia("music", "")],
+    },
+].filter((rail) => rail.items.length > 0);
+
+/* ───────────────────── 8. 豆瓣入账热力图（M8-6-2） ─────────── */
+
+/** 只吃 `douban.json` 的 `date`（入账/抓取时间戳）；**不用** bangumi `updated_at`。 */
+const doubanDayCounts = doubanItems.reduce<Record<string, number>>((acc, item) => {
+    const day = (item.date ?? "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return acc;
+    acc[day] = (acc[day] ?? 0) + 1;
+    return acc;
+}, {});
+const heatmapDays = Object.entries(doubanDayCounts)
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+const heatmapYear = heatmapDays.length > 0 ? Number(heatmapDays.at(-1)!.date.slice(0, 4)) : new Date().getFullYear();
+const heatmapActiveDays = heatmapDays.filter((day) => day.count > 0).length;
+const heatmapTotal = heatmapDays.reduce((sum, day) => sum + day.count, 0);
+
+const MONTHS_ZH = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEK_ZH = ["周一", "", "周三", "", "周五", "", "周日"];
+const WEEK_EN = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
+
+const copy2 = isEn
+    ? {
+          railKicker: "CULTURAL LIFE · FOUR RAILS",
+          railsTitle: "What I'm reading, watching and listening to",
+          railsMeta: `Four rails · ${cultureRails.length} with content`,
+          heatmapTitle: `Douban entry dates · ${heatmapYear}`,
+          heatmapLegendLow: "few",
+          heatmapLegendHigh: "many",
+          heatmapLegendLabel: "Entry-count scale, light to dark",
+          heatmapSummary: `${heatmapTotal} entries on ${heatmapActiveDays} day(s) in ${heatmapYear}.`,
+          heatmapFootnote:
+              "Only the `date` field of douban.json (the day an entry entered the archive). Bangumi's updated_at is a fetch snapshot, so it is not used here.",
+          months: MONTHS_EN,
+          weekRows: WEEK_EN,
+      }
+    : {
+          railKicker: "文化生活 · 四段轨",
+          railsTitle: "正在追、正在读、正在看、正在听",
+          railsMeta: `四段轨 · ${cultureRails.length} 段有内容`,
+          heatmapTitle: `豆瓣入账日期 · ${heatmapYear}`,
+          heatmapLegendLow: "较少",
+          heatmapLegendHigh: "频繁",
+          heatmapLegendLabel: "入账条数色阶，由浅到深",
+          heatmapSummary: `${heatmapYear} 年累计 ${heatmapActiveDays} 天有入账，共 ${heatmapTotal} 条。`,
+          heatmapFootnote:
+              "只统计 douban.json 的 date 字段（条目进库的那一天）；bangumi 的 updated_at 是抓取快照，不用来做热力图。",
+          months: MONTHS_ZH,
+          weekRows: WEEK_ZH,
+      };
+
 const copy = isEn
     ? {
           kicker: "CULTURE · COLLECTIONS",
@@ -283,34 +476,20 @@ const copy = isEn
         data-culture-hidden={[...hidden].join(",")}
         aria-labelledby="culture-title"
     >
-        <header class="entities-hero">
-            <p class="entities-kicker">{copy.kicker}</p>
-            <h1 class="entities-title" id="culture-title">{copy.title}</h1>
-            <p class="entities-lede">{copy.lede}</p>
-            <div class="entities-hero__meta">
-                <span class="entities-chip">
-                    <Icon name="tabler:stack-2" size="xs" />
-                    {copy.entriesLabel}
-                </span>
-                <span class="entities-chip">
-                    <Icon name="tabler:circle-check" size="xs" />
-                    {copy.uniqueLabel}
-                </span>
-                {
-                    overlap > 0 && (
-                        <span class="entities-chip entities-chip--quiet">{copy.rawLabel}</span>
-                    )
-                }
-            </div>
-        </header>
+        <PageHero
+            kicker={copy.kicker}
+            title={copy.title}
+            lede={copy.lede}
+            id="culture-title"
+            meta={[
+                { icon: "tabler:stack-2", label: copy.entriesLabel },
+                { icon: "tabler:circle-check", label: copy.uniqueLabel },
+                ...(overlap > 0 ? [{ label: copy.rawLabel, quiet: true }] : []),
+            ]}
+        />
 
         <section class="entities-section" aria-labelledby="culture-entries-title">
-            <div class="entities-section__head">
-                <h2 class="entities-section__title" id="culture-entries-title">
-                    {copy.listTitle}
-                </h2>
-                <p class="entities-section__meta">{copy.listMeta}</p>
-            </div>
+            <SectionHead id="culture-entries-title" title={copy.listTitle} meta={copy.listMeta} />
 
             {
                 entries.length > 0 ? (
@@ -319,18 +498,48 @@ const copy = isEn
                         <p class="culture-note">{copy.note}</p>
                     </>
                 ) : (
-                    <div
-                        class="entities-state entities-state--empty"
-                        data-culture-empty="no-entries"
-                    >
-                        <span class="entities-state__icon" aria-hidden="true">
-                            <Icon name="tabler:library-photo" size="lg" />
-                        </span>
-                        <p class="entities-state__title">{copy.emptyTitle}</p>
-                        <p class="entities-state__text">{copy.emptyText}</p>
-                    </div>
+                    <DataState
+                        kind="empty"
+                        icon="tabler:library-photo"
+                        title={copy.emptyTitle}
+                        message={copy.emptyText}
+                        class="culture-empty"
+                    />
                 )
             }
         </section>
+
+        {
+            entries.length > 0 && (
+                <section class="culture-rails" aria-labelledby="culture-rails-title">
+                    <p class="culture-rails__kicker">{copy2.railKicker}</p>
+                    <h2 class="culture-rails__title" id="culture-rails-title">{copy2.railsTitle}</h2>
+                    <p class="culture-rails__meta">{copy2.railsMeta}</p>
+                    <div class="culture-rails__list">
+                        {cultureRails.map((rail) => (
+                            <CultureRail id={rail.id} title={rail.title} meta={rail.meta} items={rail.items} />
+                        ))}
+                    </div>
+                </section>
+            )
+        }
+
+        {
+            entries.length > 0 && heatmapDays.length > 0 && (
+                <CultureHeatmap
+                    id="culture-heatmap-title"
+                    year={heatmapYear}
+                    days={heatmapDays}
+                    title={copy2.heatmapTitle}
+                    legendLow={copy2.heatmapLegendLow}
+                    legendHigh={copy2.heatmapLegendHigh}
+                    legendLabel={copy2.heatmapLegendLabel}
+                    summary={copy2.heatmapSummary}
+                    footnote={copy2.heatmapFootnote}
+                    months={copy2.months}
+                    weekRows={copy2.weekRows}
+                />
+            )
+        }
     </article>
 </BaseLayout>

@@ -333,7 +333,7 @@ test("契约：每卡有来源/标题/说明/3 统计/构成，卡内 1 个链�
     });
 
     // 顺序说明只点在场入口的名（缺来源时不能把不在场的也写进去）
-    const listMeta = (await page.locator(".entities-section__meta").first().innerText()).trim();
+    const listMeta = (await page.locator(".section-head__meta").first().innerText()).trim();
     for (const card of cards) expect(listMeta, `顺序说明漏了 ${card.id}`).toContain(card.title);
     console.log(`[contract] 顺序说明：${listMeta}`);
 
@@ -485,7 +485,7 @@ test("条件渲染：真实构建 PUBLIC_CULTURE_OMIT=music → 音乐入口不�
             // 顺序说明也不许点在场的来源：缺音乐时只能写「番剧 → 豆瓣」
             const visibleCards = await readCards(fresh);
             const listMeta = (
-                await fresh.locator(".entities-section__meta").first().innerText()
+                await fresh.locator(".section-head__meta").first().innerText()
             ).trim();
             for (const card of visibleCards) expect(listMeta).toContain(card.title);
             expect(listMeta, "音乐入口不渲染，顺序说明里也不该出现歌单").not.toContain("歌单");

@@ -1,0 +1,35 @@
+---
+/**
+ * CultureRail — C 层（M8-6-2）文化生活的一段横滑轨
+ *
+ * 桌面 = 「追更轨」（一条横向轨道，超出视口可滚）；≤768 = 四段 snap 段之一
+ * （`scroll-snap-type: x mandatory`，每卡 `scroll-snap-align: start`）。
+ * 两种形态是同一份 DOM，纯 CSS 断点切换 —— 0 JS（R4：列表页不加 script）。
+ *
+ * 契约：吃 `CultureMedia[]` + 段标题；空数组时**根本不渲染**（页面负责不挂空轨）。
+ * 标题可访问性：`SectionHead` 的 h2 为 `<section aria-labelledby>` 的锚点。
+ * 样式在 `src/styles/pages/culture.css`（`.culture-rail*`），本组件不带 <style>。
+ */
+import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import CultureItemCard from "~/components/Culture/CultureItemCard.astro";
+import type { CultureMedia } from "~/components/Culture/CultureItemCard.astro";
+
+interface Props {
+    /** 段 id（anime / bookshelf / cinema / music）；DOM 上 `data-culture-rail`。 */
+    id: string;
+    title: string;
+    /** 右侧口径说明（「Bangumi 收藏 · 按我的评分」）。 */
+    meta?: string;
+    items: CultureMedia[];
+}
+
+const { id, title, meta, items } = Astro.props;
+const headingId = `culture-rail-${id}-title`;
+---
+
+<section class="culture-rail" aria-labelledby={headingId} data-culture-rail={id}>
+    <SectionHead id={headingId} title={title} meta={meta} />
+    <ul class="culture-rail__track" data-culture-rail-track={id}>
+        {items.map((item) => <CultureItemCard item={item} />)}
+    </ul>
+</section>
