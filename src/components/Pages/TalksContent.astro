@@ -1,21 +1,24 @@
 ---
 /**
- * P-06 · 随笔页（M2-6b）
+ * P-06 · 随笔页（M2-6b 初版；M8-6-3 视觉重做 = `talks_blinko_1` 桌面 / `talks_blinko_2` 移动）
  *
- * 结构（沿用 M2-2/M2-4/M2-6a 的编辑式版面语言：mono kicker + 衬线标题 + accent 短尺）：
- *   1. hero      —— h1 / 一句话定位 / 条数·话题数·最近一条 / 去来源站入口
- *   2. 时间线    —— 三态：ok（卡片序列）/ empty（空态块）/ error（警示块 + 原因代码）
- *   3. 话题      —— ok 且话题非空：标签云（只展示计数，不做 JS 过滤）
+ * 结构（M8-6-3）：
+ *   1. 页头   —— `PageHero`（kicker / h1 / lede / 统计行 / 来源站入口）；h1 保留语义类 `.talks-title`
+ *   2. 两栏   —— ≥1024：左 3.5 栅 sticky 筛选（话题云）+ 右时间流；<1024：筛选降级为顶部横滑、正文单列
+ *   3. 时间流 —— `SectionHead`（meta「最新在上」）+ `<ol>` + 轨道 + 日期列 + `EssayItem`
+ *   4. 空/错态 —— `DataState`（error 态内建 Alert warning + 原因码）
  *
  * 约束：
  * - 数据只来自 props.feed（talks adapter 的产物）；本组件 0 数据、0 站点私有文案。
  * - 样式在 src/styles/pages/talks.css（0 颜色字面量、尺寸全部 token）。
  * - 标题层级 h1 → h2，任何一态都不跳级（e2e 覆盖）。
  * - 空态/错误态都是页面状态：路由照常 200，评论区照常渲染。
+ * - **0 客户端 JS**：sticky 与顶部横滑都是纯 CSS（R4：列表页 JS 预算 28 KB）。
  */
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import Icon from "~/components/UI/atom/Icon.astro";
-import Alert from "~/components/UI/atom/Alert.astro";
+import PageHero from "~/components/UI/molecule/PageHero.astro";
+import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import DataState from "~/components/UI/molecule/DataState.astro";
 import Tag from "~/components/UI/atom/Tag.astro";
 import EssayItem from "~/components/UI/EssayItem.astro";
 import WalineComment from "~/components/UI/WalineComment.astro";
@@ -61,6 +64,24 @@ const newestLabel = formatDay(resolved.newest);
 const countLabel = isEn ? `${resolved.total} entries` : `${resolved.total} 条`;
 const tagCountLabel = isEn ? `${resolved.tags.length} topics` : `${resolved.tags.length} 个话题`;
 const MAX_TAGS = 24;
+
+/**
+ * 页头统计行（P3-03）：
+ * - 条数 chip **恒在**（0 条也报 0，避免「空页头」）；
+ * - 标签数 chip 仅当 tags.length > 0；
+ * - 最近时间 chip 仅当 adapter 给出 newest。
+ */
+const heroMeta = [
+    { icon: "tabler:message-chatbot-filled", label: countLabel },
+    ...(resolved.tags.length > 0
+        ? [{ icon: "tabler:tags", label: tagCountLabel }]
+        : []),
+    ...(newestLabel ? [{ label: isEn ? `latest ${newestLabel}` : `最近 ${newestLabel}`, quiet: true }] : []),
+];
+
+/** 左栏筛选只在 ok 态且有话题时存在（P3-07：空态不渲染话题云）。 */
+const hasTopics = resolved.status === "ok" && resolved.tags.length > 0;
+const issueCode = resolved.issue?.code ?? "unknown";
 ---
 
 <BaseLayout
@@ -77,151 +98,126 @@ const MAX_TAGS = 24;
         data-talks-total={resolved.total}
         aria-labelledby="talks-title"
     >
-        <header class="talks-hero">
-            <p class="talks-kicker">{isEn ? "TALKS · MEMOS" : "随笔 · 碎念"}</p>
-            <h1 class="talks-title" id="talks-title">{t(loc, "talks.title")}</h1>
-            <p class="talks-lede">{t(loc, "talks.subtitle")}</p>
-            <div class="talks-hero__meta">
-                <span class="talks-chip">
-                    <Icon name="tabler:message-chatbot-filled" size="xs" />
-                    {countLabel}
-                </span>
-                {
-                    resolved.tags.length > 0 && (
-                        <span class="talks-chip">
-                            <Icon name="tabler:tags" size="xs" />
-                            {tagCountLabel}
-                        </span>
-                    )
-                }
-                {
-                    newestLabel && (
-                        <span class="talks-chip talks-chip--quiet">
-                            {isEn ? `latest ${newestLabel}` : `最近 ${newestLabel}`}
-                        </span>
-                    )
-                }
-                {
-                    talksPage.sourceUrl && (
-                        <a
-                            class="talks-source"
-                            href={talksPage.sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            {isEn
-                                ? `Open ${talksPage.sourceName ?? "source"}`
-                                : `去${talksPage.sourceName ?? "来源"}看`}
-                            <Icon name="tabler:arrow-up-right" size="xs" />
-                        </a>
-                    )
-                }
-            </div>
-        </header>
-
-        <section class="talks-section" aria-labelledby="talks-timeline-title">
-            <div class="talks-section__head">
-                <h2 class="talks-section__title" id="talks-timeline-title">
-                    {isEn ? "Timeline" : "时间线"}
-                </h2>
-                <p class="talks-section__meta">
-                    {isEn ? "Newest first" : "最新在上"}
-                </p>
-            </div>
-
+        <PageHero
+            kicker={isEn ? "TALKS · MEMOS" : "随笔 · 碎念"}
+            title={t(loc, "talks.title")}
+            lede={t(loc, "talks.subtitle")}
+            meta={heroMeta}
+            id="talks-title"
+            titleClass="talks-title"
+        >
             {
-                resolved.status === "ok" && (
-                    <div class="talks-track">
-                        {/* 轨道用真实元素画，不用 ::before：绝对定位的伪元素会让 axe 判定
-                            「背景色无法确定」，把整条时间线的对比度检查降级成 incomplete。 */}
-                        <span class="talks-rail" aria-hidden="true" />
-                        <ol class="talks-timeline" role="list">
-                            {resolved.items.map((item) => (
-                                <li class="talks-entry">
-                                    <p class="talks-entry__day">
-                                        <time datetime={item.ts === null ? undefined : item.time}>
-                                            {formatDay(item.time) || item.time}
-                                        </time>
-                                    </p>
-                                    <EssayItem
-                                        item={item}
-                                        author={authorName}
-                                        avatar={avatar}
-                                        locale={loc}
-                                    />
+                talksPage.sourceUrl && (
+                    <a
+                        class="talks-source"
+                        href={talksPage.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {isEn
+                            ? `Open ${talksPage.sourceName ?? "source"}`
+                            : `去${talksPage.sourceName ?? "来源"}看`}
+                        <span class="talks-source__arrow" aria-hidden="true">↗</span>
+                    </a>
+                )
+            }
+        </PageHero>
+
+        <div class:list={["talks-layout", hasTopics && "talks-layout--two-col"]}>
+            {
+                hasTopics && (
+                    <aside class="talks-filters" aria-labelledby="talks-topics-title">
+                        <SectionHead
+                            id="talks-topics-title"
+                            title={isEn ? "Topics" : "话题"}
+                            meta={isEn ? "By frequency" : "按出现次数排序"}
+                        />
+                        <ul class="talks-topics" role="list">
+                            {resolved.tags.slice(0, MAX_TAGS).map((tag) => (
+                                <li class="talks-topic">
+                                    <Tag tone="neutral" size="sm">
+                                        #{tag.name}
+                                        <span class="talks-topic__count">
+                                            {isEn ? `${tag.count}×` : `${tag.count} 次`}
+                                        </span>
+                                    </Tag>
                                 </li>
                             ))}
-                        </ol>
-                    </div>
+                        </ul>
+                    </aside>
                 )
             }
 
-            {
-                resolved.status === "error" && (
-                    <div class="talks-state" data-talks-error={resolved.issue?.code ?? "unknown"}>
-                        <Alert
-                            tone="warning"
-                            title={isEn ? "Talk data could not be read" : "随笔数据读取失败"}
-                        >
-                            {isEn
-                                ? "The talk file exists but its shape is invalid, so nothing is listed here. Everything else on this page still works."
-                                : "随笔数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。"}
-                        </Alert>
-                        <p class="talks-state__hint">
-                            {isEn
-                                ? `Reason code: ${resolved.issue?.code ?? "unknown"}`
-                                : `原因代码：${resolved.issue?.code ?? "unknown"}`}
-                        </p>
-                    </div>
-                )
-            }
+            <section class="talks-main" aria-labelledby="talks-timeline-title">
+                <SectionHead
+                    id="talks-timeline-title"
+                    title={isEn ? "Timeline" : "时间线"}
+                    meta={isEn ? "Newest first" : "最新在上"}
+                />
 
-            {
-                resolved.status === "empty" && (
-                    <div
-                        class="talks-state talks-state--empty"
-                        data-talks-empty={resolved.issue?.code ?? "unknown"}
-                    >
-                        <span class="talks-state__icon" aria-hidden="true">
-                            <Icon name="tabler:message-chatbot-filled" size="lg" />
-                        </span>
-                        <p class="talks-state__title">{isEn ? "No talks yet" : "还没有随笔"}</p>
-                        <p class="talks-state__text">
-                            {isEn
-                                ? "This site has not connected its talk source yet — the page stays up, just empty."
-                                : "这个站点还没接入随笔数据源。空态也是页面的一部分：路由照常可访问。"}
-                        </p>
-                    </div>
-                )
-            }
-        </section>
+                {
+                    resolved.status === "ok" && (
+                        <div class="talks-track">
+                            {/* 轨道用真实元素画，不用 ::before：绝对定位的伪元素会让 axe 判定
+                                「背景色无法确定」，把整条时间线的对比度检查降级成 incomplete。 */}
+                            <span class="talks-rail" aria-hidden="true" />
+                            <ol class="talks-timeline" role="list">
+                                {resolved.items.map((item) => (
+                                    <li class="talks-entry">
+                                        <p class="talks-entry__day">
+                                            <time datetime={item.ts === null ? undefined : item.time}>
+                                                {formatDay(item.time) || item.time}
+                                            </time>
+                                        </p>
+                                        <EssayItem
+                                            item={item}
+                                            author={authorName}
+                                            avatar={avatar}
+                                            locale={loc}
+                                        />
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    )
+                }
 
-        {
-            resolved.status === "ok" && resolved.tags.length > 0 && (
-                <section class="talks-section" aria-labelledby="talks-topics-title">
-                    <div class="talks-section__head">
-                        <h2 class="talks-section__title" id="talks-topics-title">
-                            {isEn ? "Topics" : "话题"}
-                        </h2>
-                        <p class="talks-section__meta">
-                            {isEn ? "Sorted by frequency" : "按出现次数排序"}
-                        </p>
-                    </div>
-                    <ul class="talks-topics" role="list">
-                        {resolved.tags.slice(0, MAX_TAGS).map((tag) => (
-                            <li class="talks-topic">
-                                <Tag tone="neutral" size="sm">
-                                    #{tag.name}
-                                    <span class="talks-topic__count">
-                                        {isEn ? `${tag.count}×` : `${tag.count} 次`}
-                                    </span>
-                                </Tag>
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            )
-        }
+                {
+                    resolved.status === "error" && (
+                        <div class="talks-state" data-talks-error={issueCode}>
+                            <DataState
+                                kind="error"
+                                title={isEn ? "Talk data could not be read" : "随笔数据读取失败"}
+                                message={
+                                    isEn
+                                        ? "The talk file exists but its shape is invalid, so nothing is listed here. Everything else on this page still works."
+                                        : "随笔数据文件存在但格式不合法，这里暂不列出。页面其余部分不受影响。"
+                                }
+                                code={issueCode}
+                                codeLabel={isEn ? "Reason code" : "原因代码"}
+                            />
+                        </div>
+                    )
+                }
+
+                {
+                    resolved.status === "empty" && (
+                        <div class="talks-state" data-talks-empty={issueCode}>
+                            <DataState
+                                kind="empty"
+                                icon="tabler:message-chatbot-filled"
+                                title={isEn ? "No talks yet" : "还没有随笔"}
+                                message={
+                                    isEn
+                                        ? "This site has not connected its talk source yet — the page stays up, just empty."
+                                        : "这个站点还没接入随笔数据源。空态也是页面的一部分：路由照常可访问。"
+                                }
+                            />
+                        </div>
+                    )
+                }
+            </section>
+        </div>
     </article>
 
     {waline.enable && <WalineComment locale={loc} />}

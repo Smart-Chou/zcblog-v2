@@ -1,13 +1,15 @@
 /* ============================================================
-   P-06 · 随笔（M2-6b）
+   P-06 · 随笔（M2-6b 初版；M8-6-3 视觉重做 talks_blinko_1 / _2）
    ------------------------------------------------------------
-   版式：编辑式页头（mono kicker + 衬线标题 + accent 短尺）
-        → 日期轨道 + 卡片时间线 → 话题标签云。
+   版式：PageHero（kicker + h1 + lede + 统计行）
+        → 两栏（左 sticky 筛选 / 右时间流：日期列 + 轨道 + 卡片）
+        → 空/错态由 DataState 承担。
    约束：
    - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl()。
-   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px 与断点。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px。
+   - 断点只允许 450 / 768 / 1024（DESIGN.md §5.6；移动优先，1024 起升级两栏）。
    - 全部规则收在 `.talks` 作用域内（另加两条 :has() 收口页面宽度）。
-   - 空态与错误态是页面状态，不是异常：两者都保留页头与评论区。
+   - 0 客户端 JS：sticky 与「顶部横滑」都是纯 CSS。
    ============================================================ */
 
 /* 默认 .content 是文章正文宽度；随笔页要 1200 的外框 + 更窄的阅读轨道。
@@ -22,6 +24,10 @@
 }
 
 .talks {
+    /* 日期列宽 8rem 不在 token 集（D7）：用 --space-* 组合登记为页内变量，
+       轨道与栅格读同一个值，避免两处各写一个魔数。 */
+    --talks-date-col: calc(var(--space-16) * 2);
+
     display: flex;
     flex-direction: column;
     gap: var(--space-10);
@@ -33,92 +39,19 @@
     min-inline-size: 0;
 }
 
-/* ── 页头 ─────────────────────────────────────────────────── */
-
-.talks-hero {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    padding-block-end: var(--space-6);
-    border-block-end: 1px solid var(--color-border-subtle);
-}
-
-.talks-kicker {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    color: var(--color-fg-muted);
-}
-
-.talks-kicker::before {
-    content: "";
-    inline-size: var(--space-8);
-    block-size: 1px;
-    background-color: var(--color-accent-solid);
-}
-
-.talks-title {
-    margin: 0;
-    font-family: var(--font-serif);
-    font-weight: var(--font-weight-semibold);
-    font-size: clamp(var(--text-3xl), 4.5vw, var(--text-4xl));
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
-    color: var(--color-fg-heading);
-}
-
-.talks-lede {
-    margin: 0;
-    max-inline-size: var(--measure-prose);
-    font-size: var(--text-base);
-    line-height: var(--leading-relaxed);
-    color: var(--color-fg-muted);
-}
-
-.talks-hero__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3);
-    margin-block-start: var(--space-2);
-}
-
-.talks-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-3);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-pill);
-    background-color: var(--color-bg-muted);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    /* 12px 小字压在 --color-bg-muted 上：--color-fg-muted 实测 4.17/4.34，不到 4.5 →
-       用默认前景色，层级交给字号与字重。 */
-    color: var(--color-fg-default);
-    white-space: nowrap;
-}
-
-.talks-chip--quiet {
-    background-color: transparent;
-    border-style: dashed;
-}
+/* ── 页头（PageHero 提供版式，这里只补页面级元素） ─────────── */
 
 .talks-source {
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
+    min-block-size: var(--space-8);
+    padding-inline: var(--space-1);
+    border-radius: var(--radius-sm);
     font-size: var(--text-sm);
     font-weight: var(--font-weight-medium);
     color: var(--color-fg-link);
     text-decoration: none;
-    border-radius: var(--radius-sm);
     transition: color var(--duration-fast) var(--ease-standard);
 }
 
@@ -135,60 +68,98 @@
     outline-offset: 2px;
 }
 
-/* ── 区块外壳 ─────────────────────────────────────────────── */
+/* ── 两栏骨架 ─────────────────────────────────────────────── */
 
-.talks-section {
+.talks-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+    min-inline-size: 0;
+}
+
+.talks-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-inline-size: 0;
+}
+
+.talks-main {
     display: flex;
     flex-direction: column;
     gap: var(--space-6);
     min-inline-size: 0;
 }
 
-.talks-section__head {
-    position: relative;
+/* 1024 起才升级两栏：3.5 栅 : 8.5 栅（12 栅制近似）。
+   768–1023 不升级 → 筛选留在正文上方做横滑，不挤压时间线（P3-06）。 */
+@media (min-width: 1024px) {
+    .talks-layout--two-col {
+        grid-template-columns: minmax(0, 3.5fr) minmax(0, 8.5fr);
+        gap: var(--space-10);
+    }
+
+    .talks-filters {
+        position: sticky;
+        inset-block-start: calc(var(--layout-header-height) + var(--space-6));
+    }
+}
+
+/* ── 话题云（Tag atom，neutral / sm） ─────────────────────── */
+
+.talks-topics {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-4);
-    padding-block-end: var(--space-3);
-    border-block-end: 1px solid var(--color-border-subtle);
-}
-
-.talks-section__head::after {
-    content: "";
-    position: absolute;
-    inset-inline-start: 0;
-    inset-block-end: -1px;
-    inline-size: var(--space-10);
-    block-size: 1px;
-    background-color: var(--color-accent-solid);
-}
-
-.talks-section__title {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
     margin: 0;
-    font-family: var(--font-serif);
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--tracking-tight);
-    color: var(--color-fg-heading);
+    /* <1024：一行横滑（纯 CSS，无 JS；不与页面纵向滚动打架） */
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding: 0 0 var(--space-2);
+    list-style: none;
 }
 
-.talks-section__meta {
-    margin: 0;
+.talks-topic {
+    display: inline-flex;
+    flex: none;
+}
+
+/* 横滑区在 <1024 是滚动容器（Chrome 起可被 Tab 聚焦）：给统一焦点环。
+   必须写在 :focus-visible 全局规则之后 —— 这里靠 0,2,0 的类+伪类胜出。 */
+.talks-topics:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* ≥1024：话题云改成换行排布，不再有滚动容器（axe 的 scrollable-region-focusable
+   与「不可见滚动区」一并消失）。这条必须在上面 overflow-x:auto 之后，否则被覆盖。 */
+@media (min-width: 1024px) {
+    .talks-topics {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        padding-block-end: 0;
+    }
+}
+
+.talks-topic__count {
+    margin-inline-start: var(--space-1);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
+    /* Tag 的底色是 --color-bg-muted：小字用 fg-muted 只有 4.17 < 4.5，走默认前景色 */
+    color: var(--color-fg-default);
+    font-variant-numeric: tabular-nums;
 }
 
-/* ── 时间线 ───────────────────────────────────────────────── */
+/* ── 时间流 ───────────────────────────────────────────────── */
 
 .talks-track {
     position: relative;
-    margin-inline: auto;
-    max-inline-size: 56rem;
+    margin-inline: 0;
     inline-size: 100%;
+    min-inline-size: 0;
 }
 
 .talks-timeline {
@@ -207,14 +178,14 @@
 .talks-rail {
     position: absolute;
     inset-block: var(--space-2);
-    inset-inline-start: 8rem;
+    inset-inline-start: var(--talks-date-col);
     inline-size: 1px;
     background-color: var(--color-border-subtle);
 }
 
 .talks-entry {
     display: grid;
-    grid-template-columns: 8rem minmax(0, 1fr);
+    grid-template-columns: var(--talks-date-col) minmax(0, 1fr);
     align-items: start;
     gap: var(--space-6);
     min-inline-size: 0;
@@ -231,93 +202,46 @@
     font-variant-numeric: tabular-nums;
 }
 
-.talks-entry > :global(.essay-card) {
+/* EssayItem 统一到 Card atom 的纸面 / 悬停语言（卡片组件本身不动：
+   /design/components/essayitem/ 文档页仍走旧口径）。三选择器压过 Astro 的
+   scoped 属性选择器（.essay-card[data-astro-cid-*] = 0,2,0）。 */
+.talks .talks-entry .essay-card {
     min-inline-size: 0;
+    border-color: var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-1);
+    transition:
+        border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-/* ── 话题云 ───────────────────────────────────────────────── */
-
-.talks-topics {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
+/* 外链命中区：桌面 32，移动 ≥44（验收「外链可点区 ≥44」只对 375/390 生效） */
+.talks .talks-entry .essay-card .essay-card__source {
+    inline-size: var(--space-8);
+    block-size: var(--space-8);
 }
 
-.talks-topic {
-    display: inline-flex;
+@media (hover: hover) {
+    .talks .talks-entry .essay-card:hover {
+        border-color: var(--color-border-default);
+        box-shadow: var(--shadow-3);
+    }
 }
 
-.talks-topic__count {
-    margin-inline-start: var(--space-1);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    /* Tag 的底色是 --color-bg-muted：小字用 fg-muted 只有 4.17 < 4.5，走默认前景色 */
-    color: var(--color-fg-default);
-    font-variant-numeric: tabular-nums;
-}
-
-/* ── 空态 / 错误态 ────────────────────────────────────────── */
+/* ── 空态 / 错误态（DataState 出结构，这里只留页面级落位） ── */
 
 .talks-state {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
-    padding: var(--space-6);
-    border: 1px dashed var(--color-border-default);
-    border-radius: var(--radius-lg);
-    background-color: var(--color-bg-sunken);
-}
-
-.talks-state--empty {
-    align-items: center;
-    text-align: center;
-    padding-block: var(--space-12);
-}
-
-.talks-state__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: var(--space-12);
-    block-size: var(--space-12);
-    border-radius: var(--radius-pill);
-    background-color: var(--color-bg-surface);
-    border: 1px solid var(--color-border-subtle);
-    color: var(--color-fg-muted);
-}
-
-.talks-state__title {
-    margin: 0;
-    font-family: var(--font-serif);
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-fg-heading);
-}
-
-.talks-state__text {
-    margin: 0;
-    max-inline-size: var(--measure-prose);
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
-    color: var(--color-fg-default);
-}
-
-.talks-state__hint {
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    /* 状态块底色是 --color-bg-sunken：fg-muted 在它上面 4.3 左右，不到 4.5 */
-    color: var(--color-fg-default);
+    min-inline-size: 0;
 }
 
 /* ── 响应式 ───────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
+    .talks-layout {
+        gap: var(--space-6);
+    }
+
     .talks-timeline {
         gap: var(--space-5);
     }
@@ -335,20 +259,29 @@
         padding-block-start: 0;
         text-align: start;
     }
+
+    /* 移动：外链命中区 ≥44×44（P3 移动项） */
+    .talks-source,
+    .talks .talks-entry .essay-card .essay-card__source {
+        min-block-size: var(--space-11);
+    }
+
+    .talks .talks-entry .essay-card .essay-card__source {
+        inline-size: var(--space-11);
+        block-size: var(--space-11);
+    }
 }
 
 @media (max-width: 450px) {
     .talks {
         gap: var(--space-8);
     }
-
-    .talks-state {
-        padding: var(--space-4);
-    }
 }
 
+/* G-18：本站自己的过渡全部归零（组件内建的归零不重复写）。 */
 @media (prefers-reduced-motion: reduce) {
-    .talks-source {
+    .talks-source,
+    .talks .talks-entry .essay-card {
         transition: none;
     }
 }

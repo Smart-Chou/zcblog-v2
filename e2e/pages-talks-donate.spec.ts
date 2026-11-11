@@ -810,6 +810,241 @@ test("移动（375 / 390）：支付卡与答疑单列、账本卡片化、0 横
     }
 });
 
+/* ───────────────── 9d. M8-6-3 随笔页结构契约（P3-01…P3-07） ───────────────── */
+
+test("P3-01/02：容器属性齐全，h1.talks-title#talks-title 恰好 1 个", async ({ page }) => {
+    const response = await page.goto(TALKS.url, { waitUntil: "load" });
+    expect(response?.status()).toBe(200);
+
+    await expect(page.locator("article.talks")).toHaveCount(1);
+    for (const attr of ["data-talks-status", "data-talks-total"]) {
+        expect(await page.locator(TALKS.shell).getAttribute(attr), `缺少 ${attr}`).not.toBeNull();
+    }
+
+    // M8-6-3 把页头换成 PageHero：h1 的语义类由 titleClass 追加、id 由 id 传入 →
+    // 旧契约选择器 `h1.talks-title#talks-title` 原样成立。
+    await expect(page.locator("h1.talks-title#talks-title")).toHaveCount(1);
+    await expect(page.locator(`${TALKS.shell} .page-hero__title`)).toHaveCount(1);
+    await expect(page.locator(TALKS.shell)).toHaveAttribute("aria-labelledby", "talks-title");
+});
+
+test("P3-03：Hero chip —— 条数恒在，标签数 / 最近时间按数据条件渲染", async ({ page }) => {
+    await page.goto(TALKS.url, { waitUntil: "load" });
+    const total = Number(await page.locator(TALKS.shell).getAttribute("data-talks-total"));
+
+    const probe = await page.evaluate((sel) => {
+        const root = document.querySelector(sel) as HTMLElement;
+        return {
+            chips: [...root.querySelectorAll(".page-hero__meta .page-hero__chip")].map((chip) => ({
+                text: (chip.textContent ?? "").trim(),
+                quiet: chip.classList.contains("page-hero__chip--quiet"),
+            })),
+            topics: root.querySelectorAll(".talks-topics .talks-topic").length,
+        };
+    }, TALKS.shell);
+
+    expect(probe.chips.length, "条数 chip 恒在").toBeGreaterThanOrEqual(1);
+    expect(probe.chips[0]?.text, "第一枚 chip 是条数").toContain(String(total));
+
+    const tagChips = probe.chips.filter((chip) => /\d+\s*(个话题|topics)/.test(chip.text));
+    expect(tagChips.length, "标签数 chip 仅当 tags>0").toBe(probe.topics > 0 ? 1 : 0);
+
+    const newestChips = probe.chips.filter((chip) => /\d{4}/.test(chip.text));
+    expect(newestChips.length, "最近时间 chip 至多一枚").toBeLessThanOrEqual(1);
+    if (newestChips.length === 1) expect(newestChips[0].quiet, "最近时间 chip 走 quiet 档").toBe(true);
+
+    expect(probe.chips.length, "chip 总数 = 条数(+标签数)(+最近时间)").toBe(
+        1 + (probe.topics > 0 ? 1 : 0) + newestChips.length,
+    );
+});
+
+test("P3-04/05：时间流是 <ol>，卡片数 = total，正文/外链契约", async ({ page }) => {
+    await page.goto(TALKS.url, { waitUntil: "load" });
+    const total = Number(await page.locator(TALKS.shell).getAttribute("data-talks-total"));
+
+    const probe = await page.evaluate((sel) => {
+        const root = document.querySelector(sel) as HTMLElement;
+        const list = root.querySelector(".talks-timeline");
+        return {
+            tag: list?.tagName ?? "",
+            cards: root.querySelectorAll(".essay-card").length,
+            ids: [...root.querySelectorAll(".essay-card")].map(
+                (el) => el.getAttribute("data-talk-id") ?? "",
+            ),
+            texts: [...root.querySelectorAll(".essay-card__text")].map((el) =>
+                (el.textContent ?? "").trim(),
+            ),
+            links: [...root.querySelectorAll(".essay-card__source")].map((el) => ({
+                href: el.getAttribute("href") ?? "",
+                target: el.getAttribute("target"),
+                rel: el.getAttribute("rel") ?? "",
+            })),
+        };
+    }, TALKS.shell);
+
+    expect(probe.tag, "时间流必须是 <ol>").toBe("OL");
+    expect(probe.cards, "卡片数 = data-talks-total").toBe(total);
+    expect(total, "adapter 应读到站点随笔").toBeGreaterThan(0);
+    expect(new Set(probe.ids).size, "随笔 id 必须唯一（锚点/去重）").toBe(probe.ids.length);
+
+    for (const text of probe.texts) {
+        expect(text, "正文不能为空").not.toBe("");
+        expect(text.includes("#"), "话题标签已从正文剔除").toBe(false);
+    }
+    for (const link of probe.links) {
+        expect(link.href).toMatch(/^https?:\/\//);
+        expect(link.target).toBe("_blank");
+        expect(link.rel).toContain("noopener");
+    }
+    console.log(`[P3] ${probe.cards} 张卡片 / ol / id 唯一 / ${probe.links.length} 条外链合格`);
+});
+
+test("P3-06：≥1024 左栏 sticky 常驻；768–1023 降级为顶部横滑不挤压正文", async ({ page }) => {
+    test.setTimeout(120_000);
+
+    const probeLayout = (sel: string) =>
+        page.evaluate((s) => {
+            const root = document.querySelector(s) as HTMLElement;
+            const layout = root.querySelector(".talks-layout") as HTMLElement;
+            const aside = root.querySelector(".talks-filters") as HTMLElement | null;
+            const main = root.querySelector(".talks-main") as HTMLElement;
+            const topics = root.querySelector(".talks-topics") as HTMLElement | null;
+            if (!aside || !topics) return null;
+            const track = (node: HTMLElement) =>
+                getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length;
+            return {
+                position: getComputedStyle(aside).position,
+                columns: track(layout),
+                overflowX: getComputedStyle(topics).overflowX,
+                ratio: aside.getBoundingClientRect().width / layout.getBoundingClientRect().width,
+                asideTop: aside.getBoundingClientRect().top,
+                mainTop: main.getBoundingClientRect().top,
+                scrollY: window.scrollY,
+            };
+        }, sel);
+
+    // ≥1024：两栏 + sticky
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(TALKS.url, { waitUntil: "load" });
+    await page.evaluate(async () => {
+        await document.fonts.ready;
+    });
+
+    const desktop = await probeLayout(TALKS.shell);
+    expect(desktop, "1440 必须有筛选栏 + 话题云").not.toBeNull();
+    expect(desktop!.columns, "≥1024 两栏").toBe(2);
+    expect(desktop!.position, "≥1024 左栏 sticky").toBe("sticky");
+    expect(desktop!.ratio, "左栏 ≈ 3.5/12 栅（下限）").toBeGreaterThan(0.2);
+    expect(desktop!.ratio, "左栏 ≈ 3.5/12 栅（上限）").toBeLessThan(0.4);
+
+    // sticky 生效：滚动后左栏仍在视口内（非 sticky 时它已经被卷走）
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(150);
+    const scrolled = await probeLayout(TALKS.shell);
+    expect(scrolled!.scrollY, "页面确实滚动了").toBeGreaterThan(400);
+    expect(scrolled!.asideTop, "左栏仍停在页头之下").toBeGreaterThanOrEqual(0);
+    expect(scrolled!.asideTop, "左栏仍停在页头之下").toBeLessThan(200);
+    console.log(
+        `[P3-06] 1440: 两栏，左栏 ${(desktop!.ratio * 100).toFixed(1)}%，sticky（滚动 500 后 top=${Math.round(scrolled!.asideTop)}）`,
+    );
+
+    // 768–1023：单列 + 非 sticky + 筛选在正文上方 + 话题云横滑 + 不挤压正文
+    for (const width of [768, 900, 1023] as const) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(TALKS.url, { waitUntil: "load" });
+        await page.evaluate(async () => {
+            await document.fonts.ready;
+        });
+        const tablet = await probeLayout(TALKS.shell);
+        expect(tablet, `${width}: 必须有筛选栏 + 话题云`).not.toBeNull();
+        expect(tablet!.columns, `${width}: 必须降级单列`).toBe(1);
+        expect(tablet!.position, `${width}: 不许 sticky`).not.toBe("sticky");
+        expect(tablet!.asideTop, `${width}: 筛选必须在正文上方`).toBeLessThan(tablet!.mainTop);
+        expect(tablet!.ratio, `${width}: 筛选不被挤压（占满一行）`).toBeGreaterThan(0.9);
+        expect(["auto", "scroll"], `${width}: 话题云必须横滑`).toContain(tablet!.overflowX);
+    }
+});
+
+test("P3-07：话题云走 Tag atom（neutral/sm），ok 态才渲染", async ({ page }) => {
+    await page.goto(TALKS.url, { waitUntil: "load" });
+
+    await expect(page.locator(`${TALKS.shell} .talks-topics`)).toHaveCount(1);
+    await expect(page.locator(`${TALKS.shell} .section-head`)).not.toHaveCount(0);
+
+    const tags = await page.evaluate(
+        (sel) =>
+            [...document.querySelectorAll(`${sel} .talks-topics .tag`)].map((el) => ({
+                cls: el.className,
+                text: (el.textContent ?? "").trim(),
+            })),
+        TALKS.shell,
+    );
+    expect(tags.length, "话题云非空").toBeGreaterThan(0);
+    for (const tag of tags) {
+        expect(tag.cls, "Tag 必须是 neutral").toContain("tag--neutral");
+        expect(tag.cls, "Tag 必须是 sm").toContain("tag--sm");
+        expect(tag.text.startsWith("#"), "话题以 # 开头").toBe(true);
+    }
+    console.log(`[P3-07] ${tags.length} 个话题走 Tag atom（neutral/sm）`);
+});
+
+test("随笔移动（375/390）：单列、0 横向溢出、外链命中区 ≥44", async ({ page }) => {
+    test.setTimeout(120_000);
+
+    for (const width of [375, 390] as const) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(TALKS.url, { waitUntil: "load" });
+        await page.evaluate(async () => {
+            await document.fonts.ready;
+        });
+
+        const probe = await page.evaluate((sel) => {
+            const root = document.querySelector(sel) as HTMLElement;
+            const layout = root.querySelector(".talks-layout") as HTMLElement;
+            const entry = root.querySelector(".talks-entry") as HTMLElement;
+            const topics = root.querySelector(".talks-topics") as HTMLElement | null;
+            const box = (node: Element | null) => {
+                const rect = node?.getBoundingClientRect();
+                return rect ? { width: rect.width, height: rect.height } : null;
+            };
+            const tracks = (node: HTMLElement) =>
+                getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length;
+            return {
+                columns: tracks(layout),
+                entryColumns: tracks(entry),
+                dayAlign: getComputedStyle(
+                    root.querySelector(".talks-entry__day") as HTMLElement,
+                ).textAlign,
+                railDisplay: getComputedStyle(root.querySelector(".talks-rail") as HTMLElement)
+                    .display,
+                topicsOverflow: topics ? getComputedStyle(topics).overflowX : null,
+                source: box(root.querySelector(".talks-source")),
+                cardSources: [...root.querySelectorAll(".essay-card__source")]
+                    .slice(0, 3)
+                    .map(box),
+                docOverflow:
+                    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            };
+        }, TALKS.shell);
+
+        expect(probe.columns, `${width}: 页面单列`).toBe(1);
+        expect(probe.entryColumns, `${width}: 日期折到卡片上方`).toBe(1);
+        expect(probe.dayAlign, `${width}: 日期左对齐`).toBe("start");
+        expect(probe.railDisplay, `${width}: 移动隐藏轨道`).toBe("none");
+        expect(["auto", "scroll"], `${width}: 话题云横滑`).toContain(probe.topicsOverflow);
+        expect(probe.docOverflow, `${width}: 页面不许横向溢出`).toBeLessThanOrEqual(1);
+
+        expect(probe.source!.height, `${width}: 页头来源外链命中区高`).toBeGreaterThanOrEqual(44);
+        for (const [index, source] of probe.cardSources.entries()) {
+            expect(source!.height, `${width}: 卡片 #${index + 1} 外链命中区高`).toBeGreaterThanOrEqual(44);
+            expect(source!.width, `${width}: 卡片 #${index + 1} 外链命中区宽`).toBeGreaterThanOrEqual(44);
+        }
+        console.log(
+            `[talks-mobile] ${width}: 单列 / 0 溢出 / 外链 ${probe.cardSources.length} 个 ≥44`,
+        );
+    }
+});
+
 /* ───────────────────────── 10. 空态 / 错误态（真实构建） ───────────────────────── */
 
 /**
@@ -861,7 +1096,7 @@ for (const state of ["empty", "error"] as const) {
             const html = readBuilt(outDir, route);
             expectAttr(html, "data-talks-status", state, `${route}: 状态必须是 ${state}`);
             expect(html, `${route}: 一条随笔都不许渲染`).not.toContain('class="essay-card"');
-            expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="talks-title"/);
+            expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="[^"]*talks-title/);
         }
 
         const zh = readBuilt(outDir, "talks");
@@ -869,11 +1104,13 @@ for (const state of ["empty", "error"] as const) {
             expect(zh, "空态块").toContain("data-talks-empty");
             expect(zh, "空态文案").toContain("还没有随笔");
             expect(zh, "空态不渲染话题云").not.toContain("talks-topics");
+            expect(zh, "空态不渲染筛选栏").not.toContain("talks-filters");
         } else {
             expect(zh, "错误态块").toContain("data-talks-error");
             expect(zh, "错误态用 Alert（warning）").toContain("alert--warning");
-            expect(zh, "错误态给出原因代码").toContain("talks-state__hint");
+            expect(zh, "错误态给出原因代码").toContain("data-state__code");
             expect(zh, "错误态不渲染空态块").not.toContain("data-talks-empty");
+            expect(zh, "错误态不渲染话题云").not.toContain("talks-topics");
         }
         console.log(`[fixture] talks-${state}: dist 产出 ${outDir}，zh/en 双路由 200-ready`);
     });
