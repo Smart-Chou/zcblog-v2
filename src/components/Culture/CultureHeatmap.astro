@@ -89,12 +89,18 @@ for (const cursor = new Date(gridStart); cursor <= gridEnd; cursor.setDate(curso
 }
 const weeks = Math.ceil(cells.length / 7);
 
-/* 月份标签：取每月 1 日所在的列，避免标签互相压住。 */
+/* 月份标签：取每月 1 日所在的列，并**跨到下一个月份之前**（span），
+   否则 12px 的单列装不下「12月」/「Jan」，文字溢出盒子会让 axe 的
+   color-contrast 判成 incomplete（背景不确定），视觉上也会压到邻居。 */
 const monthColumns = months.map((label, index) => {
     const firstOfMonth = new Date(year, index, 1);
     const offset = Math.round((firstOfMonth.getTime() - gridStart.getTime()) / 86_400_000);
     return { label, column: Math.floor(offset / 7) + 1 };
-}).filter((entry, index, list) => index === 0 || entry.column > list[index - 1].column);
+}).filter((entry, index, list) => index === 0 || entry.column > list[index - 1].column)
+    .map((entry, index, list) => ({
+        ...entry,
+        span: (list[index + 1]?.column ?? weeks + 1) - entry.column,
+    }));
 
 const activeDays = days.filter((day) => day.count > 0).length;
 ---
@@ -114,24 +120,28 @@ const activeDays = days.filter((day) => day.count > 0).length;
         </p>
     </div>
 
-    <div class="culture-heatmap__body">
-        <div class="culture-heatmap__months" aria-hidden="true">
-            {monthColumns.map((entry) => (
-                <span class="culture-heatmap__month" style={`grid-column: ${entry.column}`}>{entry.label}</span>
+    <div class="culture-heatmap__frame">
+        <ul class="culture-heatmap__weekdays" aria-hidden="true">
+            {weekRows.map((label) => (
+                <li class="culture-heatmap__weekday">{label}</li>
             ))}
-        </div>
-        <div class="culture-heatmap__plot">
-            <ul class="culture-heatmap__weekdays" aria-hidden="true">
-                {weekRows.map((label) => (
-                    <li class="culture-heatmap__weekday">{label}</li>
+        </ul>
+        <div
+            class="culture-heatmap__body"
+            role="img"
+            tabindex="0"
+            aria-label={`${title} · ${summary}`}
+        >
+            <div class="culture-heatmap__months" aria-hidden="true">
+                {monthColumns.map((entry) => (
+                    <span
+                        class="culture-heatmap__month"
+                        data-month={entry.label}
+                        style={`grid-column: ${entry.column} / span ${entry.span}`}
+                    />
                 ))}
-            </ul>
-            <div
-                class="culture-heatmap__grid"
-                role="img"
-                aria-label={`${title} · ${summary}`}
-                style={`--heatmap-weeks: ${weeks}`}
-            >
+            </div>
+            <div class="culture-heatmap__grid">
                 {cells.map((cell) => (
                     <span
                         class:list={[

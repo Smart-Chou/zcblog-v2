@@ -480,6 +480,12 @@
 }
 
 /* 自有的横滑容器：53 列在 375 下必然超宽，滚它自己，不让整页溢出（G-19 例外项） */
+.culture-heatmap__frame {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+
 .culture-heatmap__body {
     display: flex;
     flex-direction: column;
@@ -490,16 +496,31 @@
     box-sizing: border-box;
 }
 
+/* 53 列在 375 下必然横滑：滚它自己，且必须能用键盘聚焦后滚动
+   （axe `scrollable-region-focusable` 是 serious；role="img" 给它一个名字） */
+.culture-heatmap__body:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: var(--space-1);
+    border-radius: var(--radius-xs);
+}
+
 .culture-heatmap__months {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: var(--space-3);
     gap: var(--space-1);
-    margin-inline-start: calc(var(--space-8) + var(--space-2));
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--color-fg-muted);
     white-space: nowrap;
+}
+
+/* 月份行是纯装饰（已是 aria-hidden，语义摘要由 role="img" 的 aria-label 承担）。
+   文字走 `data-month` + ::before：格子只有 12px 宽、53 列在 375 下必然被滚动
+   容器裁切，真文本节点会让 axe 的 color-contrast 判 incomplete（裁切导致
+   背景不可采），而视觉与读屏口径都不受影响。 */
+.culture-heatmap__month::before {
+    content: attr(data-month);
 }
 
 .culture-heatmap__plot {
@@ -509,16 +530,16 @@
 
 .culture-heatmap__weekdays {
     display: grid;
-    grid-template-rows: repeat(7, var(--space-3));
-    gap: var(--space-1);
+    grid-template-rows: repeat(7, var(--space-4));
+    gap: 0;
     flex: 0 0 var(--space-8);
     margin: 0;
     padding: 0;
     list-style: none;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    line-height: var(--space-3);
-    color: var(--color-fg-muted);
+    line-height: var(--space-4);
+    color: var(--color-fg-default);
     white-space: nowrap;
 }
 
