@@ -19,8 +19,9 @@ from content_inventory import parse_frontmatter  # noqa: E402
 LEGACY = {
     # sticky 已收进 v2 的 content schema（置顶排序用），不再算遗留键
     # series 自 M5-12（D-0145）收进 schema，同样移出遗留键；`seriesOrder` 是它的配对字段
+    # category 自 M8-7a（D-0162）收进 schema，同样移出遗留键
     "mermaid", "mathjax", "katex", "plantuml", "chart", "markmap",
-    "tabs", "fancybox", "reveal", "category", "paid",
+    "tabs", "fancybox", "reveal", "paid",
     "type", "palette", "rendering", "references",
 }
 

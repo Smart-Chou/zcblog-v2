@@ -1,6 +1,6 @@
 /**
- * 内容模型契约 v5（G2 定稿 v4 → M5-12 增补 `series` / `seriesOrder`，D-0145；
- * 来源：blog2.0/docs/schema/article.schema.ts，D-0045）
+ * 内容模型契约 v6（G2 定稿 v4 → M5-12 增补 `series` / `seriesOrder`，D-0145；
+ * M8-7a 增补可选 `category`，D-0162；来源：blog2.0/docs/schema/article.schema.ts，D-0045）
  */
 import { defineCollection } from "astro:content";
 import { z } from "astro/zod";
@@ -71,6 +71,22 @@ export const article = defineCollection({
                  * 再按 pubDate 升序。重复编号不炸构建，回落 pubDate 决定先后（D-0145）。
                  */
                 seriesOrder: z.number().int().min(0).max(999).optional(),
+
+                /**
+                 * 分类（M8-7a · D-0162）。**可选，默认不出现**；已有 85 篇文章不回填。
+                 * 与 `series` 同一套 slug 规则（ASCII 小写 kebab，≤24），值为 URL slug，
+                 * 展示名由 slug 派生；零分类时**不生成** `/categories/` 路由，也不渲染徽章。
+                 * 旧 v1 的 `category: 日常` 由 `scripts/normalize-frontmatter.mjs` 丢弃，
+                 * 不做自动映射（映射会凭空多出一个中文分类页）。
+                 */
+                category: z
+                    .string()
+                    .min(1)
+                    .max(24)
+                    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+                        message: "category 必须是 ASCII 小写 kebab slug（例：self-hosted）",
+                    })
+                    .optional(),
 
                 /**
                  * 双语机制不变：`<slug>-en.md` + lang:en → /en/article/<slug>/，

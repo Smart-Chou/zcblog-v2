@@ -65,11 +65,20 @@ function normalizeFile(path) {
             if (ADD_ONLY) kept.push(line); // 迁移模式：保留原键，旧站还要用
             continue; // 默认（CI 拷贝）六个布尔键全部删除
         }
-        // v1 的单值分类，v2 schema 里没有对应概念（v2 只有 tags）。
-        // 只有 1 篇还带它（handsome-beautify-record.md，category: 日常），丢掉不做映射：
-        // 映射成 tag 会凭空多出一个 /tags/日常/ 页面，属于 V1 不该发生的变化。
+        // v1 的单值分类：v2 从 M8-7a 起把 `category` 收进 schema（可选 kebab slug）。
+        // 合法的 v2 slug 原样保留；旧站的中文值（如 `日常`）在 v2 构建里丢弃 ——
+        // 映射成 tag 会凭空多出一个 `/tags/日常/` 页面，属于 V1 不该发生的变化。
+        // `--add-only` 是旧站迁移模式，未知值原样保留。
         if (/^category:/.test(line)) {
-            if (ADD_ONLY) kept.push(line);
+            const value = line
+                .replace(/^category:\s*/, "")
+                .trim()
+                .replace(/^["']|["']$/g, "");
+            if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length <= 24) {
+                kept.push(`category: ${value}`);
+            } else if (ADD_ONLY) {
+                kept.push(line);
+            }
             continue;
         }
         kept.push(line);
