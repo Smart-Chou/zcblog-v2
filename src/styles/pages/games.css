@@ -1,0 +1,349 @@
+/* ============================================================
+   C-1 · 游戏页（M8-6-1：桌面 `gaming_hub_2` / 移动 `gaming_hub_1`）
+   ------------------------------------------------------------
+   本文件只服务 `/games/`：分组容器、卡片网格、卡片（无图 banner）、串流拓扑。
+   `.device-*` 留在 `entities-b.css`；两页共用外壳（`.entities` 根、`.entities-section`、
+   `.entities-notice`、`.main:has()` 定宽）在 `entities.css` —— 这里不复制它们。
+
+   版式（对照设计稿，去掉没有数据的部分）：
+   - 卡片 = 16:9 色块 banner（序号 + 平台·年份）→ 标题 + 评分 → 一句话评价 → 状态 + 时长。
+     `Game` 没有 `cover` 字段 → 不引第三方封面，也不用空 `<img>` 占位。
+   - 卡片没有分母（只有 `hours`，没有 total）→ 不出进度条，只出时长文本。
+   - 串流拓扑 = 桌面专属；节点来自设备清单，≤767 整块隐藏。
+
+   约束（与 entities.css / entities-b.css 同一判据）：
+   - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl()。
+   - 尺寸走 --space-* / --text-* / --radius-*；px 仅 1px / 2px、aspect-ratio 与断点。
+   - 刻度、序号、状态点都是装饰（aria-hidden），语义由文字承担。
+   ============================================================ */
+
+/* ── 分组容器 ─────────────────────────────────────────────── */
+
+.game-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
+    min-inline-size: 0;
+}
+
+.game-state {
+    min-inline-size: 0;
+}
+
+/* ── 卡片网格 ─────────────────────────────────────────────── */
+
+/* auto-fill：1440 三列、768 两列、375/390 单列（min 20rem = 320px）。
+   状态分组里常常只有一两条，多列不会把卡撑成一条看不到边的横线。 */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    align-items: stretch;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.game-card {
+    display: flex;
+    min-inline-size: 0;
+}
+
+.game-card__surface {
+    display: flex;
+    flex-direction: column;
+    inline-size: 100%;
+    block-size: 100%;
+}
+
+/* ── 卡片：无图 banner ───────────────────────────────────── */
+
+/*
+ * 16:9 是固定比例（设计稿同款位置），但没有图 —— 所以 banner 只承载
+ * 「第几条 + 平台·年份」两行排版，靠底色与留白撑住，不做假封面。
+ */
+.game-card__banner {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-2);
+    box-sizing: border-box;
+    aspect-ratio: 16 / 9;
+    padding: var(--space-4) var(--space-5);
+    border-block-end: 1px solid var(--color-border-subtle);
+    background-color: var(--color-bg-sunken);
+}
+
+.game-card__index {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-wide);
+    color: var(--color-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.game-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    margin: 0;
+    /* 12px 小字压在 --color-bg-sunken 上：--color-fg-muted 实测不到 4.5，
+       用默认前景色，层级交给字号与字距（与 .device-card__spec 同一判据）。 */
+    color: var(--color-fg-default);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    font-variant-numeric: tabular-nums;
+}
+
+.game-card__sep {
+    color: var(--color-border-strong);
+}
+
+/* ── 卡片：正文 ───────────────────────────────────────────── */
+
+.game-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+    min-inline-size: 0;
+}
+
+.game-card__title {
+    min-inline-size: 0;
+    margin: 0;
+    color: var(--color-fg-heading);
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+}
+
+.game-card__rating {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.game-card__scale {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.game-card__seg {
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-border-subtle);
+}
+
+.game-card__seg.is-on {
+    background-color: var(--color-accent-solid);
+}
+
+.game-card__score {
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.game-card__note {
+    margin: 0;
+    max-inline-size: var(--measure-prose);
+    color: var(--color-fg-default);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+}
+
+.game-card__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--color-border-subtle);
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    font-variant-numeric: tabular-nums;
+}
+
+.game-card__state::before {
+    content: "";
+    display: inline-block;
+    inline-size: var(--space-2);
+    block-size: var(--space-2);
+    margin-inline-end: var(--space-2);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-accent-solid);
+    vertical-align: middle;
+}
+
+.game-card[data-game-status="finished"] .game-card__state::before {
+    background-color: var(--color-status-success-solid);
+}
+
+.game-card[data-game-status="backlog"] .game-card__state::before {
+    background-color: var(--color-status-info-solid);
+}
+
+.game-card[data-game-status="shelved"] .game-card__state::before {
+    background-color: var(--color-fg-disabled);
+}
+
+/* ── 串流拓扑（桌面专属） ─────────────────────────────────── */
+
+.game-topology {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-inline-size: 0;
+}
+
+.game-topology__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.game-topology__node {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-sunken);
+    min-inline-size: 0;
+}
+
+.game-topology__role {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    color: var(--color-fg-default);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+}
+
+.game-topology__name {
+    margin: 0;
+    color: var(--color-fg-heading);
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+}
+
+.game-topology__specs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--color-fg-default);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+}
+
+.game-topology__spec {
+    overflow-wrap: anywhere;
+}
+
+.game-topology__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+    color: var(--color-fg-muted);
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+}
+
+/* 可点区 ≥44×44（G-22）：文字链接用 padding 补足命中区，不只是把字放大。 */
+.game-topology__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-block-size: var(--space-11);
+    padding-inline: var(--space-2);
+    border-radius: var(--radius-sm);
+    color: var(--color-fg-link);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+    .game-topology__link:hover {
+        color: var(--color-fg-link-hover);
+        text-decoration: underline;
+        text-underline-offset: var(--space-1);
+    }
+}
+
+.game-topology__link:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+}
+
+/* ── 响应式 ───────────────────────────────────────────────── */
+
+/* 拓扑是炫技位，不是内容：≤767 整块不渲染（selection.md §4.10）。 */
+@media (max-width: 767px) {
+    .game-topology {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .game-sections {
+        gap: var(--space-8);
+    }
+
+    .game-card__banner {
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .game-card__head {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+}
+
+@media (max-width: 450px) {
+    .game-grid {
+        gap: var(--space-4);
+    }
+
+    .game-card__index {
+        font-size: var(--text-xl);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .game-topology__link {
+        transition: none;
+    }
+}

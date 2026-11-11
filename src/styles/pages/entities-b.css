@@ -6,11 +6,9 @@
    复制就会在后续改动里各漂各的）。这样做有个前提——两页的根元素
    必须带 `.entities`（`.entities--devices` / `.entities--games`）。
 
-   版式差异是刻意的：
+   版式（M8-6-1 起只剩设备；游戏页的 `.game-*` 已整体迁进 `pages/games.css`）：
    - 设备 = 规格单（device-card）：序号 / 名称 / 分类·跨度 / 状态 → 规格短标签 → 一句话。
      双栏网格，单条独处时跨满整行（不把 352px 的卡丢在 1200 宽的格子里）。
-   - 游戏 = 台账（game-card）：一行一条，标题左、评分右、评价在下、状态与时长收尾。
-     单列铺满：状态分组里常常只有一条，多列网格会留三个空位。
 
    约束（与 entities.css 同一判据）：
    - 只消费 tokens.css 的语义 token；本文件 0 hex / rgb() / hsl()。
@@ -20,8 +18,7 @@
 
 /* ── 页内区块容器 ─────────────────────────────────────────── */
 
-.device-sections,
-.game-sections {
+.device-sections {
     display: flex;
     flex-direction: column;
     gap: var(--space-10);
@@ -222,167 +219,6 @@
     outline-offset: 2px;
 }
 
-/* ── 游戏：台账 ───────────────────────────────────────────── */
-
-.game-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.game-grid__item {
-    min-inline-size: 0;
-}
-
-.game-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    padding: var(--space-5);
-    border: 1px solid var(--color-border-subtle);
-    border-inline-start: 2px solid var(--color-border-strong);
-    border-radius: var(--radius-md);
-    background-color: var(--color-bg-surface);
-    transition: border-color var(--duration-fast) var(--ease-standard);
-}
-
-@media (hover: hover) {
-    .game-card:hover {
-        border-color: var(--color-border-default);
-        border-inline-start-color: var(--color-accent-solid);
-    }
-}
-
-.game-card__head {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: var(--space-1) var(--space-3);
-}
-
-.game-card__index {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
-    font-variant-numeric: tabular-nums;
-}
-
-.game-card__id {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    min-inline-size: 0;
-}
-
-.game-card__title {
-    margin: 0;
-    font-family: var(--font-serif);
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-semibold);
-    line-height: var(--leading-snug);
-    letter-spacing: var(--tracking-tight);
-    color: var(--color-fg-heading);
-}
-
-.game-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--space-1) var(--space-2);
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
-    font-variant-numeric: tabular-nums;
-}
-
-.game-card__sep {
-    color: var(--color-border-strong);
-}
-
-.game-card__rating {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin: 0;
-    padding-block-start: var(--space-1);
-}
-
-.game-card__scale {
-    display: inline-flex;
-    gap: 2px;
-}
-
-.game-card__seg {
-    inline-size: var(--space-2);
-    block-size: var(--space-2);
-    border-radius: var(--radius-xs);
-    background-color: var(--color-border-subtle);
-}
-
-.game-card__seg.is-on {
-    background-color: var(--color-accent-solid);
-}
-
-.game-card__score {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.game-card__note {
-    margin: 0;
-    max-inline-size: var(--measure-prose);
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
-    color: var(--color-fg-default);
-}
-
-.game-card__foot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2) var(--space-3);
-    padding-block-start: var(--space-3);
-    border-block-start: 1px solid var(--color-border-subtle);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: var(--tracking-wide);
-    color: var(--color-fg-muted);
-    font-variant-numeric: tabular-nums;
-}
-
-.game-card__state::before {
-    content: "";
-    display: inline-block;
-    inline-size: var(--space-2);
-    block-size: var(--space-2);
-    margin-inline-end: var(--space-2);
-    border-radius: var(--radius-pill);
-    background-color: var(--color-accent-solid);
-    vertical-align: middle;
-}
-
-.game-card[data-game-status="finished"] .game-card__state::before {
-    background-color: var(--color-status-success-solid);
-}
-
-.game-card[data-game-status="backlog"] .game-card__state::before {
-    background-color: var(--color-status-info-solid);
-}
-
-.game-card[data-game-status="shelved"] .game-card__state::before {
-    background-color: var(--color-fg-disabled);
-}
-
 /* ── 响应式 ───────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
@@ -398,23 +234,10 @@
         grid-column: 1 / -1;
         justify-self: start;
     }
-
-    .game-card {
-        padding: var(--space-4);
-    }
-
-    .game-card__head {
-        grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    .game-card__rating {
-        grid-column: 1 / -1;
-    }
 }
 
 @media (max-width: 450px) {
-    .device-sections,
-    .game-sections {
+    .device-sections {
         gap: var(--space-8);
     }
 
@@ -425,8 +248,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .device-card,
-    .device-card__link,
-    .game-card {
+    .device-card__link {
         transition: none;
     }
 }

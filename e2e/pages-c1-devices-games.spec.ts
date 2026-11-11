@@ -28,7 +28,7 @@ const ROOT = process.cwd();
 const AXE_SOURCE = readFileSync(path.join(ROOT, "node_modules/axe-core/axe.min.js"), "utf8");
 
 const THEMES = ["light", "dark"] as const;
-const VIEWPORTS = [390, 768, 1440] as const;
+const VIEWPORTS = [375, 390, 768, 1440] as const;
 type Theme = (typeof THEMES)[number];
 
 const DEVICES = {
@@ -54,8 +54,8 @@ const GAMES = {
 const PAGES = [DEVICES, GAMES] as const;
 
 const EVIDENCE_DIR =
-    process.env.M27B_EVIDENCE_DIR ??
-    path.resolve(ROOT, "../../hermes-desktop-files/blog2.0/docs/_reviews/M2-7b-devices-games");
+    process.env.M861_EVIDENCE_DIR ??
+    path.resolve(ROOT, "docs/_reviews/M8-6/M8-6-1");
 
 async function openPage(page: Page, url: string, theme: Theme): Promise<void> {
     const response = await page.goto(url, { waitUntil: "load" });
@@ -112,7 +112,9 @@ test("中英两页同源：状态 / 条数 / 分组数一致，en 页 h1 是英�
 
         for (const attr of attrs)
             expect(en[attr], `${page_.key}: ${attr} 中英不一致`).toEqual(zh[attr]);
-        expect(zh[`data-${page_.key}-status`]).toBe("ok");
+        // M8-6-1：游戏数据源已收口为真实空集（`games.ts` 留空 → status=empty）。
+        // 中英必须同源，但不再强行要求 ok —— devices 仍是 ok，games 允许 empty。
+        expect(["ok", "empty"]).toContain(zh[`data-${page_.key}-status`]);
         expect(zh.h1).not.toEqual(en.h1);
         expect(en.h1).toMatch(/^[A-Za-z][A-Za-z\s&]*$/);
         console.log(
@@ -305,16 +307,36 @@ test("契约：设备卡片数 = 数据条数，名称/规格/状态齐全且 id
 test("契约：游戏卡片数/分组数 = 数据，评分刻度与文字自洽", async ({ page }) => {
     await page.goto(GAMES.url, { waitUntil: "load" });
     const shell = page.locator(GAMES.shell);
+    const status = await shell.getAttribute("data-games-status");
     const total = Number(await shell.getAttribute(GAMES.total));
     const groups = Number(await shell.getAttribute(GAMES.groups));
 
     await expect(page.locator(GAMES.card)).toHaveCount(total);
     await expect(page.locator(`${GAMES.shell} .entities-section`)).toHaveCount(groups);
 
+    // M8-6-1：4 条 sample 已删，页面以**真实空态**上线（空态是设计内状态，不是缺陷）。
+    // 这里按 status 分支断言：empty 必须 0 卡 0 分组，ok 才逐条校验卡片字段。
+    if (status === "empty") {
+        expect(total, "空态 total 必须是 0").toBe(0);
+        expect(groups, "空态 groups 必须是 0").toBe(0);
+        await expect(page.locator(`${GAMES.shell} [data-games-empty]`)).toHaveCount(1);
+        await expect(page.locator(`${GAMES.shell} [data-games-error]`)).toHaveCount(0);
+        await expect(page.locator(`${GAMES.shell} .game-card`)).toHaveCount(0);
+        // G-13：空态不许有骨架屏式假卡 / 空图
+        expect(await page.locator(`${GAMES.shell} .game-card img`).count()).toBe(0);
+        console.log("[games] 真实空态：0 款 · 0 分组 · 0 卡 · 空态块可见");
+        return;
+    }
+
+    expect(status, "非空态只能是 ok（error 由专门用例覆盖）").toBe("ok");
+    expect(total, "ok 态必须真的有条目").toBeGreaterThan(0);
+
     const cards = await page.locator(GAMES.card).evaluateAll((nodes) =>
         nodes.map((node) => {
             const rating = node.getAttribute("data-game-rating");
             const scale = node.querySelector(".game-card__scale");
+            const banner = node.querySelector(".game-card__banner");
+            const rect = banner ? banner.getBoundingClientRect() : null;
             return {
                 id: node.getAttribute("data-game-id"),
                 status: node.getAttribute("data-game-status"),
@@ -326,8 +348,24 @@ test("契约：游戏卡片数/分组数 = 数据，评分刻度与文字自洽"
                 segments: scale ? scale.querySelectorAll(".game-card__seg").length : 0,
                 lit: scale ? scale.querySelectorAll(".game-card__seg.is-on").length : 0,
                 score: (node.querySelector(".game-card__score")?.textContent ?? "").trim(),
+                bannerRatio: rect && rect.height > 0 ? rect.width / rect.height : 0,
+                images: node.querySelectorAll("img").length,
+                progressbars: node.querySelectorAll('[role="progressbar"]').length,
             };
         }),
+    );
+
+    // 分组顺序固定 playing → finished → backlog → shelved（P1-04）
+    const order = await page.$$eval(`${GAMES.shell} .entities-section`, (sections) =>
+        sections.map((section) => {
+            const heading = section.querySelector("h2");
+            return heading?.id ?? "";
+        }),
+    );
+    const expectedOrder = ["playing", "finished", "backlog", "shelved"];
+    const seen = order.map((id) => id.replace("game-state-", ""));
+    expect(seen, "分组必须落在固定顺序上").toEqual(
+        expectedOrder.filter((state) => seen.includes(state)),
     );
 
     expect(new Set(cards.map((card) => card.id)).size, "游戏 id 必须唯一").toBe(cards.length);
@@ -337,6 +375,12 @@ test("契约：游戏卡片数/分组数 = 数据，评分刻度与文字自洽"
         expect(card.note.length, `游戏 ${card.id} 缺一句评价`).toBeGreaterThan(0);
         expect(card.stateText.length, `游戏 ${card.id} 状态必须有文字`).toBeGreaterThan(0);
         expect(["playing", "finished", "shelved", "backlog"]).toContain(card.status);
+        // M8-6-1：无封面字段 → 卡片内 0 张图；无分母 → 0 个进度条
+        expect(card.images, `游戏 ${card.id} 不许加载封面图`).toBe(0);
+        expect(card.progressbars, `游戏 ${card.id} 无分母不许渲染进度条`).toBe(0);
+        // banner 固定 16:9（±2% 容差，避免子像素误差）
+        expect(card.bannerRatio, `游戏 ${card.id} banner 应为 16:9`).toBeGreaterThan(1.72);
+        expect(card.bannerRatio, `游戏 ${card.id} banner 应为 16:9`).toBeLessThan(1.82);
 
         if (card.rating) {
             // 有评分：刻度 5 格、点亮数 = 分数、且有「n/5」文字（只数格子读屏拿不到）
@@ -357,15 +401,31 @@ test("契约：游戏卡片数/分组数 = 数据，评分刻度与文字自洽"
 /* ───────────────────────── 7. 装饰性元素 aria-hidden ───────────────────────── */
 
 test("装饰性元素全部 aria-hidden（序号 / 状态点 / 评分刻度）", async ({ page }) => {
+    // `required: false` 的条目允许 0 命中：M8-6-1 起游戏页以真实空态上线，
+    // 没有卡片就没有序号/刻度可断言 —— 但一旦有卡片，装饰件必须 aria-hidden。
     const expectations = [
-        [DEVICES.url, DEVICES.shell, [".device-card__index", ".device-card__status-dot"]],
-        [GAMES.url, GAMES.shell, [".game-card__index", ".game-card__scale"]],
+        {
+            url: DEVICES.url,
+            shell: DEVICES.shell,
+            selectors: [".device-card__index", ".device-card__status-dot"],
+            required: true,
+        },
+        {
+            url: GAMES.url,
+            shell: GAMES.shell,
+            selectors: [".game-card__index", ".game-card__scale"],
+            required: false,
+        },
     ] as const;
 
-    for (const [url, shell, selectors] of expectations) {
+    for (const { url, shell, selectors, required } of expectations) {
         await page.goto(url, { waitUntil: "load" });
         for (const selector of selectors) {
             const count = await page.locator(`${shell} ${selector}`).count();
+            if (count === 0 && !required) {
+                console.log(`[a11y] ${url}: 空态下没有 ${selector}，跳过`);
+                continue;
+            }
             expect(count, `${url}: 没有 ${selector} 可断言`).toBeGreaterThan(0);
             const hidden = await page
                 .locator(`${shell} ${selector}`)
@@ -407,6 +467,45 @@ test("导航：新增两个入口存在、不溢出、可点击", async ({ page 
     }
 });
 
+/* ───────────────────────── 8.5 M8-6-1 游戏页专项 ───────────────────────── */
+
+test("M8-6-1 P1-03/P1-07：Hero meta 条件渲染 + 串流拓扑只桌面", async ({ page }) => {
+    // P1-03：总数 chip 恒在；已通关 / 小时 chip 只在 >0 时出现；更新时间 chip 只在 feed.updated 非空时出现
+    for (const url of [GAMES.url, GAMES.en] as const) {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto(url, { waitUntil: "load" });
+        const shell = page.locator(GAMES.shell);
+        const total = Number(await shell.getAttribute(GAMES.total));
+        const chips = await page.$$eval(`${GAMES.shell} .page-hero__chip`, (nodes) =>
+            nodes.map((node) => (node.textContent ?? "").trim()),
+        );
+        expect(chips.length, `${url}: 页头至少要有总数 chip`).toBeGreaterThanOrEqual(1);
+        expect(chips[0], `${url}: 第一枚 chip 是总数`).toContain(String(total));
+        const joined = chips.join(" | ");
+        if (total === 0) {
+            expect(joined, `${url}: 0 款时不许出现「0 款通关」`).not.toMatch(/0\s*(款通关|finished)/);
+            expect(joined, `${url}: 0 小时时不许出现「0 小时记录」`).not.toMatch(
+                /0\s*(小时记录|hours logged)/,
+            );
+        }
+    }
+
+    // P1-07：拓扑桌面在、≤767 不在（它不是内容，是炫技位）
+    for (const [width, visible] of [
+        [1440, true],
+        [390, false],
+        [375, false],
+    ] as const) {
+        for (const theme of THEMES) {
+            await page.setViewportSize({ width, height: 900 });
+            await openPage(page, GAMES.url, theme);
+            const shown = await page.locator(".game-topology").isVisible();
+            expect(shown, `${width}px ${theme}: 拓扑可见性`).toBe(visible);
+        }
+    }
+    console.log("[m8-6-1] Hero chips 条件渲染 OK · 拓扑 1440 可见 / 375·390 隐藏");
+});
+
 /* ───────────────────────── 9. 空数据（真实构建） ───────────────────────── */
 
 test("空数据可构建：真实构建两页为空态，路由仍 200", async ({ page }) => {
@@ -440,13 +539,14 @@ test("空数据可构建：真实构建两页为空态，路由仍 200", async (
 
 /* ───────────────────────── 10. 证据截图 ───────────────────────── */
 
-test("证据截图：devices light/dark 1440 + games light 1440/390", async ({ page }) => {
+test("证据截图：games 1440 light/dark + 390 light + 375 light", async ({ page }) => {
     if (!existsSync(EVIDENCE_DIR)) mkdirSync(EVIDENCE_DIR, { recursive: true });
+    // M8-6-1：本页 ∉ PAGES → V-06 以证据代替 gated 基线（验收标准 §4.2 / §2.1）。
     const shots = [
-        { url: DEVICES.url, theme: "light" as Theme, width: 1440, name: "devices-light-1440.png" },
-        { url: DEVICES.url, theme: "dark" as Theme, width: 1440, name: "devices-dark-1440.png" },
         { url: GAMES.url, theme: "light" as Theme, width: 1440, name: "games-light-1440.png" },
+        { url: GAMES.url, theme: "dark" as Theme, width: 1440, name: "games-dark-1440.png" },
         { url: GAMES.url, theme: "light" as Theme, width: 390, name: "games-light-390.png" },
+        { url: GAMES.url, theme: "light" as Theme, width: 375, name: "games-light-375.png" },
     ];
     for (const shot of shots) {
         await page.setViewportSize({ width: shot.width, height: 900 });

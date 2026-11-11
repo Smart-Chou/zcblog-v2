@@ -1,15 +1,25 @@
 ---
 /**
- * GameCard — C 层（M2-7b）单条游戏记录
+ * GameCard — C 层（M2-7b；M8-6-1 视觉重做）单条游戏记录
  *
  * 契约：只吃 `Game`（src/types/entities.ts）+ locale，0 数据、0 站点私有文案。
- * 结构：序号 / 标题 · 平台+年份 / 评分 → 一句评价 → 时长。
- * 状态（在玩 / 已通关 …）由页面按状态分组承载，卡片只留 `data-game-status` 供门禁断言，
- * 不再重复一个五颜六色的状态块 —— 同一屏里状态已经由分组标题说清楚。
+ * 外壳复用 `UI/atom/Card.astro`（D-0149 一页一主方案）：**不给 Card 加 prop**，
+ * 语义钩子 `.game-card` 与 `data-game-*` 落在 `<li>` 上，Card 只负责纸面与 hover。
  *
- * a11y：序号与五星刻度都是装饰（aria-hidden）；评分另有「4/5」文字，
- * 不让只靠数格子的人（读屏、色弱）拿不到分数。没填 rating 就不渲染评分块，不显示 0 分。
+ * 结构（`gaming_hub_2` 的无图版）：
+ *   media  —— 16:9 色块 banner：序号（装饰）+ 平台·年份（唯一事实来源，不引第三方封面）
+ *   header —— 标题 + 评分（仅 rating 有值时才出 5 格 + 「n/5」）
+ *   content— 一句话评价
+ *   footer —— 状态文案 + 时长文本
+ *
+ * 两张诚实性红线：
+ *   1. 卡片没有封面字段（`Game` 无 `cover`）→ banner 走色块，不加载站外封面、不空 `<img>`。
+ *   2. 没有分母（只有 `hours`，没有 total）→ **不渲染** `role="progressbar"`，只出时长文本。
+ *
+ * a11y：序号与五星刻度都是装饰（aria-hidden）；评分另有「4/5」文字，不让只数格子的人
+ * 拿不到分数。没填 rating 就不渲染评分块，不显示 0 分。
  */
+import Card from "~/components/UI/atom/Card.astro";
 import {
     gamePlatformLabel,
     gameStatusLabel,
@@ -37,17 +47,16 @@ const ordinal = String(index).padStart(2, "0");
 const segments = [1, 2, 3, 4, 5] as const;
 ---
 
-<article
+<li
     class="game-card"
     data-game-id={game.id}
     data-game-status={game.status}
     data-game-platforms={game.platforms.join(" ")}
     data-game-rating={rating ?? ""}
 >
-    <header class="game-card__head">
-        <span class="game-card__index" aria-hidden="true">{ordinal}</span>
-        <div class="game-card__id">
-            <h3 class="game-card__title">{title}</h3>
+    <Card as="div" variant="interactive" padding="md" class="game-card__surface">
+        <div slot="media" class="game-card__banner">
+            <span class="game-card__index" aria-hidden="true">{ordinal}</span>
             <p class="game-card__meta">
                 <span class="game-card__platforms">{platforms.join(" · ")}</span>
                 {
@@ -62,25 +71,29 @@ const segments = [1, 2, 3, 4, 5] as const;
                 }
             </p>
         </div>
-        {
-            rating !== null && (
-                <p class="game-card__rating" data-rating={rating}>
-                    <span class="game-card__scale" aria-hidden="true">
-                        {segments.map((segment) => (
-                            <i class:list={["game-card__seg", { "is-on": segment <= rating }]} />
-                        ))}
-                    </span>
-                    {/* 分数必须有一段可读文字：刻度条只是给眼睛的，读屏读到的是「4/5」 */}
-                    <span class="game-card__score">{rating}/5</span>
-                </p>
-            )
-        }
-    </header>
 
-    <p class="game-card__note">{note}</p>
+        <div slot="header" class="game-card__head">
+            <h3 class="game-card__title">{title}</h3>
+            {
+                rating !== null && (
+                    <p class="game-card__rating" data-rating={rating}>
+                        <span class="game-card__scale" aria-hidden="true">
+                            {segments.map((segment) => (
+                                <i class:list={["game-card__seg", { "is-on": segment <= rating }]} />
+                            ))}
+                        </span>
+                        {/* 分数必须有一段可读文字：刻度条只是给眼睛的，读屏读到的是「4/5」 */}
+                        <span class="game-card__score">{rating}/5</span>
+                    </p>
+                )
+            }
+        </div>
 
-    <footer class="game-card__foot">
-        <span class="game-card__state">{statusLabel}</span>
-        {hoursLabel && <span class="game-card__hours">{hoursLabel}</span>}
-    </footer>
-</article>
+        <p class="game-card__note">{note}</p>
+
+        <div slot="footer" class="game-card__foot">
+            <span class="game-card__state">{statusLabel}</span>
+            {hoursLabel && <span class="game-card__hours">{hoursLabel}</span>}
+        </div>
+    </Card>
+</li>
