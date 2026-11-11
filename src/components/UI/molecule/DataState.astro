@@ -1,0 +1,171 @@
+---
+/**
+ * DataState — DESIGN.md §5.6.15（molecule，M8-6-0）
+ *
+ * 数据派的两个终止态：`empty`（真实空集）与 `error`（取数失败）。两态互斥（G-14）。
+ * **无 loading 变体**：6 页全部构建期取数，没有客户端加载态（O5）。
+ *
+ *   empty  圆形 icon 底（--space-12 / bg-muted / pill）+ h2 + 说明 + action
+ *   error  Alert tone="warning"（标题 + 说明）+ 可选 mono 原因码行
+ *
+ * 断点契约（@media 只允许 450 / 768 / 1024）：
+ *   ≥768  纵向 padding --space-12，icon 直径 --space-12
+ *   ≤450  padding --space-8，icon 直径 --space-10；副文案仍 --text-sm（不降 xs）
+ *
+ * a11y：静态空态不加 `role="status"`（加载即存在，不是 live region）；icon 一律装饰；
+ * 原因码是文本不是颜色（N5）；标题层级 h2（承接页面 h1）。
+ * 依赖白名单：Icon、Alert。JS 0 字节。
+ */
+import Alert from "../atom/Alert.astro";
+import Icon from "../atom/Icon.astro";
+
+export interface Props {
+    /** 必填：empty / error 互斥。 */
+    kind: "empty" | "error";
+    /** 标题（empty → h2；error → Alert 标题）。 */
+    title: string;
+    /** 说明文案。 */
+    message: string;
+    /** `kind="empty"` 时必填：Icons 闭集图标名；`error` 忽略（固定用 Alert 的 warning 图标）。 */
+    icon?: string;
+    /** `kind="error"` 时渲染 mono 原因码行；缺省不渲染该行（不写 unknown 占位）。 */
+    code?: string;
+    /** 原因码行前缀（i18n 由页面注入）。 */
+    codeLabel?: string;
+    class?: string;
+}
+
+const {
+    kind,
+    title,
+    message,
+    icon,
+    code,
+    codeLabel = "原因代码",
+    class: className,
+} = Astro.props;
+
+const hasAction = Astro.slots.has("default");
+const isError = kind === "error";
+---
+
+{
+    !isError ? (
+        <div class:list={["data-state", "data-state--empty", className]}>
+            {icon && (
+                <span class="data-state__icon">
+                    <Icon name={icon} size="lg" />
+                </span>
+            )}
+            <h2 class="data-state__title">{title}</h2>
+            <p class="data-state__message">{message}</p>
+            {hasAction && (
+                <div class="data-state__action">
+                    <slot />
+                </div>
+            )}
+        </div>
+    ) : (
+        <div class:list={["data-state", "data-state--error", className]}>
+            <Alert tone="warning" title={title}>
+                <p class="data-state__message">{message}</p>
+                {code && (
+                    <p class="data-state__code">
+                        {codeLabel}：<span class="data-state__code-value">{code}</span>
+                    </p>
+                )}
+                {hasAction && (
+                    <div slot="actions" class="data-state__action">
+                        <slot />
+                    </div>
+                )}
+            </Alert>
+        </div>
+    )
+}
+
+<style>
+    .data-state {
+        box-sizing: border-box;
+        font-family: var(--font-sans);
+    }
+
+    .data-state--empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        padding-block: var(--space-12);
+        text-align: center;
+    }
+
+    .data-state__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: var(--space-12);
+        block-size: var(--space-12);
+        color: var(--color-fg-muted);
+        background-color: var(--color-bg-muted);
+        border-radius: var(--radius-pill);
+    }
+
+    .data-state__title {
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-xl);
+        font-weight: var(--font-weight-regular);
+        letter-spacing: var(--tracking-tight);
+        line-height: var(--leading-tight);
+    }
+
+    .data-state__message {
+        max-inline-size: var(--measure-prose);
+        margin: 0;
+        color: var(--color-fg-default);
+        font-size: var(--text-sm);
+        line-height: var(--leading-relaxed);
+    }
+
+    .data-state__code {
+        margin: var(--space-2) 0 0;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        line-height: var(--leading-tight);
+    }
+
+    .data-state__code-value {
+        word-break: break-all;
+    }
+
+    .data-state__action {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        margin-block-start: var(--space-2);
+    }
+
+    .data-state--error .data-state__message,
+    .data-state--error .data-state__action {
+        margin-block-start: 0;
+    }
+
+    .data-state--error .data-state__action {
+        justify-content: flex-start;
+    }
+
+    @media (max-width: 450px) {
+        .data-state--empty {
+            padding-block: var(--space-8);
+        }
+
+        .data-state__icon {
+            inline-size: var(--space-10);
+            block-size: var(--space-10);
+        }
+    }
+</style>

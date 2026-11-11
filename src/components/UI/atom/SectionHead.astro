@@ -1,0 +1,113 @@
+---
+/**
+ * SectionHead — DESIGN.md §5.6.14（atom，M8-6-0）
+ *
+ * 分组小标题行：`title` + 右侧 `meta` 说明 + 右侧 `action` 链接。
+ * 只出标题行，`<section>` 与 `aria-labelledby` 归页面；`id` 必填，页面依赖它。
+ *
+ * 断点契约（@media 只允许 450 / 768 / 1024）：
+ *   ≥768  一行两端对齐，底边 1px border-subtle，padding-block-end --space-3
+ *   ≤768  改两行（column，gap --space-2），避免长 meta 在 375 挤压标题
+ *
+ * `meta` 是纯文本（不是 Tag 胶囊），计数/排序文案由页面注入（i18n 不进组件）。
+ * 依赖白名单：无（action slot 由页面传入 Link）。JS 0 字节。
+ */
+export interface Props {
+    /** 标题文本。 */
+    title: string;
+    /** 右侧说明（如「固定顺序」「最新在上」）；纯文本。 */
+    meta?: string;
+    /** h2 / h3 的 id，必填：页面的 `<section aria-labelledby>` 依赖它。 */
+    id: string;
+    /** 标题层级，默认 2；系列详情用 3 时不得跳级。 */
+    level?: 2 | 3;
+    class?: string;
+}
+
+const { title, meta, id, level = 2, class: className } = Astro.props;
+
+const Heading = (`h${level}`) as "h2" | "h3";
+const hasAction = Astro.slots.has("action");
+---
+
+<div class:list={["section-head", className]}>
+    <Heading class="section-head__title" id={id}>{title}</Heading>
+    {
+        (meta || hasAction) && (
+            <div class="section-head__side">
+                {meta && <p class="section-head__meta">{meta}</p>}
+                {
+                    hasAction && (
+                        <div class="section-head__action">
+                            <slot name="action" />
+                        </div>
+                    )
+                }
+            </div>
+        )
+    }
+</div>
+
+<style>
+    .section-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-3);
+        box-sizing: border-box;
+        padding-block-end: var(--space-3);
+        border-block-end: 1px solid var(--color-border-subtle);
+        font-family: var(--font-sans);
+    }
+
+    .section-head__title {
+        min-inline-size: 0;
+        margin: 0;
+        color: var(--color-fg-heading);
+        font-family: var(--font-serif);
+        font-size: var(--text-2xl);
+        font-weight: var(--font-weight-regular);
+        letter-spacing: var(--tracking-tight);
+        line-height: var(--leading-tight);
+    }
+
+    .section-head__side {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: var(--space-3);
+        margin-inline-start: auto;
+    }
+
+    .section-head__meta {
+        margin: 0;
+        color: var(--color-fg-muted);
+        font-size: var(--text-xs);
+        line-height: var(--leading-tight);
+    }
+
+    .section-head__action {
+        display: inline-flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        font-size: var(--text-sm);
+        line-height: var(--leading-tight);
+    }
+
+    .section-head__action :global(a) {
+        color: var(--color-fg-link);
+    }
+
+    @media (max-width: 768px) {
+        .section-head {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-2);
+        }
+
+        .section-head__side {
+            margin-inline-start: 0;
+        }
+    }
+</style>
