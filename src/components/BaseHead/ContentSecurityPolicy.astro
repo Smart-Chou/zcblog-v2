@@ -24,6 +24,12 @@ const scriptSrc = [
     .filter(Boolean)
     .join(" ");
 
+// `/radio/` prototype only: two exact live-stream origins, no wildcard.
+// Keep this list in sync with `src/components/Layout/RadioDock.astro`.
+const mediaSrc = ["'self'", "https://stream.radioparadise.com", "https://stream.nightride.fm"].join(
+    " ",
+);
+
 const connectSrc = [
     "'self'",
     ...extraOrigins,
@@ -39,5 +45,5 @@ const connectSrc = [
 <!-- Content Security Policy -->
 <meta
     http-equiv="Content-Security-Policy"
-    content={`default-src 'self'; script-src ${scriptSrc}; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.bootcdn.net; font-src 'self' https://cdn.bootcdn.net; img-src 'self' data: https:; connect-src ${connectSrc}; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests`}
+    content={`default-src 'self'; script-src ${scriptSrc}; worker-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.bootcdn.net; font-src 'self' https://cdn.bootcdn.net; img-src 'self' data: https:; media-src ${mediaSrc}; connect-src ${connectSrc}; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests`}
 />

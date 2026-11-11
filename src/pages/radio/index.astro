@@ -1,0 +1,24 @@
+---
+/**
+ * Dogeared Radio · `/radio/` prototype shell.
+ * The content and the page-scoped dock live in RadioPageContent.
+ */
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import RadioPageContent from "~/components/Radio/RadioPageContent.astro";
+import { getLocale } from "~/utils/i18n";
+
+const locale = getLocale(Astro.currentLocale || "zh");
+const isEn = locale === "en";
+---
+
+<BaseLayout
+    title={`${isEn ? "Radio" : "电台"} · Dogeared Radio`}
+    description={isEn
+        ? "A live signal for the desk: two stations, one small dock, no algorithm."
+        : "给书桌的一条实时信号：两个电台，一个小 Dock，没有算法。"}
+    locale={locale}
+    noindex
+    fullWidth
+>
+    <RadioPageContent locale={locale} />
+</BaseLayout>

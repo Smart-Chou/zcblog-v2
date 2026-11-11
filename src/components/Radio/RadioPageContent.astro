@@ -1,0 +1,119 @@
+---
+/**
+ * Dogeared Radio · page content (shared by `/radio/` and `/en/radio/`)
+ *
+ * The page shell lives in `src/pages/**`; this component owns the copy and the
+ * page-scoped dock. It is not a registry UI component (see DESIGN §4.5).
+ */
+import "~/styles/tokens/tokens.css";
+import "~/styles/pages/radio.css";
+import PageHero from "~/components/UI/molecule/PageHero.astro";
+import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import RadioDock from "~/components/Layout/RadioDock.astro";
+
+export interface Props {
+    locale?: string;
+}
+
+const { locale = "zh" } = Astro.props;
+const isEn = locale === "en";
+
+const copy = isEn
+    ? {
+          kicker: "DOGEARED RADIO · PROTOTYPE",
+          title: "Radio",
+          lede: "A live signal for the desk: two stations, one small dock, no algorithm. Tune in and leave it running while you read.",
+          open: "Open the dock",
+          stationsTitle: "Stations",
+          stationsMeta: "LIVE · 24/7",
+          paradise: "Human-curated · Main Mix",
+          nightride: "Synthwave · 24/7",
+          notesTitle: "Why these two",
+          notes: [
+              "Radio Paradise is the default: human curation, no ads, and a public 128 kbps stream meant for players like this one.",
+              "Nightride FM is the night shift: synthwave sub-channels and live DJ shows, for when the reading turns into writing.",
+              "The dock stops when you leave this page. It is a prototype, not the final site-wide player.",
+          ],
+      }
+    : {
+          kicker: "DOGEARED RADIO · 原型",
+          title: "电台",
+          lede: "给书桌的一条实时信号：两个电台，一个小 Dock，没有算法。打开后可以一直放着，边读边听。",
+          open: "打开播放器",
+          stationsTitle: "电台",
+          stationsMeta: "LIVE · 24/7",
+          paradise: "人工策展 · Main Mix",
+          nightride: "Synthwave · 24/7",
+          notesTitle: "为什么是这两个",
+          notes: [
+              "Radio Paradise 是默认台：人工策展、无广告，公开的 128 kbps 流本来就是给这类播放器用的。",
+              "Nightride FM 是夜班台：synthwave 子频道 + 现场 DJ，适合从阅读切到写作的时候。",
+              "离开这个页面播放就会停。这是原型，不是最终的站级播放器。",
+          ],
+      };
+---
+
+<div class="radio-page">
+    <PageHero
+        kicker={copy.kicker}
+        title={copy.title}
+        lede={copy.lede}
+        slug="radio"
+        meta={[
+            { label: "2 stations", quiet: true },
+            { label: "128 kbps · live", quiet: true },
+            { label: "prototype", quiet: true },
+        ]}
+    />
+
+    <section class="radio-page__signal" aria-labelledby="radio-signal-title">
+        <div>
+            <p class="radio-page__eyebrow">SIGNAL 01 · ON AIR</p>
+            <h2 class="radio-page__headline" id="radio-signal-title">
+                {isEn ? "Leave a little room for the radio." : "给电台留一点位置。"}
+            </h2>
+            <p class="radio-page__copy">
+                {
+                    isEn
+                        ? "The dock is deliberately quiet: one play button, two stations, a volume slider, and a link back to the station's own page."
+                        : "Dock 刻意做得很安静：一个播放键、两个电台、一个音量条，以及回到电台自己页面的链接。"
+                }
+            </p>
+            <button class="radio-page__cta" type="button" data-radio-open>
+                {copy.open}
+            </button>
+        </div>
+        <div class="radio-page__dial" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+    </section>
+
+    <section aria-labelledby="radio-stations-title">
+        <SectionHead
+            title={copy.stationsTitle}
+            meta={copy.stationsMeta}
+            id="radio-stations-title"
+        />
+        <ul class="radio-page__stations">
+            <li>
+                <div class="radio-page__station">
+                    <span class="radio-page__station-name">Radio Paradise</span>
+                    <span class="radio-page__station-meta">{copy.paradise}</span>
+                </div>
+            </li>
+            <li>
+                <div class="radio-page__station">
+                    <span class="radio-page__station-name">Nightride FM</span>
+                    <span class="radio-page__station-meta">{copy.nightride}</span>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <section class="radio-page__notes" aria-labelledby="radio-notes-title">
+        <h2 class="radio-page__eyebrow" id="radio-notes-title">{copy.notesTitle}</h2>
+        {copy.notes.map((paragraph) => <p>{paragraph}</p>)}
+    </section>
+</div>
+
+<RadioDock />

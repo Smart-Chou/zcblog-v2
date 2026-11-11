@@ -178,6 +178,16 @@ const lang = htmlLangOf(getLocale(locale));
             };
             loadAlbumLightbox();
             document.addEventListener("astro:page-load", loadAlbumLightbox);
+
+            // `/radio/` prototype: load the dock only when the route contains it.
+            // The module is a page-scoped player, not a site-wide singleton.
+            const loadRadioDock = () => {
+                if (document.querySelector("[data-radio-dock]")) {
+                    void import("~/scripts/radio-dock");
+                }
+            };
+            loadRadioDock();
+            document.addEventListener("astro:page-load", loadRadioDock);
         </script>
     </body>
 </html>

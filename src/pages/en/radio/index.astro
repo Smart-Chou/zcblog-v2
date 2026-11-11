@@ -1,0 +1,20 @@
+---
+/**
+ * Dogeared Radio · English prototype route (`/en/radio/`).
+ * Chinese-first page lives at `/radio/`; both share RadioPageContent.
+ */
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import RadioPageContent from "~/components/Radio/RadioPageContent.astro";
+
+const locale = "en";
+---
+
+<BaseLayout
+    title="Radio · Dogeared Radio"
+    description="A live signal for the desk: two stations, one small dock, no algorithm."
+    locale={locale}
+    noindex
+    fullWidth
+>
+    <RadioPageContent locale={locale} />
+</BaseLayout>
