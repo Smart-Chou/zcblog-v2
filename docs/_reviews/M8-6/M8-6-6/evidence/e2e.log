@@ -1,0 +1,367 @@
+
+Running 84 tests using 1 worker
+
+[1/84] [chromium] › e2e/pages-albums.spec.ts:111:5 › route 200 albums zh
+[2/84] [chromium] › e2e/pages-albums.spec.ts:111:5 › route 200 albums en
+[3/84] [chromium] › e2e/pages-albums.spec.ts:121:1 › route 200 album detail（zh + en）
+[4/84] [chromium] › e2e/pages-albums.spec.ts:133:1 › 中英两页同源：状态 / 相册数 / 张数 / 地点数一致，en 页 h1 是英文
+[chromium] › e2e/pages-albums.spec.ts:133:1 › 中英两页同源：状态 / 相册数 / 张数 / 地点数一致，en 页 h1 是英文
+[i18n] 相册 / Albums · albums 13 · photos 292 · places 5
+
+[5/84] [chromium] › e2e/pages-albums.spec.ts:164:1 › 恰好 1 个 h1，标题层级不跳级（列表页 + 详情页，双语言）
+[chromium] › e2e/pages-albums.spec.ts:164:1 › 恰好 1 个 h1，标题层级不跳级（列表页 + 详情页，双语言）
+[h1] /albums/: 1 个 h1，15 个标题，0 跳级
+
+[h1] /en/albums/: 1 个 h1，15 个标题，0 跳级
+
+[h1] /albums/shenzhen_feng-huang-shan/: 1 个 h1，2 个标题，0 跳级
+
+[h1] /en/albums/shenzhen_feng-huang-shan/: 1 个 h1，2 个标题，0 跳级
+
+[6/84] [chromium] › e2e/pages-albums.spec.ts:195:1 › 页面顺序 = 数据顺序，reload 后不变
+[chromium] › e2e/pages-albums.spec.ts:195:1 › 页面顺序 = 数据顺序，reload 后不变
+[order] 13 本相册 · 详情 12 张 · reload 顺序不变
+
+[7/84] [chromium] › e2e/pages-albums.spec.ts:232:1 › 地点筛选：点某地点只留当地相册，点回「全部」全部回来
+[chromium] › e2e/pages-albums.spec.ts:232:1 › 地点筛选：点某地点只留当地相册，点回「全部」全部回来
+[filter] 深圳: 9/13 本
+
+[filter] 广州: 1/13 本
+
+[filter] 惠州: 1/13 本
+
+[filter] 武汉: 1/13 本
+
+[filter] 清远: 1/13 本
+
+[8/84] [chromium] › e2e/pages-albums.spec.ts:276:1 › 缩略图与原图分离：数量对账 + 地址形状互斥
+[chromium] › e2e/pages-albums.spec.ts:276:1 › 缩略图与原图分离：数量对账 + 地址形状互斥
+[split] 12 张：缩略图 12 条（width=640）· 原图 12 条（图床，无宽度）
+
+[9/84] [chromium] › e2e/pages-albums.spec.ts:328:1 › 三视口列数：390 → 1、768 → 2、1440 → 3（列表页 + 详情页）
+[chromium] › e2e/pages-albums.spec.ts:328:1 › 三视口列数：390 → 1、768 → 2、1440 → 3（列表页 + 详情页）
+[columns] 390px → 墙 1 列（355px）· 照片 1 列（355px）
+
+[columns] 768px → 墙 2 列（354.5px 354.5px）· 照片 2 列（354.5px 354.5px）
+
+[columns] 1440px → 墙 3 列（348px 348px 348px）· 照片 3 列（348px 348px 348px）
+
+[10/84] [chromium] › e2e/pages-albums.spec.ts:366:1 › 灯箱：点开显示原图，Esc 关闭后焦点回到被点的那一张
+[chromium] › e2e/pages-albums.spec.ts:366:1 › 灯箱：点开显示原图，Esc 关闭后焦点回到被点的那一张
+[lightbox] 打开 → 主视图 2 条原图 · Esc 关闭 → 焦点归还 a[data-photo-index="0"]
+
+[11/84] [chromium] › e2e/pages-albums.spec.ts:417:1 › overflow albums（light/dark × 390/768/1440，列表页 + 详情页）
+[12/84] [chromium] › e2e/pages-albums.spec.ts:498:5 › axe albums light（列表页 + 详情页）
+[chromium] › e2e/pages-albums.spec.ts:498:5 › axe albums light（列表页 + 详情页）
+[axe] /albums/ light: violations=0 incomplete=0
+
+[axe] /albums/shenzhen_feng-huang-shan/ light: violations=0 incomplete=0
+
+[13/84] [chromium] › e2e/pages-albums.spec.ts:498:5 › axe albums dark（列表页 + 详情页）
+[chromium] › e2e/pages-albums.spec.ts:498:5 › axe albums dark（列表页 + 详情页）
+[axe] /albums/ dark: violations=0 incomplete=0
+
+[axe] /albums/shenzhen_feng-huang-shan/ dark: violations=0 incomplete=0
+
+[14/84] [chromium] › e2e/pages-albums.spec.ts:526:1 › 导航：相册入口存在、不溢出、可点击
+[chromium] › e2e/pages-albums.spec.ts:526:1 › 导航：相册入口存在、不溢出、可点击
+[nav] 390px: 相册入口可点击 → http://127.0.0.1:4321/albums/
+
+[nav] 1440px: 相册入口可点击 → http://127.0.0.1:4321/albums/
+
+[15/84] [chromium] › e2e/pages-albums.spec.ts:553:1 › 空数据可构建：真实构建为空态，路由仍 200
+[chromium] › e2e/pages-albums.spec.ts:553:1 › 空数据可构建：真实构建为空态，路由仍 200
+[empty] 真实构建：空态、0 本相册、页头保留、路由 200
+
+[16/84] [chromium] › e2e/pages-albums.spec.ts:581:1 › 证据截图：列表页 light/dark 1440 + light 390，详情页 + 灯箱打开态
+[chromium] › e2e/pages-albums.spec.ts:581:1 › 证据截图：列表页 light/dark 1440 + light 390，详情页 + 灯箱打开态
+[evidence] 6 张截图 → /Users/chowcong/Documents/hermes-desktop-files/blog2.0/docs/_reviews/M2-8c-albums
+
+[17/84] [chromium] › e2e/pages-article.spec.ts:64:5 › routes › route-zh 200
+[18/84] [chromium] › e2e/pages-article.spec.ts:71:5 › routes › route-en 200
+[19/84] [chromium] › e2e/pages-article.spec.ts:87:1 › 恰好 1 个 h1，标题层级不跳级
+[chromium] › e2e/pages-article.spec.ts:87:1 › 恰好 1 个 h1，标题层级不跳级
+[h1] 1 个 h1，38 个进大纲的标题，0 处跳级（另有 4 个 aria-hidden 的 aside 标题）
+
+[20/84] [chromium] › e2e/pages-article.spec.ts:120:13 › no horizontal overflow › overflow-light-390
+[21/84] [chromium] › e2e/pages-article.spec.ts:120:13 › no horizontal overflow › overflow-dark-390
+[22/84] [chromium] › e2e/pages-article.spec.ts:120:13 › no horizontal overflow › overflow-light-768
+[23/84] [chromium] › e2e/pages-article.spec.ts:120:13 › no horizontal overflow › overflow-dark-768
+[24/84] [chromium] › e2e/pages-article.spec.ts:120:13 › no horizontal overflow › overflow-light-1440
+[25/84] [chromium] › e2e/pages-article.spec.ts:120:13 › no horizontal overflow › overflow-dark-1440
+[26/84] [chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-light-1440
+[chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-light-1440
+[axe] light@1440 文章主体 .post: serious/critical=0 moderate=0 minor=0 incomplete=1
+
+[axe]   serious color-contrast × 2 — Elements must meet minimum color contrast ratio thresholds
+
+[axe] light@1440 目录 .toc: serious/critical=0 moderate=0 minor=0 incomplete=0
+
+[axe] light@1440 整页 document: serious/critical=1 moderate=0 minor=0 incomplete=1
+
+[axe]   serious color-contrast × 2 — Elements must meet minimum color contrast ratio thresholds
+
+[axe]   serious color-contrast × 4 — Elements must meet minimum color contrast ratio thresholds
+
+  1) [chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-light-1440 ───────────
+
+    Error: axe could not finish on 文章主体 .post at light
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "color-contrast (2 node(s))",
+    + ]
+
+      266 |                     result.incomplete.map((v) => `${v.id} (${v.nodes.length} node(s))`),
+      267 |                     `axe could not finish on ${label} at ${theme}`,
+    > 268 |                 ).toEqual([]);
+          |                   ^
+      269 |             }
+      270 |         });
+      271 |     }
+        at /Users/chowcong/Documents/WebSiteCode/zcblog-v2/e2e/pages-article.spec.ts:268:19
+
+    Error Context: test-results/pages-article-axe-WCAG-2-x-A-AA-axe-light-1440-chromium/error-context.md
+
+
+[27/84] [chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-dark-1440
+[chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-dark-1440
+[axe] dark@1440 文章主体 .post: serious/critical=0 moderate=0 minor=0 incomplete=1
+
+[axe]   serious color-contrast × 2 — Elements must meet minimum color contrast ratio thresholds
+
+[axe] dark@1440 目录 .toc: serious/critical=0 moderate=0 minor=0 incomplete=0
+
+[axe] dark@1440 整页 document: serious/critical=0 moderate=0 minor=0 incomplete=1
+
+[axe]   serious color-contrast × 3 — Elements must meet minimum color contrast ratio thresholds
+
+  2) [chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-dark-1440 ────────────
+
+    Error: axe could not finish on 文章主体 .post at dark
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "color-contrast (2 node(s))",
+    + ]
+
+      266 |                     result.incomplete.map((v) => `${v.id} (${v.nodes.length} node(s))`),
+      267 |                     `axe could not finish on ${label} at ${theme}`,
+    > 268 |                 ).toEqual([]);
+          |                   ^
+      269 |             }
+      270 |         });
+      271 |     }
+        at /Users/chowcong/Documents/WebSiteCode/zcblog-v2/e2e/pages-article.spec.ts:268:19
+
+    Error Context: test-results/pages-article-axe-WCAG-2-x-A-AA-axe-dark-1440-chromium/error-context.md
+
+
+[28/84] [chromium] › e2e/pages-article.spec.ts:299:1 › Tab 顺序 + 焦点环
+[chromium] › e2e/pages-article.spec.ts:299:1 › Tab 顺序 + 焦点环
+[kbd] visited=103/103 unreachable=[]
+
+[kbd] 页面内焦点环 samples=8 颜色偏差=0 ｜ chrome（共享 Header/Footer）samples=a:rgb(194, 65, 59), a:rgb(194, 65, 59), button:rgb(166, 51, 27), button:rgb(194, 65, 59), button:rgb(194, 65, 59), a:rgb(166, 51, 27)
+
+[29/84] [chromium] › e2e/pages-article.spec.ts:430:5 › prefers-reduced-motion › 0 动画 / 位移 <0.5px
+[chromium] › e2e/pages-article.spec.ts:430:5 › prefers-reduced-motion › 0 动画 / 位移 <0.5px
+[motion] 探针 8 个，运行中动画 0，位移 0
+
+[30/84] [chromium] › e2e/pages-article.spec.ts:484:1 › CLS ≤ 0.05（load 后 2s）
+[chromium] › e2e/pages-article.spec.ts:484:1 › CLS ≤ 0.05（load 后 2s）
+[cls] article @1440 = 0.0000
+
+[31/84] [chromium] › e2e/pages-article.spec.ts:511:1 › 分享弹层关闭态：0 额外网络请求（二维码点击时本地生成）
+[chromium] › e2e/pages-article.spec.ts:511:1 › 分享弹层关闭态：0 额外网络请求（二维码点击时本地生成）
+[share] 关闭态请求 63 个，第三方 QR 相关 0
+
+[32/84] [chromium] › e2e/pages-article.spec.ts:555:1 › 徽标 sprite：图标走 /icons.svg 且全部解析出图形（无缺图）
+[chromium] › e2e/pages-article.spec.ts:555:1 › 徽标 sprite：图标走 /icons.svg 且全部解析出图形（无缺图）
+[sprite] 44 个 <use> 实例，sprite 内 70 个 <g>，缺 id 0，零尺寸 0（隐藏 30）
+
+[33/84] [chromium] › e2e/pages-article.spec.ts:611:1 › D-0082：TOC 目录写在构建产物里
+[chromium] › e2e/pages-article.spec.ts:611:1 › D-0082：TOC 目录写在构建产物里
+[toc] 构建产物：29 个目录锚点，6 个可折叠一级项，0 个缺 id
+
+[34/84] [chromium] › e2e/pages-article.spec.ts:632:1 › 目录链接可跳（1440，tocbot 接管后）
+  3) [chromium] › e2e/pages-article.spec.ts:632:1 › 目录链接可跳（1440，tocbot 接管后） ────────────────────────
+
+    TimeoutError: page.waitForFunction: Timeout 3000ms exceeded.
+
+      642 |     // tocbot 的 `scrollSmoothDuration` 是 420ms，固定 400ms 会在滚动途中量到落点
+      643 |     // （实测 mid-scroll = 333px，误判成「跑太远」）。改为等 scrollY 稳定。
+    > 644 |     await page.waitForFunction(
+          |                ^
+      645 |         () =>
+      646 |             new Promise<boolean>((resolve) => {
+      647 |                 const start = window.scrollY;
+        at /Users/chowcong/Documents/WebSiteCode/zcblog-v2/e2e/pages-article.spec.ts:644:16
+
+    Error Context: test-results/pages-article-目录链接可跳（1440，tocbot-接管后）-chromium/error-context.md
+
+
+[35/84] [chromium] › e2e/pages-article.spec.ts:688:5 › 无 JS：目录仍渲染且可跳（D-0082） › 目录可见 + 锚点跳转生效
+[chromium] › e2e/pages-article.spec.ts:688:5 › 无 JS：目录仍渲染且可跳（D-0082） › 目录可见 + 锚点跳转生效
+[toc] no-js：29 个目录链接，点击 #准备工作 命中标题
+
+[36/84] [chromium] › e2e/pages-article.spec.ts:720:5 › M6-3：移动目录抽屉 › 静态目录卡隐藏 + 抽屉 Esc 关闭且焦点回填
+[chromium] › e2e/pages-article.spec.ts:720:5 › M6-3：移动目录抽屉 › 静态目录卡隐藏 + 抽屉 Esc 关闭且焦点回填
+[toc] 移动抽屉：29 条目录，x=375，Esc/遮罩关闭 + 焦点回填
+
+[37/84] [chromium] › e2e/pages-article.spec.ts:799:5 › 无 JS：移动目录抽屉仍可用（声明式 popover） › 抽屉可开 + 锚点跳转生效
+[chromium] › e2e/pages-article.spec.ts:799:5 › 无 JS：移动目录抽屉仍可用（声明式 popover） › 抽屉可开 + 锚点跳转生效
+[toc] 移动 no-js：29 条目录，点击 #准备工作 → top=99.71875
+
+[38/84] [chromium] › e2e/pages-article.spec.ts:829:1 › D-0089：阅读进度条随滚动推进
+[chromium] › e2e/pages-article.spec.ts:829:1 › D-0089：阅读进度条随滚动推进
+[progress] scaleX: top=0 mid=0.539178
+
+[39/84] [chromium] › e2e/pages-article.spec.ts:861:1 › D-0090：浏览量占位带 data-path
+[40/84] [chromium] › e2e/pages-article.spec.ts:871:1 › 分享 / 版权 / 相关三块齐备（双端可见）
+[41/84] [chromium] › e2e/pages-article.spec.ts:922:13 › evidence screenshots › full-light-390
+[42/84] [chromium] › e2e/pages-article.spec.ts:922:13 › evidence screenshots › full-light-1440
+[43/84] [chromium] › e2e/pages-article.spec.ts:922:13 › evidence screenshots › full-dark-390
+[44/84] [chromium] › e2e/pages-article.spec.ts:922:13 › evidence screenshots › full-dark-1440
+[45/84] [chromium] › e2e/pages-culture.spec.ts:123:5 › route 200 culture zh
+[46/84] [chromium] › e2e/pages-culture.spec.ts:123:5 › route 200 culture en
+[47/84] [chromium] › e2e/pages-culture.spec.ts:134:1 › 中英两页同源：入口 / 计数 / 去重口径一致，en 页链到 /en/ 路由
+[chromium] › e2e/pages-culture.spec.ts:134:1 › 中英两页同源：入口 / 计数 / 去重口径一致，en 页链到 /en/ 路由
+[i18n] 文化 / Culture · entries 3 · raw 45 · unique 41 · overlap 4
+
+[48/84] [chromium] › e2e/pages-culture.spec.ts:165:1 › 恰好 1 个 h1，标题层级不跳级（双语言）
+[chromium] › e2e/pages-culture.spec.ts:165:1 › 恰好 1 个 h1，标题层级不跳级（双语言）
+[h1] /culture/: 1 个 h1，46 个标题，0 跳级
+
+[h1] /en/culture/: 1 个 h1，46 个标题，0 跳级
+
+[49/84] [chromium] › e2e/pages-culture.spec.ts:195:1 › overflow culture（light/dark × 390/768/1440）
+[50/84] [chromium] › e2e/pages-culture.spec.ts:271:5 › axe culture light
+[chromium] › e2e/pages-culture.spec.ts:271:5 › axe culture light
+[axe] culture light: violations=0 incomplete=0
+
+[51/84] [chromium] › e2e/pages-culture.spec.ts:271:5 › axe culture dark
+[chromium] › e2e/pages-culture.spec.ts:271:5 › axe culture dark
+[axe] culture dark: violations=0 incomplete=0
+
+[52/84] [chromium] › e2e/pages-culture.spec.ts:296:1 › 契约：每卡有来源/标题/说明/3 统计/构成，卡内 1 个链接，raw − overlap = unique
+[chromium] › e2e/pages-culture.spec.ts:296:1 › 契约：每卡有来源/标题/说明/3 统计/构成，卡内 1 个链接，raw − overlap = unique
+[contract] 顺序说明：固定顺序 · 番剧 → 豆瓣书影音 → 歌单
+
+[contract] 3 个入口 · raw 45 − overlap 4 = unique 41
+
+[53/84] [chromium] › e2e/pages-culture.spec.ts:357:1 › 只链接已存在路由：每个入口 200 且无重定向，页面内站内链接无 404
+[chromium] › e2e/pages-culture.spec.ts:357:1 › 只链接已存在路由：每个入口 200 且无重定向，页面内站内链接无 404
+[routes] 3 个入口 + 3 条站内链接全部 200
+
+[54/84] [chromium] › e2e/pages-culture.spec.ts:384:1 › 旧路由保留：/bangumi/ /douban/ /music/ 200 且没有 301/302
+[chromium] › e2e/pages-culture.spec.ts:384:1 › 旧路由保留：/bangumi/ /douban/ /music/ 200 且没有 301/302
+[legacy] /bangumi/ /douban/ /music/ · 全部 200 · 0 重定向
+
+[55/84] [chromium] › e2e/pages-culture.spec.ts:400:1 › 导航：文化入口存在、不溢出、可点击
+[chromium] › e2e/pages-culture.spec.ts:400:1 › 导航：文化入口存在、不溢出、可点击
+[nav] 390px: 文化入口可点击 → http://127.0.0.1:4321/culture/
+
+[nav] 1440px: 文化入口可点击 → http://127.0.0.1:4321/culture/
+
+[56/84] [chromium] › e2e/pages-culture.spec.ts:426:1 › 条件渲染：真实构建 PUBLIC_CULTURE_OMIT=music → 音乐入口不渲染，其余不受影响
+[chromium] › e2e/pages-culture.spec.ts:426:1 › 条件渲染：真实构建 PUBLIC_CULTURE_OMIT=music → 音乐入口不渲染，其余不受影响
+[conditional] dist/culture/index.html: data-culture-link="music" 0 次；href="/music/" 1 次（全局导航）
+
+[conditional] 页面：2 张卡 · raw 41 · unique 41 · overlap 0 · 音乐入口 0
+
+[57/84] [chromium] › e2e/pages-culture.spec.ts:516:1 › 证据截图：culture light/dark 1440 + light 390
+[chromium] › e2e/pages-culture.spec.ts:516:1 › 证据截图：culture light/dark 1440 + light 390
+[evidence] 3 张截图 → /Users/chowcong/Documents/hermes-desktop-files/blog2.0/docs/_reviews/M2-9-culture
+
+[58/84] [chromium] › e2e/pages-culture.spec.ts:557:1 › M8-6-2 四段轨：anime/bookshelf/cinema/music 四段在场、每段有可访问标题、无空轨
+[59/84] [chromium] › e2e/pages-culture.spec.ts:592:1 › M8-6-2 热力图口径：只吃 douban.json 的 date，标题写「豆瓣入账日期」，计数与数据文件对账
+[chromium] › e2e/pages-culture.spec.ts:592:1 › M8-6-2 热力图口径：只吃 douban.json 的 date，标题写「豆瓣入账日期」，计数与数据文件对账
+[heatmap] 1 个入账日 / 10 条 · 371 格 · 「豆瓣入账日期 · 2026」
+
+[60/84] [chromium] › e2e/pages-culture.spec.ts:631:1 › M8-6-2 结构：无 error 态、culture-note 两个数都报、卡顶边 1px + hover shadow-3
+[61/84] [chromium] › e2e/pages-culture.spec.ts:691:1 › M8-6-2 移动四段（375/390）：snap 生效、Tab 可达、高度不跳、不裁半张卡、0 横向溢出
+[chromium] › e2e/pages-culture.spec.ts:691:1 › M8-6-2 移动四段（375/390）：snap 生效、Tab 可达、高度不跳、不裁半张卡、0 横向溢出
+[mobile] 375: 四段 snap/Tab/高度/裁切 全部成立
+
+[mobile] 390: 四段 snap/Tab/高度/裁切 全部成立
+
+[62/84] [chromium] › e2e/pages-culture.spec.ts:797:1 › M8-6-2 axe 375：light/dark 下 serious+critical=0、incomplete=0（M-13）
+[chromium] › e2e/pages-culture.spec.ts:797:1 › M8-6-2 axe 375：light/dark 下 serious+critical=0、incomplete=0（M-13）
+[axe375] light: violations=0 incomplete=0
+
+[axe375] dark: violations=0 incomplete=0
+
+[63/84] [chromium] › e2e/pages-culture.spec.ts:822:1 › M8-6-2 证据：1440 light/dark、390/375 light、四段起终截图
+[chromium] › e2e/pages-culture.spec.ts:822:1 › M8-6-2 证据：1440 light/dark、390/375 light、四段起终截图
+[evidence] 4 张页级 + 8 张四段起终 → /Users/chowcong/Documents/WebSiteCode/zcblog-v2/docs/_reviews/M8-6/M8-6-2
+
+[64/84] [chromium] › e2e/pages-home.spec.ts:57:9 › routes › route-zh 200
+[65/84] [chromium] › e2e/pages-home.spec.ts:57:9 › routes › route-en 200
+[66/84] [chromium] › e2e/pages-home.spec.ts:67:1 › 恰好 1 个 h1
+[67/84] [chromium] › e2e/pages-home.spec.ts:93:13 › no horizontal overflow › overflow-light-390
+[68/84] [chromium] › e2e/pages-home.spec.ts:93:13 › no horizontal overflow › overflow-dark-390
+[69/84] [chromium] › e2e/pages-home.spec.ts:93:13 › no horizontal overflow › overflow-light-768
+[70/84] [chromium] › e2e/pages-home.spec.ts:93:13 › no horizontal overflow › overflow-dark-768
+[71/84] [chromium] › e2e/pages-home.spec.ts:93:13 › no horizontal overflow › overflow-light-1440
+[72/84] [chromium] › e2e/pages-home.spec.ts:93:13 › no horizontal overflow › overflow-dark-1440
+[73/84] [chromium] › e2e/pages-home.spec.ts:172:9 › axe (WCAG 2.x A/AA) › axe-light-1440
+[chromium] › e2e/pages-home.spec.ts:172:9 › axe (WCAG 2.x A/AA) › axe-light-1440
+[axe] light@1440 页面内容 .home: serious/critical=0 moderate=0 minor=0 incomplete=0
+
+[axe] light@1440 整页 document: serious/critical=1 moderate=0 minor=0 incomplete=1
+
+[axe]   serious color-contrast × 2 — Elements must meet minimum color contrast ratio thresholds
+
+[axe]   serious color-contrast × 2 — Elements must meet minimum color contrast ratio thresholds
+
+[74/84] [chromium] › e2e/pages-home.spec.ts:172:9 › axe (WCAG 2.x A/AA) › axe-dark-1440
+[chromium] › e2e/pages-home.spec.ts:172:9 › axe (WCAG 2.x A/AA) › axe-dark-1440
+[axe] dark@1440 页面内容 .home: serious/critical=0 moderate=0 minor=0 incomplete=0
+
+[axe] dark@1440 整页 document: serious/critical=0 moderate=0 minor=0 incomplete=1
+
+[axe]   serious color-contrast × 1 — Elements must meet minimum color contrast ratio thresholds
+
+[75/84] [chromium] › e2e/pages-home.spec.ts:249:1 › Tab 顺序 + 焦点环
+[chromium] › e2e/pages-home.spec.ts:249:1 › Tab 顺序 + 焦点环
+[kbd] visited=53/53 unreachable=[]
+
+[kbd] 页面内容焦点环 samples=6 颜色偏差=0 ｜ chrome（共享 Header/Footer，非本卡边界）samples=a:rgb(194, 65, 59), a:rgb(194, 65, 59), button:rgb(166, 51, 27), button:rgb(194, 65, 59), button:rgb(194, 65, 59), a:rgb(166, 51, 27)
+
+[kbd] 53 个可聚焦元素，页面内容焦点环样本 6
+
+[76/84] [chromium] › e2e/pages-home.spec.ts:387:5 › prefers-reduced-motion › 0 动画 / 位移 <0.5px
+[chromium] › e2e/pages-home.spec.ts:387:5 › prefers-reduced-motion › 0 动画 / 位移 <0.5px
+[motion] 探针 7 个，运行中动画 0，位移 0
+
+[77/84] [chromium] › e2e/pages-home.spec.ts:444:1 › CLS ≤ 0.05（load 后 2s）
+[chromium] › e2e/pages-home.spec.ts:444:1 › CLS ≤ 0.05（load 后 2s）
+[cls] home @1440 = 0.0000
+
+[78/84] [chromium] › e2e/pages-home.spec.ts:471:1 › 关闭态 0 额外请求（本页无 overlay / 播放器 / 灯箱）
+[79/84] [chromium] › e2e/pages-home.spec.ts:489:13 › evidence screenshots › shot-light-390
+[80/84] [chromium] › e2e/pages-home.spec.ts:489:13 › evidence screenshots › shot-dark-390
+[81/84] [chromium] › e2e/pages-home.spec.ts:489:13 › evidence screenshots › shot-light-768
+[82/84] [chromium] › e2e/pages-home.spec.ts:489:13 › evidence screenshots › shot-dark-768
+[83/84] [chromium] › e2e/pages-home.spec.ts:489:13 › evidence screenshots › shot-light-1440
+[84/84] [chromium] › e2e/pages-home.spec.ts:489:13 › evidence screenshots › shot-dark-1440
+  Slow test file: [chromium] › e2e/pages-culture.spec.ts (6.5m)
+  Slow test file: [chromium] › e2e/pages-albums.spec.ts (6.3m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  3 failed
+    [chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-light-1440 ────────────
+    [chromium] › e2e/pages-article.spec.ts:214:9 › axe (WCAG 2.x A/AA) › axe-dark-1440 ─────────────
+    [chromium] › e2e/pages-article.spec.ts:632:1 › 目录链接可跳（1440，tocbot 接管后） ─────────────────────────
+  11 skipped
+  70 passed (14.1m)
+EXIT=1
