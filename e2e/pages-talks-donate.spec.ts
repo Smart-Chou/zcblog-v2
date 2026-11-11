@@ -1178,6 +1178,8 @@ for (const page_ of PAGES) {
             { name: `${page_.key}-light-1440.png`, theme: "light" as Theme, width: 1440 },
             { name: `${page_.key}-dark-1440.png`, theme: "dark" as Theme, width: 1440 },
             { name: `${page_.key}-light-390.png`, theme: "light" as Theme, width: 390 },
+            // M8-6-3 / M8-6-4 起两页都要 375 证据（QA §3.5 移动最低限度）
+            { name: `${page_.key}-light-375.png`, theme: "light" as Theme, width: 375 },
         ];
 
         for (const shot of shots) {
