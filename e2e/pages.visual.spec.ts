@@ -168,6 +168,9 @@ async function openPage(page: Page, spec: PageSpec, theme: Theme): Promise<void>
                       }),
             ),
         );
+        // `complete` can be true for a lazy image that has not actually decoded yet
+        // (naturalWidth 0); decode() closes that gap or rejects harmlessly for stubs.
+        await Promise.all([...document.images].map((img) => img.decode().catch(() => undefined)));
 
         // 3. fonts, then a scroll pass for anything that initialises on visibility
         await document.fonts.ready;

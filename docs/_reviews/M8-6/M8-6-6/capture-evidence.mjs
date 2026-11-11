@@ -43,7 +43,7 @@ const log = [];
 for (const [name, url] of ROUTES) {
     for (const theme of THEMES) {
         const page = await browser.newPage({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2 });
-        await page.goto(BASE + url, { waitUntil: "load" });
+        await page.goto(BASE + url, { waitUntil: "domcontentloaded" });
         await setTheme(page, theme);
         await page.screenshot({ path: path.join(OUT, `${name}-375-${theme}.png`) });
 
@@ -66,7 +66,7 @@ for (const [name, url] of ROUTES) {
     // 390×844 溢出日志
     for (const theme of THEMES) {
         const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-        await page.goto(BASE + url, { waitUntil: "load" });
+        await page.goto(BASE + url, { waitUntil: "domcontentloaded" });
         await setTheme(page, theme);
         const overflow = await page.evaluate(() => {
             const de = document.documentElement;
@@ -90,7 +90,7 @@ for (const [name, url] of ROUTES) {
 /* ── 底栏量测（375 / 640 / 768） ─────────────────────────── */
 for (const width of [375, 640, 768]) {
     const page = await browser.newPage({ viewport: { width, height: 812 } });
-    await page.goto(BASE + "/talks/", { waitUntil: "load" });
+    await page.goto(BASE + "/talks/", { waitUntil: "domcontentloaded" });
     await settle(page);
     const m = await page.evaluate(() => {
         const nav = document.querySelector(".bottom-tabs");
@@ -134,29 +134,37 @@ const shot = async (file, fn) => {
 };
 
 await shot("toc-open-375.png", async (page) => {
-    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", { waitUntil: "load" });
+    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", { waitUntil: "domcontentloaded" });
     await settle(page);
     await page.click('button[popovertarget="post-toc-drawer"]');
     await settle(page);
 });
 
 await shot("toc-closed-375.png", async (page) => {
-    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", { waitUntil: "load" });
+    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", { waitUntil: "domcontentloaded" });
     await settle(page);
     await page.keyboard.press("Escape");
 });
 
 await shot("albums-lightbox-375.png", async (page) => {
-    await page.goto(BASE + "/albums/", { waitUntil: "load" });
+    await page.goto(BASE + "/albums/shenzhen_feng-huang-shan/", { waitUntil: "domcontentloaded" });
     await settle(page);
-    const link = page.locator("#fancybox-gallery a, .albums-wall a[href*='.jpg'], .albums-wall a").first();
+    const link = page.locator("#fancybox-gallery a").first();
     await link.click();
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(
+        () => {
+            const img = document.querySelector(".fancybox__slide.is-selected img, .fancybox__image");
+            return Boolean(img && img.complete && img.naturalWidth > 0);
+        },
+        undefined,
+        { timeout: 8000 },
+    ).catch(() => {});
+    await page.waitForTimeout(400);
 });
 
 for (const [tag, side] of [["start", "start"], ["end", "end"]]) {
     const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
-    await page.goto(BASE + "/culture/", { waitUntil: "load" });
+    await page.goto(BASE + "/culture/", { waitUntil: "domcontentloaded" });
     await settle(page);
     const railInfo = await page.evaluate((where) => {
         const rails = [...document.querySelectorAll("[data-culture-rail-track]")].filter(

@@ -1,0 +1,306 @@
+[
+  {
+    "route": "home",
+    "theme": "light",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 1,
+      "violations": []
+    }
+  },
+  {
+    "route": "home",
+    "theme": "dark",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 1,
+      "violations": []
+    }
+  },
+  {
+    "route": "home",
+    "theme": "light",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": []
+    }
+  },
+  {
+    "route": "home",
+    "theme": "dark",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": []
+    }
+  },
+  {
+    "route": "article",
+    "theme": "light",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 1,
+      "violations": []
+    }
+  },
+  {
+    "route": "article",
+    "theme": "dark",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 1,
+      "violations": []
+    }
+  },
+  {
+    "route": "article",
+    "theme": "light",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": [
+        "thead. L11 R408",
+        "tr. L11 R408",
+        "th. L111 R408",
+        "tbody. L11 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408"
+      ]
+    }
+  },
+  {
+    "route": "article",
+    "theme": "dark",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": [
+        "thead. L11 R408",
+        "tr. L11 R408",
+        "th. L111 R408",
+        "tbody. L11 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408",
+        "td. L111 R408",
+        "tr. L11 R408"
+      ]
+    }
+  },
+  {
+    "route": "albums",
+    "theme": "light",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 0,
+      "violations": []
+    }
+  },
+  {
+    "route": "albums",
+    "theme": "dark",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 0,
+      "violations": []
+    }
+  },
+  {
+    "route": "albums",
+    "theme": "light",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": []
+    }
+  },
+  {
+    "route": "albums",
+    "theme": "dark",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": []
+    }
+  },
+  {
+    "route": "culture",
+    "theme": "light",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 0,
+      "violations": []
+    }
+  },
+  {
+    "route": "culture",
+    "theme": "dark",
+    "axe": {
+      "serious": 0,
+      "critical": 0,
+      "incomplete": 0,
+      "violations": []
+    }
+  },
+  {
+    "route": "culture",
+    "theme": "light",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": [
+        "li.culture-media__cell L344 R662",
+        "article.culture-media L344 R662",
+        "p.culture-media__source L361 R645",
+        "span.culture-media__source-name L361 R416",
+        "span.culture-media__tag L424 R467",
+        "h3.culture-media__title L361 R645",
+        "a.culture-media__link L361 R452",
+        "span.culture-media__title-text L361 R424",
+        "span.culture-media__arrow L432 R452",
+        "span.icon L432 R452",
+        "svg.[object L432 R452",
+        "use.[object L439 R444",
+        "p.culture-media__meta L361 R645",
+        "p.culture-media__rating L361 R645",
+        "li.culture-media__cell L678 R997"
+      ]
+    }
+  },
+  {
+    "route": "culture",
+    "theme": "dark",
+    "overflow390": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "offenders": [
+        "li.culture-media__cell L344 R662",
+        "article.culture-media L344 R662",
+        "p.culture-media__source L361 R645",
+        "span.culture-media__source-name L361 R416",
+        "span.culture-media__tag L424 R467",
+        "h3.culture-media__title L361 R645",
+        "a.culture-media__link L361 R452",
+        "span.culture-media__title-text L361 R424",
+        "span.culture-media__arrow L432 R452",
+        "span.icon L432 R452",
+        "svg.[object L432 R452",
+        "use.[object L439 R444",
+        "p.culture-media__meta L361 R645",
+        "p.culture-media__rating L361 R645",
+        "li.culture-media__cell L678 R997"
+      ]
+    }
+  },
+  {
+    "bottomTabs": 375,
+    "display": "block",
+    "count": 4,
+    "box": [
+      "84x52",
+      "84x52",
+      "84x52",
+      "84x52"
+    ],
+    "minGap": 8,
+    "current": [
+      "talks"
+    ],
+    "bodyPadBottom": "60px",
+    "navPadBottom": "0px"
+  },
+  {
+    "bottomTabs": 640,
+    "display": "block",
+    "count": 4,
+    "box": [
+      "150x52",
+      "150x52",
+      "150x52",
+      "150x52"
+    ],
+    "minGap": 8,
+    "current": [
+      "talks"
+    ],
+    "bodyPadBottom": "60px",
+    "navPadBottom": "0px"
+  },
+  {
+    "bottomTabs": 768,
+    "display": "none",
+    "count": 4,
+    "box": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0"
+    ],
+    "minGap": 0,
+    "current": [
+      "talks"
+    ],
+    "bodyPadBottom": "0px",
+    "navPadBottom": "0px"
+  },
+  {
+    "interaction": "toc-open-375.png",
+    "open": true,
+    "backdrop": "rgba(18, 19, 22, 0.55)",
+    "active": "<button class=\"post-toc-trigger\" type=\"button\" popovertarget=\"post-toc-drawer\" aria-controls=\"post-toc-drawer\"><svg widt",
+    "scrollLock": "visible"
+  },
+  {
+    "interaction": "toc-closed-375.png",
+    "open": false,
+    "backdrop": "rgba(18, 19, 22, 0.55)",
+    "active": "<body><a href=\"#main-content\" class=\"skip-link\">跳至内容</a><script type=\"module\">(function(){const t=document.getElementByI",
+    "scrollLock": "visible"
+  },
+  {
+    "interaction": "albums-lightbox-375.png",
+    "open": null,
+    "backdrop": null,
+    "active": "<div class=\"fancybox__container fancybox--album has-thumbs has-vertical-thumbs is-ready\" tabindex=\"0\" theme=\"dark\" role=",
+    "scrollLock": "hidden"
+  },
+  {
+    "interaction": "culture-rail-start",
+    "railInfo": {
+      "selector": "anime",
+      "scrollLeft": 0,
+      "max": 4127
+    }
+  },
+  {
+    "interaction": "culture-rail-end",
+    "railInfo": {
+      "selector": "anime",
+      "scrollLeft": 4127,
+      "max": 4127
+    }
+  }
+]
