@@ -86,7 +86,14 @@ $ ./node_modules/.bin/playwright test e2e/pages-culture.spec.ts → 19 passed (2
 
 `culture-{light,dark}-{375,768,1280}.png`
 
-- macOS 侧：**本轮未完成**（1800s 预算耗尽在 e2e/axe 收口之后），命令见 §4.3，属于下一 session 的第一件事。
+- macOS 侧：**已刷新并复核**（commit `2c47cfc`）。
+  ```
+  node scripts/visual/build-pages-baseline.mjs                       → 133 pages 0 error
+  PLAYWRIGHT_BASELINE_PLATFORM=macos playwright test … -g culture --update-snapshots → 6 passed
+  PLAYWRIGHT_BASELINE_PLATFORM=macos playwright test … --retries=0  → 38 passed / 4 failed
+  ```
+  `git status e2e/__screenshots__` 只有 culture 6 张 → 其余 36 张 **0 差异**（shasum 未变，未提交即证明）。
+  4 条失败全部是 `albums-{light,dark}-{375,1280}`：`/albums/` 不在本卡边界（未改 `src/pages/albums/**` 与 `albums.css`），是**既有基线漂移**，需单独开卡处理，本卡不夹带。
 - Linux 侧：按卡面边界**不由 worker 执行**，交 QA/operator 用 `mcr.microsoft.com/playwright:v1.63.0-noble` 跑。
 - 其余 36 张：本卡只动 `src/pages/culture/**`、`src/components/Culture/**`、`src/styles/pages/culture.css`、`e2e/pages-culture.spec.ts` → 命中 V-05（单页），不改共享表面，理论上 0 差异，**需在基线刷新后逐张 shasum 复核**。
 
