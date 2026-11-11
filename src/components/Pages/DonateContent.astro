@@ -1,22 +1,30 @@
 ---
 /**
- * P-07 · 赞赏页（M2-6b）
+ * P-07 · 赞赏页（M2-6b 初版；M8-6-4 视觉重做 = `donate_supporters_2` 桌面 / `donate_supporters_1` 移动）
  *
- * 结构：
- *   1. hero      —— h1 / 一句话说明 / 支持者数·累计金额·收款方式数
- *   2. 支持方式  —— 注入的收款方式（二维码/外链）；未注入 → 明确提示，不渲染空 <img>
- *   3. 名单      —— 三态：ok（卡片网格）/ empty（空态块）/ error（警示块 + 原因代码）
- *   4. 致谢      —— 一段收尾文案（任何一态都渲染）
+ * 结构（M8-6-4）：
+ *   1. 页头     —— `PageHero`（kicker / h1 / lede / 统计行）；h1 保留语义类 `.donations-title`
+ *   2. 收款方式 —— `SectionHead` + 3 列支付卡（wechat / alipay / paypal）；未开放 / 无收款方式走 Alert
+ *   3. 年度账本 —— `SectionHead` + `<table>`（caption + `th[scope]`）；375 下改卡片列表
+ *   4. 芳名录   —— `SectionHead` + `DonatorsList`（ok）/ `DataState`（empty / error）
+ *   5. 赞助答疑 —— `SectionHead` + 3 条问答（文案取自 `donate_supporters_2/code.html` L521+）
+ *   6. 致谢     —— 收尾块（任何一态都渲染）
  *
  * 约束：
  * - 数据只来自 props.feed（donate adapter）+ props.qr（页面解析好的二维码资源）；
- *   本组件 0 数据、0 站点私有文案。
+ *   本组件 0 数据读取、0 站点私有取数逻辑。
  * - 样式在 src/styles/pages/donate.css（0 颜色字面量、尺寸全部 token）。
- * - 标题层级 h1 → h2，任何一态都不跳级（e2e 覆盖）。
+ * - 标题层级 h1 → h2 → h3，任何一态都不跳级（e2e 覆盖）。
+ * - **账本零金额**：金额列与「年度覆盖进度」只在 PO 提供真实数值时渲染。当前无数据源
+ *   → 只公示开支项（名称 + 用途），不写 0、不复制设计稿样稿数字（¥1,420 / 68%）。
+ * - 零客户端 JS：本组件没有 `<script>`，答疑/账本都不需要交互。
  */
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import Icon from "~/components/UI/atom/Icon.astro";
+import PageHero from "~/components/UI/molecule/PageHero.astro";
+import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import DataState from "~/components/UI/molecule/DataState.astro";
 import Alert from "~/components/UI/atom/Alert.astro";
+import Icon from "~/components/UI/atom/Icon.astro";
 import QrCard from "~/components/UI/QrCard.astro";
 import DonatorsList from "~/components/UI/DonatorsList.astro";
 import WalineComment from "~/components/UI/WalineComment.astro";
@@ -65,6 +73,129 @@ const countLabel = isEn ? `${resolved.total} supporters` : `${resolved.total} �
 const methodLabel = isEn
     ? `${resolved.accounts.length} methods`
     : `${resolved.accounts.length} 种方式`;
+
+/**
+ * 页头统计行：只渲染「有线报的值」。
+ * 账本清零后支持者数是 0 → 整枚 chip 不渲染（不留「0 位支持者」这种空账房）。
+ */
+const heroMeta: Array<{ icon?: string; label: string; quiet?: boolean }> = [];
+if (resolved.total > 0) {
+    heroMeta.push({ icon: "tabler:user-circle", label: countLabel });
+}
+if (resolved.amountTotal > 0) {
+    heroMeta.push({
+        icon: "tabler:heart-handshake",
+        label: `${isEn ? "total " : "累计 "}${resolved.currency}${formatAmount(resolved.amountTotal)}`,
+    });
+}
+if (resolved.accounts.length > 0) {
+    heroMeta.push({ label: methodLabel, quiet: true });
+}
+
+/**
+ * 年度账本（结构块）：开支项 + 用途，**不含金额**。
+ * `amount` 只在 PO 给出真实结算数据时才渲染 —— 现在没有数据源，所以这里连字段都没有，
+ * 也就不存在「写 0」或抄样稿数字的路径（见 docs/27 §5.6）。
+ */
+const ledger = isEn
+    ? {
+          title: "Annual operations ledger",
+          meta: "Expense items only — amounts and coverage are published after each settlement period",
+          caption:
+              "Annual transparency ledger: the expense items this site pays for, with what each one covers.",
+          itemHead: "Expense item",
+          descHead: "What it covers",
+          note: "Amounts and yearly coverage progress are deliberately left out until a real settlement figure exists; this table never prints a placeholder or a zero in their place.",
+          rows: [
+              {
+                  item: "Domain & DNS renewal",
+                  desc: "Yearly renewal of the site domain, including DNS resolution and DNSSEC.",
+              },
+              {
+                  item: "Edge image hosting & backups",
+                  desc: "Object storage for images and static assets, plus off-site cold backups.",
+              },
+              {
+                  item: "Servers & reverse-proxy nodes",
+                  desc: "Hosting for the self-run analytics, RSS and internal services behind this blog.",
+              },
+              {
+                  item: "Hardware prototypes & consumables",
+                  desc: "Open-hardware prototyping, 3D-print and PCB consumables used in the workshop posts.",
+              },
+          ],
+      }
+    : {
+          title: "年度运营透明账本",
+          meta: "当前公示开支项；金额与覆盖进度在结算周期结束后公开",
+          caption: "年度透明账本：本站实际承担的开支项，以及每一项覆盖什么。",
+          itemHead: "开支项",
+          descHead: "覆盖范围",
+          note: "金额与年度覆盖进度在拿到真实结算数字前一律不渲染 —— 这张表不会用占位数字或 0 顶替。",
+          rows: [
+              {
+                  item: "域名与解析续费",
+                  desc: "站点域名的年费续期，包含 DNS 解析与 DNSSEC。",
+              },
+              {
+                  item: "边缘图床与离线备份",
+                  desc: "图片与静态资源的对象存储，以及异地冷备。",
+              },
+              {
+                  item: "服务器与反向代理节点",
+                  desc: "本站自建统计、RSS 与内网服务所在的服务器开销。",
+              },
+              {
+                  item: "硬件打样与耗材",
+                  desc: "「数字工匠」类文章的开放硬件打样、3D 打印与 PCB 耗材。",
+              },
+          ],
+      };
+
+/** 赞助答疑：文案取自设计稿 L521+（用途 / 如何上榜 / 匿名），逐条落地，不留空。 */
+const faq = isEn
+    ? {
+          title: "Sponsorship FAQ & principles",
+          meta: "Three questions readers ask most often",
+          items: [
+              {
+                  q: "Where does the money go?",
+                  a: "100% of it goes to this blog's domain renewal, CN2 GIA VPS hosting, Cloudflare R2 traffic and storage, and the consumables used for open-source 3D printing prototypes. None of it is diverted to private speculation.",
+                  foot: "Kept to an independent, transparent rule",
+              },
+              {
+                  q: "How do I get onto the supporters list?",
+                  a: "Leave your nickname and a message in the WeChat / Alipay transfer note, or email hi@marxchou.com. Every Monday a local build script updates the repository and redeploys.",
+                  foot: "Updated once a week by script",
+              },
+              {
+                  q: "Can I stay completely anonymous?",
+                  a: "Yes. Write “anonymous” in the note or leave it blank; you will be listed as an anonymous fellow traveller, with the transfer account and your real name left out.",
+                  foot: "No marketing or tracking probes",
+              },
+          ],
+      }
+    : {
+          title: "赞助答疑与基本原则",
+          meta: "读者最常问的三个问题",
+          items: [
+              {
+                  q: "赞助款项会用到哪里？",
+                  a: "100% 专款用于这个博客的域名年费、CN2 GIA VPS 云服务器、Cloudflare R2 流量存储以及开源 3D 打印原型打样耗材。不会挪作任何私人投机支出。",
+                  foot: "严格遵守独立透明准则",
+              },
+              {
+                  q: "赞助后如何登上芳名录？",
+                  a: "请在微信 / 支付宝转账附言里留下昵称与留言，或发邮件至 hi@marxchou.com。每周一由本地构建脚本统一增量更新到仓库并重新部署。",
+                  foot: "每周自动执行一次更新",
+              },
+              {
+                  q: "可以完全保持匿名吗？",
+                  a: "完全可以。不希望公开身份时，备注栏写「匿名」或直接留空即可；我们会把你记为「匿名同路人」，隐去转账账号与真实姓名。",
+                  foot: "无任何营销追踪探针",
+              },
+          ],
+      };
 ---
 
 <BaseLayout
@@ -83,42 +214,21 @@ const methodLabel = isEn
         data-donate-enabled={String(resolved.enabled)}
         aria-labelledby="donate-title"
     >
-        <header class="donations-hero">
-            <p class="donations-kicker">{isEn ? "SPONSOR · SUPPORT" : "赞赏 · 支持"}</p>
-            <h1 class="donations-title" id="donate-title">
-                {isEn ? "Support this site" : "赞赏与支持"}
-            </h1>
-            <p class="donations-lede">{t(loc, "donate.description")}</p>
-            <div class="donations-hero__meta">
-                <span class="donations-chip">
-                    <Icon name="tabler:user-circle" size="xs" />
-                    {countLabel}
-                </span>
-                {
-                    resolved.amountTotal > 0 && (
-                        <span class="donations-chip">
-                            <Icon name="tabler:heart-handshake" size="xs" />
-                            {isEn ? "total " : "累计 "}
-                            {resolved.currency}
-                            {formatAmount(resolved.amountTotal)}
-                        </span>
-                    )
-                }
-                {
-                    resolved.accounts.length > 0 && (
-                        <span class="donations-chip donations-chip--quiet">{methodLabel}</span>
-                    )
-                }
-            </div>
-        </header>
+        <PageHero
+            kicker={isEn ? "SPONSOR · SUPPORT" : "赞赏 · 支持"}
+            title={isEn ? "Support this site" : "赞赏与支持"}
+            lede={t(loc, "donate.description")}
+            meta={heroMeta}
+            id="donate-title"
+            titleClass="donations-title"
+        />
 
-        <section class="donations-section" aria-labelledby="donate-methods-title">
-            <div class="donations-section__head">
-                <h2 class="donations-section__title" id="donate-methods-title">
-                    {t(loc, "donate.paymentMethods")}
-                </h2>
-                <p class="donations-section__meta">{t(loc, "donate.tipText")}</p>
-            </div>
+        <section class="donations-section" aria-labelledby="donate-methods-heading">
+            <SectionHead
+                id="donate-methods-heading"
+                title={t(loc, "donate.paymentMethods")}
+                meta={t(loc, "donate.tipText")}
+            />
 
             {
                 !resolved.enabled && (
@@ -149,7 +259,7 @@ const methodLabel = isEn
 
             {
                 resolved.enabled && resolved.accounts.length > 0 && (
-                    <ul class="donations-methods" role="list">
+                    <ul class="donations-methods" role="list" data-donate-methods>
                         {resolved.accounts.map((account) => (
                             <QrCard
                                 image={account.qr ? qr[account.qr] : undefined}
@@ -176,13 +286,51 @@ const methodLabel = isEn
             }
         </section>
 
-        <section class="donations-section" aria-labelledby="donate-list-title">
-            <div class="donations-section__head">
-                <h2 class="donations-section__title" id="donate-list-title">
-                    {t(loc, "donate.donorList")}
-                </h2>
-                <p class="donations-section__meta">{t(loc, "donate.donorListDesc")}</p>
+        <section
+            class="donations-section"
+            aria-labelledby="donate-ledger-heading"
+            data-donate-ledger
+        >
+            <SectionHead
+                id="donate-ledger-heading"
+                title={ledger.title}
+                meta={ledger.meta}
+            />
+
+            <div class="donations-ledger">
+                <table class="donations-ledger__table" role="table">
+                    <caption class="donations-ledger__caption" role="caption">
+                        {ledger.caption}
+                    </caption>
+                    <thead role="rowgroup">
+                        <tr role="row">
+                            <th scope="col" role="columnheader">{ledger.itemHead}</th>
+                            <th scope="col" role="columnheader">{ledger.descHead}</th>
+                        </tr>
+                    </thead>
+                    <tbody role="rowgroup">
+                        {
+                            ledger.rows.map((row) => (
+                                <tr role="row" data-ledger-row>
+                                    <th scope="row" role="rowheader">
+                                        {row.item}
+                                    </th>
+                                    <td role="cell">{row.desc}</td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
+                <p class="donations-ledger__note">{ledger.note}</p>
             </div>
+        </section>
+
+        <section class="donations-section" aria-labelledby="donate-list-heading">
+            <SectionHead
+                id="donate-list-heading"
+                title={t(loc, "donate.donorList")}
+                meta={t(loc, "donate.donorListDesc")}
+            />
 
             {
                 resolved.status === "ok" && (
@@ -200,19 +348,17 @@ const methodLabel = isEn
                         class="donations-state"
                         data-donate-error={resolved.issue?.code ?? "unknown"}
                     >
-                        <Alert
-                            tone="warning"
+                        <DataState
+                            kind="error"
                             title={isEn ? "Donation records could not be read" : "赞赏记录读取失败"}
-                        >
-                            {isEn
-                                ? "The ledger file exists but its shape is invalid. Payment methods above are unaffected."
-                                : "赞赏记录文件存在但格式不合法，上方收款方式不受影响。"}
-                        </Alert>
-                        <p class="donations-state__hint">
-                            {isEn
-                                ? `Reason code: ${resolved.issue?.code ?? "unknown"}`
-                                : `原因代码：${resolved.issue?.code ?? "unknown"}`}
-                        </p>
+                            message={
+                                isEn
+                                    ? "The ledger file exists but its shape is invalid. Payment methods above are unaffected."
+                                    : "赞赏记录文件存在但格式不合法，上方收款方式不受影响。"
+                            }
+                            code={resolved.issue?.code}
+                            codeLabel={isEn ? "Reason code" : "原因代码"}
+                        />
                     </div>
                 )
             }
@@ -220,23 +366,41 @@ const methodLabel = isEn
             {
                 resolved.status === "empty" && (
                     <div
-                        class="donations-state donations-state--empty"
+                        class="donations-state"
                         data-donate-empty={resolved.issue?.code ?? "unknown"}
                     >
-                        <span class="donations-state__icon" aria-hidden="true">
-                            <Icon name="tabler:heart-handshake" size="lg" />
-                        </span>
-                        <p class="donations-state__title">
-                            {isEn ? "No donation records yet" : "还没有赞赏记录"}
-                        </p>
-                        <p class="donations-state__text">
-                            {isEn
-                                ? "Nothing has been recorded here so far — the list will appear once the ledger has entries."
-                                : "这里暂时没有记录。等账本有了条目，名单会自动出现在这里。"}
-                        </p>
+                        <DataState
+                            kind="empty"
+                            icon="tabler:heart-handshake"
+                            title={isEn ? "No donation records yet" : "还没有赞赏记录"}
+                            message={
+                                isEn
+                                    ? "Nothing has been recorded here so far — the list will appear once the ledger has entries."
+                                    : "这里暂时没有记录。等账本有了条目，名单会自动出现在这里。"
+                            }
+                        />
                     </div>
                 )
             }
+        </section>
+
+        <section class="donations-section donations-faq" aria-labelledby="donate-faq-heading">
+            <SectionHead id="donate-faq-heading" title={faq.title} meta={faq.meta} />
+
+            <ul class="donations-faq__list" role="list">
+                {
+                    faq.items.map((item, index) => (
+                        <li class="donations-faq__item">
+                            <span class="donations-faq__index" aria-hidden="true">
+                                {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <h3 class="donations-faq__q">{item.q}</h3>
+                            <p class="donations-faq__a">{item.a}</p>
+                            <p class="donations-faq__foot">{item.foot}</p>
+                        </li>
+                    ))
+                }
+            </ul>
         </section>
 
         <section class="donations-thanks" aria-labelledby="donate-thanks-title">

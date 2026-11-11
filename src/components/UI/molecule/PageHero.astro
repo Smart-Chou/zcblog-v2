@@ -31,6 +31,12 @@ export interface Props {
     id?: string;
     /** 未给 `id` 时的兜底：h1 id = `${slug}-title`。 */
     slug?: string;
+    /**
+     * h1 的额外语义类（附加在 `.page-hero__title` 之后，不替换）。
+     * 只用于页面的既有契约选择器（如赞赏 `donations-title`、随笔 `talks-title`），
+     * 不改任何视觉：`.page-hero__title` 的排版规则仍然生效。
+     */
+    titleClass?: string;
     class?: string;
 }
 
@@ -42,6 +48,7 @@ const {
     divider = true,
     id,
     slug,
+    titleClass,
     class: className,
 } = Astro.props;
 
@@ -59,7 +66,7 @@ const hasActions = Astro.slots.has("default");
             </p>
         )
     }
-    <h1 class="page-hero__title" id={titleId}>{title}</h1>
+    <h1 class:list={["page-hero__title", titleClass]} id={titleId}>{title}</h1>
     {lede && <p class="page-hero__lede">{lede}</p>}
     {
         (hasMeta || hasActions) && (

@@ -516,8 +516,17 @@ test("赞赏契约：收款方式 = 注入数，每张码图有 src+alt，页面
 
     const accounts = Number(await page.locator(DONATE.shell).getAttribute("data-donate-accounts"));
     const total = Number(await page.locator(DONATE.shell).getAttribute("data-donate-total"));
+    const status = await page.locator(DONATE.shell).getAttribute("data-donate-status");
     expect(accounts, "注入点有 3 种收款方式").toBe(3);
-    expect(total, "账本应读到站点数据").toBeGreaterThan(0);
+    // M8-6-4：账本里的 4 条占位人名（张三/李四/吴十/郑十一）已按验收清空 → 默认构建走真实空态。
+    // 这里不再假设「账本一定有数据」，而是按 status 分支断言（ok 必须有条目，empty 必须 total=0）。
+    if (status === "ok") {
+        expect(total, "ok 态：账本必须真的有条目").toBeGreaterThan(0);
+    } else {
+        expect(status, "非 ok 态只能是 empty（账本为空，不编造记录）").toBe("empty");
+        expect(total, "空态 total 必须是 0").toBe(0);
+        await expect(page.locator(`${DONATE.shell} [data-donate-empty]`)).toHaveCount(1);
+    }
 
     const methods = await page.evaluate((sel) => {
         return [...document.querySelectorAll(`${sel} .qr-card`)].map((card) => {
@@ -573,6 +582,234 @@ test("图标全部来自闭集：页面主体内 0 个 ? 兜底", async ({ page 
     }
 });
 
+/* ───────────────── 9c. M8-6-4 赞助页结构契约（P4-01…P4-06） ───────────────── */
+
+test("P4-01/02：容器属性齐全，h1.donations-title#donate-title 恰好 1 个", async ({ page }) => {
+    const response = await page.goto(DONATE.url, { waitUntil: "load" });
+    expect(response?.status()).toBe(200);
+
+    await expect(page.locator("article.donations")).toHaveCount(1);
+    for (const attr of [
+        "data-donate-status",
+        "data-donate-total",
+        "data-donate-accounts",
+        "data-donate-enabled",
+    ]) {
+        expect(await page.locator(DONATE.shell).getAttribute(attr), `缺少 ${attr}`).not.toBeNull();
+    }
+
+    // M8-6-4 把页头换成 PageHero：h1 的语义类由 titleClass 追加，id 由 id 传入 →
+    // 旧契约选择器 `h1.donations-title#donate-title` 原样成立。
+    await expect(page.locator("h1.donations-title#donate-title")).toHaveCount(1);
+    await expect(page.locator(`${DONATE.shell} .page-hero__title`)).toHaveCount(1);
+    await expect(page.locator(DONATE.shell)).toHaveAttribute("aria-labelledby", "donate-title");
+
+    // 分区头统一走 SectionHead（收款方式 / 账本 / 芳名录 / 答疑），空态走 DataState。
+    const heads = await page.locator(`${DONATE.shell} .section-head`).count();
+    expect(heads, "四个分区头都必须是 SectionHead").toBeGreaterThanOrEqual(4);
+    expect(
+        await page.locator(`${DONATE.shell} [data-donate-empty] .data-state`).count(),
+        "空态必须由 DataState 渲染",
+    ).toBe(1);
+});
+
+test("P4-03：3 列支付卡，码图有 alt/src，PayPal 外链是 http(s)", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(DONATE.url, { waitUntil: "load" });
+
+    const cards = await page.evaluate((sel) => {
+        const root = document.querySelector(sel) as HTMLElement;
+        return {
+            tracks: getComputedStyle(
+                root.querySelector(".donations-methods") as HTMLElement,
+            ).gridTemplateColumns
+                .split(" ")
+                .filter(Boolean).length,
+            cards: [...root.querySelectorAll(".qr-card")].map((card) => {
+                const img = card.querySelector("img");
+                const action = card.querySelector(".qr-card__action") as HTMLElement | null;
+                const rect = action?.getBoundingClientRect();
+                return {
+                    name: (card.querySelector(".qr-card__name")?.textContent ?? "").trim(),
+                    src: img?.getAttribute("src") ?? null,
+                    alt: img?.getAttribute("alt") ?? null,
+                    width: img?.getAttribute("width") ?? null,
+                    href: action?.getAttribute("href") ?? null,
+                    target: action?.getAttribute("target") ?? null,
+                    rel: action?.getAttribute("rel") ?? null,
+                    actionHeight: rect?.height ?? 0,
+                    actionWidth: rect?.width ?? 0,
+                };
+            }),
+        };
+    }, DONATE.shell);
+
+    expect(cards.tracks, "≥1024 必须是 3 列").toBe(3);
+    expect(cards.cards).toHaveLength(3);
+    expect(cards.cards.map((card) => card.name)).toEqual(["微信支付", "支付宝", "PayPal"]);
+
+    for (const card of cards.cards) {
+        expect(card.src, `${card.name}: 码图必须有 src`).toBeTruthy();
+        expect(card.src, `${card.name}: src 不能是空串`).not.toBe("");
+        expect(card.alt, `${card.name}: alt 必须可读`).toBeTruthy();
+        expect(card.width, `${card.name}: 带显式宽度`).toBe("200");
+    }
+
+    const paypal = cards.cards.find((card) => card.name === "PayPal");
+    expect(paypal?.href, "PayPal 必须是真实外链").toMatch(/^https?:\/\//);
+    expect(paypal?.target).toBe("_blank");
+    expect(paypal?.rel).toContain("noopener");
+    expect(paypal?.actionHeight, "外链按钮命中区 ≥44").toBeGreaterThanOrEqual(44);
+    expect(paypal?.actionWidth, "外链按钮命中区 ≥44").toBeGreaterThanOrEqual(44);
+});
+
+test("P4-06：年度账本 = table + caption + th[scope]，且零金额零进度", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(DONATE.url, { waitUntil: "load" });
+
+    const ledger = page.locator(`${DONATE.shell} [data-donate-ledger]`);
+    await expect(ledger).toHaveCount(1);
+    await expect(ledger.locator("table")).toHaveCount(1);
+
+    const caption = (await ledger.locator("caption").innerText()).trim();
+    expect(caption.length, "caption 必须有实质文案").toBeGreaterThan(8);
+    expect(await ledger.locator('th[scope="col"]').count()).toBeGreaterThanOrEqual(2);
+    expect(await ledger.locator('th[scope="row"]').count()).toBeGreaterThanOrEqual(1);
+    expect(
+        await ledger.locator("tbody tr").first().evaluate((el) => getComputedStyle(el).display),
+    ).toBe("table-row");
+
+    const text = await ledger.innerText();
+    // 无真实数据 → 不渲染金额、不渲染覆盖进度、不写 0、不抄设计稿样稿数字
+    expect(text, "账本里不许出现金额").not.toMatch(/[¥￥$]\s?\d/);
+    expect(text, "账本里不许出现百分比进度").not.toMatch(/\d\s?%/);
+    expect(text).not.toContain("1,420");
+    expect(text).not.toContain("68%");
+    expect(
+        await page.locator(`${DONATE.shell} [role="progressbar"], ${DONATE.shell} progress`).count(),
+        "未提供真实数据时不许出现进度条",
+    ).toBe(0);
+});
+
+test("P4-04/05：芳名录条数 = total，答疑 3 条非空，致谢恒在", async ({ page }) => {
+    await page.goto(DONATE.url, { waitUntil: "load" });
+
+    const total = Number(await page.locator(DONATE.shell).getAttribute("data-donate-total"));
+    expect(await page.locator(`${DONATE.shell} .donator`).count(), "芳名录条数").toBe(total);
+
+    const faq = await page.evaluate((sel) => {
+        const root = document.querySelector(sel) as HTMLElement;
+        return [...root.querySelectorAll(".donations-faq__item")].map((item) => ({
+            q: (item.querySelector(".donations-faq__q")?.textContent ?? "").trim(),
+            a: (item.querySelector(".donations-faq__a")?.textContent ?? "").trim(),
+            foot: (item.querySelector(".donations-faq__foot")?.textContent ?? "").trim(),
+        }));
+    }, DONATE.shell);
+
+    expect(faq, "赞助答疑必须恰好 3 条").toHaveLength(3);
+    for (const item of faq) {
+        expect(item.q.length, "问题不得为空").toBeGreaterThan(4);
+        expect(item.a.length, "答案不得为空").toBeGreaterThan(20);
+        expect(item.foot.length, "脚注不得为空").toBeGreaterThan(4);
+        expect(item.q).not.toContain("待补充");
+        expect(item.a).not.toContain("待补充");
+    }
+    expect(faq.map((item) => item.q)).toEqual([
+        "赞助款项会用到哪里？",
+        "赞助后如何登上芳名录？",
+        "可以完全保持匿名吗？",
+    ]);
+
+    await expect(page.locator(`${DONATE.shell} .donations-thanks`)).toHaveCount(1);
+});
+
+test("G-08：页面主体 0 处占位假数据（含已清空的 4 条人名）", async ({ page }) => {
+    const patterns = [
+        "示例",
+        "样例",
+        "sample-",
+        "placeholder",
+        "Lorem",
+        "待替换",
+        "待补充",
+        "seed（",
+        "TODO",
+        "FIXME",
+        "张三",
+        "李四",
+        "王五",
+        "赵六",
+        "吴十",
+        "郑十一",
+        "测试用户",
+    ];
+
+    for (const url of [DONATE.url, DONATE.en]) {
+        await page.goto(url, { waitUntil: "load" });
+        const html = (await page.locator(DONATE.shell).innerHTML()).toLowerCase();
+        const hits = patterns.filter((pattern) => html.includes(pattern.toLowerCase()));
+        expect(hits, `${url}: 占位/假数据`).toEqual([]);
+        const emptySrc = await page.evaluate(
+            () => [...document.querySelectorAll("img")].filter((img) => !img.getAttribute("src")).length,
+        );
+        expect(emptySrc, `${url}: 空 src 的 <img>`).toBe(0);
+    }
+});
+
+test("移动（375 / 390）：支付卡与答疑单列、账本卡片化、0 横向溢出、命中区 ≥44", async ({
+    page,
+}) => {
+    test.setTimeout(90_000);
+
+    for (const width of [375, 390] as const) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(DONATE.url, { waitUntil: "load" });
+        await page.evaluate(async () => {
+            await document.fonts.ready;
+        });
+
+        const probe = await page.evaluate((sel) => {
+            const root = document.querySelector(sel) as HTMLElement;
+            const tracks = (selector: string) =>
+                getComputedStyle(root.querySelector(selector) as HTMLElement)
+                    .gridTemplateColumns.split(" ")
+                    .filter(Boolean).length;
+            const table = root.querySelector(".donations-ledger__table") as HTMLElement;
+            const row = root.querySelector("tbody tr") as HTMLElement;
+            const actions = [...root.querySelectorAll(".qr-card__action")].map((node) => {
+                const rect = node.getBoundingClientRect();
+                return {
+                    text: (node.textContent ?? "").trim(),
+                    width: rect.width,
+                    height: rect.height,
+                };
+            });
+            return {
+                methods: tracks(".donations-methods"),
+                faq: tracks(".donations-faq__list"),
+                rowDisplay: getComputedStyle(row).display,
+                tableOverflow: table.scrollWidth - table.clientWidth,
+                docOverflow:
+                    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                actions,
+            };
+        }, DONATE.shell);
+
+        expect(probe.methods, `${width}: 支付卡必须单列`).toBe(1);
+        expect(probe.faq, `${width}: 答疑必须单列`).toBe(1);
+        expect(probe.rowDisplay, `${width}: 账本行必须改成卡片块`).toBe("block");
+        expect(probe.tableOverflow, `${width}: 账本表不许横向滚动`).toBeLessThanOrEqual(1);
+        expect(probe.docOverflow, `${width}: 页面不许横向溢出`).toBeLessThanOrEqual(1);
+        for (const action of probe.actions) {
+            expect(action.height, `${width}: ${action.text} 命中区高`).toBeGreaterThanOrEqual(44);
+            expect(action.width, `${width}: ${action.text} 命中区宽`).toBeGreaterThanOrEqual(44);
+        }
+        console.log(
+            `[donate-mobile] ${width}: 单列支付/答疑，账本 ${probe.rowDisplay}，0 溢出，${probe.actions.length} 个外链按钮 ≥44`,
+        );
+    }
+});
+
 /* ───────────────────────── 10. 空态 / 错误态（真实构建） ───────────────────────── */
 
 /**
@@ -602,6 +839,19 @@ function readBuilt(outDir: string, route: string): string {
     return readFileSync(file, "utf8");
 }
 
+/**
+ * 产物 HTML 上的属性断言必须 **quote-agnostic**（QA §5.5-4）：
+ * `postbuild/collapse-html-whitespace.mjs` 会把 `data-x="ok"` 折成 `data-x=ok`
+ * （`class`/`id`/`href`/`src`/`rel` 等语义属性保留引号），写成字面 `data-x="ok"` 会假红。
+ */
+function hasAttr(html: string, name: string, value: string): boolean {
+    return new RegExp(`\\s${name}=["']?${value}["']?(?=[\\s>])`).test(html);
+}
+
+function expectAttr(html: string, name: string, value: string, label = `${name}=${value}`) {
+    expect(hasAttr(html, name, value), `缺少 ${label}`).toBe(true);
+}
+
 for (const state of ["empty", "error"] as const) {
     test(`随笔 ${state} 态：整页构建成功，页面主体仍在（zh + en）`, async () => {
         test.setTimeout(600_000);
@@ -609,7 +859,7 @@ for (const state of ["empty", "error"] as const) {
 
         for (const route of ["talks", "en/talks"]) {
             const html = readBuilt(outDir, route);
-            expect(html, `${route}: 状态必须是 ${state}`).toContain(`data-talks-status="${state}"`);
+            expectAttr(html, "data-talks-status", state, `${route}: 状态必须是 ${state}`);
             expect(html, `${route}: 一条随笔都不许渲染`).not.toContain('class="essay-card"');
             expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="talks-title"/);
         }
@@ -634,14 +884,13 @@ for (const state of ["empty", "error"] as const) {
 
         for (const route of ["donate", "en/donate"]) {
             const html = readBuilt(outDir, route);
-            expect(html, `${route}: 状态必须是 ${state}`).toContain(
-                `data-donate-status="${state}"`,
-            );
-            expect(html, `${route}: 没有注入收款方式`).toContain('data-donate-accounts="0"');
+            expectAttr(html, "data-donate-status", state, `${route}: 状态必须是 ${state}`);
+            expectAttr(html, "data-donate-accounts", "0", `${route}: 没有注入收款方式`);
             expect(html, `${route}: 一名支持者都不许渲染`).not.toContain('class="donator"');
             expect(html, `${route}: 收款方式容器不许出现`).not.toContain("donations-methods");
             expect(html, `${route}: 空 src 一律不许`).not.toContain('src=""');
-            expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="donations-title"/);
+            expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="[^"]*donations-title/);
+            expect(html, `${route}: h1 的 id 必须是 donate-title`).toMatch(/<h1[^>]*id="donate-title"/);
             expect(html, `${route}: 致谢段仍在`).toContain("donations-thanks");
         }
 
@@ -653,12 +902,33 @@ for (const state of ["empty", "error"] as const) {
         } else {
             expect(zh, "错误态块").toContain("data-donate-error");
             expect(zh, "错误态用 Alert（warning）").toContain("alert--warning");
-            expect(zh, "错误态给出原因代码").toContain("donations-state__hint");
+            expect(zh, "错误态给出原因代码").toContain("data-state__code");
             expect(zh, "错误态不渲染空态块").not.toContain("data-donate-empty");
         }
         console.log(`[fixture] donate-${state}: dist 产出 ${outDir}，zh/en 双路由 200-ready`);
     });
 }
+
+/* ───────────────────────── 10b. 无收款方式态（第五态） ───────────────────────── */
+
+test("赞赏 no-accounts 态（第五态）：构建成功，0 码图、0 空图", async () => {
+    test.setTimeout(600_000);
+    const outDir = buildFixture("donate", "no-accounts");
+
+    for (const route of ["donate", "en/donate"]) {
+        const html = readBuilt(outDir, route);
+        // 当前 fixture 同时把账本置空 → status=empty、accounts=0（QA §2.4 明确这一限制）
+        expectAttr(html, "data-donate-status", "empty", `${route}: no-accounts 的 status`);
+        expectAttr(html, "data-donate-accounts", "0", `${route}: 一种收款方式都不许渲染`);
+        expect(html, `${route}: 不许出现任何码图`).not.toContain('class="qr-card"');
+        expect(html, `${route}: 空 src 一律不许`).not.toContain('src=""');
+        expect(html, `${route}: 未配置提示块`).toContain("data-donate-no-methods");
+        expect(html, `${route}: 未开放提示块走另一条分支`).not.toContain("data-donate-closed");
+        expect(html, `${route}: 致谢段仍在`).toContain("donations-thanks");
+        expect(html, `${route}: 账本结构不受收款方式影响`).toContain("donations-ledger__table");
+    }
+    console.log(`[fixture] donate-no-accounts: dist 产出 ${outDir}，0 码图 0 空图`);
+});
 
 /* ───────────────────────── 11. 证据截图 ───────────────────────── */
 
