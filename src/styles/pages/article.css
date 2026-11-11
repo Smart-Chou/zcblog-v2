@@ -1461,6 +1461,13 @@
         font-size: var(--text-base);
     }
 
+    /* M8-6-6 / M-02：admonition 的左右负外边距（remark-aside.css 里为「贴卡片边缘」
+       设计的 `calc(0em - var(--space))`）在窄屏会把整块推出视口 —— 390 宽下实测
+       left=-6 / width=387，`scrollWidth` 越界。窄屏取消横向出血，块落回正文列内。 */
+    .post-sheet .remark-aside {
+        margin-inline: 0;
+    }
+
     .post-sheet .article-content {
         font-size: var(--text-base);
     }

@@ -639,7 +639,26 @@ test("目录链接可跳（1440，tocbot 接管后）", async ({ page }) => {
     expect(hash).toMatch(/^#.+/);
 
     await firstTocLink.click();
-    await page.waitForTimeout(400);
+    // tocbot 的 `scrollSmoothDuration` 是 420ms，固定 400ms 会在滚动途中量到落点
+    // （实测 mid-scroll = 333px，误判成「跑太远」）。改为等 scrollY 稳定。
+    await page.waitForFunction(
+        () =>
+            new Promise<boolean>((resolve) => {
+                const start = window.scrollY;
+                let ticks = 0;
+                const step = () => {
+                    if (window.scrollY === start) {
+                        if (++ticks >= 2) return resolve(true);
+                    } else {
+                        ticks = 0;
+                    }
+                    requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            }),
+        undefined,
+        { timeout: 3000 },
+    );
 
     const target = await page.evaluate((selector) => {
         const el = document.querySelector(selector);
