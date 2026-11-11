@@ -1,0 +1,192 @@
+---
+/**
+ * BottomTabs — ≤640 的底部主导航（M8-6-6）
+ *
+ * 形态取自 `mobile_home` / `mobile_albums_gallery` / `mobile_culture_hub` 三张移动稿的
+ * 同一个 `<nav>`：4 个「图标 + 小字」入口、半透明表面 + 顶部 hairline、`pb-safe`。
+ *
+ * 三条硬约束（卡面 §阶段 a-1 / 验收标准 §3.4 M-05、M-09）：
+ *  1. **默认 `display:none`，只在 `≤640` 显示** —— 纯 CSS 决定，无 JS 也安全；
+ *     桌面端连盒子都不存在，所以 478 页的桌面布局与基线不受影响；
+ *  2. **`env(safe-area-inset-bottom)`** —— 刘海屏底部手势条不吃掉命中区；
+ *  3. **命中区 ≥44×44，相邻 ≥8px** —— 4 个入口平分宽度，`gap` 固定 8。
+ *
+ * 渲染时机与 Header/Footer 一致（`!isSplash` 才出），避免 splash 模板被挂一条导航。
+ */
+import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
+
+interface Props {
+    locale?: string;
+}
+
+const { locale = "zh" } = Astro.props;
+
+/**
+ * 当前路径：去掉 `/en` 前缀再比（en 树是 `/en/talks/` 这种同构路由）。
+ * 尾斜杠由构建产物保证（trailingSlash: "always"），这里再兜一次。
+ */
+const path = (Astro.url.pathname.replace(/^\/en(?=\/|$)/, "") || "/").replace(/\/+$/, "") || "/";
+
+const items = [
+    {
+        key: "blog",
+        href: "/",
+        icon: "mingcute:book-3-line",
+        zh: "博客",
+        en: "Essays",
+        /** 首页只在根路径命中；否则 `/` 会吃掉所有路由 */
+        exact: true,
+    },
+    { key: "talks", href: "/talks/", icon: "tabler:message-chatbot", zh: "随笔", en: "Memos" },
+    { key: "culture", href: "/culture/", icon: "tabler:movie", zh: "媒体生活", en: "Media" },
+    { key: "albums", href: "/albums/", icon: "tabler:library-photo", zh: "相册", en: "Albums" },
+] as const;
+
+const labelOf = (item: (typeof items)[number]) => (locale === "en" ? item.en : item.zh);
+const isActive = (item: (typeof items)[number]) => {
+    if ("exact" in item && item.exact) return path === "/";
+    const base = item.href.replace(/\/$/, "");
+    return path === base || path.startsWith(item.href);
+};
+---
+
+<nav class="bottom-tabs" aria-label={locale === "en" ? "Mobile navigation" : "移动端导航"}>
+    <ul class="bottom-tabs__list">
+        {
+            items.map((item) => (
+                <li class="bottom-tabs__item">
+                    <a
+                        class="bottom-tabs__link"
+                        href={item.href}
+                        aria-current={isActive(item) ? "page" : undefined}
+                        data-tab={item.key}
+                    >
+                        <DynamicIcon
+                            name={item.icon}
+                            class="bottom-tabs__icon"
+                            width={22}
+                            height={22}
+                        />
+                        <span class="bottom-tabs__label">{labelOf(item)}</span>
+                    </a>
+                </li>
+            ))
+        }
+    </ul>
+</nav>
+
+<style is:global>
+    /* 关闭态 = 桌面零盒子（不是 opacity/translate 那种「还在布局里」的隐藏） */
+    .bottom-tabs {
+        display: none;
+    }
+
+    @media (max-width: 640px) {
+        .bottom-tabs {
+            display: block;
+            position: fixed;
+            inset: auto 0 0 0;
+            /* Header 是 100；底栏压在页脚之上、抽屉（top layer）之下 */
+            z-index: 90;
+            padding-block-end: env(safe-area-inset-bottom, 0px);
+            background: color-mix(in srgb, var(--shell-surface) 88%, transparent);
+            -webkit-backdrop-filter: blur(14px) saturate(1.4);
+            backdrop-filter: blur(14px) saturate(1.4);
+            border-block-start: 1px solid var(--shell-border);
+            transform: translateZ(0);
+        }
+
+        .bottom-tabs__list {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-around;
+            /* M-05：相邻目标间距 ≥8px */
+            gap: var(--space-2, 8px);
+            margin: 0;
+            padding: 0 var(--space-2, 8px);
+            list-style: none;
+        }
+
+        .bottom-tabs__item {
+            display: flex;
+            flex: 1 1 0;
+            min-inline-size: 0;
+            justify-content: center;
+        }
+
+        .bottom-tabs__link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            /* M-05：命中区 ≥44×44（实际 44 高 × 24 宽以上，四等分后 ~85 宽） */
+            inline-size: 100%;
+            min-inline-size: 44px;
+            min-block-size: 44px;
+            padding-block: var(--space-2, 8px) calc(var(--space-2, 8px) - 2px);
+            border-radius: var(--shell-radius-md);
+            color: var(--shell-fg-muted);
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-tabs__icon {
+            display: block;
+            inline-size: 22px;
+            block-size: 22px;
+            flex: none;
+        }
+
+        .bottom-tabs__label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 14px;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        /* 当前页：强调色 + 顶部 2px 短横（`aria-current` 是唯一真源，不另加 class） */
+        .bottom-tabs__link[aria-current="page"] {
+            position: relative;
+            color: var(--shell-accent);
+            font-weight: 600;
+        }
+
+        .bottom-tabs__link[aria-current="page"]::before {
+            content: "";
+            position: absolute;
+            inset-block-start: 0;
+            inset-inline: 28%;
+            block-size: 2px;
+            border-radius: var(--shell-radius-pill);
+            background-color: currentColor;
+        }
+
+        /* 焦点环与全站同一条 token（Tab 顺序 = DOM 顺序，底栏排在页脚之后） */
+        .bottom-tabs__link:focus-visible {
+            outline: 2px solid var(--shell-ring);
+            outline-offset: -2px;
+        }
+
+        @media (hover: hover) {
+            .bottom-tabs__link:hover {
+                color: var(--shell-fg);
+            }
+        }
+
+        /* M-08：底栏是 fixed，必须给页面留出等高的底部空间，
+           否则页脚最后一行会被压住（视觉基线里也是同一处）。 */
+        body:has(.bottom-tabs) {
+            padding-block-end: calc(60px + env(safe-area-inset-bottom, 0px));
+        }
+    }
+
+    /* M-11：减少动效下不留过渡（本组件本身无动画，这里只锁 focus/color 的瞬时态） */
+    @media (prefers-reduced-motion: reduce) {
+        .bottom-tabs,
+        .bottom-tabs__link {
+            transition: none;
+        }
+    }
+</style>

@@ -14,6 +14,7 @@ import Notice from "~/components/UI/Notice.astro";
 import Watermark from "~/components/UI/Watermark.astro";
 import Sidebar from "~/components/Layout/Sidebar.astro";
 import ShortcutHelp from "~/components/Layout/ShortcutHelp.astro";
+import BottomTabs from "~/components/Layout/BottomTabs.astro";
 import { config } from "~/config";
 import { sidebarConfig } from "~/config/ui";
 import { getLocale, htmlLangOf } from "~/utils/i18n";
@@ -149,6 +150,8 @@ const lang = htmlLangOf(getLocale(locale));
             }
             {!isSplash && <Footer />}
         </div>
+        {/* M8-6-6：≤640 底部主导航。默认 display:none，纯 CSS 断点决定，无 JS 也安全 */}
+        {!isSplash && <BottomTabs locale={locale} />}
         <Watermark />
         {/* M7-5a：全站快捷键速查（`?` / Ctrl-Cmd + /）。关闭态 = display:none，零布局零请求 */}
         <ShortcutHelp locale={locale} />
