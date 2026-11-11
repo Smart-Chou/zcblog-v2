@@ -85,10 +85,12 @@ test.describe("系列索引 /series/", () => {
         // 计数来自各系列成员数：self-hosted 2 篇、astro-notes 1 篇
         expect(rows[0].meta).toContain("共 1 篇文章");
         expect(rows[1].meta).toContain("共 2 篇文章");
-        // 索引头部统计：系列数 / 文章数
-        const meta = (await page.locator(".series-hub .tags-meta").textContent()) ?? "";
-        expect(meta.replace(/\s+/g, "")).toContain("共2个系列");
-        expect(meta.replace(/\s+/g, "")).toContain("共3篇文章");
+        // 索引头部统计（M8-6-5 结构：PageHero meta = 文章总数，SectionHead meta = 系列数）
+        const heroMeta = (await page.locator(".series-hub .page-hero__meta").textContent()) ?? "";
+        expect(heroMeta.replace(/\s+/g, "")).toContain("共3篇文章");
+        const sectionMeta =
+            (await page.locator(".series-hub .section-head__meta").textContent()) ?? "";
+        expect(sectionMeta.replace(/\s+/g, "")).toContain("共2个系列");
         console.log(`[series] 索引 ${rows.length} 个系列：${JSON.stringify(rows)}`);
     });
 });
@@ -149,7 +151,7 @@ test.describe("无 series 的文章零空壳", () => {
 
         // 索引头部统计已经把「文章数」收敛到 3 篇（= 有 series 的篇数），排除对照文章
         await open(page, FIXTURE.hub);
-        const meta = (await page.locator(".series-hub .tags-meta").textContent()) ?? "";
+        const meta = (await page.locator(".series-hub .page-hero__meta").textContent()) ?? "";
         expect(meta.replace(/\s+/g, "")).toContain("共3篇文章");
     });
 

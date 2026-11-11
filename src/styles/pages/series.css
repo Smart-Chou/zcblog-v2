@@ -34,25 +34,38 @@
     min-inline-size: 0;
 }
 
-/* ── 系列索引（M5-12）──────────────────────────────────────── */
+/* ── 系列索引（M5-12 → M8-6-5 卡片栅格）────────────────────── */
 
-.series-list {
+.series-index {
     display: flex;
     flex-direction: column;
+    gap: var(--space-5);
+    min-inline-size: 0;
+}
+
+/* 卡片栅格：≥1024 两列，窄屏单列（minmax 的 min(100%, …) 保证 375/390 不横向溢出）。 */
+.series-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
-    border-block-start: 1px solid var(--color-border-subtle);
 }
 
 .series-item {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-6);
-    padding-block: var(--space-4);
-    border-block-end: 1px solid var(--color-border-subtle);
+    flex-direction: column;
+    gap: var(--space-3);
+    min-inline-size: 0;
+    padding: var(--space-5);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-bg-surface);
+    box-shadow: var(--shadow-1);
+    transition:
+        border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard);
 }
 
 .series-link {
@@ -122,8 +135,8 @@
     font-size: var(--text-sm);
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--tracking-wide);
-    /* 小字用 --color-fg-link（accent-600 / 暗色 accent-400）：accent-solid 在纸色底上只有 4.36 */
-    color: var(--color-fg-link);
+    /* D10：步骤序号是「位置信息」不是链接，用 fg-muted（旧值 fg-link 让序号抢标题的视觉权重） */
+    color: var(--color-fg-muted);
 }
 
 /* 与标签详情同因：axe 的 color-contrast 在 content-visibility:auto 的卡片上判 incomplete */
@@ -131,9 +144,30 @@
     content-visibility: visible;
 }
 
+/* 详情页返回入口（PageHero 默认 slot）。与 `.tag-detail__back` 同构：shell 之外只补
+   布局与 min-block-size；文字颜色由 `Link` 的 standalone 变体（scoped，0,2,0）决定，
+   下面的 color 声明在优先级上不生效，保留只为与 tags.css 的写法对齐（不改变渲染）。 */
+.series-back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    align-self: flex-start;
+    min-block-size: var(--space-8);
+    transition: color var(--duration-fast) var(--ease-standard);
+}
+
 @media (hover: hover) {
+    .series-item:hover {
+        border-color: var(--color-border-accent);
+        box-shadow: var(--shadow-2);
+    }
+
     .series-link:hover {
         color: var(--color-accent-solid);
+    }
+
+    .series-back:hover {
+        color: var(--color-fg-link);
     }
 }
 

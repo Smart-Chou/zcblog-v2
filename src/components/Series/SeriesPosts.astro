@@ -11,6 +11,7 @@
 import type { SeriesGroup } from "~/utils/series";
 import { seriesStepLabel, seriesIndexHref } from "~/utils/series";
 import TagsPostCard from "~/components/Article/TagsPostCard.astro";
+import PageHero from "~/components/UI/molecule/PageHero.astro";
 import Link from "~/components/UI/atom/Link.astro";
 import Author from "~/components/UI/Author.astro";
 import { enrichPost } from "~/utils/get-posts-with-meta";
@@ -31,14 +32,17 @@ const posts = group.posts.map((post) => enrichPost(post));
 ---
 
 <div class="series-detail">
-    <header class="tag-detail__hero">
-        <p class="tags-kicker">{t(loc, "series.kicker")}</p>
-        <h1 class="tag-detail__title">{group.name}</h1>
-        <p class="tag-detail__lede">{t(loc, "series.inSeries", { count: posts.length })}</p>
-        <Link href={seriesIndexHref(lang)} variant="standalone" class="tag-detail__back">
+    <PageHero
+        kicker={t(loc, "series.kicker")}
+        title={group.name}
+        lede={t(loc, "series.inSeries", { count: posts.length })}
+        divider={false}
+        slug="series-detail"
+    >
+        <Link href={seriesIndexHref(lang)} variant="standalone" class="series-back">
             ← {t(loc, "series.back")}
         </Link>
-    </header>
+    </PageHero>
 
     <ol class="series-posts" data-count={posts.length}>
         {
