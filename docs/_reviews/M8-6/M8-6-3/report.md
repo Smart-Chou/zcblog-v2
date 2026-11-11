@@ -84,12 +84,11 @@ article.talks[data-talks-status][data-talks-total][aria-labelledby=talks-title]
 | `-g "P3-|随笔移动"` | **6 passed (11.3s)** |
 | `-g "axe talks|Tab 顺序|P3-06|overflow talks"` | **4 passed (24.9s)**；axe talks light/dark serious=0 incomplete=0；壳内可聚焦 9 个逐个 Tab 检查 9 个，焦点环全 = `--color-ring-focus` |
 | `-g "随笔 empty|随笔 error|证据截图 talks"` | **3 passed (1.8m)**（两次真实构建 + 4 张证据） |
+| 全量 `pages-talks-donate.spec.ts` | **38 passed (17.3m)**，exit 0（含赞助页 5 态真实构建） |
 | CLS `/talks/` @1440 / @390 | 0.0000 / 0.0000 |
 | reduced-motion | talks 探针 10 个，0 动画，0 位移 |
 
-> **未跑**：`pnpm exec playwright test e2e/pages-talks-donate.spec.ts` 全量（含赞助页，11–22 min）。
-> 本卡 30 min 预算用尽在「全量回放」之前，按卡体要求先落 WIP commit 并 block(transient)：
-> 剩余动作只有这一条命令，随笔侧相关用例已逐组单独跑绿（见上表）。
+全量 spec 已在 2026-11-11 15:38 跑完，**38/38 passed**；随笔侧不再有未跑项。
 
 ## 3. 证据
 
@@ -104,7 +103,7 @@ article.talks[data-talks-status][data-talks-total][aria-labelledby=talks-title]
 
 ## 4. 遗留 / 下一手
 
-1. 全量 spec 未跑（见上）。跑之前先 `npx astro build`（preview 出的是 `dist`）。
+1. 无未跑项；视觉基线与 `PAGES` 无关（本页不在 PAGES 内）→ 不新增 gated 基线，证据截图即基线。
 2. e2e 里两处旧断言已按新结构更新（均属本卡边界内的 spec 维护）：
    - 空/错态 fixture：`<h1 class="talks-title">` → `class="[^"]*talks-title`（PageHero 追加 `page-hero__title`，语义类保留）。
    - 错误态原因码：`talks-state__hint` → `data-state__code`（原因码行由 `DataState` 出，与赞助页口径一致）。
