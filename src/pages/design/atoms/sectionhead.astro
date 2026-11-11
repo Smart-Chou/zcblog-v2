@@ -1,0 +1,33 @@
+---
+/**
+ * /design/atoms/sectionhead/ — SectionHead 文档页（M8-6-0）
+ * 数据：src/pages/design/_docs/data/sectionhead.json · 契约：DESIGN.md §5.6.14
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import Link from "~/components/UI/atom/Link.astro";
+
+const doc = bySlug("sectionhead");
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="stack" caption="只有标题：id 必填（页面 <section aria-labelledby> 依赖它）">
+        <SectionHead title="最近更新" id="recent" />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="标题 + meta：右侧纯文本说明，不是 Tag 胶囊">
+        <SectionHead title="系列" id="series" meta="固定顺序" />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="标题 + action：右端一个链接（≤768 折到第二行）">
+        <SectionHead title="相册" id="albums" meta="12 张">
+            <Link slot="action" href="/gallery/">查看全部</Link>
+        </SectionHead>
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="level=3：已有一层 h2 的页面里用，不得跳级">
+        <SectionHead title="子分组" id="nested" level={3} meta="h3" />
+    </DemoFrame>
+</AtomDoc>

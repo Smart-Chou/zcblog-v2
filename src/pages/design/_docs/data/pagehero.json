@@ -1,0 +1,176 @@
+{
+    "slug": "pagehero",
+    "name": "PageHero",
+    "cn": "页头",
+    "layer": "molecule",
+    "spec": "DESIGN.md §5.6.13",
+    "source": "src/components/UI/molecule/PageHero.astro",
+    "purpose": "内容页的统一页头：kicker + h1 + lede + 统计行 + 可选底边，让六页的「第一屏骨架」只有一份实现。",
+    "notFor": [
+        "首页主视觉 → `HeroMasthead`（organism，构图归它）。",
+        "页面内某个分组的小标题 → `SectionHead`。",
+        "文章正文页头 → 由文章模板负责。"
+    ],
+    "props": [
+        {
+            "name": "title",
+            "type": "string",
+            "default": "—",
+            "values": "**必填**",
+            "notes": "h1 文本。"
+        },
+        {
+            "name": "kicker",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "mono 大写标签，前置 accent 短尺；空则整行（含短尺）不渲染。"
+        },
+        {
+            "name": "lede",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "副文案，单段；空则不留空容器。"
+        },
+        {
+            "name": "meta",
+            "type": "array",
+            "default": "`[]`",
+            "values": "`{ icon?, label, quiet? }[]`",
+            "notes": "统计 / 状态行；`quiet: true` 走 `fg-muted` 弱化档；空数组则整行不渲染。"
+        },
+        {
+            "name": "divider",
+            "type": "boolean",
+            "default": "`true`",
+            "values": "—",
+            "notes": "底部 1px 分隔线（`border-subtle`）；系列页传 `false`。"
+        },
+        {
+            "name": "id",
+            "type": "string",
+            "default": "—",
+            "values": "与 `slug` 至少给一个",
+            "notes": "h1 的 id，页面 `aria-labelledby` 依赖它。"
+        },
+        {
+            "name": "slug",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "未给 `id` 时的兜底：h1 id = `${slug}-title`。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default",
+            "required": "否",
+            "notes": "页头附加行（Tag 组、外链按钮）；不传则整块不渲染。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "唯一形态：kicker `--color-fg-muted` + 短尺 `--color-accent-solid`；h1 `--color-fg-heading` + `--text-4xl`；lede `--color-fg-default` + `--text-base` + `--measure-prose`；meta 默认 `--color-fg-default`、`quiet` 档 `--color-fg-muted` + `--text-xs`；`divider` 用 `--color-border-subtle`",
+            "aria": "h1 带 `id`；页面用 `aria-labelledby` 指向它"
+        }
+    ],
+    "a11y": {
+        "semantics": "外层 `<header>` + `<h1>`；kicker 是 `<p>`（不是标题，避免打乱大纲）；meta 是列表语义，图标 `aria-hidden=\"true\"`。",
+        "keyboard": "不参与（自身不可聚焦）；slot 里的控件自带状态与焦点环。",
+        "aria": "h1 必须有 `id`（`id` 或 `slug` 至少给一个），否则页面无法 `aria-labelledby`。",
+        "contrast": [
+            {
+                "pair": "h1 `fg-heading` / `bg-canvas`",
+                "light": "16.29",
+                "dark": "15.89",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "lede `fg-default` / `bg-canvas`",
+                "light": "8.95",
+                "dark": "10.57",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "meta 弱化档 `fg-muted` / `bg-canvas`",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "kicker 短尺（装饰） `accent-solid` / `bg-canvas`",
+                "light": "6.43",
+                "dark": "5.15",
+                "threshold": "不设门槛（装饰，不承载信息）"
+            }
+        ],
+        "focusRing": "不适用（无自身交互）。",
+        "target": "不适用。",
+        "reducedMotion": "无动画、无过渡（0 个 `transition`）。",
+        "notes": [
+            "h1 禁止 `clamp()` / `vw`（D-0149）：只允许 768 一个断点，≥768 `--text-4xl`、≤768 `--text-3xl`。",
+            "kicker 空值时短尺一起不渲染——否则会留一条无主横线。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-fg-heading",
+            "--color-fg-default",
+            "--color-fg-muted",
+            "--color-accent-solid",
+            "--color-border-subtle"
+        ],
+        "metric": [
+            "--space-1",
+            "--space-2",
+            "--space-3",
+            "--space-4",
+            "--space-6",
+            "--space-12",
+            "--text-4xl",
+            "--text-3xl",
+            "--text-base",
+            "--text-xs",
+            "--font-sans",
+            "--font-serif",
+            "--font-mono",
+            "--font-weight-regular",
+            "--tracking-tight",
+            "--tracking-wide",
+            "--leading-tight",
+            "--leading-relaxed",
+            "--measure-prose"
+        ],
+        "none": "阴影：无（页头不是表面）。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.13）",
+        "columns": ["项", "≥768", "≤768"],
+        "rows": [
+            ["h1", "`--text-4xl`", "`--text-3xl`"],
+            ["kicker", "`--text-xs` + `--font-mono` + `--tracking-wide`", "同左"],
+            ["lede", "`--text-base` + `--leading-relaxed`", "不降（正文可读性优先）"],
+            ["短尺", "宽 `--space-12`、高 2px", "同左"],
+            ["纵向节奏", "上 `--space-6` / 下 `--space-6`", "≤450 下 `--space-4`"],
+            ["meta gap", "`--space-3`", "≤450 `--space-2`"]
+        ]
+    },
+    "forbidden": [
+        "给 h1 加 `clamp()` / `vw` / 第三个字号档（D-0149）。",
+        "在组件里写页面专属视觉（卡片、栅格、标签配色）。",
+        "用 kicker 承载导航或可点击内容。",
+        "`meta` 里塞长句（超过一行走 lede）；`quiet` 表达「次要」而不是「禁用」。",
+        "阴影 / 渐变 / 背景色块。"
+    ],
+    "related": ["icon", "divider", "sectionhead"]
+}

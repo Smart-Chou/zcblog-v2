@@ -2,12 +2,12 @@
 /**
  * verify-atom-docs.mjs — M1-6 组件文档门禁
  *
- * 判定 16-m1-brief §5 第 5 项（12 个 atom 文档页：props/slots/states/a11y/示例）
+ * 判定 16-m1-brief §5 第 5 项（15 个 atom 文档页：props/slots/states/a11y/示例）
  * 与 M1-6 卡片的验收条款。纯 node + 仓库内文件，不需要浏览器：
  *
- *   D1  12 份文档数据都在（src/pages/design/_docs/data/<slug>.json）
+ *   D1  15 份文档数据都在（src/pages/design/_docs/data/<slug>.json）
  *   D2  七项字段齐全且非空：用途/何时不用、Props、Slots、States、a11y、token 白名单、示例
- *   D3  12 个文档页都在（src/pages/design/atoms/<slug>.astro），且都用 <AtomDoc> + <DemoFrame>
+ *   D3  15 个文档页都在（src/pages/design/atoms/<slug>.astro），且都用 <AtomDoc> + <DemoFrame>
  *   D4  token 名全部能在 tokens.json 解析（数据 + 文档页 + _docs 版式）
  *   D5  文档层没有 hex / rgb() / hsl() 字面颜色
  *   D6  文档层没有 Tailwind / @apply / @theme
@@ -54,6 +54,9 @@ const SLUGS = [
     "pagination",
     "alert",
     "skeleton",
+    "pagehero",
+    "sectionhead",
+    "datastate",
 ];
 
 const SECTION_IDS = ["purpose", "props", "slots", "states", "a11y", "tokens", "example"];
@@ -129,14 +132,14 @@ const extraFiles = existsSync(DATA_DIR)
       )
     : [];
 if (extraFiles.length > 0) {
-    dataProblems.push(`data/ 下有多余 JSON（未注册到 12 份文档）：${extraFiles.join(", ")}`);
+    dataProblems.push(`data/ 下有多余 JSON（未注册到 15 份文档）：${extraFiles.join(", ")}`);
 }
 
 add(
     "D1",
-    "12 份文档数据都在",
+    "15 份文档数据都在",
     dataProblems.length === 0,
-    `src/pages/design/_docs/data/*.json 找到 ${docs.length}/12`,
+    `src/pages/design/_docs/data/*.json 找到 ${docs.length}/15`,
     dataProblems,
 );
 
@@ -208,7 +211,7 @@ for (const { slug, data } of docs) {
 add(
     "D2",
     "七项字段齐全且非空",
-    fieldProblems.length === 0 && docs.length === 12,
+    fieldProblems.length === 0 && docs.length === 15,
     fieldRows.join(" | "),
     fieldProblems,
 );
@@ -245,9 +248,9 @@ if (layoutMissing.length > 0) pageProblems.push(`缺版式文件：${layoutMissi
 
 add(
     "D3",
-    "12 个文档页都在且用真实组件",
-    pageProblems.length === 0 && pageRows.length === 12,
-    `src/pages/design/atoms/*.astro 找到 ${pageRows.length}/12`,
+    "15 个文档页都在且用真实组件",
+    pageProblems.length === 0 && pageRows.length === 15,
+    `src/pages/design/atoms/*.astro 找到 ${pageRows.length}/15`,
     pageProblems,
 );
 

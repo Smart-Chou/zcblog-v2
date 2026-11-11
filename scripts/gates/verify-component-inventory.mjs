@@ -3,13 +3,13 @@
  * verify-component-inventory.mjs — M2-1 组件清单门禁（P9 的分母）
  *
  * 判定 `blog2.0/docs/19-m2-plan.md` §3 M2-1 的前两件事：
- *   ① 从源码反推组件清单，冻结 P9 的分母：12 atoms（10 atom + 2 molecule）
+ *   ① 从源码反推组件清单，冻结 P9 的分母：15 atoms（11 atom + 4 molecule）
  *      + 23 legacy UI + 11 page-organism 债（另有 1 个 layout 壳，见 I3）；
  *   ② `docs/component-inventory.json` 是唯一分母，清单与源码不一致即红。
  *
  * 判据
- *   I1 registry 可解析：`src/pages/design/_docs/index.ts` 的 DOCS 与 12 份 data/*.json 一一对应
- *   I2 atoms：清单里的 atom/molecule 记录 = registry 12 条；file 与 data.source 一致；
+ *   I1 registry 可解析：`src/pages/design/_docs/index.ts` 的 DOCS 与 15 份 data/*.json 一一对应
+ *   I2 atoms：清单里的 atom/molecule 记录 = registry 15 条；file 与 data.source 一致；
  *      doc_url = /design/atoms/<slug>/ 且页面存在
  *   I3 legacy UI：src/components/UI/*.astro 的每个文件都在清单里（23 个 ui + 1 个 layout 壳），
  *      ui 记录必须有 slug/file/layer/usage_count/doc_url/status，doc_url = /design/components/<slug>/
@@ -58,7 +58,7 @@ const LEGACY_UI_SLUG_PREFIX = "ui-";
  * 12 → 11、total 48 → 47。这是**收紧**（分母只减不增），依据 `19-m2-plan.md`
  * §3 M2-2「消解进路由并在卡内删除该文件；§4.4 的 page-organism 债 -1」。
  */
-const FROZEN_COUNTS = { atom: 10, molecule: 2, ui: 24, layout: 1, "page-organism": 11, total: 48 };
+const FROZEN_COUNTS = { atom: 11, molecule: 4, ui: 24, layout: 1, "page-organism": 11, total: 51 };
 
 /** 唯一一个不进 UI 文档分母的 UI 文件：纯 slot 容器，无 props / 状态 / 样式。 */
 const LAYOUT_SHELLS = {
@@ -136,8 +136,8 @@ function parseRegistry() {
     const order = docOrder.map((binding) => bindingToSlug.get(binding)).filter(Boolean);
 
     const slugProblems = [];
-    if (imports.length !== 12)
-        slugProblems.push(`data/*.json import ${imports.length} 个（应 12）`);
+    if (imports.length !== 15)
+        slugProblems.push(`data/*.json import ${imports.length} 个（应 15）`);
     if (order.length !== docOrder.length) {
         slugProblems.push(
             `DOCS 数组有 ${docOrder.length - order.length} 项没有对应的 data/*.json import`,
@@ -308,7 +308,7 @@ function buildInventory(registry) {
         note: "P9 的唯一分母。组件集合、slug、doc_url 由 verify-component-inventory.mjs 冻结；usage_count/usage_tags 是快照，只允许 --update 重写。",
         counts,
         slug_rules: {
-            atom: "atom/molecule 保持短名：button / card / pagination（12 条 M1-6 记录不动）",
+            atom: "atom/molecule 保持短名：button / card / pagination（15 条 = M1-6 的 12 条 + M8-6-0 的 3 条）",
             ui: "legacy UI 与 atom 同名时加 `ui-` 前缀：ui-button / ui-card / ui-pagination；其余同 atom 规则",
             layout: "UI/ 下无 props / 状态 / 样式的纯 slot 容器不进 UI 文档分母，status=excluded 并写 reason",
             doc_url: { atom: "/design/atoms/<slug>/", ui: "/design/components/<slug>/" },
@@ -356,9 +356,9 @@ const components = Array.isArray(inventory.components) ? inventory.components : 
 
 addCheck(
     "I1",
-    "registry 12 条可解析（DOCS ↔ data/*.json）",
-    registry.problems.length === 0 && registry.order.length === 12,
-    `docs=${registry.order.length}/12`,
+    "registry 15 条可解析（DOCS ↔ data/*.json）",
+    registry.problems.length === 0 && registry.order.length === 15,
+    `docs=${registry.order.length}/15`,
     registry.problems,
 );
 
@@ -391,8 +391,8 @@ const atomCount = atoms.filter((component) => component.layer === "atom").length
 const moleculeCount = atoms.filter((component) => component.layer === "molecule").length;
 addCheck(
     "I2",
-    "atoms = registry 12（10 atom + 2 molecule），doc_url 与页面一致",
-    atomProblems.length === 0 && atoms.length === 12 && atomCount === 10 && moleculeCount === 2,
+    "atoms = registry 15（11 atom + 4 molecule），doc_url 与页面一致",
+    atomProblems.length === 0 && atoms.length === 15 && atomCount === 11 && moleculeCount === 4,
     `atom=${atomCount} molecule=${moleculeCount} 总=${atoms.length}`,
     atomProblems,
 );

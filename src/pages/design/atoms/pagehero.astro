@@ -1,0 +1,41 @@
+---
+/**
+ * /design/atoms/pagehero/ — PageHero 文档页（M8-6-0）
+ * 数据：src/pages/design/_docs/data/pagehero.json · 契约：DESIGN.md §5.6.13
+ */
+import AtomDoc from "../_docs/AtomDoc.astro";
+import DemoFrame from "../_docs/DemoFrame.astro";
+import { bySlug } from "../_docs/index";
+import PageHero from "~/components/UI/molecule/PageHero.astro";
+
+const doc = bySlug("pagehero");
+
+const fullMeta = [
+    { icon: "calendar", label: "2024 — 2026" },
+    { icon: "photo", label: "12 篇" },
+    { icon: "tag", label: "4 个系列" },
+    { icon: "clock", label: "最近更新 3 天前", quiet: true },
+];
+---
+
+<AtomDoc doc={doc}>
+    <DemoFrame layout="stack" caption="全量形态：kicker（mono 大写 + accent 短尺）+ h1 + lede + meta×4 + 底边">
+        <PageHero
+            kicker="系列"
+            title="从零搭一套设计系统"
+            lede="16 篇文章讲清 token、组件与门禁：先定契约，再写样式，最后让脚本替人盯住漂移。"
+            meta={fullMeta}
+            slug="series"
+        />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="最小形态：只有标题（kicker / lede / meta 空则不渲染，divider={false} 无底边）">
+        <PageHero title="关于" slug="about" divider={false} />
+    </DemoFrame>
+
+    <DemoFrame layout="stack" caption="附加行：默认 slot 里放一行动作/标签，由页面决定内容">
+        <PageHero kicker="友链" title="朋友们" lede="长期写、长期更新的站都在这里。" slug="friends">
+            <p>共 7 个站点 · 按最近更新排序</p>
+        </PageHero>
+    </DemoFrame>
+</AtomDoc>

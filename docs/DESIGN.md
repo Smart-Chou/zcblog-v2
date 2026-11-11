@@ -933,7 +933,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 3. 它由两个以上本系统组件组成吗？→ 是：molecule 或以上。
 4. 以上都否 → atom。
 
-### 4.5 M1 的 12 个核心组件（归属层）
+### 4.5 M1 的 12 个核心组件 + M8-6-0 的 3 个结构件（归属层）
 
 `16-m1-brief.md` §3.3 叫它们「12 个核心 atom」。按 §4.4 的归层四问，其中 2 个实际是 molecule——**卡名不改，归层必须写对**，否则评审时「atom 里 import atom」会被判违规。
 
@@ -951,6 +951,9 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 | 10 | Pagination | **molecule** | 组合多个 Link |
 | 11 | Alert | atom | 颜色/图标由 props 决定，不 import 组件 |
 | 12 | Skeleton | atom | 单元素 + 动画 |
+| 13 | PageHero | **molecule** | 组合 Icon + 结构元素（kicker / h1 / meta） |
+| 14 | SectionHead | atom | 标题 + 可选 slot；不 import 组件（action 由页面传入） |
+| 15 | DataState | **molecule** | 组合 Icon + Alert |
 
 ---
 
@@ -1037,7 +1040,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 | 禁止 | ① 大写化文案（`text-transform: uppercase`）② 图标裸放（icon-only 必须 `aria-label`）③ 居中式「两个按钮等宽并排」的营销 CTA ④ `loading` 时改变尺寸 |
 | JS | 0 字节（loading 由父级传 `loading` prop 控制） |
 
-### 5.3 12 个组件的状态覆盖矩阵（M1-3 的验收依据）
+### 5.3 15 个组件的状态覆盖矩阵（M1-3 的 12 个 + M8-6-0 的 3 个；M1-3 仍是验收依据）
 
 | 组件 | default | hover | active | focus-visible | disabled | loading | selected | invalid | 其它 |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|---|
@@ -1053,6 +1056,9 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 | Pagination | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | prev/next disabled |
 | Alert | ✓ | — | — | ✓ | — | — | — | — | 4 变体 + 可关闭（关闭按钮的 focus-visible） |
 | Skeleton | ✓ | — | — | — | — | — | — | — | text / block / circle |
+| PageHero | ✓ | — | — | — | — | — | — | — | 静态结构（kicker / lede / meta / divider） |
+| SectionHead | ✓ | — | — | ✓ | — | — | — | — | action slot 内的控件自带状态 |
+| DataState | ✓ | — | — | ✓ | — | — | — | — | empty / error 互斥（G-14），无 loading |
 
 ### 5.4 状态词汇表（全系统统一的 8 个词，不许自造）
 
@@ -1086,12 +1092,12 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 ---
 
 
-### 5.6 12 个核心组件的规格（M1-3 的实现依据）
+### 5.6 15 个核心组件的规格（M1-3 的 12 个 + M8-6-0 的 3 个结构件）
 
-> **层级**：10 个 atom + 2 个 molecule（Breadcrumb、Pagination，依据 §4.5 的四问）。卡名仍叫「12 个核心 atom」，**归层以本节每条的「层级」字段为准**——否则评审时「atom 里 import atom/molecule」会被判 D1 违规。
+> **层级**：11 个 atom + 4 个 molecule（Breadcrumb、Pagination、PageHero、DataState，依据 §4.5 的四问）。卡名仍叫「12 个核心 atom」，**归层以本节每条的「层级」字段为准**——否则评审时「atom 里 import atom/molecule」会被判 D1 违规。
 > **本节只写契约**：没有 `.astro` 片段、没有 CSS 规则、没有一个色值。凡在本节看到 hex/rgb 或 token 白名单以外的尺寸，按 §6.1 N1/N3 判违规。
 > **取值一律查 `tokens.json`**：§3.5–§3.12 的值表正在 `t_15455edf` 同步到 Stitch 基线（§3.14.5），文档与 JSON 暂时并存两套值。**本节只写 token 名、不重复数值**，就是为了不制造第三套值。实现时 `--space-8` 是多少，查 JSON，不要查 §3.6 的旧表。
-> **验收**：字段齐全性与机器门禁见 §5.6.13；对比度证据见 §5.6.13-B（`probe-atoms.py` 可复跑）。
+> **验收**：字段齐全性与机器门禁见 §5.6.16；对比度证据见 §5.6.16-B（`probe-atoms.py` 可复跑）。
 
 #### 5.6.0 八条全局约定（每条组件都适用，后文不再重复）
 
@@ -1105,7 +1111,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 | G6 | **指针目标 ≥ `--space-6`（24×24）**，主操作 ≥ `--space-11`（44×44）。不够就用 padding 扩，**不许用伪元素把热区压到相邻元素上** | WCAG 2.5.8 AA；人工 |
 | G7 | **每个状态必须有第二通道**（图标 / 下划线 / 边框 / 文案 / `aria-*`），不许只靠颜色 | N5 |
 | G8 | **JS 默认 0 字节**；局部交互（可移除 Tag、可关闭 Alert）由父级持有状态，组件只渲染触发按钮，见 §4.3「局部」格 | §7 预算表「每个新组件的 JS」 |
-| G9 | **样式机制（D-0100）**：Tailwind 已移除。组件样式只能写在 Astro scoped `<style>` 或 `src/styles/` 的模块化 CSS 里；`reset` / `base` / `typography` / `components` 四层保留、`global.css` 不再 import Tailwind。**禁止** utility class、`@apply`、`@theme`；对外暴露的 `class` 只用于布局定位 | `grep -rnE 'tailwind\|@apply\|@theme' src/components src/styles` → 0（§5.6.13-C 的 P8） |
+| G9 | **样式机制（D-0100）**：Tailwind 已移除。组件样式只能写在 Astro scoped `<style>` 或 `src/styles/` 的模块化 CSS 里；`reset` / `base` / `typography` / `components` 四层保留、`global.css` 不再 import Tailwind。**禁止** utility class、`@apply`、`@theme`；对外暴露的 `class` 只用于布局定位 | `grep -rnE 'tailwind\|@apply\|@theme' src/components src/styles` → 0（§5.6.16-C 的 P8） |
 
 **与现存组件的对应关系**（M1-3 落地时必须处理的破坏面；不改 `src/`，只登记）
 
@@ -1171,7 +1177,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 - role / 语义元素：`<button type>`。**不使用** `<a>`、`<div role="button">`（现状 `UI/Button.astro` 是 `<a>`，M1-3 改）。
 - 键盘：Enter / Space 由原生触发；不使用 Esc 与方向键；`loading` 期间不可重复触发（原生 `disabled` 已保证）。
 - ARIA：`aria-busy`（loading）、`aria-label`（icon-only，来自 `label`）。**不加** `role="button"`（多余）、不加 `aria-disabled`（有原生 `disabled`）。
-- 对比度（light / dark）：`fg-on-accent`/`accent-solid` **4.66 / 5.15**、hover **6.04 / 6.51**（§3.14.4）；secondary 字 `fg-link`/`bg-surface` **6.04 / 4.72**、描边 `border-accent`/`bg-surface` **4.66 / 4.72**（3:1 非文本，§5.6.13-B）；ghost `fg-default`/`bg-surface` **9.39 / 9.69**。disabled 2.33 / 2.29 属 1.4.3 豁免（不承载信息）。
+- 对比度（light / dark）：`fg-on-accent`/`accent-solid` **4.66 / 5.15**、hover **6.04 / 6.51**（§3.14.4）；secondary 字 `fg-link`/`bg-surface` **6.04 / 4.72**、描边 `border-accent`/`bg-surface` **4.66 / 4.72**（3:1 非文本，§5.6.16-B）；ghost `fg-default`/`bg-surface` **9.39 / 9.69**。disabled 2.33 / 2.29 属 1.4.3 豁免（不承载信息）。
 - **深色底上的字必须是 `--color-fg-on-accent`**：白字在深色赤陶上是 3.61（§3.14.4），写 `white` 或任何字面白色都判违规（N1 之外再加一条：深色下的对比度回归）。
 - 焦点环：G4；`outline-offset` 保证环与实底之间有缝（环对画布 4.44 / 5.15）。
 - 指针目标：`sm` 32 ≥ 24（G6）；`md` 40；`lg` 48 ≥ 44（主操作用 `lg`）。
@@ -1322,7 +1328,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 - role / 语义元素：`<span>`（静态）/ `<a href>`（筛选项）/ 可移除时 `<span>` 内含 `<button>`。**HTML 不允许交互嵌套**：`href` + `removable` 同时存在时，移除按钮是 `<a>` 的**兄弟**，不是子元素。
 - 键盘：只有可交互 Tag 进 Tab 序列；移除按钮单独一次 Tab（不合并）。
 - ARIA：`aria-current` / `aria-pressed` 表达选中；移除按钮 `aria-label` 必须含标签文字（`{removeLabel}：{text}` 由页面拼，G1）。
-- 对比度：`selected` `fg-default`/`bg-selected` **8.09 / 9.39**；`neutral` `fg-default`/`bg-muted` **8.05 / 8.94**；`accent` `fg-link`/`bg-surface` **6.04 / 4.72**；`info` **8.49 / 8.73**、`success` **4.60 / 5.62**、`warning` **4.58 / 4.97**、`danger` **6.21 / 5.63**（§3.14.4 + §5.6.13-B）。
+- 对比度：`selected` `fg-default`/`bg-selected` **8.09 / 9.39**；`neutral` `fg-default`/`bg-muted` **8.05 / 8.94**；`accent` `fg-link`/`bg-surface` **6.04 / 4.72**；`info` **8.49 / 8.73**、`success` **4.60 / 5.62**、`warning` **4.58 / 4.97**、`danger` **6.21 / 5.63**（§3.14.4 + §5.6.16-B）。
 - **`accent` 档不用 `--color-accent-subtle` 做底**：`fg-link` 在其上只有 **5.47 / 3.53**（深色不达标），所以 accent Tag 的底是 `--color-bg-surface`，强调靠描边。
 - 指针目标：`sm` 24（`--space-6`）刚好达标；**移除按钮单独点按必须 ≥24**，`sm` 时用 padding 把热区补到 `--space-6`，不许压到相邻 Tag。
 - reduced-motion：过渡归 0。
@@ -1407,7 +1413,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 - 键盘：原生（Tab 进入、方向键移动光标）；不使用快捷键拦截。
 - ARIA：`aria-describedby` 串 `hint` 与 `error` 的 id（顺序：hint → error）；`aria-invalid="true"`（仅 error）；`aria-required` 不需要（原生 `required` 已表达）。
 - **错误文案的播报**：静态渲染时用文本 + `aria-describedby`；只有「用户操作后运行时插入」的文案才加 `role="alert"`（同 Alert 的 `live` 规则，见 §5.6.11）。
-- 对比度：字 `fg-default`/`bg-surface` **9.39 / 9.69**；placeholder `fg-muted`/`bg-surface` **4.87 / 4.71**（§5.6.13-B；§3.14.4 该 light 格记 4.76，复跑为 4.87，判定笔误，见 §5.6.13-B 第 3 条）；描边 `border-default`/`bg-surface` **3.19 / 3.04**（3:1 非文本）；readonly 字 `fg-default`/`bg-sunken` **8.49 / 8.73**。
+- 对比度：字 `fg-default`/`bg-surface` **9.39 / 9.69**；placeholder `fg-muted`/`bg-surface` **4.87 / 4.71**（§5.6.16-B；§3.14.4 该 light 格记 4.76，复跑为 4.87，判定笔误，见 §5.6.16-B 第 3 条）；描边 `border-default`/`bg-surface` **3.19 / 3.04**（3:1 非文本）；readonly 字 `fg-default`/`bg-sunken` **8.49 / 8.73**。
 - 焦点环：G4；**禁止 `outline: none` 没有替代**。
 - 指针目标：高度 ≥ `--space-8`（32）已满足 24；主操作 ≥44 由提交按钮承担（G6）。
 - reduced-motion：过渡归 0。
@@ -1484,7 +1490,7 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 - 键盘：卡本身不进 Tab 序列；只有卡内真实链接/按钮进。
 - ARIA：`aria-labelledby` 指向标题（一屏 9–12 张卡时，读屏用户能听到「卡片名」而不只是「文章」）。
 - **一个交互区只能有一个真链接**：`interactive` 卡内若有两个链接（标题 + 标签），hover 视觉仍作用于整卡，但**焦点环只跟真实焦点**，不用「stretched link」覆盖层（覆盖层会吃掉内层链接的点击）。
-- 对比度：正文 `fg-default`/`bg-surface` **9.39 / 9.69**；meta `fg-muted`/`bg-surface` **4.87 / 4.71**；标题 `fg-heading`/`bg-surface` **17.09 / 14.57**；`raised`（深色下 `bg-raised` 更亮）正文 **9.39 / 8.27**（§5.6.13-B）。
+- 对比度：正文 `fg-default`/`bg-surface` **9.39 / 9.69**；meta `fg-muted`/`bg-surface` **4.87 / 4.71**；标题 `fg-heading`/`bg-surface` **17.09 / 14.57**；`raised`（深色下 `bg-raised` 更亮）正文 **9.39 / 8.27**（§5.6.16-B）。
 - 焦点环：G4；`interactive` 卡用 `:focus-within` 让环出现在卡的外沿（不改变布局，用 `outline`）。
 - 指针目标：卡内链接/按钮各自 ≥ `--space-6`（G6）；`media` 不是点击目标。
 - reduced-motion：`interactive` 的 `box-shadow` 过渡归 0（阴影变化不是位移，可以保留瞬时切换）。
@@ -1626,7 +1632,7 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 - 键盘：不参与（不可交互）。
 - ARIA：`alt` 必填或 `decorative`；回退时 `aria-hidden="true"` 且**必须**有相邻可见姓名，否则身份信息彻底丢失。
 - **运行期加载失败**：不做 `onerror` 兜底（JS 预算 0）；`alt` 由浏览器显示为文本，等价于降级。动态头像（评论区）由 organism 自己处理，不进 atom。
-- 对比度：回退字 `fg-default`/`bg-muted` **8.05 / 8.94**。**不能用 `--color-fg-muted`**：实测 `fg-muted`/`bg-muted` 只有 **4.18 / 4.34**（不达 4.5，见 §5.6.13-B 的 INFO 行）——这是本规格里唯一一个「看起来该用 muted、实测被否掉」的取值。
+- 对比度：回退字 `fg-default`/`bg-muted` **8.05 / 8.94**。**不能用 `--color-fg-muted`**：实测 `fg-muted`/`bg-muted` 只有 **4.18 / 4.34**（不达 4.5，见 §5.6.16-B 的 INFO 行）——这是本规格里唯一一个「看起来该用 muted、实测被否掉」的取值。
 - 焦点环：不适用。指针目标：不适用（不可点；若可点，热区由父级 Link 提供）。
 - reduced-motion：不适用。
 
@@ -1845,7 +1851,7 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 - role / 语义元素：`<nav aria-label={navLabel}>` + `<ol>` + `<li>`；上一页/下一页用 `<a aria-label={prevLabel}>`（图标 + 可见文字二选一）。
 - 键盘：只有真实链接进 Tab 序列；当前页与省略号不是链接——**这直接决定了「按 5 次 Tab 才能跳过页码」这种问题不会发生**。
 - ARIA：`aria-current="page"`（当前页）、`aria-disabled="true"`（边界）、`aria-label`（页码用 `pageLabel` 模板）。**不**用 `title` 代替 `aria-label`。
-- 对比度：页码 `fg-muted`/`bg-canvas` **4.64 / 5.14**；当前页 `fg-default`/`bg-selected` **8.09 / 9.39**；hover 字 `fg-link` **5.76 / 5.15**；disabled 2.33 / 2.29 属 1.4.3 豁免（§5.6.13-B）。
+- 对比度：页码 `fg-muted`/`bg-canvas` **4.64 / 5.14**；当前页 `fg-default`/`bg-selected` **8.09 / 9.39**；hover 字 `fg-link` **5.76 / 5.15**；disabled 2.33 / 2.29 属 1.4.3 豁免（§5.6.16-B）。
 - **URL 必须是可索引路径**：`/blog/page/2/`，不是 `?page=2`——查询串对 SEO 与 Cloudflare 缓存规则都不友好（§3.10 之外的既有教训）。
 - 焦点环：G4。指针目标：页码方块 `--space-10`（40 ≥ 24），上一页/下一页 `--space-11`（44）。
 - reduced-motion：`translateY(1px)` 取消、过渡归 0。
@@ -1920,7 +1926,7 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 - ARIA：`aria-hidden="true"` 给图标；`title` 用 `--font-weight-semibold` 而非 `<h*>`（Alert 不该插进标题大纲）。
 - **`role="alert"` 的唯一合法场景**：内容由用户操作**在运行时插入**。页面加载即存在的提示用 `assertive` 会在读屏进入页面时打断当前朗读——这是本组件最容易犯的错，所以默认值是 `none`。
 - 对比度：正文对状态底（§3.14.4）：`success` **4.60 / 5.62**、`warning` **4.58 / 4.97**、`danger` **6.21 / 5.63**、`info` **8.49 / 8.73**。
-- **边界不承担 3:1**：`--color-status-*-border` 是 45% 混色，对画布只有 **1.58–2.12**（§5.6.13-B 的 INFO 行）。Alert 不是控件，tone 的识别依据是**图标 + 文案**（N5），不是边框。`neutral` 的 `--color-border-default` 对画布是 3.04 / 3.32，顺带达标。
+- **边界不承担 3:1**：`--color-status-*-border` 是 45% 混色，对画布只有 **1.58–2.12**（§5.6.16-B 的 INFO 行）。Alert 不是控件，tone 的识别依据是**图标 + 文案**（N5），不是边框。`neutral` 的 `--color-border-default` 对画布是 3.04 / 3.32，顺带达标。
 - 关闭按钮：≥ `--space-6`（24），`aria-label={closeLabel}`；**不许**只有 ✕ 图标没有 label（N4）。
 - reduced-motion：过渡归 0；关闭动画不做（瞬时移除）。
 
@@ -2028,10 +2034,222 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 **视觉基线**：`.../skeleton-{light,dark}-{390,768,1440}.png`；用例 = `variant`×3 × `ratio`×4（`block`）× `lines` 1/3/6；另加 reduced-motion 一档静态基线。
 
 ---
+#### 5.6.13 PageHero
 
-#### 5.6.13 本节自检（`blog-pm` / `blog-qa` 按此逐项判定）
+- **层级**：molecule　·　**状态**：草案　·　**Owner**：`blog-fe`　·　**规格版本**：1.0
+- **用途**：内容页的统一页头（系列 / 相册 / 友链 / 搜索 / 归档 / 关于）：kicker + h1 + lede + 统计行 + 可选底边，六页共用一份「第一屏骨架」。
+- **何时不用**：首页主视觉（`HeroMasthead` 是 organism，构图归它）；页面内某个分组的小标题 → `SectionHead`；文章正文页头由文章模板负责。
 
-**A · 12 × 5 字段齐全性**（缺一格 = `REQUEST_CHANGES`）
+**Props**
+
+| 名称 | 类型 | 默认 | 取值 | 说明 |
+|---|---|---|---|---|
+| `title` | string | — | **必填** | h1 文本 |
+| `kicker` | string | — | — | mono 大写标签，前置 accent 短尺；空则不渲染整行（短尺一起不渲染） |
+| `lede` | string | — | — | 副文案，单段；空则不留空容器 |
+| `meta` | array | `[]` | `{ icon?, label, quiet? }[]` | 统计 / 状态行；`quiet: true` 走 `fg-muted` 弱化档；空数组则整行不渲染 |
+| `divider` | boolean | `true` | — | 底部 1px 分隔线（`border-subtle`）；系列页传 `false` |
+| `id` | string | — | 与 `slug` 至少给一个 | h1 的 id（页面 `aria-labelledby` 依赖它） |
+| `slug` | string | — | — | 未给 `id` 时的兜底：h1 id = `${slug}-title` |
+| `class` | string | — | — | 只允许布局类 |
+
+**Slots**
+
+| 名称 | 必需 | 说明 |
+|---|---|---|
+| `default` | 否 | 页头附加行（Tag 组、外链按钮）；不传则整块不渲染 |
+
+**States**
+
+| 状态 | 触发 | 视觉（用哪些 token） | ARIA |
+|---|---|---|---|
+| default | — | 唯一形态：kicker `--color-fg-muted` + 短尺 `--color-accent-solid`；h1 `--color-fg-heading` + `--text-4xl`；lede `--color-fg-default` + `--text-base` + `--measure-prose`；meta 默认 `--color-fg-default`、`quiet` 档 `--color-fg-muted` + `--text-xs`；`divider` 用 `--color-border-subtle` | h1 带 `id`；页面用 `aria-labelledby` 指向它 |
+
+无 hover / focus / disabled / loading / selected / invalid：PageHero 是静态结构，不承载交互（slot 里的控件自带状态）。
+
+**可访问性**
+
+- role / 语义元素：外层 `<header>` + `<h1>`；kicker 是 `<p>`（不是标题，避免打乱大纲）；meta 是列表语义（图标 `aria-hidden="true"`）。
+- 键盘：不参与（自身不可聚焦）。
+- ARIA：h1 必须有 `id`（`id` 或 `slug` 至少给一个），否则页面无法 `aria-labelledby`。
+- 对比度：h1 `fg-heading`/`bg-canvas` **16.29 / 15.89**；lede `fg-default`/`bg-canvas` **8.95 / 10.57**；meta 弱化档 `fg-muted`/`bg-canvas` **4.64 / 5.14**；短尺 `accent-solid`/`bg-canvas` **6.43 / 5.15**（装饰，不设门槛）。
+- 焦点环 / 指针目标：不适用（无自身交互）。
+- reduced-motion：无动画、无过渡（0 个 `transition`）。
+
+**尺寸**
+
+| 项 | ≥768 | ≤768 | ≤450 |
+|---|---|---|---|
+| h1 | `--text-4xl` | `--text-3xl` | 同 ≤768 |
+| kicker | `--text-xs` + `--font-mono` + `--tracking-wide` | 同左 | 同左 |
+| lede | `--text-base` + `--leading-relaxed` | 不降（正文可读性优先） | 同左 |
+| 短尺 | 宽 `--space-12`、高 2px | 同左 | 同左 |
+| 纵向节奏 | 上 `--space-6` / 下 `--space-6` | 同左 | 下 `--space-4` |
+| meta gap | `--space-3` | 同左 | `--space-2` |
+
+h1 **禁止** `clamp()` / `vw`（D-0149）：只允许上面两档字号的裸断点切换。
+
+**消费的 token（白名单）**
+
+- 颜色：`--color-fg-heading` `--color-fg-default` `--color-fg-muted` `--color-accent-solid` `--color-border-subtle`
+- 度量：`--space-1 / 2 / 3 / 4 / 6 / 12`、`--text-4xl`、`--text-3xl`、`--text-base`、`--text-xs`、`--font-sans`、`--font-serif`、`--font-mono`、`--font-weight-regular`、`--tracking-tight`、`--tracking-wide`、`--leading-tight`、`--leading-relaxed`、`--measure-prose`
+
+**禁止（本组件专属）**
+
+1. 给 h1 加 `clamp()` / `vw` / 第三个字号档（D-0149：断点只有 768 一个）。
+2. 在组件里写页面专属视觉（卡片、栅格、标签配色）——那是页卡的事。
+3. 用 kicker 承载导航或可点击内容（它是标签，不是链接）。
+4. `meta` 里塞长句（超过一行就该走 lede）；`quiet` 用来表达「次要」而不是「禁用」。
+5. 阴影 / 渐变 / 背景色块（页头不是表面，没有层级）。
+
+**依赖**：`Icon`（meta 图标）。**JS 0 字节**。
+
+**视觉基线**：`.../pagehero-{light,dark}-{390,768,1440}.png`；用例 = 全量形态（kicker + lede + meta×4 + divider）与最小形态（只有 title，`divider={false}`）。
+
+---
+
+#### 5.6.14 SectionHead
+
+- **层级**：atom　·　**状态**：草案　·　**Owner**：`blog-fe`　·　**规格版本**：1.0
+- **用途**：页面内一个分组的标题行：`title` + 右侧 `meta` 说明 + 右侧 `action` 链接，底边与正文分层。六页的所有「区块标题」共用它，保证 h2 间距、底边与对齐只有一份实现。
+- **何时不用**：页面第一屏大标题 → `PageHero`；卡片内部小标题（不需要底边）→ 卡片的标题字段；需要折叠行为 → organism（要 JS）。
+
+**Props**
+
+| 名称 | 类型 | 默认 | 取值 | 说明 |
+|---|---|---|---|---|
+| `title` | string | — | **必填** | 标题文本 |
+| `id` | string | — | **必填** | h2 / h3 的 id；页面 `<section aria-labelledby>` 依赖它，缺失即红 |
+| `meta` | string | — | — | 右侧说明（如「固定顺序」「最新在上」），纯文本，不是 Tag；空则不渲染 |
+| `level` | number | `2` | `2` / `3` | 标题层级；`3` 只用于已有一层 h2 的页面，不得跳级 |
+| `class` | string | — | — | 只允许布局类 |
+
+**Slots**
+
+| 名称 | 必需 | 说明 |
+|---|---|---|
+| `action` | 否 | 右侧操作位（页面传入 `Link` 或 `Button`）；不传则只有 meta |
+
+**States**
+
+| 状态 | 触发 | 视觉（用哪些 token） | ARIA |
+|---|---|---|---|
+| default | — | 标题 `--color-fg-heading` + `--text-2xl` + `--tracking-tight`；meta `--color-fg-muted` + `--text-sm`；底边 1px `--color-border-subtle`；`padding-block-end` `--space-3` | `id` 落在标题元素上；页面用 `aria-labelledby` 指向 |
+| focus-visible | 键盘聚焦（仅 `action` slot 内的元素） | G4 焦点环（由 Link / Button 自带） | 无（原生） |
+
+**可访问性**
+
+- role / 语义元素：真标题元素（`h2` / `h3`，按 `level` 渲染），不是 `<div>` 假装标题；`id` **必填**，否则页面的 `aria-labelledby` 落空。
+- 键盘：自身不聚焦；`action` 里的 Link / Button 进 Tab 序列。
+- ARIA：不加 `role`；`meta` 是 `<p>`，不进标题大纲；`action` 区内不重复 `title` 的文案。
+- 对比度：标题 `fg-heading`/`bg-canvas` **16.29 / 15.89**；meta `fg-muted`/`bg-canvas` **4.64 / 5.14**；action 链接 `fg-link`/`bg-canvas` **5.76 / 5.15**；底边 `border-subtle`/`bg-canvas` **1.20 / 1.37**（分隔线，≥1.0）。
+- 焦点环 / 指针目标：不适用（自身无交互）。
+- reduced-motion：无动画、无过渡。
+
+**尺寸**
+
+| 项 | ≥768 | ≤768 |
+|---|---|---|
+| 布局 | 一行，`justify-content: space-between`，`align-items: baseline` | 折成两行（`flex-direction: column`），`gap` `--space-2` |
+| 标题 | `--text-2xl` + `--leading-tight` | 同左（不降字号，只改布局） |
+| meta / action | 同一侧栏内竖排，`gap` `--space-2` | 与标题同行下的第二行 |
+| 底边 | 1px `--color-border-subtle` + `padding-block-end` `--space-3` | 同左 |
+
+**消费的 token（白名单）**
+
+- 颜色：`--color-fg-heading` `--color-fg-muted` `--color-fg-link` `--color-border-subtle`
+- 度量：`--space-2 / 3`、`--text-2xl`、`--text-sm`、`--text-xs`、`--font-sans`、`--font-serif`、`--font-weight-regular`、`--tracking-tight`、`--leading-tight`
+
+**禁止（本组件专属）**
+
+1. `id` 不填或填重复值（页面 `aria-labelledby` 会落空，同页两个 `id` 会撞）。
+2. 用 `level=3` 跳过 h2（标题层级不得跳级）。
+3. 把 `meta` 做成 Tag 胶囊或彩色计数（计数是文案，不是状态色）。
+4. 组件自己套 `<section>` / `<header>`（容器与 spacing 归页面）。
+5. 在本组件里画分隔线以外的装饰（阴影、背景块、图标大字）。
+
+**依赖**：无（`action` slot 由页面传入，组件不 import Link / Button，避免 atom 反向依赖）。**JS 0 字节**。
+
+**视觉基线**：`.../sectionhead-{light,dark}-{390,768,1440}.png`；用例 = 只有 title / title + meta / title + action / title + meta + action。
+
+---
+
+#### 5.6.15 DataState
+
+- **层级**：molecule　·　**状态**：草案　·　**Owner**：`blog-fe`　·　**规格版本**：1.0
+- **用途**：数据派的两个**终止态**：`empty`（真实空集）与 `error`（取数失败）。六页的「没有内容」与「取不到内容」用同一份文案结构与间距，不让每页各写一套。
+- **何时不用**：内容正在加载 → 没有这个状态（六页全部构建期取数，见下）；字段级校验失败 → `Input` 的 `error`；一次性操作反馈 → toast（organism）。
+
+**Props**
+
+| 名称 | 类型 | 默认 | 取值 | 说明 |
+|---|---|---|---|---|
+| `kind` | enum | — | **必填**：`empty` / `error` | 两态互斥（G-14） |
+| `title` | string | — | **必填** | `empty` → `<h2>`；`error` → Alert 标题 |
+| `message` | string | — | **必填** | 说明文案（一句话说清为什么空 / 为什么失败） |
+| `icon` | string | — | Icons 闭集图标名（`empty` 时必填） | `error` 忽略（固定用 Alert 的 warning 图标） |
+| `code` | string | — | — | `error` 时的 mono 原因码；缺省不渲染该行，**不写 unknown 占位** |
+| `codeLabel` | string | — | — | 原因码行前缀（i18n 由页面注入） |
+| `class` | string | — | — | 只允许布局类 |
+
+**Slots**
+
+| 名称 | 必需 | 说明 |
+|---|---|---|
+| `default` | 否 | 操作区（如「回到首页」「换个关键词」）；`empty` / `error` 都可给 |
+
+**States**
+
+| 状态 | 触发 | 视觉（用哪些 token） | ARIA |
+|---|---|---|---|
+| default | `kind="empty"` | 圆形 icon 底 `--color-bg-muted` + `--radius-pill` + 直径 `--space-12`；图标 `--color-fg-muted`；标题 `--color-fg-heading` + `--text-xl`；说明 `--color-fg-muted` + `--text-sm` + `--measure-prose` | 标题是 `<h2>`；**不加** `role="status"`（页面加载即存在，不是 live region）；icon `aria-hidden="true"` |
+| focus-visible | 键盘聚焦（仅 `default` slot 内的元素） | G4 焦点环（由传入控件自带） | 无（原生） |
+
+**无 `loading` 变体**：六页全部构建期取数（O5），客户端不存在「加载中」；要占位用 `Skeleton`，错误用本组件的 `error`。
+
+**可访问性**
+
+- role / 语义元素：`empty` 是 `<div>` + `<h2>` + `<p>` + 可选操作区；`error` 复用 `Alert tone="warning"`（`live="none"`：页面加载即存在，不用 assertive）。
+- 键盘：自身不聚焦；操作区里的 Link / Button 进 Tab 序列。
+- ARIA：icon 一律 `aria-hidden="true"`（装饰，语义由标题承担）；原因码是**文本**不是颜色（N5），前缀由 `codeLabel` 注入（G1：组件不写自然语言）。
+- 对比度：标题 `fg-heading`/`bg-canvas` **16.29 / 15.89**；说明 `fg-muted`/`bg-canvas` **4.64 / 5.14**；圆形 icon 底上的图标 `fg-muted`/`bg-muted` **4.18 / 4.34**（装饰，不设门槛，INFO）；`error` 走 Alert warning 正文 **4.58 / 4.97**；原因码 `fg-muted`/`bg-canvas` **4.64 / 5.14**。
+- 焦点环 / 指针目标：不适用（自身无交互）。
+- reduced-motion：无动画、无过渡（不做入场淡入）。
+
+**尺寸**
+
+| 项 | ≥768 | ≤450 |
+|---|---|---|
+| 纵向 padding | `--space-12` | `--space-8` |
+| icon 直径 | `--space-12` | `--space-10` |
+| 标题 / 说明间距 | `--space-2` | 同左 |
+| 说明宽度 | `--measure-prose` | 同左 |
+| 原因码 | `--text-xs` + `--font-mono` | 同左（不降） |
+
+**消费的 token（白名单）**
+
+- 颜色：`--color-bg-muted` `--color-fg-heading` `--color-fg-default` `--color-fg-muted`
+- 度量：`--space-2 / 8 / 10 / 12`、`--text-xl`、`--text-sm`、`--text-xs`、`--font-sans`、`--font-serif`、`--font-mono`、`--font-weight-regular`、`--tracking-tight`、`--leading-tight`、`--leading-relaxed`、`--measure-prose`、`--radius-pill`
+
+**禁止（本组件专属）**
+
+1. 加 `loading` 变体（构建期取数，没有加载态；客户端占位用 `Skeleton`）。
+2. 页面上同时出现 `empty` 与 `error`（G-14：两态互斥）。
+3. 用色块 / 红色边框表达「出错」（tone 由 Alert 的图标 + 文案承担，N5）。
+4. 原因码写「unknown」/ 空串占位（没有码就不渲染该行）。
+5. 在组件里写死中文文案（`title` / `message` / `codeLabel` 全部由页面注入，G1）。
+6. 出场动画 / 淡入（N11）。
+
+**依赖**：`Icon`、`Alert`（同层 atom，molecule → atom 合法）。**JS 0 字节**。
+
+**视觉基线**：`.../datastate-{light,dark}-{390,768,1440}.png`；用例 = `empty`（有 / 无 action）+ `error`（有 / 无 `code`）。
+
+---
+
+
+#### 5.6.16 本节自检（`blog-pm` / `blog-qa` 按此逐项判定）
+
+**A · 15 × 5 字段齐全性**（缺一格 = `REQUEST_CHANGES`）
 
 | # | 组件 | 小节 | props | slots | states | a11y | 使用 token |
 |---|---|---|---|---|---|---|---|
@@ -2047,10 +2265,13 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 | 10 | Pagination | §5.6.10 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 11 | Alert | §5.6.11 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 12 | Skeleton | §5.6.12 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 13 | PageHero | §5.6.13 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 14 | SectionHead | §5.6.14 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 15 | DataState | §5.6.15 | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 字段定义沿用 §5.1 模板：**Props** / **Slots** / **States** / **可访问性**（a11y） / **消费的 token（白名单）**。另附模板里的「尺寸 / 禁止 / 依赖 / 视觉基线」——不是验收项，但实现时缺了会返工。
 
-**B · 对比度实测（42 个场景全跑，下表摘录规格实际引用的 37 行；与 §3.14.4 同口径）**
+**B · 对比度实测（42 个场景全跑，下表摘录规格实际引用的 40 行；与 §3.14.4 同口径）**
 
 脚本：`~/.hermes/profiles/blog-design/cache/scratch/probe-atoms.py`（真解析 `tokens.json` 的 `var()` 与 `color-mix(in oklab)`，WCAG 相对亮度；退出码 0 = 全部达标）。下表是**组件规格里实际引用到的行**：
 
@@ -2094,6 +2315,9 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 | Skeleton 微光 `border-subtle`/`bg-muted` | 1.08 | 1.16 | ≥1.0 | PASS |
 | Divider `border-subtle`/`bg-canvas` | 1.20 | 1.37 | ≥1.0 | PASS |
 | 焦点环 `ring-focus`/`bg-canvas` | 4.44 | 5.15 | ≥3.0 | PASS |
+| PageHero h1 / SectionHead 标题 / DataState 标题 `fg-heading`/`bg-canvas` | 16.29 | 15.89 | ≥4.5 | PASS |
+| PageHero kicker 短尺（装饰） `accent-solid`/`bg-canvas` | 6.43 | 5.15 | 不设门槛 | INFO |
+| DataState 圆形 icon 底上的图标（装饰） `fg-muted`/`bg-muted` | 4.18 | 4.34 | 不设门槛 | INFO |
 
 三条读法（**别把 INFO 当 PASS，也别当缺陷**）：
 
@@ -2105,8 +2329,8 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 
 | # | 门禁 | 命令 | 期望 |
 |---|---|---|---|
-| P1 | 12 个小节都在 | `grep -cE '^#### 5\.6\.(1\|2\|3\|4\|5\|6\|7\|8\|9\|10\|11\|12) ' docs/DESIGN.md` | `12` |
-| P2 | 五个字段各 12 次 | `for f in Props Slots States 可访问性 '消费的 token'; do grep -c "^\*\*$f" docs/DESIGN.md; done` | 每个 `12` |
+| P1 | M1 的 12 个小节都在（`SPECS` 仍只列 12 个） | `grep -cE '^#### 5\.6\.(1\|2\|3\|4\|5\|6\|7\|8\|9\|10\|11\|12) ' docs/DESIGN.md` | `12` |
+| P2 | 五个字段各 12 次（§5.6.1–§5.6.12 区间） | `for f in Props Slots States 可访问性 '消费的 token'; do grep -c "^\*\*$f" docs/DESIGN.md; done` | 每个 `12` |
 | P3 | 本节无字面颜色 | `awk '/^### 5\.6 /,/^## 6\./' docs/DESIGN.md \| grep -cE '#[0-9a-fA-F]{3,8}\|rgba?\(\|hsla?\('` | `0` |
 | P4 | 本节无 palette 引用 | 同上替换成 `grep -c -- '--palette-'` | `0` |
 | P5 | token 名都来自 `tokens.json` | `python3 verify-atoms.py`（提取本节所有 `--[a-z0-9-]+`，与 JSON 的 semantic+primitive 键求差） | 差集 `∅` |
@@ -2120,6 +2344,8 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 
 1. **紧凑写法**：`--space-2 / 3 / 4 / 6` = 同一前缀 + 后续数字，脚本展开后再比。**同一行里不要混两个前缀**——脚本只能按第一个前缀展开，后面的数字会被当成不存在的 token。
 2. **反例豁免**：含「不采用 / 不用 / 不能用 / 禁止 / 不要」的句子视为反例（如 Tag 里「不用 accent 淡底」），不参与白名单比对——否则「记录一个被否掉的取值」这个动作本身会被判违规。
+
+**M8-6-0 的三节不在 P1–P10 覆盖内**：`verify-atoms.mjs` 的 `SPECS` 仍按 M1 的 12 个枚举，`§5.6.13–15`（PageHero / SectionHead / DataState）只受 `verify-atom-docs` 与 `verify-doc-drift` 约束。要把 P1–P10 扩到 15，需同步 `SPECS` 与 P10 白名单——属后续卡，别在这里改口径。
 
 **D · 与 §5.3 状态矩阵的一致性**
 

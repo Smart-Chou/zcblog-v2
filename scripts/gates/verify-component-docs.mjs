@@ -77,7 +77,7 @@ const LEGACY_SLUGS = [
     "emptystate",
 ];
 
-/** M1-6 的 12 份 atom 文档页（dist 侧一起数，合计 35 份）。 */
+/** M1-6 的 12 份 + M8-6-0 的 3 份 atom 文档页（dist 侧一起数，合计 38 份）。 */
 const ATOM_PAGES = [
     "button",
     "link",
@@ -91,6 +91,9 @@ const ATOM_PAGES = [
     "pagination",
     "alert",
     "skeleton",
+    "pagehero",
+    "sectionhead",
+    "datastate",
 ];
 
 const SECTION_IDS = ["purpose", "props", "slots", "states", "a11y", "tokens", "example"];

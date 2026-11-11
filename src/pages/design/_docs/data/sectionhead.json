@@ -1,0 +1,149 @@
+{
+    "slug": "sectionhead",
+    "name": "SectionHead",
+    "cn": "分组标题行",
+    "layer": "atom",
+    "spec": "DESIGN.md §5.6.14",
+    "source": "src/components/UI/atom/SectionHead.astro",
+    "purpose": "页面内一个分组的标题行：`title` + 右侧 `meta` 说明 + 右侧 `action` 链接，底边与正文分层。",
+    "notFor": [
+        "页面第一屏大标题 → `PageHero`。",
+        "卡片内部小标题（不需要底边）→ 卡片自己的标题字段。",
+        "需要折叠 / 展开行为 → organism（要 JS）。"
+    ],
+    "props": [
+        {
+            "name": "title",
+            "type": "string",
+            "default": "—",
+            "values": "**必填**",
+            "notes": "标题文本。"
+        },
+        {
+            "name": "id",
+            "type": "string",
+            "default": "—",
+            "values": "**必填**",
+            "notes": "h2 / h3 的 id；页面 `<section aria-labelledby>` 依赖它，缺失即红。"
+        },
+        {
+            "name": "meta",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "右侧说明（如「固定顺序」），纯文本，不是 Tag；空则不渲染。"
+        },
+        {
+            "name": "level",
+            "type": "number",
+            "default": "`2`",
+            "values": "`2` / `3`",
+            "notes": "标题层级；`3` 只用于已有一层 h2 的页面，不得跳级。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "action",
+            "required": "否",
+            "notes": "右侧操作位（页面传入 `Link` 或 `Button`）；不传则只有 meta。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "—",
+            "visual": "标题 `--color-fg-heading` + `--text-2xl` + `--tracking-tight`；meta `--color-fg-muted` + `--text-sm`；底边 1px `--color-border-subtle`；`padding-block-end` `--space-3`",
+            "aria": "`id` 落在标题元素上；页面用 `aria-labelledby` 指向"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦（仅 `action` slot 内的元素）",
+            "visual": "G4 焦点环（由 Link / Button 自带）",
+            "aria": "无（原生）"
+        }
+    ],
+    "a11y": {
+        "semantics": "真标题元素（`h2` / `h3`，按 `level` 渲染），不是 `<div>` 假装标题；`id` **必填**，否则页面的 `aria-labelledby` 落空。",
+        "keyboard": "自身不聚焦；`action` 里的 Link / Button 进 Tab 序列。",
+        "aria": "不加 `role`；`meta` 是 `<p>`，不进标题大纲；`action` 区不重复 `title` 文案。",
+        "contrast": [
+            {
+                "pair": "标题 `fg-heading` / `bg-canvas`",
+                "light": "16.29",
+                "dark": "15.89",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "meta `fg-muted` / `bg-canvas`",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "action 链接 `fg-link` / `bg-canvas`",
+                "light": "5.76",
+                "dark": "5.15",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "底边 `border-subtle` / `bg-canvas`",
+                "light": "1.20",
+                "dark": "1.37",
+                "threshold": "≥ 1.0（分隔线，非文本不承担 3:1）"
+            }
+        ],
+        "focusRing": "不适用（自身无交互）；`action` 内控件自带 G4 焦点环。",
+        "target": "不适用。",
+        "reducedMotion": "无动画、无过渡。",
+        "notes": [
+            "`id` 必填是本组件唯一「硬」约束：页面 `<section aria-labelledby>` 全靠它。",
+            "≤768 只改布局（折两行），不降字号——标题变小会让 h2 与正文的层级差消失。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-fg-heading",
+            "--color-fg-muted",
+            "--color-fg-link",
+            "--color-border-subtle"
+        ],
+        "metric": [
+            "--space-2",
+            "--space-3",
+            "--text-2xl",
+            "--text-sm",
+            "--text-xs",
+            "--font-sans",
+            "--font-serif",
+            "--font-weight-regular",
+            "--tracking-tight",
+            "--leading-tight"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.14）",
+        "columns": ["项", "≥768", "≤768"],
+        "rows": [
+            ["布局", "一行，`space-between` + `align-items: baseline`", "折两行（`column`），`gap` `--space-2`"],
+            ["标题", "`--text-2xl` + `--leading-tight`", "同左（不降字号，只改布局）"],
+            ["meta / action", "同一侧栏竖排，`gap` `--space-2`", "标题下方第二行"],
+            ["底边", "1px `--color-border-subtle` + `padding-block-end` `--space-3`", "同左"]
+        ]
+    },
+    "forbidden": [
+        "`id` 不填或填重复值（页面 `aria-labelledby` 会落空，同页两个 `id` 会撞）。",
+        "用 `level=3` 跳过 h2（标题层级不得跳级）。",
+        "把 `meta` 做成 Tag 胶囊或彩色计数（计数是文案，不是状态色）。",
+        "组件自己套 `<section>` / `<header>`（容器与 spacing 归页面）。",
+        "画分隔线以外的装饰（阴影、背景块、图标大字）。"
+    ],
+    "related": ["pagehero", "link", "divider"]
+}

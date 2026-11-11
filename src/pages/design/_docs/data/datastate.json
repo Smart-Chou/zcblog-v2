@@ -1,0 +1,172 @@
+{
+    "slug": "datastate",
+    "name": "DataState",
+    "cn": "数据终止态",
+    "layer": "molecule",
+    "spec": "DESIGN.md §5.6.15",
+    "source": "src/components/UI/molecule/DataState.astro",
+    "purpose": "数据派的两个终止态：`empty`（真实空集）与 `error`（取数失败），让六页的「没有内容」与「取不到内容」只有一份文案结构与间距。",
+    "notFor": [
+        "内容正在加载 → 本组件**没有** loading 变体（六页全部构建期取数，O5）；客户端占位用 `Skeleton`。",
+        "字段级校验失败 → `Input` 的 `error`。",
+        "一次性操作反馈（保存成功）→ toast（organism，要 JS）。"
+    ],
+    "props": [
+        {
+            "name": "kind",
+            "type": "enum",
+            "default": "—",
+            "values": "**必填**：`empty` / `error`",
+            "notes": "两态互斥（G-14）。"
+        },
+        {
+            "name": "title",
+            "type": "string",
+            "default": "—",
+            "values": "**必填**",
+            "notes": "`empty` → `<h2>`；`error` → Alert 标题。"
+        },
+        {
+            "name": "message",
+            "type": "string",
+            "default": "—",
+            "values": "**必填**",
+            "notes": "说明文案（一句话说清为什么空 / 为什么失败）。"
+        },
+        {
+            "name": "icon",
+            "type": "string",
+            "default": "—",
+            "values": "Icons 闭集图标名（`empty` 时必填）",
+            "notes": "`error` 忽略（固定用 Alert 的 warning 图标）。"
+        },
+        {
+            "name": "code",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "`error` 时的 mono 原因码；缺省不渲染该行，**不写 unknown 占位**。"
+        },
+        {
+            "name": "codeLabel",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "原因码行前缀（i18n 由页面注入）。"
+        },
+        {
+            "name": "class",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "只允许布局类。"
+        }
+    ],
+    "slots": [
+        {
+            "name": "default",
+            "required": "否",
+            "notes": "操作区（如「回到首页」「换个关键词」）；`empty` / `error` 都可给。"
+        }
+    ],
+    "states": [
+        {
+            "state": "default",
+            "trigger": "`kind=\"empty\"`",
+            "visual": "圆形 icon 底 `--color-bg-muted` + `--radius-pill` + 直径 `--space-12`；图标 `--color-fg-muted`；标题 `--color-fg-heading` + `--text-xl`；说明 `--color-fg-muted` + `--text-sm` + `--measure-prose`",
+            "aria": "标题是 `<h2>`；**不加** `role=\"status\"`（页面加载即存在，不是 live region）；icon `aria-hidden=\"true\"`"
+        },
+        {
+            "state": "focus-visible",
+            "trigger": "键盘聚焦（仅 `default` slot 内的元素）",
+            "visual": "G4 焦点环（由传入控件自带）",
+            "aria": "无（原生）"
+        }
+    ],
+    "a11y": {
+        "semantics": "`empty` 是 `<div>` + `<h2>` + `<p>` + 可选操作区；`error` 复用 `Alert tone=\"warning\"`（`live=\"none\"`：页面加载即存在，不用 assertive）。",
+        "keyboard": "自身不聚焦；操作区里的 Link / Button 进 Tab 序列。",
+        "aria": "icon 一律 `aria-hidden=\"true\"`（装饰，语义由标题承担）；原因码是**文本**不是颜色（N5），前缀由 `codeLabel` 注入（G1：组件不写自然语言）。",
+        "contrast": [
+            {
+                "pair": "标题 `fg-heading` / `bg-canvas`",
+                "light": "16.29",
+                "dark": "15.89",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "说明 `fg-muted` / `bg-canvas`",
+                "light": "4.64",
+                "dark": "5.14",
+                "threshold": "≥ 4.5"
+            },
+            {
+                "pair": "圆形 icon 底上的图标（装饰） `fg-muted` / `bg-muted`",
+                "light": "4.18",
+                "dark": "4.34",
+                "threshold": "不设门槛（装饰，`aria-hidden`）"
+            },
+            {
+                "pair": "`error` 正文（Alert warning） `status-warning-fg` / `-bg`",
+                "light": "4.58",
+                "dark": "4.97",
+                "threshold": "≥ 4.5"
+            }
+        ],
+        "focusRing": "不适用（自身无交互）；操作区控件自带 G4 焦点环。",
+        "target": "不适用（操作区的目标尺寸由传入控件保证）。",
+        "reducedMotion": "无动画、无过渡（不做入场淡入）。",
+        "notes": [
+            "两态互斥（G-14）：同一页面上 `empty` 与 `error` 不许同时出现。",
+            "`error` 的 tone 由 Alert 的图标 + 文案承担（N5），不用色块或红色边框表达失败。",
+            "没有 `code` 就不渲染原因码行——写 `unknown` 会把「不知道」伪装成信息。"
+        ]
+    },
+    "tokens": {
+        "color": [
+            "--color-bg-muted",
+            "--color-fg-heading",
+            "--color-fg-default",
+            "--color-fg-muted"
+        ],
+        "metric": [
+            "--space-2",
+            "--space-8",
+            "--space-10",
+            "--space-12",
+            "--text-xl",
+            "--text-sm",
+            "--text-xs",
+            "--font-sans",
+            "--font-serif",
+            "--font-mono",
+            "--font-weight-regular",
+            "--tracking-tight",
+            "--leading-tight",
+            "--leading-relaxed",
+            "--measure-prose",
+            "--radius-pill"
+        ],
+        "none": "阴影：无。"
+    },
+    "sizes": {
+        "title": "尺寸（DESIGN.md §5.6.15）",
+        "columns": ["项", "≥768", "≤450"],
+        "rows": [
+            ["纵向 padding", "`--space-12`", "`--space-8`"],
+            ["icon 直径", "`--space-12`", "`--space-10`"],
+            ["标题 / 说明间距", "`--space-2`", "同左"],
+            ["说明宽度", "`--measure-prose`", "同左"],
+            ["原因码", "`--text-xs` + `--font-mono`", "同左（不降）"]
+        ]
+    },
+    "forbidden": [
+        "加 `loading` 变体（构建期取数，没有加载态；客户端占位用 `Skeleton`）。",
+        "页面上同时出现 `empty` 与 `error`（G-14）。",
+        "用色块 / 红色边框表达「出错」（tone 由 Alert 的图标 + 文案承担，N5）。",
+        "原因码写「unknown」/ 空串占位（没有码就不渲染该行）。",
+        "在组件里写死中文文案（`title` / `message` / `codeLabel` 全部由页面注入，G1）。",
+        "出场动画 / 淡入（N11）。"
+    ],
+    "related": ["alert", "icon", "skeleton"]
+}

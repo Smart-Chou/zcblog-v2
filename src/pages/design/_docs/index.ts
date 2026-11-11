@@ -1,5 +1,5 @@
 /**
- * 12 份组件文档的注册表（M1-6）。
+ * 15 份组件文档的注册表（M1-6 的 12 份 + M8-6-0 的 3 份）。
  *
  * 数据是 JSON（`./data/<slug>.json`），由 Astro 构建与 `scripts/gates/verify-atom-docs.mjs`
  * 共用同一份文件；顺序即文档页的 prev / next 顺序，也是 /design/atoms 的 specimen 顺序。
@@ -18,6 +18,9 @@ import breadcrumb from "./data/breadcrumb.json";
 import pagination from "./data/pagination.json";
 import alert from "./data/alert.json";
 import skeleton from "./data/skeleton.json";
+import pagehero from "./data/pagehero.json";
+import sectionhead from "./data/sectionhead.json";
+import datastate from "./data/datastate.json";
 
 // JSON 的字符串字面量被推断为 string，而 DocEntry 的 layer 是联合类型；
 // 形状由 scripts/gates/verify-atom-docs.mjs 做字段级校验，这里只做一次类型收敛。
@@ -34,6 +37,9 @@ export const DOCS: DocEntry[] = [
     pagination,
     alert,
     skeleton,
+    pagehero,
+    sectionhead,
+    datastate,
 ] as unknown as DocEntry[];
 
 export function bySlug(slug: string): DocEntry {
@@ -54,12 +60,12 @@ export function bySlug(slug: string): DocEntry {
  */
 export const LEGACY_UI_SLUG_PREFIX = "ui-";
 
-/** 12 份 atom/molecule 文档的 kind 由 layer 派生（数据文件不改）。 */
+/** 15 份 atom/molecule 文档的 kind 由 layer 派生（数据文件不改）。 */
 export function kindOf(entry: DocEntry): DocKind {
     return entry.kind ?? entry.layer;
 }
 
-/** atom/molecule 的 slug 集合（按 layer 过滤；M2-10 加入 legacy UI 后依然只含 12 条）；legacy UI 取名时用它判断是否要加 `ui-` 前缀。 */
+/** atom/molecule 的 slug 集合（按 layer 过滤；M2-10 加入 legacy UI 后依然只含 15 条）；legacy UI 取名时用它判断是否要加 `ui-` 前缀。 */
 export const ATOM_SLUGS: ReadonlySet<string> = new Set(
     DOCS.filter((entry) => entry.layer === "atom" || entry.layer === "molecule").map(
         (entry) => entry.slug,

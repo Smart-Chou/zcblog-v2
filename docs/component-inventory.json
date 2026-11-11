@@ -3,15 +3,15 @@
     "generated_by": "node scripts/gates/verify-component-inventory.mjs --update",
     "note": "P9 的唯一分母。组件集合、slug、doc_url 由 verify-component-inventory.mjs 冻结；usage_count/usage_tags 是快照，只允许 --update 重写。",
     "counts": {
-        "atom": 10,
-        "molecule": 2,
+        "atom": 11,
+        "molecule": 4,
         "ui": 24,
         "layout": 1,
         "page-organism": 11,
-        "total": 48
+        "total": 51
     },
     "slug_rules": {
-        "atom": "atom/molecule 保持短名：button / card / pagination（12 条 M1-6 记录不动）",
+        "atom": "atom/molecule 保持短名：button / card / pagination（15 条 = M1-6 的 12 条 + M8-6-0 的 3 条）",
         "ui": "legacy UI 与 atom 同名时加 `ui-` 前缀：ui-button / ui-card / ui-pagination；其余同 atom 规则",
         "layout": "UI/ 下无 props / 状态 / 样式的纯 slot 容器不进 UI 文档分母，status=excluded 并写 reason",
         "doc_url": {
@@ -43,8 +43,8 @@
             "doc_url": "/design/atoms/link/",
             "doc_page": "src/pages/design/atoms/link.astro",
             "status": "documented",
-            "usage_count": 5,
-            "usage_tags": 16
+            "usage_count": 7,
+            "usage_tags": 18
         },
         {
             "slug": "tag",
@@ -175,6 +175,45 @@
             "status": "documented",
             "usage_count": 2,
             "usage_tags": 16
+        },
+        {
+            "slug": "pagehero",
+            "name": "PageHero",
+            "kind": "molecule",
+            "layer": "molecule",
+            "file": "src/components/UI/molecule/PageHero.astro",
+            "spec": "DESIGN.md §5.6.13",
+            "doc_url": "/design/atoms/pagehero/",
+            "doc_page": "src/pages/design/atoms/pagehero.astro",
+            "status": "documented",
+            "usage_count": 1,
+            "usage_tags": 3
+        },
+        {
+            "slug": "sectionhead",
+            "name": "SectionHead",
+            "kind": "atom",
+            "layer": "atom",
+            "file": "src/components/UI/atom/SectionHead.astro",
+            "spec": "DESIGN.md §5.6.14",
+            "doc_url": "/design/atoms/sectionhead/",
+            "doc_page": "src/pages/design/atoms/sectionhead.astro",
+            "status": "documented",
+            "usage_count": 2,
+            "usage_tags": 7
+        },
+        {
+            "slug": "datastate",
+            "name": "DataState",
+            "kind": "molecule",
+            "layer": "molecule",
+            "file": "src/components/UI/molecule/DataState.astro",
+            "spec": "DESIGN.md §5.6.15",
+            "doc_url": "/design/atoms/datastate/",
+            "doc_page": "src/pages/design/atoms/datastate.astro",
+            "status": "documented",
+            "usage_count": 1,
+            "usage_tags": 4
         },
         {
             "slug": "archive",
