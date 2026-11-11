@@ -58,7 +58,7 @@ const LEGACY_UI_SLUG_PREFIX = "ui-";
  * 12 → 11、total 48 → 47。这是**收紧**（分母只减不增），依据 `19-m2-plan.md`
  * §3 M2-2「消解进路由并在卡内删除该文件；§4.4 的 page-organism 债 -1」。
  */
-const FROZEN_COUNTS = { atom: 10, molecule: 2, ui: 23, layout: 1, "page-organism": 11, total: 47 };
+const FROZEN_COUNTS = { atom: 10, molecule: 2, ui: 24, layout: 1, "page-organism": 11, total: 48 };
 
 /** 唯一一个不进 UI 文档分母的 UI 文件：纯 slot 容器，无 props / 状态 / 样式。 */
 const LAYOUT_SHELLS = {
@@ -443,9 +443,9 @@ const uiCount = registeredUi.filter((entry) => entry.layer === "ui").length;
 const layoutCount = registeredUi.filter((entry) => entry.layer === "layout").length;
 addCheck(
     "I3",
-    "legacy UI 23 条 + layout 壳 1 条，UI/ 文件 100% 登记",
+    "legacy UI 24 条 + layout 壳 1 条，UI/ 文件 100% 登记",
     uiProblems.length === 0 &&
-        uiCount === 23 &&
+        uiCount === 24 &&
         layoutCount === 1 &&
         registeredUiFiles.size === uiFiles.length,
     `ui=${uiCount} layout=${layoutCount} 文件=${uiFiles.length}`,

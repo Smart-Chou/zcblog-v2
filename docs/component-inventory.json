@@ -5,10 +5,10 @@
     "counts": {
         "atom": 10,
         "molecule": 2,
-        "ui": 23,
+        "ui": 24,
         "layout": 1,
         "page-organism": 11,
-        "total": 47
+        "total": 48
     },
     "slug_rules": {
         "atom": "atom/molecule 保持短名：button / card / pagination（12 条 M1-6 记录不动）",
@@ -43,8 +43,8 @@
             "doc_url": "/design/atoms/link/",
             "doc_page": "src/pages/design/atoms/link.astro",
             "status": "documented",
-            "usage_count": 7,
-            "usage_tags": 21
+            "usage_count": 5,
+            "usage_tags": 16
         },
         {
             "slug": "tag",
@@ -56,8 +56,8 @@
             "doc_url": "/design/atoms/tag/",
             "doc_page": "src/pages/design/atoms/tag.astro",
             "status": "documented",
-            "usage_count": 7,
-            "usage_tags": 17
+            "usage_count": 6,
+            "usage_tags": 16
         },
         {
             "slug": "input",
@@ -82,8 +82,8 @@
             "doc_url": "/design/atoms/card/",
             "doc_page": "src/pages/design/atoms/card.astro",
             "status": "documented",
-            "usage_count": 10,
-            "usage_tags": 23
+            "usage_count": 9,
+            "usage_tags": 19
         },
         {
             "slug": "icon",
@@ -95,8 +95,8 @@
             "doc_url": "/design/atoms/icon/",
             "doc_page": "src/pages/design/atoms/icon.astro",
             "status": "documented",
-            "usage_count": 39,
-            "usage_tags": 106
+            "usage_count": 44,
+            "usage_tags": 125
         },
         {
             "slug": "avatar",
@@ -160,8 +160,8 @@
             "doc_url": "/design/atoms/alert/",
             "doc_page": "src/pages/design/atoms/alert.astro",
             "status": "documented",
-            "usage_count": 12,
-            "usage_tags": 22
+            "usage_count": 13,
+            "usage_tags": 23
         },
         {
             "slug": "skeleton",
@@ -197,8 +197,8 @@
             "doc_url": "/design/components/author/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 11,
-            "usage_tags": 11
+            "usage_count": 12,
+            "usage_tags": 12
         },
         {
             "slug": "badge",
@@ -209,8 +209,8 @@
             "doc_url": "/design/components/badge/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 2,
-            "usage_tags": 5
+            "usage_count": 1,
+            "usage_tags": 3
         },
         {
             "slug": "ui-button",
@@ -221,8 +221,8 @@
             "doc_url": "/design/components/ui-button/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 2,
-            "usage_tags": 5
+            "usage_count": 1,
+            "usage_tags": 3
         },
         {
             "slug": "ui-card",
@@ -297,6 +297,18 @@
             "usage_tags": 4
         },
         {
+            "slug": "friendapply",
+            "name": "FriendApply",
+            "kind": "ui",
+            "layer": "ui",
+            "file": "src/components/UI/FriendApply.astro",
+            "doc_url": "/design/components/friendapply/",
+            "doc_page": null,
+            "status": "pending",
+            "usage_count": 1,
+            "usage_tags": 1
+        },
+        {
             "slug": "friendcard",
             "name": "FriendCard",
             "kind": "ui",
@@ -305,8 +317,8 @@
             "doc_url": "/design/components/friendcard/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 2,
-            "usage_tags": 5
+            "usage_count": 3,
+            "usage_tags": 6
         },
         {
             "slug": "friendpill",
