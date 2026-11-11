@@ -58,9 +58,9 @@
 
 /* 码图在窄列里等比收缩（QrCard 只调版式，不改组件契约） */
 .donations-methods .qr-card .qr-card__image {
-    inline-size: 100%;
-    max-inline-size: 10rem;
-    block-size: auto;
+    inline-size: 10rem;
+    block-size: 10rem;
+    max-inline-size: 100%;
 }
 
 /* 「打开 PayPal」这类外链按钮是唯一可点元素 → 命中区补到 44×44（G-22） */
@@ -107,7 +107,7 @@
 }
 
 .donations-ledger__table thead th {
-    color: var(--color-fg-muted);
+    color: var(--color-fg-heading);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     font-weight: var(--font-weight-medium);

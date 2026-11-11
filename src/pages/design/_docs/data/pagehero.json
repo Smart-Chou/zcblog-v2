@@ -62,6 +62,13 @@
             "notes": "未给 `id` 时的兜底：h1 id = `${slug}-title`。"
         },
         {
+            "name": "titleClass",
+            "type": "string",
+            "default": "—",
+            "values": "—",
+            "notes": "h1 的附加语义类（保留 `.page-hero__title`）；仅用于页面既有契约选择器，如 `donations-title` / `talks-title`，不改视觉。"
+        },
+        {
             "name": "class",
             "type": "string",
             "default": "—",

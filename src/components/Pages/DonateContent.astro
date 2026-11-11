@@ -105,7 +105,7 @@ const ledger = isEn
               "Annual transparency ledger: the expense items this site pays for, with what each one covers.",
           itemHead: "Expense item",
           descHead: "What it covers",
-          note: "Amounts and yearly coverage progress are deliberately left out until a real settlement figure exists; this table never prints a placeholder or a zero in their place.",
+          note: "Amounts and yearly coverage progress are deliberately left out until a real settlement figure exists; this table never prints a stand-in or a zero in their place.",
           rows: [
               {
                   item: "Domain & DNS renewal",
@@ -291,11 +291,7 @@ const faq = isEn
             aria-labelledby="donate-ledger-heading"
             data-donate-ledger
         >
-            <SectionHead
-                id="donate-ledger-heading"
-                title={ledger.title}
-                meta={ledger.meta}
-            />
+            <SectionHead id="donate-ledger-heading" title={ledger.title} meta={ledger.meta} />
 
             <div class="donations-ledger">
                 <table class="donations-ledger__table" role="table">

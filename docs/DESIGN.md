@@ -2051,6 +2051,7 @@ label 与 input 间距 `--space-2`；hint/error 与 input 间距 `--space-1`；l
 | `divider` | boolean | `true` | — | 底部 1px 分隔线（`border-subtle`）；系列页传 `false` |
 | `id` | string | — | 与 `slug` 至少给一个 | h1 的 id（页面 `aria-labelledby` 依赖它） |
 | `slug` | string | — | — | 未给 `id` 时的兜底：h1 id = `${slug}-title` |
+| `titleClass` | string | — | — | h1 的附加语义类（保留 `.page-hero__title`）；仅用于页面既有契约选择器，如 `donations-title` / `talks-title`，不改视觉 |
 | `class` | string | — | — | 只允许布局类 |
 
 **Slots**
