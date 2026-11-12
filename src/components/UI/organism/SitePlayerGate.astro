@@ -1,0 +1,33 @@
+---
+/**
+ * SitePlayerGate — 播放器门控脚本（M8-4 · spec §6.3：≤0.5KB gz）
+ *
+ * 单独成组件只为一件事：让 `<script>` 留在**文件顶层**。
+ * 它必须被父组件（`SitePlayer.astro`）**有条件地**渲染 —— 没有电台时整块不输出，
+ * 播放器 chunk 一次都不请求。若把 `<script>` 套进父文件的 `{cond && (...)}` 表达式里，
+ * Prettier 的 astro parser 会解析失败（`SyntaxError: Unexpected token`），而
+ * `pnpm lint` 就是 CI 门禁；放到独立文件即两边都成立。
+ *
+ * 判定条件写在这里而不是播放器模块里，是为了让「没按过播放」的访客完全不下载
+ * 播放器代码：只有 localStorage 里留下过 armed 标记，或站点配置成 always，才去拉 chunk。
+ */
+---
+
+<script>
+    import { radioPersistMode, radioArmedKey } from "~/config/radio-flags";
+
+    const armed = (() => {
+        if (radioPersistMode === "always") return true;
+        try {
+            if (localStorage.getItem(radioArmedKey) === "1") return true;
+        } catch {
+            /* 隐私模式：只有 /radio/ 页的显式按钮能唤起播放器 */
+        }
+        // `/radio/` 页自带唤起按钮：这一页必须挂载，否则按钮点了没反应
+        return Boolean(document.querySelector("[data-radio-open]"));
+    })();
+
+    if (armed) {
+        void import("~/scripts/site-player");
+    }
+</script>

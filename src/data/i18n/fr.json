@@ -21,6 +21,22 @@
         "services": "Services",
         "radio": "Radio"
     },
+    "player": {
+        "player": "Lecteur radio",
+        "play": "Lecture",
+        "pause": "Pause",
+        "seek": "Navigation",
+        "volume": "Volume",
+        "mute": "Couper le son",
+        "unmute": "Rétablir le son",
+        "close": "Fermer le lecteur",
+        "collapse": "Réduire le lecteur",
+        "expand": "Développer le lecteur",
+        "error": "La radio est indisponible pour le moment",
+        "playing": "Lecture en cours",
+        "paused": "En pause",
+        "ended": "Lecture terminée"
+    },
     "common": {
         "search": "Rechercher",
         "searchPlaceholder": "Rechercher un article...",

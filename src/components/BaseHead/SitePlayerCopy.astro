@@ -1,0 +1,26 @@
+---
+import { playerCopy } from "~/utils/player-copy";
+
+/**
+ * SitePlayer 的文案载体（M8-4 后续 · DESIGN §5.7.1 禁止第 11 条 / G1）。
+ *
+ * 一个 0 尺寸的 `application/json` 数据块，按**本页 locale** 输出 14 个播放器
+ * 文案键。`src/scripts/site-player.ts` 在挂载时读取它；读不到（老产物、被 CSP
+ * 剥掉、单测环境）就回退到自己内置的 zh 一份。
+ *
+ * 三个设计约束：
+ *  1. **不能**把词典 import 进播放器 chunk：那是按需加载的懒加载块，10 份词典
+ *     会直接顶穿 §7 登记的「chunk ≤ 4KB gz」预算。所以词在服务端取好，随 HTML 走。
+ *  2. 放 `<head>` 而不是 body：swup 只替换 `main`，但 HeadPlugin 会按页面
+ *     merge `head`，于是「换页 → 语言变了 → 文案跟着变」不需要额外 JS 布线；
+ *     body 里加节点则会与 `body:has(.site-player)` 的避让规则/像素基线擦边。
+ *  3. 用 `is:inline`（同 `BaseHead/JsonLd.astro`）：非 JS 的 `<script>` 不需要
+ *     被 Astro 打包，打包器也不该碰它。
+ *
+ * 代价：每页 HTML 多约 0.4KB raw（`perf-budget.py` 的 HTML 桶按原始字节算）。
+ * 这是「组件不写死文案」与「播放器 chunk 不背词典」之间唯一不破预算的走法。
+ */
+const data = playerCopy(Astro.props.locale as string | undefined);
+---
+
+<script is:inline type="application/json" id="site-player-copy" set:html={JSON.stringify(data)} />

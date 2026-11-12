@@ -21,6 +21,22 @@
         "services": "Services",
         "radio": "Radio"
     },
+    "player": {
+        "player": "Radio player",
+        "play": "Play",
+        "pause": "Pause",
+        "seek": "Seek",
+        "volume": "Volume",
+        "mute": "Mute",
+        "unmute": "Unmute",
+        "close": "Close player",
+        "collapse": "Collapse player",
+        "expand": "Expand player",
+        "error": "The radio is unavailable right now",
+        "playing": "Now playing",
+        "paused": "Paused",
+        "ended": "Playback finished"
+    },
     "common": {
         "search": "Search",
         "searchPlaceholder": "Search articles...",

@@ -21,6 +21,22 @@
         "services": "サービス",
         "radio": "ラジオ"
     },
+    "player": {
+        "player": "ラジオプレーヤー",
+        "play": "再生",
+        "pause": "一時停止",
+        "seek": "シーク",
+        "volume": "音量",
+        "mute": "ミュート",
+        "unmute": "ミュート解除",
+        "close": "プレーヤーを閉じる",
+        "collapse": "プレーヤーを折りたたむ",
+        "expand": "プレーヤーを展開",
+        "error": "ラジオを再生できません",
+        "playing": "再生中",
+        "paused": "一時停止中",
+        "ended": "再生終了"
+    },
     "common": {
         "search": "検索",
         "searchPlaceholder": "記事を検索...",

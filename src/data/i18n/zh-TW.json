@@ -21,6 +21,22 @@
         "services": "服務",
         "radio": "電台"
     },
+    "player": {
+        "player": "電台播放器",
+        "play": "播放",
+        "pause": "暫停",
+        "seek": "跳轉",
+        "volume": "音量",
+        "mute": "靜音",
+        "unmute": "取消靜音",
+        "close": "關閉播放器",
+        "collapse": "收合播放器",
+        "expand": "展開播放器",
+        "error": "電台暫時無法播放",
+        "playing": "正在播放",
+        "paused": "已暫停",
+        "ended": "播放結束"
+    },
     "common": {
         "search": "搜尋",
         "searchPlaceholder": "搜尋文章...",

@@ -21,6 +21,22 @@
         "services": "서비스",
         "radio": "라디오"
     },
+    "player": {
+        "player": "라디오 플레이어",
+        "play": "재생",
+        "pause": "일시정지",
+        "seek": "탐색",
+        "volume": "볼륨",
+        "mute": "음소거",
+        "unmute": "음소거 해제",
+        "close": "플레이어 닫기",
+        "collapse": "플레이어 접기",
+        "expand": "플레이어 펼치기",
+        "error": "라디오를 재생할 수 없습니다",
+        "playing": "재생 중",
+        "paused": "일시정지됨",
+        "ended": "재생 완료"
+    },
     "common": {
         "search": "검색",
         "searchPlaceholder": "글 검색...",

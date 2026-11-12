@@ -12,6 +12,7 @@ import "~/styles/tokens/tokens.css";
 import "~/styles/pages/radio.css";
 import PageHero from "~/components/UI/molecule/PageHero.astro";
 import SectionHead from "~/components/UI/atom/SectionHead.astro";
+import DataState from "~/components/UI/molecule/DataState.astro";
 import { radioStations } from "~/config/radio";
 
 export interface Props {
@@ -20,15 +21,21 @@ export interface Props {
 
 const { locale = "zh" } = Astro.props;
 const isEn = locale === "en";
+const hasStations = radioStations.length > 0;
 
 const copy = isEn
     ? {
           kicker: "DOGEARED RADIO",
           title: "Radio",
           lede: "A live signal for the desk: one station, one small player, no algorithm. Tune in and leave it running while you read.",
+          ledeEmpty:
+              "Nothing is on air right now. The player is designed to disappear completely when there is no station to play — no empty shell, no dead button.",
           open: "Open the player",
           stationsTitle: "Stations",
           stationsMeta: "LIVE · 24/7",
+          emptyTitle: "No station is on air",
+          emptyMessage:
+              "The station list is empty, so there is no player to open anywhere on this site. This page stays accessible, and the player comes back on its own once a station is available again.",
           notesTitle: "Why this one",
           notes: [
               "Radio Paradise is the default: human curation, no ads, and a public 128 kbps stream meant for players like this one.",
@@ -41,9 +48,14 @@ const copy = isEn
           kicker: "DOGEARED RADIO",
           title: "电台",
           lede: "给书桌的一条实时信号：一个电台，一个小播放器，没有算法。打开后可以一直放着，边读边听。",
+          ledeEmpty:
+              "现在没有电台在播。没有可播的台时，播放器整块不存在——不是隐藏，是不渲染：没有空壳，也没有点了没反应的按钮。",
           open: "打开播放器",
           stationsTitle: "电台",
           stationsMeta: "LIVE · 24/7",
+          emptyTitle: "暂时没有电台在播",
+          emptyMessage:
+              "电台列表是空的，所以全站都没有可打开的播放器。这个页面照常可以访问；等重新有台可用，播放器会自己回来。",
           notesTitle: "为什么是这个",
           notes: [
               "Radio Paradise 是默认台：人工策展、无广告，公开的 128 kbps 流本来就是给这类播放器用的。",
@@ -58,87 +70,121 @@ const copy = isEn
     <PageHero
         kicker={copy.kicker}
         title={copy.title}
-        lede={copy.lede}
+        lede={hasStations ? copy.lede : copy.ledeEmpty}
         slug="radio"
-        meta={[
-            {
-                // 单复数随数据源自动变：删站/加站不用再改文案（现在只有 1 个，写完是「1 station」）。
-                label: `${radioStations.length} ${radioStations.length === 1 ? "station" : "stations"}`,
-                quiet: true,
-            },
-            { label: "128 kbps · live", quiet: true },
-            { label: "site-wide player", quiet: true },
-        ]}
+        meta={hasStations
+            ? [
+                  {
+                      // 单复数随数据源自动变：删站/加站不用再改文案。
+                      label: `${radioStations.length} ${radioStations.length === 1 ? "station" : "stations"}`,
+                      quiet: true,
+                  },
+                  { label: "128 kbps · live", quiet: true },
+                  { label: "site-wide player", quiet: true },
+              ]
+            : [{ label: isEn ? "off air" : "停播中", quiet: true }]}
     />
 
-    <section class="radio-page__signal" aria-labelledby="radio-signal-title">
-        <div>
-            <p class="radio-page__eyebrow">SIGNAL 01 · ON AIR</p>
-            <h2 class="radio-page__headline" id="radio-signal-title">
-                {isEn ? "Leave a little room for the radio." : "给电台留一点位置。"}
-            </h2>
-            <p class="radio-page__copy">
-                {
-                    isEn
-                        ? "The player is deliberately quiet: one play button, a station name, a volume slider, and a link back to the station's own page. It keeps playing while you read other pages."
-                        : "播放器刻意做得很安静：一个播放键、一个电台名、一个音量条，以及回到电台自己页面的链接。你翻到别的页面时它不会停。"
-                }
-            </p>
-            <button class="radio-page__cta" type="button" data-radio-open>
-                {copy.open}
-            </button>
-        </div>
-        <div class="radio-page__dial" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span>
-        </div>
-    </section>
+    {
+        hasStations && (
+            <section class="radio-page__signal" aria-labelledby="radio-signal-title">
+                <div>
+                    <p class="radio-page__eyebrow">SIGNAL 01 · ON AIR</p>
+                    <h2 class="radio-page__headline" id="radio-signal-title">
+                        {isEn ? "Leave a little room for the radio." : "给电台留一点位置。"}
+                    </h2>
+                    <p class="radio-page__copy">
+                        {isEn
+                            ? "The player is deliberately quiet: one play button, a station name, a volume slider, and a link back to the station's own page. It keeps playing while you read other pages."
+                            : "播放器刻意做得很安静：一个播放键、一个电台名、一个音量条，以及回到电台自己页面的链接。你翻到别的页面时它不会停。"}
+                    </p>
+                    <button class="radio-page__cta" type="button" data-radio-open>
+                        {copy.open}
+                    </button>
+                </div>
+                <div class="radio-page__dial" aria-hidden="true">
+                    <>
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                    </>
+                </div>
+            </section>
+        )
+    }
 
-    <section aria-labelledby="radio-stations-title">
+    <section aria-labelledby="radio-stations-title" data-radio-list>
         <SectionHead
             title={copy.stationsTitle}
-            meta={copy.stationsMeta}
+            meta={hasStations ? copy.stationsMeta : undefined}
             id="radio-stations-title"
         />
-        <ul class="radio-page__stations">
-            {
-                radioStations.map((station) => (
-                    <li>
-                        <button
-                            class="radio-page__station"
-                            type="button"
-                            data-radio-station={station.id}
-                        >
-                            <span class="radio-page__station-name">{station.name}</span>
-                            <span class="radio-page__station-meta">{station.detail}</span>
-                            <span class="radio-page__station-note">{station.note}</span>
-                            <span class="radio-page__station-action">
-                                {copy.play} <span aria-hidden="true">↗</span>
-                            </span>
-                        </button>
-                    </li>
-                ))
-            }
-        </ul>
+        {
+            hasStations ? (
+                <ul class="radio-page__stations">
+                    {radioStations.map((station) => (
+                        <li>
+                            <button
+                                class="radio-page__station"
+                                type="button"
+                                data-radio-station={station.id}
+                            >
+                                <span class="radio-page__station-name">{station.name}</span>
+                                <span class="radio-page__station-meta">{station.detail}</span>
+                                <span class="radio-page__station-note">{station.note}</span>
+                                <span class="radio-page__station-action">
+                                    {copy.play} <span aria-hidden="true">↗</span>
+                                </span>
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <div data-radio-empty>
+                    <DataState
+                        kind="empty"
+                        icon="tabler:rss"
+                        title={copy.emptyTitle}
+                        message={copy.emptyMessage}
+                    />
+                </div>
+            )
+        }
     </section>
 
-    <section class="radio-page__notes" aria-labelledby="radio-notes-title">
-        <h2 class="radio-page__eyebrow" id="radio-notes-title">{copy.notesTitle}</h2>
-        {copy.notes.map((paragraph) => <p>{paragraph}</p>)}
-        <p>
-            <a
-                href="https://radioparadise.com/listen/stream-links"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                {copy.streamLinks}
-                <span aria-hidden="true">↗</span>
-            </a>
-        </p>
-    </section>
+    {
+        hasStations && (
+            <section class="radio-page__notes" aria-labelledby="radio-notes-title">
+                <h2 class="radio-page__eyebrow" id="radio-notes-title">
+                    {copy.notesTitle}
+                </h2>
+                {copy.notes.map((paragraph) => (
+                    <p>{paragraph}</p>
+                ))}
+                <p>
+                    <a
+                        href="https://radioparadise.com/listen/stream-links"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {copy.streamLinks}
+                        <span aria-hidden="true">↗</span>
+                    </a>
+                </p>
+            </section>
+        )
+    }
 </div>
 
 <script>
-    // 页面只发事件，不碰播放器内部（站级 SitePlayer 在 BaseLayout 里监听）
+    // 页面只发事件，不碰播放器内部（站级 SitePlayer 在 BaseLayout 里监听）。
+    //
+    // 空数据集（`radioStations = []`）时页面上没有 `[data-radio-open]` /
+    // `[data-radio-station]`：`querySelectorAll` 返回空 NodeList，下面两个 forEach
+    // 整块空转，零监听器、零事件 —— 不需要额外判空，也不会产生「点了没反应的按钮」，
+    // 因为那些按钮在构建期就没被渲染（见上方 `hasStations` 分支）。
     document.querySelectorAll<HTMLElement>("[data-radio-open]").forEach((button) => {
         button.addEventListener("click", () => {
             window.dispatchEvent(new Event("radio-open"));

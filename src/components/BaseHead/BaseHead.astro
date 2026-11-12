@@ -14,6 +14,8 @@ import FontPreload from "~/components/BaseHead/FontPreload.astro";
 import SpritePreload from "~/components/BaseHead/SpritePreload.astro";
 import ExternalResources from "~/components/BaseHead/ExternalResources.astro";
 import ContentSecurityPolicy from "~/components/BaseHead/ContentSecurityPolicy.astro";
+import SitePlayerCopy from "~/components/BaseHead/SitePlayerCopy.astro";
+import { radioHasStations } from "~/config/radio";
 
 interface Props {
     title: string;
@@ -32,6 +34,8 @@ interface Props {
     noEnAlternate?: boolean;
     /** M5-12：这一页没有中文对照（英文系列页专用，见 SeoLinks） */
     noZhAlternate?: boolean;
+    /** M8-4 后续：决定 `site-player-copy` 数据块的语言 */
+    locale?: string;
 }
 
 const {
@@ -50,6 +54,7 @@ const {
     noindex = false,
     noEnAlternate = false,
     noZhAlternate = false,
+    locale = "zh",
 } = Astro.props;
 ---
 
@@ -153,4 +158,11 @@ const {
     <SpritePreload />
     <ExternalResources />
     <ContentSecurityPolicy />
+    {
+        /* M8-4 后续：播放器 UI 文案（按本页 locale）。放 head 是为了让 swup 的
+        HeadPlugin 在换页时一并替换 —— 跨语种导航后播放器语言跟着页面变。
+        没有电台时整块不渲染：那一页根本没有播放器，0.4KB 的文案块纯属浪费，
+        而且 S0「0 字节播放器」里不该剩一个 `site-player-*` 标记（D-0172）。 */
+    }
+    {radioHasStations && <SitePlayerCopy locale={locale} />}
 </head>

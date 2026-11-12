@@ -11,7 +11,14 @@
  * 本文件**不输出任何 DOM**：根节点由 `scripts/site-player.ts` 在需要时创建。
  * 这里只做两件事：把样式挂到页面（`:global()` 见 N12），并登记模块加载。
  * 这样「没有播放器的页面」连空壳都没有，视觉与基线零变化（§3.3 硬要求）。
+ *
+ * **没有电台（`radioStations = []`）= 合法状态**：门控脚本整块不渲染、
+ * 播放器 chunk 不产出引用。这一步刻意放在**构建期**（而不是脚本里判空）：
+ * 若在脚本里判空，就得把 `~/config/radio` 拉进门控模块，电台流地址会跟着进
+ * 全站每一页的 JS —— 那正是 `radio-flags.ts` 单独存在的理由。
  */
+import { radioHasStations } from "~/config/radio";
+import SitePlayerGate from "./SitePlayerGate.astro";
 ---
 
 <style is:global>
@@ -260,28 +267,5 @@
     }
 </style>
 
-<script>
-    /**
-     * 门控（spec §6.3：门控脚本 ≤0.5KB，播放器 chunk ≤4KB，按需 import）。
-     *
-     * 判定条件写在这里而不是模块里，是为了让「没按过播放」的访客完全不下载
-     * 播放器代码：只有 localStorage 里留下过 armed 标记，或站点配置成 always，
-     * 才去拉 chunk。
-     */
-    import { radioPersistMode, radioArmedKey } from "~/config/radio-flags";
-
-    const armed = (() => {
-        if (radioPersistMode === "always") return true;
-        try {
-            if (localStorage.getItem(radioArmedKey) === "1") return true;
-        } catch {
-            /* 隐私模式：只有 /radio/ 页的显式按钮能唤起播放器 */
-        }
-        // `/radio/` 页自带唤起按钮：这一页必须挂载，否则按钮点了没反应
-        return Boolean(document.querySelector("[data-radio-open]"));
-    })();
-
-    if (armed) {
-        void import("~/scripts/site-player");
-    }
-</script>
+{/* 没有电台时门控脚本整块不渲染 —— 连 chunk 的引都不留（S0 的 0 字节播放器） */}
+{radioHasStations && <SitePlayerGate />}

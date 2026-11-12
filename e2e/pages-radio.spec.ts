@@ -169,6 +169,71 @@ test("关闭按钮与静音键都有可读名称（button-name）", async ({ pag
     }
 });
 
+/**
+ * M8-4 后续 · 文案 10-locale（DESIGN §5.7.1 禁止第 11 条 G1）。
+ *
+ * 播放器的 UI 文案由 `BaseHead/SitePlayerCopy.astro` 按页 locale 服务端输出到
+ * `<script type="application/json" id="site-player-copy">`，脚本读取、缺块回落 zh。
+ * 这里断言「页面上真正读到的 a11y 名称」——不是断言那个 JSON 的字面内容：
+ * 文案最终要挂在控件的 `aria-label` / `title` 上才算数。
+ */
+test("文案随页面语言：en 页播放器全部英文，zh 页全部中文", async ({ page }) => {
+    const read = async (url: string) => {
+        await page.goto(url);
+        return page.evaluate(() => {
+            const player = document.querySelector(".site-player");
+            const pick = (selector: string) =>
+                document.querySelector(selector)?.getAttribute("aria-label") ?? null;
+            return {
+                region: player?.getAttribute("aria-label") ?? null,
+                play: pick("[data-player-play]"),
+                mute: pick("[data-player-mute]"),
+                close: pick("[data-player-close]"),
+                volume: pick("[data-player-volume]"),
+                toggleTitle: document.querySelector("[data-player-toggle]")?.getAttribute("title"),
+            };
+        });
+    };
+
+    const en = await read("/en/radio/");
+    // 播放键名 = 动词 + 电台名，冒号沿用站内全角（中文排版约定），动词必须是英文
+    expect(en.play).toMatch(/^(Play|Pause)：/);
+    expect(en.region).toBe("Radio player");
+    expect(en.mute).toBe("Mute");
+    expect(en.close).toBe("Close player");
+    expect(en.volume).toBe("Volume");
+    expect(en.toggleTitle).toBe("Expand player");
+    // 反向护栏：英文页上不许再出现中文字符
+    for (const [key, value] of Object.entries(en)) {
+        expect(value, `${key} 不应含中文`).not.toMatch(/[\u4e00-\u9fff]/);
+    }
+
+    const zh = await read("/radio/");
+    expect(zh.play).toMatch(/^(播放|暂停)：/);
+    expect(zh.region).toBe("电台播放器");
+    expect(zh.mute).toBe("静音");
+    expect(zh.close).toBe("关闭播放器");
+    expect(zh.volume).toBe("音量");
+    expect(zh.toggleTitle).toBe("展开播放器");
+});
+
+test("跨语种换页（swup）后播放器文案跟着换，不重建节点", async ({ page }) => {
+    await page.goto("/radio/");
+    const en = page.locator("[data-player-play]");
+    await expect(en).toHaveAttribute("aria-label", /^播放：/);
+
+    await page.evaluate(async () => {
+        const swup = (window as unknown as { swup?: { navigate: (url: string) => Promise<void> } })
+            .swup;
+        if (swup) await swup.navigate("/en/radio/");
+    });
+    await page.waitForURL("**/en/radio/");
+
+    // 节点是同一个（跨页单例），文案换了
+    await expect(page.locator(PLAYER)).toHaveCount(1);
+    await expect(en).toHaveAttribute("aria-label", /^(Play|Pause)：/);
+});
+
 /* ─────────────────── 4. 布局与 a11y ─────────────────── */
 
 test("light/dark × 390/768/1440：无横向溢出", async ({ page }) => {

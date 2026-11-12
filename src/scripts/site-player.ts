@@ -29,21 +29,47 @@ interface Station {
     live: boolean;
 }
 
-const COPY = {
+/**
+ * UI 文案（M8-4 后续 / DESIGN §5.7.1 禁止第 11 条 G1）。
+ *
+ * 真值由服务端按页 locale 写在 `<script type="application/json" id="site-player-copy">`
+ * （`BaseHead/SitePlayerCopy.astro` + `utils/player-copy.ts`）。这里**只留一份 zh
+ * 兜底**——脚本必须能在标记缺失时照常工作（老产物、被 CSP/清洗剥掉、单测环境）。
+ * 为什么不 import 词典：本模块是懒加载 chunk，10 份词典会顶穿 §7 的 4KB gz 预算。
+ */
+interface Copy {
+    player: string;
+    play: string;
+    pause: string;
+    seek: string;
+    volume: string;
+    mute: string;
+    unmute: string;
+    close: string;
+    collapse: string;
+    expand: string;
+    error: string;
+    playing: string;
+    paused: string;
+    ended: string;
+}
+
+const FALLBACK_COPY: Copy = {
     player: "电台播放器",
     play: "播放",
     pause: "暂停",
+    seek: "跳转",
+    volume: "音量",
     mute: "静音",
     unmute: "取消静音",
     close: "关闭播放器",
     collapse: "收起播放器",
     expand: "展开播放器",
-    volume: "音量",
     error: "电台暂时无法播放",
     playing: "正在播放",
     paused: "已暂停",
     ended: "播放结束",
-} as const;
+};
 
 interface Player {
     root: HTMLElement;
@@ -55,6 +81,7 @@ interface Player {
     muteButton: HTMLButtonElement;
     closeButton: HTMLButtonElement;
     volumeWrap: HTMLElement;
+    volumeLabel: HTMLElement;
     volumeInput: HTMLInputElement | null;
     titleEl: HTMLElement;
     artistEl: HTMLElement;
@@ -62,6 +89,9 @@ interface Player {
     state: State;
     playing: boolean;
     volumeWritable: boolean;
+    copy: Copy;
+    /** 标记原文：换页后与新页面比对，语种变了才重贴文案（避免无谓 DOM 写） */
+    copyRaw: string;
 }
 
 interface PlayerWindow extends Window {
@@ -70,10 +100,15 @@ interface PlayerWindow extends Window {
 
 const w = window as PlayerWindow;
 
-const stationById = (id: string | null): Station =>
-    radioStations.find((station) => station.id === id) ??
-    radioStations.find((station) => station.id === radioDefaultStation) ??
-    (radioStations[0] as Station);
+const stationById = (id: string | null): Station | null => {
+    const byId = id ? radioStations.find((station) => station.id === id) : undefined;
+    if (byId) return byId;
+    const byDefault = radioDefaultStation
+        ? radioStations.find((station) => station.id === radioDefaultStation)
+        : undefined;
+    // 没有非空断言、没有 `as Station`：空列表时就该拿到 null，由调用方决定不挂载。
+    return byDefault ?? radioStations[0] ?? null;
+};
 
 function read(storageKey: string): string | null {
     try {
@@ -81,6 +116,33 @@ function read(storageKey: string): string | null {
     } catch {
         return null;
     }
+}
+
+/**
+ * 读页面上服务端渲染的文案块（`BaseHead/SitePlayerCopy.astro`，放在 `<head>` 里，
+ * 所以 swup 换页由 HeadPlugin 一并替换 → 语种跟着页面走）。
+ *
+ * 契约：缺块 / 坏 JSON / 缺键 / 空串 → 逐键回落 `FALLBACK_COPY`（zh），绝不抛。
+ * 逐键而不是整块替换，是为了让「只翻了一半」的语言也能用（缺的键落 zh，
+ * 与站内 `t()` 的回退链同语义）。`raw` 留给换页后判「语种是否真的变了」。
+ */
+function readCopy(): { copy: Copy; raw: string } {
+    const raw = document.getElementById("site-player-copy")?.textContent?.trim() ?? "";
+    if (!raw) return { copy: FALLBACK_COPY, raw };
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        return { copy: FALLBACK_COPY, raw };
+    }
+    if (!parsed || typeof parsed !== "object") return { copy: FALLBACK_COPY, raw };
+    const source = parsed as Record<string, unknown>;
+    const copy = { ...FALLBACK_COPY };
+    for (const key of Object.keys(FALLBACK_COPY) as Array<keyof Copy>) {
+        const value = source[key];
+        if (typeof value === "string" && value.trim()) copy[key] = value;
+    }
+    return { copy, raw };
 }
 
 function write(storageKey: string, value: string | null): void {
@@ -139,12 +201,17 @@ const ICONS = {
     mute: "M4 9.5h3L11 6v12L7 14.5H4zM15.5 9.5l5 5M20.5 9.5l-5 5",
 } as const;
 
-function build(station: Station, volumeWritable: boolean): Player {
+function build(
+    station: Station,
+    volumeWritable: boolean,
+    loaded: { copy: Copy; raw: string },
+): Player {
+    const { copy } = loaded;
     const root = document.createElement("aside");
     root.className = "site-player";
     root.dataset.state = "idle";
     root.dataset.playing = "false";
-    root.setAttribute("aria-label", COPY.player);
+    root.setAttribute("aria-label", copy.player);
 
     const audio = document.createElement("audio");
     audio.preload = "none";
@@ -158,7 +225,7 @@ function build(station: Station, volumeWritable: boolean): Player {
     playButton.className = "site-player__play";
     playButton.dataset.playerPlay = "";
     // 首屏就要有名字：`setPlaying` 之前是一个只有 svg 的按钮，axe 会判 button-name 违规
-    playButton.setAttribute("aria-label", `${COPY.play}：${station.name}`);
+    playButton.setAttribute("aria-label", `${copy.play}：${station.name}`);
     playButton.replaceChildren(icon(ICONS.play));
 
     const toggleButton = document.createElement("button");
@@ -167,6 +234,9 @@ function build(station: Station, volumeWritable: boolean): Player {
     toggleButton.dataset.playerToggle = "";
     toggleButton.setAttribute("aria-expanded", "false");
     toggleButton.setAttribute("aria-controls", "site-player-extras");
+    // 首屏就要有 `title`：`syncToggleLabel` 只在状态切换时写，首帧若为空，
+    // 「折叠键的提示文案」在展开前根本不存在（M8-4 后续的 i18n 断言正是抓这个）。
+    toggleButton.title = copy.expand;
 
     const headline = document.createElement("span");
     headline.className = "site-player__headline";
@@ -201,7 +271,7 @@ function build(station: Station, volumeWritable: boolean): Player {
     closeButton.type = "button";
     closeButton.className = "site-player__icon-btn";
     closeButton.dataset.playerClose = "";
-    closeButton.setAttribute("aria-label", COPY.close);
+    closeButton.setAttribute("aria-label", copy.close);
     closeButton.replaceChildren(icon(ICONS.close, 16));
 
     row.append(playButton, toggleButton, muteButton, closeButton);
@@ -217,7 +287,7 @@ function build(station: Station, volumeWritable: boolean): Player {
     volumeWrap.hidden = !volumeWritable;
 
     const volumeLabel = document.createElement("span");
-    volumeLabel.textContent = COPY.volume;
+    volumeLabel.textContent = copy.volume;
 
     const volumeInput = document.createElement("input");
     volumeInput.type = "range";
@@ -225,7 +295,7 @@ function build(station: Station, volumeWritable: boolean): Player {
     volumeInput.max = "100";
     volumeInput.value = "72";
     volumeInput.dataset.playerVolume = "";
-    volumeInput.setAttribute("aria-label", COPY.volume);
+    volumeInput.setAttribute("aria-label", copy.volume);
 
     volumeWrap.append(volumeLabel, volumeInput);
     extras.append(volumeWrap);
@@ -248,6 +318,7 @@ function build(station: Station, volumeWritable: boolean): Player {
         muteButton,
         closeButton,
         volumeWrap,
+        volumeLabel,
         volumeInput: volumeWritable ? volumeInput : null,
         titleEl,
         artistEl,
@@ -256,6 +327,8 @@ function build(station: Station, volumeWritable: boolean): Player {
         state: "idle",
         playing: false,
         volumeWritable,
+        copy,
+        copyRaw: loaded.raw,
     };
 }
 
@@ -279,17 +352,49 @@ function trackHeight(player: Player): void {
  */
 function syncToggleLabel(player: Player): void {
     const expanded = player.state === "expanded";
-    player.toggleButton.title = expanded ? COPY.collapse : COPY.expand;
+    player.toggleButton.title = expanded ? player.copy.collapse : player.copy.expand;
+}
+
+/**
+ * 把整份文案重贴到已经存在的节点上（换页换语种时用）。
+ *
+ * 只写「静态文案」与两个由状态决定的名称；当前状态（idle/expanded/error、是否播放、
+ * 是否静音）从 `player` 读，所以重贴不会把「暂停中」的名错写成「播放」。
+ */
+function applyCopy(player: Player, loaded: { copy: Copy; raw: string }): void {
+    player.copy = loaded.copy;
+    player.copyRaw = loaded.raw;
+    const { copy } = player;
+
+    player.root.setAttribute("aria-label", copy.player);
+    player.playButton.setAttribute(
+        "aria-label",
+        `${player.playing ? copy.pause : copy.play}：${player.station.name}`,
+    );
+    player.closeButton.setAttribute("aria-label", copy.close);
+    player.muteButton.setAttribute("aria-label", copy.mute);
+    player.muteButton.title = player.audio.muted ? copy.unmute : copy.mute;
+    player.volumeLabel.textContent = copy.volume;
+    player.volumeInput?.setAttribute("aria-label", copy.volume);
+    syncToggleLabel(player);
+    // 错误态的可见标题是文案（不是电台名），换语种要跟着换
+    if (player.state === "error") player.titleEl.textContent = copy.error;
 }
 
 function mount(): void {
     if (w.__sitePlayer) return;
+    // 空数据集 = 全站不渲染播放器（合法状态，见 `~/config/radio` 文件头）。
+    // 这里必须**在造任何节点之前**返回：S0 的「0 字节 / 0 节点」是代码保证，
+    // 不是「数据永远非空」保证的（D-0172）。
+    if (radioStations.length === 0) return;
 
     const station = stationById(read(STATION_KEY));
+    if (!station) return;
+
     const probeAudio = document.createElement("audio");
     const volumeWritable = volumeIsWritable(probeAudio);
 
-    const player = build(station, volumeWritable);
+    const player = build(station, volumeWritable, readCopy());
     w.__sitePlayer = player;
 
     // 挂在 #app 之外（main 之外），swup 换页不碰它
@@ -335,7 +440,7 @@ function setPlaying(player: Player, playing: boolean): void {
     player.playButton.removeAttribute("aria-pressed");
     player.playButton.setAttribute(
         "aria-label",
-        `${playing ? COPY.pause : COPY.play}：${player.station.name}`,
+        `${playing ? player.copy.pause : player.copy.play}：${player.station.name}`,
     );
     player.playButton.replaceChildren(icon(playing ? ICONS.pause : ICONS.play));
     if (playing) setState(player, "expanded");
@@ -350,11 +455,11 @@ function setError(player: Player): void {
     setBusy(player, false);
     setPlaying(player, false);
     setState(player, "error");
-    player.titleEl.textContent = COPY.error;
+    player.titleEl.textContent = player.copy.error;
     player.artistEl.textContent = player.station.name;
     player.toggleButton.setAttribute("aria-expanded", "false");
     player.muteButton.hidden = true;
-    announce(player, `${COPY.error}：${player.station.name}`);
+    announce(player, `${player.copy.error}：${player.station.name}`);
 }
 
 function arm(): void {
@@ -409,10 +514,10 @@ function bind(player: Player): void {
         // 改名（静音 → 取消静音）会让读屏在「名称」与「按下状态」两处同时变化，
         // 也违反 A4 的「aria-label 相同」判据。
         player.muteButton.setAttribute("aria-pressed", String(muted));
-        player.muteButton.title = muted ? COPY.unmute : COPY.mute;
+        player.muteButton.title = muted ? player.copy.unmute : player.copy.mute;
         player.muteButton.replaceChildren(icon(muted ? ICONS.mute : ICONS.volume, 16));
     });
-    player.muteButton.setAttribute("aria-label", COPY.mute);
+    player.muteButton.setAttribute("aria-label", player.copy.mute);
 
     player.closeButton.addEventListener("click", () => dispose(player));
 
@@ -425,7 +530,7 @@ function bind(player: Player): void {
     audio.addEventListener("playing", () => {
         setBusy(player, false);
         setPlaying(player, true);
-        announce(player, `${COPY.playing}：${player.station.name}`);
+        announce(player, `${player.copy.playing}：${player.station.name}`);
     });
     audio.addEventListener("waiting", () => setBusy(player, true));
     audio.addEventListener("pause", () => {
@@ -435,7 +540,7 @@ function bind(player: Player): void {
     audio.addEventListener("ended", () => {
         setBusy(player, false);
         setPlaying(player, false);
-        announce(player, COPY.ended);
+        announce(player, player.copy.ended);
     });
     audio.addEventListener("error", () => setError(player));
 
@@ -450,7 +555,7 @@ function bind(player: Player): void {
             if (target === audio) return;
             if (!player.playing) return;
             audio.pause();
-            announce(player, COPY.paused);
+            announce(player, player.copy.paused);
         },
         true,
     );
@@ -495,10 +600,16 @@ function bind(player: Player): void {
 /** 站级单例：脚本被 swup 重跑时，只要 DOM 里已有节点就直接复用。 */
 function boot(): void {
     if (w.__sitePlayer) {
-        // 换页后节点还在，但 `main` 换了 —— 没有需要同步的数据，直接返回
+        const player = w.__sitePlayer;
+        // 换页后节点还在，但 `main` 换了 —— 没有需要同步的数据。
+        // 唯一例外是**文案**：跨语种换页（/radio/ → /en/radio/）时页面给的
+        // `site-player-copy` 变了，播放器得跟着换语言，否则读屏在英文页上说中文。
+        // 比对标记原文而不是 `locale`：语言清单在服务端，脚本不该再拉一份进 chunk。
+        const loaded = readCopy();
+        if (loaded.raw !== player.copyRaw) applyCopy(player, loaded);
         document.body.style.setProperty(
             "--site-player-block-size",
-            `${Math.round(w.__sitePlayer.root.getBoundingClientRect().height)}px`,
+            `${Math.round(player.root.getBoundingClientRect().height)}px`,
         );
         return;
     }

@@ -21,6 +21,22 @@
         "services": "Dienste",
         "radio": "Radio"
     },
+    "player": {
+        "player": "Radio-Player",
+        "play": "Abspielen",
+        "pause": "Pause",
+        "seek": "Spulen",
+        "volume": "Lautstärke",
+        "mute": "Stummschalten",
+        "unmute": "Ton einschalten",
+        "close": "Player schließen",
+        "collapse": "Player einklappen",
+        "expand": "Player ausklappen",
+        "error": "Das Radio ist gerade nicht verfügbar",
+        "playing": "Läuft",
+        "paused": "Pausiert",
+        "ended": "Wiedergabe beendet"
+    },
     "common": {
         "search": "Suche",
         "searchPlaceholder": "Artikel suchen...",

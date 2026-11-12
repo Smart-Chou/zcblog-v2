@@ -21,6 +21,22 @@
         "services": "Servicios",
         "radio": "Radio"
     },
+    "player": {
+        "player": "Reproductor de radio",
+        "play": "Reproducir",
+        "pause": "Pausa",
+        "seek": "Buscar",
+        "volume": "Volumen",
+        "mute": "Silenciar",
+        "unmute": "Activar sonido",
+        "close": "Cerrar reproductor",
+        "collapse": "Contraer reproductor",
+        "expand": "Expandir reproductor",
+        "error": "La radio no está disponible ahora",
+        "playing": "Reproduciendo",
+        "paused": "En pausa",
+        "ended": "Reproducción finalizada"
+    },
     "common": {
         "search": "Buscar",
         "searchPlaceholder": "Buscar artículos...",
