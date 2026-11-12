@@ -2,14 +2,17 @@
 /**
  * Dogeared Radio · page content (shared by `/radio/` and `/en/radio/`)
  *
- * The page shell lives in `src/pages/**`; this component owns the copy and the
- * page-scoped dock. It is not a registry UI component (see DESIGN §4.5).
+ * 播放器本体是站级的 `SitePlayer`（挂在 BaseLayout）；本页只负责
+ *  - 展示电台清单（数据来自 `~/config/radio`，与播放器同源）
+ *  - 通过 `radio-open` / `radio-station` 两个事件驱动它
+ *
+ * 这样页面与播放器解耦：`/radio/` 不再是播放器的宿主，换页也不中断播放。
  */
 import "~/styles/tokens/tokens.css";
 import "~/styles/pages/radio.css";
 import PageHero from "~/components/UI/molecule/PageHero.astro";
 import SectionHead from "~/components/UI/atom/SectionHead.astro";
-import RadioDock from "~/components/Layout/RadioDock.astro";
+import { radioStations } from "~/config/radio";
 
 export interface Props {
     locale?: string;
@@ -20,36 +23,36 @@ const isEn = locale === "en";
 
 const copy = isEn
     ? {
-          kicker: "DOGEARED RADIO · PROTOTYPE",
+          kicker: "DOGEARED RADIO",
           title: "Radio",
-          lede: "A live signal for the desk: two stations, one small dock, no algorithm. Tune in and leave it running while you read.",
-          open: "Open the dock",
+          lede: "A live signal for the desk: two stations, one small player, no algorithm. Tune in and leave it running while you read.",
+          open: "Open the player",
           stationsTitle: "Stations",
           stationsMeta: "LIVE · 24/7",
-          paradise: "Human-curated · Main Mix",
-          nightride: "Synthwave · 24/7",
           notesTitle: "Why these two",
           notes: [
               "Radio Paradise is the default: human curation, no ads, and a public 128 kbps stream meant for players like this one.",
               "Nightride FM is the night shift: synthwave sub-channels and live DJ shows, for when the reading turns into writing.",
-              "The dock stops when you leave this page. It is a prototype, not the final site-wide player.",
+              "The player follows you across pages until you close it. Closing stops the stream and unloads the audio element.",
           ],
+          play: "Play",
+          streamLinks: "Official stream links",
       }
     : {
-          kicker: "DOGEARED RADIO · 原型",
+          kicker: "DOGEARED RADIO",
           title: "电台",
-          lede: "给书桌的一条实时信号：两个电台，一个小 Dock，没有算法。打开后可以一直放着，边读边听。",
+          lede: "给书桌的一条实时信号：两个电台，一个小播放器，没有算法。打开后可以一直放着，边读边听。",
           open: "打开播放器",
           stationsTitle: "电台",
           stationsMeta: "LIVE · 24/7",
-          paradise: "人工策展 · Main Mix",
-          nightride: "Synthwave · 24/7",
           notesTitle: "为什么是这两个",
           notes: [
               "Radio Paradise 是默认台：人工策展、无广告，公开的 128 kbps 流本来就是给这类播放器用的。",
               "Nightride FM 是夜班台：synthwave 子频道 + 现场 DJ，适合从阅读切到写作的时候。",
-              "离开这个页面播放就会停。这是原型，不是最终的站级播放器。",
+              "播放器会跟着你换页，直到你按下关闭。关闭即停播并卸载音频元素。",
           ],
+          play: "播放",
+          streamLinks: "官方流地址",
       };
 ---
 
@@ -60,9 +63,9 @@ const copy = isEn
         lede={copy.lede}
         slug="radio"
         meta={[
-            { label: "2 stations", quiet: true },
+            { label: `${radioStations.length} stations`, quiet: true },
             { label: "128 kbps · live", quiet: true },
-            { label: "prototype", quiet: true },
+            { label: "site-wide player", quiet: true },
         ]}
     />
 
@@ -75,8 +78,8 @@ const copy = isEn
             <p class="radio-page__copy">
                 {
                     isEn
-                        ? "The dock is deliberately quiet: one play button, two stations, a volume slider, and a link back to the station's own page."
-                        : "Dock 刻意做得很安静：一个播放键、两个电台、一个音量条，以及回到电台自己页面的链接。"
+                        ? "The player is deliberately quiet: one play button, a station name, a volume slider, and a link back to the station's own page. It keeps playing while you read other pages."
+                        : "播放器刻意做得很安静：一个播放键、一个电台名、一个音量条，以及回到电台自己页面的链接。你翻到别的页面时它不会停。"
                 }
             </p>
             <button class="radio-page__cta" type="button" data-radio-open>
@@ -95,25 +98,57 @@ const copy = isEn
             id="radio-stations-title"
         />
         <ul class="radio-page__stations">
-            <li>
-                <div class="radio-page__station">
-                    <span class="radio-page__station-name">Radio Paradise</span>
-                    <span class="radio-page__station-meta">{copy.paradise}</span>
-                </div>
-            </li>
-            <li>
-                <div class="radio-page__station">
-                    <span class="radio-page__station-name">Nightride FM</span>
-                    <span class="radio-page__station-meta">{copy.nightride}</span>
-                </div>
-            </li>
+            {
+                radioStations.map((station) => (
+                    <li>
+                        <button
+                            class="radio-page__station"
+                            type="button"
+                            data-radio-station={station.id}
+                        >
+                            <span class="radio-page__station-name">{station.name}</span>
+                            <span class="radio-page__station-meta">{station.detail}</span>
+                            <span class="radio-page__station-note">{station.note}</span>
+                            <span class="radio-page__station-action">
+                                {copy.play} <span aria-hidden="true">↗</span>
+                            </span>
+                        </button>
+                    </li>
+                ))
+            }
         </ul>
     </section>
 
     <section class="radio-page__notes" aria-labelledby="radio-notes-title">
         <h2 class="radio-page__eyebrow" id="radio-notes-title">{copy.notesTitle}</h2>
         {copy.notes.map((paragraph) => <p>{paragraph}</p>)}
+        <p>
+            <a
+                href="https://radioparadise.com/listen/stream-links"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                {copy.streamLinks}
+                <span aria-hidden="true">↗</span>
+            </a>
+        </p>
     </section>
 </div>
 
-<RadioDock />
+<script>
+    // 页面只发事件，不碰播放器内部（站级 SitePlayer 在 BaseLayout 里监听）
+    document.querySelectorAll<HTMLElement>("[data-radio-open]").forEach((button) => {
+        button.addEventListener("click", () => {
+            window.dispatchEvent(new Event("radio-open"));
+        });
+    });
+
+    document.querySelectorAll<HTMLElement>("[data-radio-station]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const id = button.dataset.radioStation;
+            if (!id) return;
+            window.dispatchEvent(new CustomEvent("radio-station", { detail: id }));
+            window.dispatchEvent(new Event("radio-open"));
+        });
+    });
+</script>

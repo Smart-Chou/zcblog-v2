@@ -1,0 +1,287 @@
+---
+/**
+ * SitePlayer — 站级悬浮播放器（M8-4，按 `26-m8-4-player-spec.md` 落地）
+ *
+ * 与 `/radio/` 原型页的 `RadioDock` 的区别：
+ *  - **站点级**：挂在 BaseLayout，节点在 `main` 之外，swup 换页不销毁 → 跨页不断播；
+ *  - **arm-on-play**：访客没按过播放时，全站 0 个节点（spec §2.2 S0：不是隐藏，是不存在）；
+ *  - **状态机三值** `idle` / `expanded` / `error`，`data-playing` / `data-busy` 只供断言；
+ *  - 播放/暂停**用名称翻转**，不用 `aria-pressed`（§4.2）；`aria-pressed` 只给静音键。
+ *
+ * 本文件**不输出任何 DOM**：根节点由 `scripts/site-player.ts` 在需要时创建。
+ * 这里只做两件事：把样式挂到页面（`:global()` 见 N12），并登记模块加载。
+ * 这样「没有播放器的页面」连空壳都没有，视觉与基线零变化（§3.3 硬要求）。
+ */
+---
+
+<style is:global>
+    /* ============================================================
+       SitePlayer · 站级悬浮播放器（M8-4）
+       全部值来自 token；字面量仅 0 / 1px / 2px / % / auto / env()。
+       z-index 取 --z-overlay：必须在 --z-sticky(20) 之上、--z-modal(50) 之下。
+       ============================================================ */
+
+    .site-player {
+        position: fixed;
+        inset-inline-end: var(--space-4);
+        inset-block-end: calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+        z-index: var(--z-overlay);
+        box-sizing: border-box;
+        inline-size: min(var(--layout-sidebar), calc(100vw - var(--space-8)));
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border-subtle);
+        background: var(--color-bg-raised);
+        box-shadow: var(--shadow-4);
+        color: var(--color-fg-default);
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: var(--leading-snug);
+    }
+
+    .site-player[data-state="idle"] {
+        inline-size: max-content;
+        max-inline-size: var(--layout-sidebar);
+        border-radius: var(--radius-pill);
+        border-color: var(--color-border-strong);
+    }
+
+    .site-player[data-state="error"] {
+        border-radius: var(--radius-pill);
+        border-color: var(--color-status-danger-border);
+        background: var(--color-status-danger-bg);
+        color: var(--color-status-danger-fg);
+    }
+
+    .site-player__row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+    }
+
+    .site-player[data-state="idle"] .site-player__row,
+    .site-player[data-state="error"] .site-player__row {
+        padding-block: 0;
+        min-block-size: var(--space-11);
+    }
+
+    /* ── 主操作：播放/暂停 44×44 ────────────────────────────── */
+    .site-player__play {
+        display: grid;
+        place-items: center;
+        inline-size: var(--space-11);
+        block-size: var(--space-11);
+        flex: 0 0 var(--space-11);
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: var(--color-accent-solid);
+        color: var(--color-fg-on-accent);
+        cursor: pointer;
+    }
+
+    .site-player__play:hover {
+        background: var(--color-accent-solid-hover);
+    }
+
+    .site-player__play[aria-busy="true"] svg {
+        animation: site-player-spin var(--duration-slower) var(--ease-linear) infinite;
+    }
+
+    @keyframes site-player-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* ── 曲目名区（也是折叠/展开按钮）────────────────────────── */
+    .site-player__toggle {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-inline-size: 0;
+        min-block-size: var(--space-11);
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: start;
+        cursor: pointer;
+    }
+
+    .site-player__headline {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-inline-size: 0;
+    }
+
+    .site-player__title {
+        overflow: hidden;
+        color: var(--color-fg-heading);
+        font-weight: var(--font-weight-medium);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .site-player__artist {
+        overflow: hidden;
+        color: var(--color-fg-subtle);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* ── 直播标识 ─────────────────────────────────────────────── */
+    .site-player__badge {
+        flex: 0 0 auto;
+        padding: 0 4px;
+        border: 1px solid var(--color-status-success-border);
+        border-radius: var(--radius-xs);
+        background: var(--color-status-success-bg);
+        color: var(--color-status-success-fg);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: var(--font-weight-medium);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+
+    .site-player__badge[hidden] {
+        display: none;
+    }
+
+    /* ── 次级控件：静音 / 关闭 24×24 命中区（行高 44）──────── */
+    .site-player__icon-btn {
+        display: grid;
+        place-items: center;
+        inline-size: var(--space-6);
+        block-size: var(--space-11);
+        flex: 0 0 var(--space-6);
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--color-fg-default);
+        cursor: pointer;
+    }
+
+    .site-player__icon-btn:hover {
+        color: var(--color-fg-heading);
+    }
+
+    .site-player__icon-btn[hidden] {
+        display: none;
+    }
+
+    /* ── 展开态的附加行（音量）────────────────────────────────── */
+    .site-player__extras {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: 0 var(--space-3) var(--space-3);
+    }
+
+    .site-player__extras[hidden],
+    .site-player__volume[hidden] {
+        display: none;
+    }
+
+    .site-player__volume {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        inline-size: 100%;
+        color: var(--color-fg-subtle);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+    }
+
+    .site-player__volume input {
+        inline-size: 100%;
+        min-inline-size: 0;
+        accent-color: var(--color-accent-solid);
+    }
+
+    /* ── 焦点环：成对出现（G4），不用 box-shadow 造环 ─────────── */
+    .site-player__play:focus-visible,
+    .site-player__toggle:focus-visible,
+    .site-player__icon-btn:focus-visible,
+    .site-player__volume input:focus-visible {
+        outline: 2px solid var(--color-ring-focus);
+        outline-offset: 2px;
+    }
+
+    /*
+     * 避让（spec §3.3 V1–V3）。
+     * `--site-player-block-size` 是**组件局部变量**，不是设计 token；
+     * 由脚本用 ResizeObserver 写入真实高度（不猜 132/100 这类算式值），
+     * 因此三种状态、任意文案长度下都成立。
+     */
+    body:has(.site-player) #back-to-top {
+        inset-block-end: calc(
+            env(safe-area-inset-bottom, 0px) + var(--space-4) + var(--space-3) +
+                var(--site-player-block-size, 0px)
+        );
+        inset-inline-end: var(--space-4);
+        z-index: var(--z-sticky);
+    }
+
+    body:has(.site-player) #app {
+        padding-block-end: calc(
+            var(--site-player-block-size, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4) +
+                var(--space-3)
+        );
+    }
+
+    /* ── ≤768：整宽 bar，并避开 ≤640 的底部主导航 ─────────────── */
+    @media (max-width: 768px) {
+        .site-player {
+            inset-inline: var(--space-3);
+            inset-block-end: calc(env(safe-area-inset-bottom, 0px) + var(--space-3));
+            inline-size: auto;
+            max-inline-size: none;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .site-player {
+            /* BottomTabs 在 ≤640 占 60px 高（M8-6-6），播放器必须落在它上方并留呼吸位 */
+            inset-block-end: calc(60px + var(--space-6) + env(safe-area-inset-bottom, 0px));
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .site-player__play[aria-busy="true"] svg {
+            animation: none;
+        }
+    }
+</style>
+
+<script>
+    /**
+     * 门控（spec §6.3：门控脚本 ≤0.5KB，播放器 chunk ≤4KB，按需 import）。
+     *
+     * 判定条件写在这里而不是模块里，是为了让「没按过播放」的访客完全不下载
+     * 播放器代码：只有 localStorage 里留下过 armed 标记，或站点配置成 always，
+     * 才去拉 chunk。
+     */
+    import { radioPersistMode, radioArmedKey } from "~/config/radio-flags";
+
+    const armed = (() => {
+        if (radioPersistMode === "always") return true;
+        try {
+            if (localStorage.getItem(radioArmedKey) === "1") return true;
+        } catch {
+            /* 隐私模式：只有 /radio/ 页的显式按钮能唤起播放器 */
+        }
+        // `/radio/` 页自带唤起按钮：这一页必须挂载，否则按钮点了没反应
+        return Boolean(document.querySelector("[data-radio-open]"));
+    })();
+
+    if (armed) {
+        void import("~/scripts/site-player");
+    }
+</script>
