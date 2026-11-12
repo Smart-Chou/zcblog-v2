@@ -158,21 +158,21 @@ const activeDays = days.filter((day) => day.count > 0).length;
             </div>
             <div class="culture-heatmap__grid">
                 {
+                    /* 单元格属性刻意保持最短（M8-9，HTML 预算 105KB 卡得最紧）：
+                    · 0 档不输出 class —— culture.css 没有 cell--0 规则，371 格里 370 格是 0；
+                    · 0 值不输出 title —— 「2025-12-28 · 0」无信息量却占 8.7KB，
+                      有内容的日子保留完整 title，hover 提示反而更准；
+                    · 逐格 aria-hidden 省略 —— 祖先 .culture-heatmap__body 是 role="img"
+                      + aria-label，按 ARIA 规范其子树已不暴露给辅助技术。 */
+                }
+                {
                     cells.map((cell) => (
                         <span
                             class:list={[
                                 "culture-heatmap__cell",
-                                // 0 档没有样式规则（见 culture.css），不输出 class 省字节：
-                                // 371 格里 370 格是 0，这一条省下约 9KB HTML。
                                 cell.level > 0 && `culture-heatmap__cell--${cell.level}`,
                                 !cell.inYear && "culture-heatmap__cell--outside",
                             ]}
-                            // 逐格 aria-hidden 省略：祖先 .culture-heatmap__body 是 role="img"
-                            // + aria-label，按 ARIA 规范其子树已不暴露给辅助技术。
-                            //
-                            // 0 值格子不输出 title（M8-9）：371 格里 370 格 count=0，
-                            // 「2025-12-28 · 0」对读者没有信息量，却占掉 8.7KB HTML。
-                            // 有内容的日子保留完整 title，hover 提示反而更准。
                             title={cell.count > 0 ? `${cell.date} · ${cell.count}` : undefined}
                         />
                     ))
