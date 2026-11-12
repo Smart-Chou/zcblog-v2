@@ -304,14 +304,23 @@ pnpm run preview
 
 #### 视觉基线（截图回归）
 
-两套像素基线，**平台各自独立**（字体栈不同，跨平台比对无意义）：
+三套像素基线，**平台各自独立**（字体栈不同，跨平台比对无意义）：
 
 | 套件 | 覆盖 | 基线目录（macOS / Linux） | 阈值 |
 | ---- | ---- | ---- | ---- |
 | `/design/atoms` | 12 个原子 × 3 视口 × 2 主题 = 72 | `e2e/__screenshots__/design-atoms{,‑linux}/` | macOS 1% / Linux 0 px |
 | 页面级（V-0） | 6 页 × 3 视口（375/768/1280）× 2 主题 = 36 | `e2e/__screenshots__/pages{,‑linux}/` | macOS 0.1% / Linux 0 px |
+| 播放器（§5.7.1） | 3 形态（idle/expanded/error）× 2 主题 × 2 视口（375/1440）= 12 | `e2e/__screenshots__/design-organism{,‑linux}/` | macOS 0.1% / Linux 0 px |
 
 页面级覆盖的 6 页：`/`、`/article/beszel-server-monitoring-guide/`、`/archives/`、`/albums/`、`/culture/`、`/projects/`。Linux 集必须在 CI 用的同一个镜像里生成，与 macOS 集互不比较。
+
+**播放器基线是元素级，不是页面级**：站级播放器是 `position: fixed` 浮层，页面级截图会为了一个 46px 的 pill 拍一张 3600px 高的整页，任何与播放器无关的内容改动都会让它变红。所以 `e2e/pages-radio.visual.spec.ts` 截的是 `.site-player` 自己的盒子（280×46 … 351×108）。三态在运行时造出来，不需要额外构建：`localStorage["dogeared-radio-armed"]="1"`（就是 `SitePlayer.astro` 读的那个门控）负责 arm，`page.route("**://stream.radioparadise.com/**", abort)` 负责 error。截图前会把页面兄弟节点 `visibility:hidden`，否则卡片圆角外的整页内容会进入像素 —— 这条已用「改 fixture 文章的 title/description 后 12 张仍全绿」反证过。
+
+`idle` 用 `max-content` 宽（280），`expanded`/`error` 在 375 下是整宽（351 = 375 − 2×`--space-3`），所以 375 那一列里只有 idle 是 280 宽 —— 这是布局契约，不是漏拍。
+
+**播放器基线暴露的第一处真缺陷**：`≤640px` 的 `expanded`/`error` 态，播放器**压住了 `#back-to-top`**（375 下两者 Y 向重叠 42px，`elementFromPoint` 在按钮中心解析到播放器的 `<svg>`，即既看不见也点不到）。原因是 CSS 抬高按钮只算了 `--space-4 + --space-3 + block-size`，而播放器自己在 `≤640` 的底边距是 `60px (BottomTabs) + --space-6`，少算 72px。**本仓只加了门禁，没修实现**：spec 里 `KNOWN_V1_OVERLAP = new Set(["expanded@375", "error@375"])` 精确登记这两个格子，并且**一旦它们不再违规就报红**要求删除条目（棘轮，不是白名单）。修好后把这两条从 Set 里删掉即可。
+
+**为什么页面级 42 张不因为播放器重出**：arm-on-play 让未播放访客零节点（`dist/` 全站 151 个 HTML 里含 `site-player` 的 = 0），这正是「播放器不改变任何已存在页面」的机器证明。播放器自身的像素由上面第三套承担。
 
 **为什么页面级基线要先单独构建**：页面内容来自私有内容仓，多加一篇文章就会让首页/归档/热门列表整体位移。所以页面级基线跑在 `e2e/fixtures/pages-visual/` 的固定文章上，由 `CONTENT_ARTICLE_BASE` 指向该目录构建（常规构建/部署不设置此变量，行为不变）。所有 fixture 文章必须带 `upDate`，否则构建时间会进入像素。
 
@@ -335,6 +344,29 @@ docker run --rm --ipc=host -v "$PWD":/work -w /work \
 # 4. 复核：连跑两遍必须都过（Linux 集为 0 像素）
 pnpm exec playwright test e2e/pages.visual.spec.ts
 ```
+
+播放器基线（§5.7.1）用同一套构建，只是换 spec 与目录 —— 它不需要自己那份 fixture 构建，三态是运行时造出来的：
+
+```bash
+# 1. 同一个固定内容构建（若上一步刚跑过可跳过）
+pnpm visual:build:pages
+
+# 2. macOS 基线（12 张，落 e2e/__screenshots__/design-organism/）
+pnpm exec playwright test e2e/pages-radio.visual.spec.ts --update-snapshots
+
+# 3. Linux 基线（同一个镜像、同一份构建）
+docker run --rm --ipc=host -v "$PWD":/work -w /work \
+  -e PLAYWRIGHT_BASELINE_PLATFORM=linux \
+  mcr.microsoft.com/playwright:v1.63.0-noble \
+  bash -lc 'corepack enable && corepack pnpm install --frozen-lockfile && \
+            node scripts/visual/build-pages-baseline.mjs && \
+            corepack pnpm exec playwright test e2e/pages-radio.visual.spec.ts --update-snapshots'
+
+# 4. 复核：连跑两遍必须都 12 passed
+pnpm test:visual:organism
+```
+
+三态（idle / expanded / error）都**不启动播放**：`expanded` 只点折叠键（不碰 `<audio>`），`error` 靠 abort 流触发 `error` 事件。所以这套基线不需要外网、不需要真流，`RADIO_LIVE` 与它无关。
 
 **假红先排查服务器，不要急着 `--update-snapshots`**：`playwright.config.ts` 现在固定 `reuseExistingServer: false`，每次由 runner 自己起 4321 上的 `astro preview`——旧版本会复用残留 server，症状是 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，不是像素 diff。跑之前先 `pkill -f "astro preview"`，再确认第 1 步的固定内容构建跑过。配置同时固定 `--host 127.0.0.1` / `baseURL=http://127.0.0.1:4321`：本机 `astro preview` 默认只监听 `[::1]`，靠 `localhost` 解析会在 IPv6/IPv4 之间飘，表现为随机 `ERR_CONNECTION_REFUSED`。
 

@@ -46,6 +46,19 @@ const BASELINE_PROJECTS = {
                 toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" as const },
             },
         },
+        {
+            name: "chromium-organism",
+            dir: "design-organism",
+            match: /pages-radio\.visual\.spec\.ts$/,
+            // Element shots of the armed player (idle / expanded / error). The boxes are tiny
+            // (280×46 … 336×108), so a ratio threshold would let a whole icon move: 0.1% of
+            // 12,880 px is ~13 px, i.e. a 3×3 icon could vanish and still pass. macOS glyph
+            // AA on this box measured 0 px drift, so the ratio only buys room for the slider
+            // thumb's sub-pixel edge — same value as the page suite, different reason.
+            expect: {
+                toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" as const },
+            },
+        },
     ],
     linux: [
         {
@@ -64,10 +77,18 @@ const BASELINE_PROJECTS = {
             // third-party traffic stubbed → pixel-exact. M5-11 verified 0 drift over 2 runs.
             expect: { toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled" as const } },
         },
+        {
+            name: "chromium-linux-organism",
+            dir: "design-organism-linux",
+            match: /pages-radio\.visual\.spec\.ts$/,
+            // Generated inside this same image from the same fixture build, so the set is
+            // reproducible to the pixel; no threshold widening here either.
+            expect: { toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled" as const } },
+        },
     ],
 } as const;
 
-const [ATOMS, PAGES] = BASELINE_PROJECTS[PLATFORM];
+const [ATOMS, PAGES, ORGANISM] = BASELINE_PROJECTS[PLATFORM];
 
 export default defineConfig({
     testDir: "./e2e",
@@ -101,7 +122,9 @@ export default defineConfig({
     projects: [
         {
             name: ATOMS.name,
-            testIgnore: PAGES.match,
+            // Atoms is the catch-all bucket: it must not swallow any page- or element-sized
+            // suite (each owns its own snapshot dir and threshold).
+            testIgnore: [PAGES.match, ORGANISM.match],
             expect: ATOMS.expect,
             snapshotPathTemplate: `{testDir}/__screenshots__/${ATOMS.dir}/{arg}{ext}`,
             use: { ...devices["Desktop Chrome"] },
@@ -111,6 +134,16 @@ export default defineConfig({
             testMatch: PAGES.match,
             expect: PAGES.expect,
             snapshotPathTemplate: `{testDir}/__screenshots__/${PAGES.dir}/{arg}{ext}`,
+            use: { ...devices["Desktop Chrome"] },
+        },
+        {
+            // Element-level shots of the armed player (§5.7.1). Same preview server as the
+            // other two suites — the shapes are produced at runtime by localStorage + a route
+            // abort, not by a separate build, so this project needs no fixture of its own.
+            name: ORGANISM.name,
+            testMatch: ORGANISM.match,
+            expect: ORGANISM.expect,
+            snapshotPathTemplate: `{testDir}/__screenshots__/${ORGANISM.dir}/{arg}{ext}`,
             use: { ...devices["Desktop Chrome"] },
         },
     ],

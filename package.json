@@ -66,6 +66,7 @@
         "series:e2e": "node scripts/series/build-e2e-fixture.mjs && playwright test e2e/series.spec.ts",
         "visual:build:pages": "node scripts/visual/build-pages-baseline.mjs",
         "test:visual:pages": "playwright test e2e/pages.visual.spec.ts",
+        "test:visual:organism": "playwright test e2e/pages-radio.visual.spec.ts",
         "audit:a11y": "playwright test e2e/export-audit.spec.ts",
         "audit:a11y:smoke": "AUDIT_BASELINE=0 AUDIT_ROUTES='/ /en/ /blog/1/ /archives/ /tags/ /culture/ /bangumi/ /douban/ /cookies/ /design/components/author/ /404.html' playwright test e2e/export-audit.spec.ts",
         "preview:deploy": "wrangler pages deploy dist --project-name=zcblog-v2 --branch=${BRANCH:-local} --commit-dirty=true"
