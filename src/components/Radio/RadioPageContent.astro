@@ -25,14 +25,13 @@ const copy = isEn
     ? {
           kicker: "DOGEARED RADIO",
           title: "Radio",
-          lede: "A live signal for the desk: two stations, one small player, no algorithm. Tune in and leave it running while you read.",
+          lede: "A live signal for the desk: one station, one small player, no algorithm. Tune in and leave it running while you read.",
           open: "Open the player",
           stationsTitle: "Stations",
           stationsMeta: "LIVE · 24/7",
-          notesTitle: "Why these two",
+          notesTitle: "Why this one",
           notes: [
               "Radio Paradise is the default: human curation, no ads, and a public 128 kbps stream meant for players like this one.",
-              "Nightride FM is the night shift: synthwave sub-channels and live DJ shows, for when the reading turns into writing.",
               "The player follows you across pages until you close it. Closing stops the stream and unloads the audio element.",
           ],
           play: "Play",
@@ -41,14 +40,13 @@ const copy = isEn
     : {
           kicker: "DOGEARED RADIO",
           title: "电台",
-          lede: "给书桌的一条实时信号：两个电台，一个小播放器，没有算法。打开后可以一直放着，边读边听。",
+          lede: "给书桌的一条实时信号：一个电台，一个小播放器，没有算法。打开后可以一直放着，边读边听。",
           open: "打开播放器",
           stationsTitle: "电台",
           stationsMeta: "LIVE · 24/7",
-          notesTitle: "为什么是这两个",
+          notesTitle: "为什么是这个",
           notes: [
               "Radio Paradise 是默认台：人工策展、无广告，公开的 128 kbps 流本来就是给这类播放器用的。",
-              "Nightride FM 是夜班台：synthwave 子频道 + 现场 DJ，适合从阅读切到写作的时候。",
               "播放器会跟着你换页，直到你按下关闭。关闭即停播并卸载音频元素。",
           ],
           play: "播放",
@@ -63,7 +61,11 @@ const copy = isEn
         lede={copy.lede}
         slug="radio"
         meta={[
-            { label: `${radioStations.length} stations`, quiet: true },
+            {
+                // 单复数随数据源自动变：删站/加站不用再改文案（现在只有 1 个，写完是「1 station」）。
+                label: `${radioStations.length} ${radioStations.length === 1 ? "station" : "stations"}`,
+                quiet: true,
+            },
             { label: "128 kbps · live", quiet: true },
             { label: "site-wide player", quiet: true },
         ]}

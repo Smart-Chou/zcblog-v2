@@ -122,9 +122,10 @@ jobs:
     #  4. 页面级基线跑在固定内容上（scripts/visual/build-pages-baseline.mjs）：内容仓加一篇
     #     文章不该让视觉门禁红。因此这里**不** checkout 私有文章仓，构建命令也换成该脚本。
     visual:
-        name: visual (atoms 72 + pages 42 · linux baselines)
+        # 四套分账，不合并成一个数字：任一套整体跳过时，合并计数仍然是绿的。
+        name: visual (atoms 72 + pages 42 + player 12 · + pages-radio e2e · linux)
         runs-on: ubuntu-latest
-        timeout-minutes: 25
+        timeout-minutes: 30
         container:
             image: mcr.microsoft.com/playwright:v1.63.0-noble
             options: --ipc=host
@@ -197,6 +198,79 @@ jobs:
                   if ! grep -qE "^ +42 passed" "$RUNNER_TEMP/pages-visual-2.log"; then
                     echo "::error::页面级视觉基线第二遍未全绿（不稳定）"
                     tail -40 "$RUNNER_TEMP/pages-visual-2.log"
+                    exit 1
+                  fi
+
+            # M8-4 / §5.7.1：站级播放器（SitePlayer）的 11 条确定性断言。
+            # 之前只在本地跑过（D-0172 登记的覆盖缺口），任何对 SitePlayer.astro /
+            # site-player.ts / BaseLayout.astro 的改动都不会让门禁变红。
+            #
+            # 放在 visual job 而不是 test：本 spec 需要真实页面（`astro preview`，
+            # playwright.config 的 webServer），而 test job 不 build。visual job 的
+            # preview 由上一个 step 的 fixture 构建产出，这里**不再起第二个** ——
+            # 复用同一个 4321 preview，零额外构建成本。
+            #
+            # 11 passed / 1 skipped 是硬断言，不是退出码：`RADIO_LIVE` 默认关闭（真出声
+            # 要连外部广播流，CI 不确定），那条用例被 skip 时 Playwright 仍返回 0。
+            # 所以既断言 11 passed，也断言 skipped=1 —— 哪天 skip 被误删成实跑（或反过来
+            # 全绿但一条没跑），条数会立刻对不上。
+            - name: Player e2e · pages-radio 11 (pass 1/2)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test e2e/pages-radio.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-radio-1.log"
+                  if ! grep -qE "^ +11 passed" "$RUNNER_TEMP/pages-radio-1.log"; then
+                    echo "::error::pages-radio 用例数不是 11（RADIO_LIVE 默认关闭时必须是 11 passed / 1 skipped）"
+                    tail -40 "$RUNNER_TEMP/pages-radio-1.log"
+                    exit 1
+                  fi
+                  if ! grep -qE "^ +1 skipped" "$RUNNER_TEMP/pages-radio-1.log"; then
+                    echo "::error::pages-radio 的 skipped 不是 1 —— 真出声那条不该在 CI 里实跑"
+                    tail -40 "$RUNNER_TEMP/pages-radio-1.log"
+                    exit 1
+                  fi
+
+            - name: Player e2e · pages-radio 11 (pass 2/2 · stability)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test e2e/pages-radio.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-radio-2.log"
+                  if ! grep -qE "^ +11 passed" "$RUNNER_TEMP/pages-radio-2.log"; then
+                    echo "::error::pages-radio 第二遍未全绿（不稳定）"
+                    tail -40 "$RUNNER_TEMP/pages-radio-2.log"
+                    exit 1
+                  fi
+
+            # §5.7.1 视觉基线：已 arm 访客的 idle / expanded / error 三态，元素级
+            # 3 形态 × 2 主题 × 2 视口（375/1440）= 12 张。**不重出 42 张页面级基线**：
+            # arm-on-play 让未播放访客零节点（dist 全站 0 个 site-player），所以页面级
+            # 基线的 42 张里没有播放器，也就不该因为播放器而重出。
+            #
+            # 三态在运行时造出来（localStorage armed + 路由 abort 流），不需要额外构建，
+            # 复用上面那个 preview。同上看条数不看退出码。
+            - name: Visual regression · player 12 (pass 1/2)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test e2e/pages-radio.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/player-visual-1.log"
+                  if ! grep -qE "^ +12 passed" "$RUNNER_TEMP/player-visual-1.log"; then
+                    echo "::error::播放器元素基线用例数不是 12（3 形态 × 2 主题 × 2 视口）"
+                    tail -40 "$RUNNER_TEMP/player-visual-1.log"
+                    exit 1
+                  fi
+
+            - name: Visual regression · player 12 (pass 2/2 · stability)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test e2e/pages-radio.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/player-visual-2.log"
+                  if ! grep -qE "^ +12 passed" "$RUNNER_TEMP/player-visual-2.log"; then
+                    echo "::error::播放器元素基线第二遍未全绿（不稳定）"
+                    tail -40 "$RUNNER_TEMP/player-visual-2.log"
                     exit 1
                   fi
 

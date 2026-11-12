@@ -9,7 +9,7 @@
 
 export const SPRITE_URL = "/icons.svg";
 
-export const SPRITE_VERSION = "ed9ed282";
+export const SPRITE_VERSION = "e4a95966";
 
 /** 图标名 → viewBox；键集合同时是「这个图标存在」的闭集。 */
 export const ICON_VIEWBOXES: Record<string, string> = {
@@ -18,6 +18,7 @@ export const ICON_VIEWBOXES: Record<string, string> = {
     "mingcute:alipay-line": "0 0 24 24",
     "mingcute:arrow-up-circle-fill": "0 0 24 24",
     "mingcute:book-3-line": "0 0 24 24",
+    "mingcute:code-line": "0 0 24 24",
     "mingcute:github-line": "0 0 24 24",
     "mingcute:hand-heart-line": "0 0 24 24",
     "mingcute:mail-send-line": "0 0 24 24",
@@ -44,6 +45,7 @@ export const ICON_VIEWBOXES: Record<string, string> = {
     "tabler:brand-wechat": "0 0 24 24",
     "tabler:brand-weibo": "0 0 24 24",
     "tabler:brand-x": "0 0 24 24",
+    "tabler:category": "0 0 24 24",
     "tabler:check": "0 0 24 24",
     "tabler:chevron-left": "0 0 24 24",
     "tabler:chevron-right": "0 0 24 24",

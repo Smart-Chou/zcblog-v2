@@ -24,11 +24,11 @@ const scriptSrc = [
     .filter(Boolean)
     .join(" ");
 
-// `/radio/` prototype only: two exact live-stream origins, no wildcard.
-// Keep this list in sync with `src/components/Layout/RadioDock.astro`.
-const mediaSrc = ["'self'", "https://stream.radioparadise.com", "https://stream.nightride.fm"].join(
-    " ",
-);
+// `/radio/` 唯一在用的直播流 origin：Radio Paradise。
+// 其官方 stream-links 页面向第三方播放器公开发放 URL（D-0170 PO 批准 A2）。
+// 新增 origin 必须走 PO 单独批准，禁止 `*` 与宽泛 `https:`。
+// 注：本串只经 `<meta http-equiv>` 下发，改 `_headers` 无效（见 m80-csp-media-src-20261112.md §1）。
+const mediaSrc = ["'self'", "https://stream.radioparadise.com"].join(" ");
 
 const connectSrc = [
     "'self'",
