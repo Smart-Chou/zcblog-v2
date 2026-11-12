@@ -73,10 +73,10 @@ const MAX_TAGS = 24;
  */
 const heroMeta = [
     { icon: "tabler:message-chatbot-filled", label: countLabel },
-    ...(resolved.tags.length > 0
-        ? [{ icon: "tabler:tags", label: tagCountLabel }]
+    ...(resolved.tags.length > 0 ? [{ icon: "tabler:tags", label: tagCountLabel }] : []),
+    ...(newestLabel
+        ? [{ label: isEn ? `latest ${newestLabel}` : `最近 ${newestLabel}`, quiet: true }]
         : []),
-    ...(newestLabel ? [{ label: isEn ? `latest ${newestLabel}` : `最近 ${newestLabel}`, quiet: true }] : []),
 ];
 
 /** 左栏筛选只在 ok 态且有话题时存在（P3-07：空态不渲染话题云）。 */
@@ -117,7 +117,9 @@ const issueCode = resolved.issue?.code ?? "unknown";
                         {isEn
                             ? `Open ${talksPage.sourceName ?? "source"}`
                             : `去${talksPage.sourceName ?? "来源"}看`}
-                        <span class="talks-source__arrow" aria-hidden="true">↗</span>
+                        <span class="talks-source__arrow" aria-hidden="true">
+                            ↗
+                        </span>
                     </a>
                 )
             }
@@ -165,7 +167,9 @@ const issueCode = resolved.issue?.code ?? "unknown";
                                 {resolved.items.map((item) => (
                                     <li class="talks-entry">
                                         <p class="talks-entry__day">
-                                            <time datetime={item.ts === null ? undefined : item.time}>
+                                            <time
+                                                datetime={item.ts === null ? undefined : item.time}
+                                            >
                                                 {formatDay(item.time) || item.time}
                                             </time>
                                         </p>

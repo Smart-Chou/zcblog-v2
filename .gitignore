@@ -63,3 +63,12 @@ theme-snapshot/
 __pycache__/
 *.pyc
 release-pack/
+
+# 本地取证用的构建产物快照（`dist-<批次>-<阶段>`，每次 e2e/视觉对比后生成）
+dist-*/
+.visual-states/
+.scratch-*/
+.probe-*.mjs
+playwright.m7-*.config.ts
+playwright.m8-*.config.ts
+playwright.baseline.config.ts

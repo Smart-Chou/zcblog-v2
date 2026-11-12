@@ -37,9 +37,18 @@ const copy = isEn
           copyLabel: "Copy",
           cta: "Open issue template",
           steps: [
-              ["Add us first", "Put the four fields below on your own friend-links page — links are exchanged both ways."],
-              ["Copy our info", "Use the copy button next to a field, or copy all four lines at once."],
-              ["Submit the form", `The issue form comes from .github/ISSUE_TEMPLATE/${ISSUE_TEMPLATE}. Paste the info, submit, and the site owner reviews it by hand.`],
+              [
+                  "Add us first",
+                  "Put the four fields below on your own friend-links page — links are exchanged both ways.",
+              ],
+              [
+                  "Copy our info",
+                  "Use the copy button next to a field, or copy all four lines at once.",
+              ],
+              [
+                  "Submit the form",
+                  `The issue form comes from .github/ISSUE_TEMPLATE/${ISSUE_TEMPLATE}. Paste the info, submit, and the site owner reviews it by hand.`,
+              ],
           ] as const,
       }
     : {
@@ -52,15 +61,26 @@ const copy = isEn
           steps: [
               ["先添加本站友链", "把下面四个字段加到你的友链页面 —— 友链是互换的。"],
               ["复制本站信息", "点字段右侧的复制按钮，或一次复制全部四行。"],
-              ["提交 issue 表单", `表单来自仓库里的 .github/ISSUE_TEMPLATE/${ISSUE_TEMPLATE}，粘贴信息后提交，站长人工审核后合并。`],
+              [
+                  "提交 issue 表单",
+                  `表单来自仓库里的 .github/ISSUE_TEMPLATE/${ISSUE_TEMPLATE}，粘贴信息后提交，站长人工审核后合并。`,
+              ],
           ] as const,
       };
 
 const fields = [
     { key: "siteName", label: t(loc, "friends.fieldLabels.siteName"), value: site.title },
-    { key: "siteDescription", label: t(loc, "friends.fieldLabels.siteDescription"), value: t(loc, "site.subtitle") },
+    {
+        key: "siteDescription",
+        label: t(loc, "friends.fieldLabels.siteDescription"),
+        value: t(loc, "site.subtitle"),
+    },
     { key: "siteLink", label: t(loc, "friends.fieldLabels.siteLink"), value: site.url },
-    { key: "avatarLink", label: t(loc, "friends.fieldLabels.avatarLink"), value: `${site.url}/${author.avatar}` },
+    {
+        key: "avatarLink",
+        label: t(loc, "friends.fieldLabels.avatarLink"),
+        value: `${site.url}/${author.avatar}`,
+    },
 ];
 ---
 

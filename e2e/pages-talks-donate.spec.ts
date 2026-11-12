@@ -620,10 +620,8 @@ test("P4-03：3 列支付卡，码图有 alt/src，PayPal 外链是 http(s)", as
     const cards = await page.evaluate((sel) => {
         const root = document.querySelector(sel) as HTMLElement;
         return {
-            tracks: getComputedStyle(
-                root.querySelector(".donations-methods") as HTMLElement,
-            ).gridTemplateColumns
-                .split(" ")
+            tracks: getComputedStyle(root.querySelector(".donations-methods") as HTMLElement)
+                .gridTemplateColumns.split(" ")
                 .filter(Boolean).length,
             cards: [...root.querySelectorAll(".qr-card")].map((card) => {
                 const img = card.querySelector("img");
@@ -676,7 +674,10 @@ test("P4-06：年度账本 = table + caption + th[scope]，且零金额零进度
     expect(await ledger.locator('th[scope="col"]').count()).toBeGreaterThanOrEqual(2);
     expect(await ledger.locator('th[scope="row"]').count()).toBeGreaterThanOrEqual(1);
     expect(
-        await ledger.locator("tbody tr").first().evaluate((el) => getComputedStyle(el).display),
+        await ledger
+            .locator("tbody tr")
+            .first()
+            .evaluate((el) => getComputedStyle(el).display),
     ).toBe("table-row");
 
     const text = await ledger.innerText();
@@ -686,7 +687,9 @@ test("P4-06：年度账本 = table + caption + th[scope]，且零金额零进度
     expect(text).not.toContain("1,420");
     expect(text).not.toContain("68%");
     expect(
-        await page.locator(`${DONATE.shell} [role="progressbar"], ${DONATE.shell} progress`).count(),
+        await page
+            .locator(`${DONATE.shell} [role="progressbar"], ${DONATE.shell} progress`)
+            .count(),
         "未提供真实数据时不许出现进度条",
     ).toBe(0);
 });
@@ -750,7 +753,9 @@ test("G-08：页面主体 0 处占位假数据（含已清空的 4 条人名）"
         const hits = patterns.filter((pattern) => html.includes(pattern.toLowerCase()));
         expect(hits, `${url}: 占位/假数据`).toEqual([]);
         const emptySrc = await page.evaluate(
-            () => [...document.querySelectorAll("img")].filter((img) => !img.getAttribute("src")).length,
+            () =>
+                [...document.querySelectorAll("img")].filter((img) => !img.getAttribute("src"))
+                    .length,
         );
         expect(emptySrc, `${url}: 空 src 的 <img>`).toBe(0);
     }
@@ -851,7 +856,8 @@ test("P3-03：Hero chip —— 条数恒在，标签数 / 最近时间按数据�
 
     const newestChips = probe.chips.filter((chip) => /\d{4}/.test(chip.text));
     expect(newestChips.length, "最近时间 chip 至多一枚").toBeLessThanOrEqual(1);
-    if (newestChips.length === 1) expect(newestChips[0].quiet, "最近时间 chip 走 quiet 档").toBe(true);
+    if (newestChips.length === 1)
+        expect(newestChips[0].quiet, "最近时间 chip 走 quiet 档").toBe(true);
 
     expect(probe.chips.length, "chip 总数 = 条数(+标签数)(+最近时间)").toBe(
         1 + (probe.topics > 0 ? 1 : 0) + newestChips.length,
@@ -1012,16 +1018,13 @@ test("随笔移动（375/390）：单列、0 横向溢出、外链命中区 ≥4
             return {
                 columns: tracks(layout),
                 entryColumns: tracks(entry),
-                dayAlign: getComputedStyle(
-                    root.querySelector(".talks-entry__day") as HTMLElement,
-                ).textAlign,
+                dayAlign: getComputedStyle(root.querySelector(".talks-entry__day") as HTMLElement)
+                    .textAlign,
                 railDisplay: getComputedStyle(root.querySelector(".talks-rail") as HTMLElement)
                     .display,
                 topicsOverflow: topics ? getComputedStyle(topics).overflowX : null,
                 source: box(root.querySelector(".talks-source")),
-                cardSources: [...root.querySelectorAll(".essay-card__source")]
-                    .slice(0, 3)
-                    .map(box),
+                cardSources: [...root.querySelectorAll(".essay-card__source")].slice(0, 3).map(box),
                 docOverflow:
                     document.documentElement.scrollWidth - document.documentElement.clientWidth,
             };
@@ -1036,8 +1039,14 @@ test("随笔移动（375/390）：单列、0 横向溢出、外链命中区 ≥4
 
         expect(probe.source!.height, `${width}: 页头来源外链命中区高`).toBeGreaterThanOrEqual(44);
         for (const [index, source] of probe.cardSources.entries()) {
-            expect(source!.height, `${width}: 卡片 #${index + 1} 外链命中区高`).toBeGreaterThanOrEqual(44);
-            expect(source!.width, `${width}: 卡片 #${index + 1} 外链命中区宽`).toBeGreaterThanOrEqual(44);
+            expect(
+                source!.height,
+                `${width}: 卡片 #${index + 1} 外链命中区高`,
+            ).toBeGreaterThanOrEqual(44);
+            expect(
+                source!.width,
+                `${width}: 卡片 #${index + 1} 外链命中区宽`,
+            ).toBeGreaterThanOrEqual(44);
         }
         console.log(
             `[talks-mobile] ${width}: 单列 / 0 溢出 / 外链 ${probe.cardSources.length} 个 ≥44`,
@@ -1127,7 +1136,9 @@ for (const state of ["empty", "error"] as const) {
             expect(html, `${route}: 收款方式容器不许出现`).not.toContain("donations-methods");
             expect(html, `${route}: 空 src 一律不许`).not.toContain('src=""');
             expect(html, `${route}: h1 必须在`).toMatch(/<h1[^>]*class="[^"]*donations-title/);
-            expect(html, `${route}: h1 的 id 必须是 donate-title`).toMatch(/<h1[^>]*id="donate-title"/);
+            expect(html, `${route}: h1 的 id 必须是 donate-title`).toMatch(
+                /<h1[^>]*id="donate-title"/,
+            );
             expect(html, `${route}: 致谢段仍在`).toContain("donations-thanks");
         }
 

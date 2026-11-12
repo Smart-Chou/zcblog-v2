@@ -92,11 +92,13 @@ const weeks = Math.ceil(cells.length / 7);
 /* 月份标签：取每月 1 日所在的列，并**跨到下一个月份之前**（span），
    否则 12px 的单列装不下「12月」/「Jan」，文字溢出盒子会让 axe 的
    color-contrast 判成 incomplete（背景不确定），视觉上也会压到邻居。 */
-const monthColumns = months.map((label, index) => {
-    const firstOfMonth = new Date(year, index, 1);
-    const offset = Math.round((firstOfMonth.getTime() - gridStart.getTime()) / 86_400_000);
-    return { label, column: Math.floor(offset / 7) + 1 };
-}).filter((entry, index, list) => index === 0 || entry.column > list[index - 1].column)
+const monthColumns = months
+    .map((label, index) => {
+        const firstOfMonth = new Date(year, index, 1);
+        const offset = Math.round((firstOfMonth.getTime() - gridStart.getTime()) / 86_400_000);
+        return { label, column: Math.floor(offset / 7) + 1 };
+    })
+    .filter((entry, index, list) => index === 0 || entry.column > list[index - 1].column)
     .map((entry, index, list) => ({
         ...entry,
         span: (list[index + 1]?.column ?? weeks + 1) - entry.column,
@@ -105,15 +107,28 @@ const monthColumns = months.map((label, index) => {
 const activeDays = days.filter((day) => day.count > 0).length;
 ---
 
-<section class="culture-heatmap" aria-labelledby={id} data-culture-heatmap={year} data-culture-heatmap-days={activeDays} data-culture-heatmap-total={total}>
+<section
+    class="culture-heatmap"
+    aria-labelledby={id}
+    data-culture-heatmap={year}
+    data-culture-heatmap-days={activeDays}
+    data-culture-heatmap-total={total}
+>
     <div class="culture-heatmap__head">
         <h2 class="culture-heatmap__title" id={id}>{title}</h2>
         <p class="culture-heatmap__legend">
             <span class="culture-heatmap__legend-text">{legendLow}</span>
             <span class="culture-heatmap__legend-scale" aria-hidden="true">
-                {[0, 1, 2, 3, 4].map((level) => (
-                    <span class:list={["culture-heatmap__swatch", `culture-heatmap__swatch--${level}`]} />
-                ))}
+                {
+                    [0, 1, 2, 3, 4].map((level) => (
+                        <span
+                            class:list={[
+                                "culture-heatmap__swatch",
+                                `culture-heatmap__swatch--${level}`,
+                            ]}
+                        />
+                    ))
+                }
             </span>
             <span class="culture-heatmap__legend-text">{legendHigh}</span>
             <span class="sr-only">{legendLabel}</span>
@@ -122,9 +137,7 @@ const activeDays = days.filter((day) => day.count > 0).length;
 
     <div class="culture-heatmap__frame">
         <ul class="culture-heatmap__weekdays" aria-hidden="true">
-            {weekRows.map((label) => (
-                <li class="culture-heatmap__weekday">{label}</li>
-            ))}
+            {weekRows.map((label) => <li class="culture-heatmap__weekday">{label}</li>)}
         </ul>
         <div
             class="culture-heatmap__body"
@@ -133,26 +146,30 @@ const activeDays = days.filter((day) => day.count > 0).length;
             aria-label={`${title} · ${summary}`}
         >
             <div class="culture-heatmap__months" aria-hidden="true">
-                {monthColumns.map((entry) => (
-                    <span
-                        class="culture-heatmap__month"
-                        data-month={entry.label}
-                        style={`grid-column: ${entry.column} / span ${entry.span}`}
-                    />
-                ))}
+                {
+                    monthColumns.map((entry) => (
+                        <span
+                            class="culture-heatmap__month"
+                            data-month={entry.label}
+                            style={`grid-column: ${entry.column} / span ${entry.span}`}
+                        />
+                    ))
+                }
             </div>
             <div class="culture-heatmap__grid">
-                {cells.map((cell) => (
-                    <span
-                        class:list={[
-                            "culture-heatmap__cell",
-                            `culture-heatmap__cell--${cell.level}`,
-                            !cell.inYear && "culture-heatmap__cell--outside",
-                        ]}
-                        aria-hidden="true"
-                        title={`${cell.date} · ${cell.count}`}
-                    />
-                ))}
+                {
+                    cells.map((cell) => (
+                        <span
+                            class:list={[
+                                "culture-heatmap__cell",
+                                `culture-heatmap__cell--${cell.level}`,
+                                !cell.inYear && "culture-heatmap__cell--outside",
+                            ]}
+                            aria-hidden="true"
+                            title={`${cell.date} · ${cell.count}`}
+                        />
+                    ))
+                }
             </div>
         </div>
     </div>

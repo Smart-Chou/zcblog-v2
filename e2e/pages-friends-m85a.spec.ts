@@ -77,9 +77,7 @@ test.describe("cards × viewport × theme", () => {
 
                 expect(c.status, "站点数据应命中 ok").toBe("ok");
                 expect(c.total, "adapter 读到友链").toBeGreaterThan(0);
-                expect(c.cards, `${width}/${theme}: 站点卡片数 = data-friends-total`).toBe(
-                    c.total,
-                );
+                expect(c.cards, `${width}/${theme}: 站点卡片数 = data-friends-total`).toBe(c.total);
 
                 expect(c.feed, "快照前 6 条应渲染").toBe(6);
                 expect(c.articles, `${width}/${theme}: 友圈条目数 = data-friends-feed`).toBe(
@@ -90,7 +88,9 @@ test.describe("cards × viewport × theme", () => {
                 if (!existsSync(SHOTS)) mkdirSync(SHOTS, { recursive: true });
                 const file = path.join(SHOTS, `friends-${theme}-${width}.png`);
                 await page.screenshot({ path: file, fullPage: true });
-                console.log(`[shot] ${width}/${theme} ${c.cards} 张卡片 / ${c.articles} 条友圈 → ${file}`);
+                console.log(
+                    `[shot] ${width}/${theme} ${c.cards} 张卡片 / ${c.articles} 条友圈 → ${file}`,
+                );
             });
         }
     }
@@ -109,7 +109,9 @@ test.describe("no horizontal overflow", () => {
                     const clipped = (el: Element): boolean => {
                         let node = el.parentElement;
                         while (node && node !== document.body) {
-                            if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(node).overflowX)) {
+                            if (
+                                /(auto|scroll|hidden|clip)/.test(getComputedStyle(node).overflowX)
+                            ) {
                                 if (node.getBoundingClientRect().right <= limit + 1) return true;
                             }
                             node = node.parentElement;
@@ -127,7 +129,11 @@ test.describe("no horizontal overflow", () => {
                             const rect = el.getBoundingClientRect();
                             return `${el.tagName.toLowerCase()} right=${Math.round(rect.right)} :: ${el.outerHTML.slice(0, 120)}`;
                         });
-                    return { scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth, offenders };
+                    return {
+                        scrollWidth: doc.scrollWidth,
+                        clientWidth: doc.clientWidth,
+                        offenders,
+                    };
                 });
                 expect(result.offenders, `friends@${width} (${theme}): 越界元素`).toEqual([]);
                 expect(
@@ -216,7 +222,9 @@ test.describe("avatar 首字母对比度", () => {
                 };
                 return [...document.querySelectorAll(`${sel} .friend-card__initial`)].map((el) => {
                     const fg = lum(rgb(getComputedStyle(el).color).slice(0, 3));
-                    const bg = lum(rgb(getComputedStyle(el.parentElement!).backgroundColor).slice(0, 3));
+                    const bg = lum(
+                        rgb(getComputedStyle(el.parentElement!).backgroundColor).slice(0, 3),
+                    );
                     const ratio = (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
                     return {
                         initial: (el.textContent ?? "").trim(),
@@ -227,9 +235,10 @@ test.describe("avatar 首字母对比度", () => {
             }, SHELL);
 
             expect(rows.length, "没有头像的站点应渲染首字母").toBeGreaterThan(0);
-            expect(rows.filter((r) => r.ariaHidden !== "true"), "首字母必须 aria-hidden").toEqual(
-                [],
-            );
+            expect(
+                rows.filter((r) => r.ariaHidden !== "true"),
+                "首字母必须 aria-hidden",
+            ).toEqual([]);
             expect(
                 rows.filter((r) => r.ratio < 4.5),
                 `${theme}: 首字母对比度不足`,
@@ -243,9 +252,7 @@ test.describe("avatar 首字母对比度", () => {
 
 /* ───────────────── 4. 友圈列表契约 + 0 外链图 ───────────────── */
 
-test("友圈契约：站名 → 标题外链（http(s)/noopener/_blank）→ 时间；0 外链图片", async ({
-    page,
-}) => {
+test("友圈契约：站名 → 标题外链（http(s)/noopener/_blank）→ 时间；0 外链图片", async ({ page }) => {
     await page.goto("/friends/", { waitUntil: "load" });
     const data = await page.evaluate((sel) => {
         const rows = [...document.querySelectorAll(`${sel} .friends-articles .fri-item`)].map(

@@ -1,79 +1,79 @@
 [
-  {
-    "name": "tags__1440__light",
-    "size": "1440x3435",
-    "totalPx": 4946400,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  },
-  {
-    "name": "tags__1440__dark",
-    "size": "1440x3435",
-    "totalPx": 4946400,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  },
-  {
-    "name": "tags__390__light",
-    "size": "390x10205",
-    "totalPx": 3979950,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  },
-  {
-    "name": "tags__390__dark",
-    "size": "390x10205",
-    "totalPx": 3979950,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  },
-  {
-    "name": "tags_AI__1440__light",
-    "size": "1440x1581",
-    "totalPx": 2276640,
-    "diffPx": 1231,
-    "diffPct": 0.0541,
-    "maxDelta": 153,
-    "box": {
-      "x1": 604,
-      "y1": 530,
-      "x2": 677,
-      "y2": 1257
+    {
+        "name": "tags__1440__light",
+        "size": "1440x3435",
+        "totalPx": 4946400,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
+    },
+    {
+        "name": "tags__1440__dark",
+        "size": "1440x3435",
+        "totalPx": 4946400,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
+    },
+    {
+        "name": "tags__390__light",
+        "size": "390x10205",
+        "totalPx": 3979950,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
+    },
+    {
+        "name": "tags__390__dark",
+        "size": "390x10205",
+        "totalPx": 3979950,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
+    },
+    {
+        "name": "tags_AI__1440__light",
+        "size": "1440x1581",
+        "totalPx": 2276640,
+        "diffPx": 1231,
+        "diffPct": 0.0541,
+        "maxDelta": 153,
+        "box": {
+            "x1": 604,
+            "y1": 530,
+            "x2": 677,
+            "y2": 1257
+        }
+    },
+    {
+        "name": "tags_AI__1440__dark",
+        "size": "1440x1581",
+        "totalPx": 2276640,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
+    },
+    {
+        "name": "tags_AI__390__light",
+        "size": "390x1506",
+        "totalPx": 587340,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
+    },
+    {
+        "name": "tags_AI__390__dark",
+        "size": "390x1506",
+        "totalPx": 587340,
+        "diffPx": 0,
+        "diffPct": 0,
+        "maxDelta": 0,
+        "box": null
     }
-  },
-  {
-    "name": "tags_AI__1440__dark",
-    "size": "1440x1581",
-    "totalPx": 2276640,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  },
-  {
-    "name": "tags_AI__390__light",
-    "size": "390x1506",
-    "totalPx": 587340,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  },
-  {
-    "name": "tags_AI__390__dark",
-    "size": "390x1506",
-    "totalPx": 587340,
-    "diffPx": 0,
-    "diffPct": 0,
-    "maxDelta": 0,
-    "box": null
-  }
 ]

@@ -370,7 +370,9 @@ const countLabel = isEn ? `${resolved.total} friends` : `${resolved.total} 位�
         </section>
     </article>
 
-    {/* M8-5c：申请弹层（原生 dialog，关闭态 hidden；触发入口 = 上面那张卡里的「通过 GitHub 申请」） */}
+    {
+        /* M8-5c：申请弹层（原生 dialog，关闭态 hidden；触发入口 = 上面那张卡里的「通过 GitHub 申请」） */
+    }
     <FriendApply locale={loc} />
 
     {waline.enable && <WalineComment locale={loc} />}

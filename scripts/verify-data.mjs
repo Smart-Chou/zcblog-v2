@@ -111,7 +111,13 @@ const isConfigured = (requires) => requires.every((key) => Boolean(process.env[k
  */
 function validateFriendsArticles(data) {
     if (!Array.isArray(data)) {
-        return { ok: false, total: 0, usable: 0, dropped: 0, reason: `顶层不是数组（${typeof data}）` };
+        return {
+            ok: false,
+            total: 0,
+            usable: 0,
+            dropped: 0,
+            reason: `顶层不是数组（${typeof data}）`,
+        };
     }
     const isText = (value) => typeof value === "string" && value.trim() !== "";
     const usable = data.filter(
@@ -182,10 +188,14 @@ for (const entry of DATA_FILES) {
         if (!shapeResult.ok || shapeResult.usable === 0) {
             const detail = shapeResult.reason || `可用条目 0/${shapeResult.total}`;
             if (strict) {
-                console.warn(`❌ [fetch:verify] ${label} 快照形状异常（数据源已配置）—— ${detail}: ${path}`);
+                console.warn(
+                    `❌ [fetch:verify] ${label} 快照形状异常（数据源已配置）—— ${detail}: ${path}`,
+                );
                 hasError = true;
             } else {
-                console.warn(`⚠️  [fetch:verify] ${label} 快照形状异常（非阻断）—— ${detail}: ${path}`);
+                console.warn(
+                    `⚠️  [fetch:verify] ${label} 快照形状异常（非阻断）—— ${detail}: ${path}`,
+                );
             }
             continue;
         }

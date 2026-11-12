@@ -266,11 +266,15 @@ interface BangumiCollection {
 
 const bgmCollection = bangumiJson as unknown as Record<string, BangumiCollection[] | undefined>;
 const bgmHref = (id: number | undefined) => (id ? `https://bgm.tv/subject/${id}` : "");
-const yearOf = (value?: string | null) => (/^\d{4}/.test(value ?? "") ? String(value).slice(0, 4) : "");
+const yearOf = (value?: string | null) =>
+    /^\d{4}/.test(value ?? "") ? String(value).slice(0, 4) : "";
 
 const pickTag = (tags?: string[]) => (tags ?? []).find((tag) => tag.trim().length > 0);
 
-const bangumiMedia = (key: "anime" | "book" | "tv" | "music", unit: "话" | "卷" | ""): CultureMedia[] =>
+const bangumiMedia = (
+    key: "anime" | "book" | "tv" | "music",
+    unit: "话" | "卷" | "",
+): CultureMedia[] =>
     [...(bgmCollection[key] ?? [])]
         .sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0))
         .flatMap((item) => {
@@ -281,20 +285,27 @@ const bangumiMedia = (key: "anime" | "book" | "tv" | "music", unit: "话" | "卷
             const year = yearOf(subject.date);
             const amount = unit === "卷" ? subject.volumes : unit === "话" ? subject.eps : 0;
             const parts = [year, amount && unit ? `${amount} ${unit}` : ""].filter(Boolean);
-            return [{
-                id: `bgm-${subject.id}`,
-                title,
-                meta: parts.length > 0 ? parts.join(" · ") : isEn ? "Year not recorded" : "年份未录",
-                rating:
-                    (item.rate ?? 0) > 0
-                        ? isEn
-                            ? `My rating ${item.rate} / 10`
-                            : `我的评分 ${item.rate} / 10`
-                        : undefined,
-                tag: pickTag(item.tags),
-                href,
-                source: "Bangumi",
-            } satisfies CultureMedia];
+            return [
+                {
+                    id: `bgm-${subject.id}`,
+                    title,
+                    meta:
+                        parts.length > 0
+                            ? parts.join(" · ")
+                            : isEn
+                              ? "Year not recorded"
+                              : "年份未录",
+                    rating:
+                        (item.rate ?? 0) > 0
+                            ? isEn
+                                ? `My rating ${item.rate} / 10`
+                                : `我的评分 ${item.rate} / 10`
+                            : undefined,
+                    tag: pickTag(item.tags),
+                    href,
+                    source: "Bangumi",
+                } satisfies CultureMedia,
+            ];
         });
 
 const DOUBAN_STATUS: Record<string, { zh: string; en: string }> = {
@@ -312,34 +323,45 @@ const doubanMedia = (type: "book" | "movie" | "music"): CultureMedia[] =>
             const title = (item.title ?? "").trim();
             if (!title || !href) return [];
             const status = DOUBAN_STATUS[item.status ?? ""];
-            const parts = [yearOf(item.date), status ? (isEn ? status.en : status.zh) : ""].filter(Boolean);
-            return [{
-                id: `douban-${doubanSubjectId(href) || title}`,
-                title,
-                meta: parts.length > 0 ? parts.join(" · ") : isEn ? "Date not recorded" : "日期未录",
-                rating:
-                    (item.rating ?? 0) > 0
-                        ? isEn
-                            ? `Douban ${item.rating} / 5`
-                            : `豆瓣 ${item.rating} / 5`
-                        : undefined,
-                tag: isEn ? "Douban" : "豆瓣",
-                href,
-                source: isEn ? "Douban" : "豆瓣",
-            } satisfies CultureMedia];
+            const parts = [yearOf(item.date), status ? (isEn ? status.en : status.zh) : ""].filter(
+                Boolean,
+            );
+            return [
+                {
+                    id: `douban-${doubanSubjectId(href) || title}`,
+                    title,
+                    meta:
+                        parts.length > 0
+                            ? parts.join(" · ")
+                            : isEn
+                              ? "Date not recorded"
+                              : "日期未录",
+                    rating:
+                        (item.rating ?? 0) > 0
+                            ? isEn
+                                ? `Douban ${item.rating} / 5`
+                                : `豆瓣 ${item.rating} / 5`
+                            : undefined,
+                    tag: isEn ? "Douban" : "豆瓣",
+                    href,
+                    source: isEn ? "Douban" : "豆瓣",
+                } satisfies CultureMedia,
+            ];
         });
 
 const musicMedia: CultureMedia[] = musicTracks.flatMap((track) => {
     const href = (track.links ?? []).find((link) => /^https?:\/\//.test(link.href))?.href ?? "";
     if (!href) return [];
-    return [{
-        id: `music-${doubanSubjectId(href) || track.title}`,
-        title: track.title,
-        meta: [track.artist, track.year].filter(Boolean).join(" · "),
-        tag: track.format === "single" ? (isEn ? "Single" : "单曲") : isEn ? "Album" : "专辑",
-        href,
-        source: isEn ? "Playlist" : "歌单",
-    } satisfies CultureMedia];
+    return [
+        {
+            id: `music-${doubanSubjectId(href) || track.title}`,
+            title: track.title,
+            meta: [track.artist, track.year].filter(Boolean).join(" · "),
+            tag: track.format === "single" ? (isEn ? "Single" : "单曲") : isEn ? "Album" : "专辑",
+            href,
+            source: isEn ? "Playlist" : "歌单",
+        } satisfies CultureMedia,
+    ];
 });
 
 interface CultureRailData {
@@ -388,12 +410,41 @@ const doubanDayCounts = doubanItems.reduce<Record<string, number>>((acc, item) =
 const heatmapDays = Object.entries(doubanDayCounts)
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => a.date.localeCompare(b.date));
-const heatmapYear = heatmapDays.length > 0 ? Number(heatmapDays.at(-1)!.date.slice(0, 4)) : new Date().getFullYear();
+const heatmapYear =
+    heatmapDays.length > 0
+        ? Number(heatmapDays.at(-1)!.date.slice(0, 4))
+        : new Date().getFullYear();
 const heatmapActiveDays = heatmapDays.filter((day) => day.count > 0).length;
 const heatmapTotal = heatmapDays.reduce((sum, day) => sum + day.count, 0);
 
-const MONTHS_ZH = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
-const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_ZH = [
+    "1月",
+    "2月",
+    "3月",
+    "4月",
+    "5月",
+    "6月",
+    "7月",
+    "8月",
+    "9月",
+    "10月",
+    "11月",
+    "12月",
+];
+const MONTHS_EN = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+];
 const WEEK_ZH = ["周一", "", "周三", "", "周五", "", "周日"];
 const WEEK_EN = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
 
@@ -513,11 +564,18 @@ const copy = isEn
             entries.length > 0 && (
                 <section class="culture-rails" aria-labelledby="culture-rails-title">
                     <p class="culture-rails__kicker">{copy2.railKicker}</p>
-                    <h2 class="culture-rails__title" id="culture-rails-title">{copy2.railsTitle}</h2>
+                    <h2 class="culture-rails__title" id="culture-rails-title">
+                        {copy2.railsTitle}
+                    </h2>
                     <p class="culture-rails__meta">{copy2.railsMeta}</p>
                     <div class="culture-rails__list">
                         {cultureRails.map((rail) => (
-                            <CultureRail id={rail.id} title={rail.title} meta={rail.meta} items={rail.items} />
+                            <CultureRail
+                                id={rail.id}
+                                title={rail.title}
+                                meta={rail.meta}
+                                items={rail.items}
+                            />
                         ))}
                     </div>
                 </section>

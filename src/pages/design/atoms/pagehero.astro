@@ -19,7 +19,10 @@ const fullMeta = [
 ---
 
 <AtomDoc doc={doc}>
-    <DemoFrame layout="stack" caption="全量形态：kicker（mono 大写 + accent 短尺）+ h1 + lede + meta×4 + 底边">
+    <DemoFrame
+        layout="stack"
+        caption="全量形态：kicker（mono 大写 + accent 短尺）+ h1 + lede + meta×4 + 底边"
+    >
         <PageHero
             kicker="系列"
             title="从零搭一套设计系统"
@@ -29,7 +32,10 @@ const fullMeta = [
         />
     </DemoFrame>
 
-    <DemoFrame layout="stack" caption="最小形态：只有标题（kicker / lede / meta 空则不渲染，divider={false} 无底边）">
+    <DemoFrame
+        layout="stack"
+        caption="最小形态：只有标题（kicker / lede / meta 空则不渲染，divider={false} 无底边）"
+    >
         <PageHero title="关于" slug="about" divider={false} />
     </DemoFrame>
 

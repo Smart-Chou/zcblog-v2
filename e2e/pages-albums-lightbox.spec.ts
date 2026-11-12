@@ -76,14 +76,21 @@ async function openLightbox(page: Page, index = 0): Promise<void> {
                 page
                     .locator(".fancybox__slide.is-selected .f-panzoom__content")
                     .first()
-                    .evaluate((el) => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0),
+                    .evaluate(
+                        (el) =>
+                            (el as HTMLImageElement).complete &&
+                            (el as HTMLImageElement).naturalWidth > 0,
+                    ),
             { timeout: 10_000 },
         )
         .toBe(true);
 }
 
 const counter = (page: Page) =>
-    page.locator(".fancybox--album .f-counter").innerText().then((text) => text.replace(/\s+/g, ""));
+    page
+        .locator(".fancybox--album .f-counter")
+        .innerText()
+        .then((text) => text.replace(/\s+/g, ""));
 
 const ariaLabel = (page: Page) => page.locator(DIALOG).getAttribute("aria-label");
 
@@ -173,7 +180,8 @@ function geometry(page: Page) {
             arrowDisplay: Array.from(document.querySelectorAll(".f-button.is-arrow")).map(
                 (el) => getComputedStyle(el).display,
             ),
-            backdropColor: getComputedStyle(document.querySelector(".fancybox__backdrop")!).backgroundColor,
+            backdropColor: getComputedStyle(document.querySelector(".fancybox__backdrop")!)
+                .backgroundColor,
             docOverflow: {
                 scrollWidth: document.documentElement.scrollWidth,
                 clientWidth: document.documentElement.clientWidth,
@@ -232,7 +240,9 @@ test("1440 · 打开：图片 ≤92% 视口且居中 · 底部缩略条可横向
     );
 
     expect(await counter(page)).toBe("1/12");
-    console.log(`[1440] 图 ${Math.round(image.width)}×${Math.round(image.height)} · 缩略条 ${geo.thumbCount} 张 · ${label}`);
+    console.log(
+        `[1440] 图 ${Math.round(image.width)}×${Math.round(image.height)} · 缩略条 ${geo.thumbCount} 张 · ${label}`,
+    );
 });
 
 /* ───────────────────── 2. 键盘切图 + 选中跟随 ───────────────────── */
@@ -310,13 +320,16 @@ test("1440 · Tab / Shift+Tab 焦点陷阱：后台内容 inert，焦点只在�
             const dialog = document.querySelector("dialog.fancybox__dialog");
             const active = document.activeElement as HTMLElement | null;
             const inDialog = !!(dialog && active && dialog.contains(active));
-            const isChrome = !active || active === document.body || active === document.documentElement;
+            const isChrome =
+                !active || active === document.body || active === document.documentElement;
             return {
                 inDialog,
                 isChrome,
                 outsidePageElement: !inDialog && !isChrome,
                 tag: active?.tagName ?? "",
-                label: (active?.getAttribute("aria-label") ?? active?.className ?? "").toString().slice(0, 40),
+                label: (active?.getAttribute("aria-label") ?? active?.className ?? "")
+                    .toString()
+                    .slice(0, 40),
             };
         });
 
@@ -353,7 +366,9 @@ test("1440 · Tab / Shift+Tab 焦点陷阱：后台内容 inert，焦点只在�
 /* ───────────────────── 5. 390 全屏 sheet ───────────────────── */
 
 for (const theme of ["light", "dark"] as const) {
-    test(`390 · ${theme}：全屏 sheet（贴边/遮罩不透明/缩略条可横向滚动/无箭头）`, async ({ page }) => {
+    test(`390 · ${theme}：全屏 sheet（贴边/遮罩不透明/缩略条可横向滚动/无箭头）`, async ({
+        page,
+    }) => {
         await openDetail(page, theme, 390, 844);
         await openLightbox(page, 0);
         const geo = await geometry(page);
@@ -430,9 +445,7 @@ test("390 · 真触摸序列左滑切图（CDP Input.dispatchTouchEvent）", asy
     }
     await touch("touchEnd", to);
 
-    await expect
-        .poll(async () => counter(page), { timeout: 8_000 })
-        .toBe("2/12");
+    await expect.poll(async () => counter(page), { timeout: 8_000 }).toBe("2/12");
     console.log("[touch] 左滑 260px → 2/12（同一套 pointer/gesture，无第二套灯箱代码）");
 });
 
@@ -466,8 +479,8 @@ test("reduced-motion：1440 / 390 打开与切图后灯箱内 0 个运行中动�
                     running: animations
                         .filter((a) => a.playState !== "finished" && a.playState !== "idle")
                         .map((a) => {
-                            const target = (a as unknown as { effect?: { target?: Element } }).effect
-                                ?.target;
+                            const target = (a as unknown as { effect?: { target?: Element } })
+                                .effect?.target;
                             return `${a.playState}:${target?.className ?? target?.tagName ?? "?"}`;
                         }),
                 };
@@ -493,7 +506,12 @@ test("reduced-motion：1440 / 390 打开与切图后灯箱内 0 个运行中动�
 
 /* ───────────────────── 8. axe（灯箱打开态，双主题） ───────────────────── */
 
-type AxeViolation = { id: string; impact: string | null; help: string; nodes: { target: unknown[] }[] };
+type AxeViolation = {
+    id: string;
+    impact: string | null;
+    help: string;
+    nodes: { target: unknown[] }[];
+};
 
 async function runAxe(page: Page, selector: string) {
     await page.addScriptTag({ content: AXE_SOURCE });

@@ -219,7 +219,9 @@ export function mountFriendApply(): void {
             const field = node.closest<HTMLElement>("[data-fa-copy]");
             if (field) {
                 const value =
-                    field.closest("[data-fa-field]")?.querySelector<HTMLElement>("[data-fa-value]") ?? null;
+                    field
+                        .closest("[data-fa-field]")
+                        ?.querySelector<HTMLElement>("[data-fa-value]") ?? null;
                 const text = value?.textContent?.trim() ?? "";
                 if (text) void faCopy(dialog, value, text, "");
                 return;
@@ -229,7 +231,8 @@ export function mountFriendApply(): void {
                 const lines = Array.from(dialog.querySelectorAll("[data-fa-field]"))
                     .map((row) => {
                         const label = row.querySelector("dt")?.textContent?.trim() ?? "";
-                        const value = row.querySelector("[data-fa-value]")?.textContent?.trim() ?? "";
+                        const value =
+                            row.querySelector("[data-fa-value]")?.textContent?.trim() ?? "";
                         return `${label}：${value}`;
                     })
                     .filter(Boolean);

@@ -34,10 +34,15 @@ async function openPage(page: Page, theme: Theme, width: number): Promise<void> 
     await page.setViewportSize({ width, height: 900 });
     const response = await page.goto("/friends/", { waitUntil: "load" });
     expect(response?.status(), "GET /friends/").toBe(200);
-    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await page.evaluate(
+        (value) => document.documentElement.setAttribute("data-theme", value),
+        theme,
+    );
     await page.evaluate(async () => {
         await document.fonts.ready;
-        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        );
     });
 }
 
@@ -129,7 +134,9 @@ test.describe("open / close / focus", () => {
         expect(Math.abs(g!.bottom - g!.viewportH), "底边贴齐视口").toBeLessThanOrEqual(1);
         expect(g!.radiusTop, "顶部圆角").not.toBe("0px");
         expect(g!.scrollWidth, "弹层打开时 0 横向溢出").toBeLessThanOrEqual(g!.clientWidth + 1);
-        console.log(`[geometry] 390 ${g!.width}×${g!.bottom - g!.top} bottom=${g!.bottom}/${g!.viewportH}`);
+        console.log(
+            `[geometry] 390 ${g!.width}×${g!.bottom - g!.top} bottom=${g!.bottom}/${g!.viewportH}`,
+        );
         await shot(page, "apply-light-390");
 
         await page.locator(`${DIALOG} [data-fa-close]`).click();
@@ -176,14 +183,17 @@ test.describe("copy paths（stub navigator.clipboard）", () => {
         await shot(page, "copy-ok-390");
 
         const first = await page.evaluate(() => {
-            const text = document.querySelector<HTMLElement>("[data-fa-value]")?.textContent?.trim() ?? "";
+            const text =
+                document.querySelector<HTMLElement>("[data-fa-value]")?.textContent?.trim() ?? "";
             return { text, copied: (window as unknown as { __copied: string[] }).__copied.slice() };
         });
         expect(first.copied[0], "写入剪贴板的就是该字段文本").toBe(first.text);
 
         await page.locator("[data-fa-copy-all]").click();
         await expect(status).toHaveText("已复制全部站点信息");
-        const all = await page.evaluate(() => (window as unknown as { __copied: string[] }).__copied.at(-1) ?? "");
+        const all = await page.evaluate(
+            () => (window as unknown as { __copied: string[] }).__copied.at(-1) ?? "",
+        );
         expect(all.split("\n").length, "复制全部 = 4 行").toBe(4);
         expect(all.split("\n")[0]).toContain("：");
     });
@@ -205,7 +215,8 @@ test.describe("copy paths（stub navigator.clipboard）", () => {
 
         const sel = await page.evaluate(() => {
             const selected = window.getSelection()?.toString() ?? "";
-            const text = document.querySelector<HTMLElement>("[data-fa-value]")?.textContent?.trim() ?? "";
+            const text =
+                document.querySelector<HTMLElement>("[data-fa-value]")?.textContent?.trim() ?? "";
             return { selected, text };
         });
         expect(sel.selected.trim(), "失败时源文本已选中").toBe(sel.text);
@@ -223,7 +234,10 @@ async function runAxe(page: Page, selector?: string) {
         const axe = (window as any).axe;
         const scope = sel ? document.querySelector(sel) : document;
         const result = (await axe.run(scope ?? document, {
-            runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
+            runOnly: {
+                type: "tag",
+                values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+            },
             resultTypes: ["violations", "incomplete"],
         })) as { violations: AxeViolation[]; incomplete: AxeViolation[] };
         const map = (list: AxeViolation[]) =>
@@ -231,7 +245,9 @@ async function runAxe(page: Page, selector?: string) {
                 id: v.id,
                 impact: v.impact,
                 nodes: v.nodes.length,
-                targets: (v.nodes as { target?: unknown[] }[]).map((n) => String((n.target ?? []).join(" "))),
+                targets: (v.nodes as { target?: unknown[] }[]).map((n) =>
+                    String((n.target ?? []).join(" ")),
+                ),
             }));
         return { violations: map(result.violations), incomplete: map(result.incomplete) };
     }, selector);
@@ -247,15 +263,23 @@ test.describe("axe（弹层打开态）", () => {
                 await expect(page.locator(DIALOG)).toBeVisible();
 
                 const scoped = await runAxe(page, DIALOG);
-                const serious = scoped.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+                const serious = scoped.violations.filter(
+                    (v) => v.impact === "serious" || v.impact === "critical",
+                );
                 console.log(
                     `[axe] dialog ${theme}@${width}: serious=${serious.length} 全部=${scoped.violations.length} incomplete=${scoped.incomplete.length}`,
                 );
-                if (scoped.violations.length) console.log(`[axe] ${theme}@${width} ${JSON.stringify(scoped.violations)}`);
-                expect(serious.map((v) => `${v.id}(${v.nodes})`), `弹层 ${theme}@${width}: serious/critical`).toEqual([]);
+                if (scoped.violations.length)
+                    console.log(`[axe] ${theme}@${width} ${JSON.stringify(scoped.violations)}`);
+                expect(
+                    serious.map((v) => `${v.id}(${v.nodes})`),
+                    `弹层 ${theme}@${width}: serious/critical`,
+                ).toEqual([]);
 
                 const full = await runAxe(page);
-                const fullSerious = full.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+                const fullSerious = full.violations.filter(
+                    (v) => v.impact === "serious" || v.impact === "critical",
+                );
                 console.log(
                     `[axe] page ${theme}@${width}: serious=${fullSerious.length} ${JSON.stringify(
                         fullSerious.map((v) => ({ id: v.id, targets: v.targets.slice(0, 3) })),
@@ -283,8 +307,15 @@ test("0 横向溢出：375 / 768 / 1440 × 关 / 开", async ({ page }) => {
                             return rect.width > 0 && rect.right > limit + 1;
                         })
                         .slice(0, 5)
-                        .map((el) => `${el.tagName.toLowerCase()} right=${Math.round(el.getBoundingClientRect().right)}`);
-                    return { scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth, offenders };
+                        .map(
+                            (el) =>
+                                `${el.tagName.toLowerCase()} right=${Math.round(el.getBoundingClientRect().right)}`,
+                        );
+                    return {
+                        scrollWidth: doc.scrollWidth,
+                        clientWidth: doc.clientWidth,
+                        offenders,
+                    };
                 });
                 expect(
                     result.scrollWidth,
@@ -300,7 +331,10 @@ test("EN 页：同一套弹层 + 英文文案", async ({ page }) => {
     await page.goto("/en/friends/", { waitUntil: "load" });
     await page.locator(TRIGGER).click();
     await expect(page.locator(`${DIALOG} .fa__title`)).toHaveText("Apply for a friend link");
-    await expect(page.locator(`${DIALOG} [data-fa-close]`)).toHaveAttribute("aria-label", "Close this sheet");
+    await expect(page.locator(`${DIALOG} [data-fa-close]`)).toHaveAttribute(
+        "aria-label",
+        "Close this sheet",
+    );
     await expect(page.locator(`${DIALOG} .fa__cta`)).toHaveAttribute("href", TEMPLATE_URL);
     await page.keyboard.press("Escape");
     await expect(page.locator(DIALOG)).toBeHidden();

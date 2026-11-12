@@ -35,15 +35,7 @@ export interface Props {
     class?: string;
 }
 
-const {
-    kind,
-    title,
-    message,
-    icon,
-    code,
-    codeLabel = "原因代码",
-    class: className,
-} = Astro.props;
+const { kind, title, message, icon, code, codeLabel = "原因代码", class: className } = Astro.props;
 
 const hasAction = Astro.slots.has("default");
 const isError = kind === "error";

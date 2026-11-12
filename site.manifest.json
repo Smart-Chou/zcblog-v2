@@ -33,6 +33,11 @@
             "decision": "D-0163",
             "date": "2026-11-12",
             "summary": "M8-4：新增 src/config/radio.ts（电台数据，站点自有）与 src/config/radio-flags.ts（播放器存在策略），归 O；T/O/X 其余规则未改。"
+        },
+        {
+            "decision": "D-0165",
+            "date": "2026-11-12",
+            "summary": "src/config/radio.ts 与 radio-flags.ts 由 O 改判 T：电台清单是主题默认值（第三方公开流，不含站点身份），不是每个站点必须自备的 overlay 文件。改判后 demo / theme-template 装配不再缺文件；站点仍可用 overlay 同名文件覆盖。"
         }
     ],
     "classes": {
@@ -55,6 +60,8 @@
                 "src/env.d.ts",
                 "src/data/i18n/**",
                 "src/config/index.ts",
+                "src/config/radio-flags.ts",
+                "src/config/radio.ts",
                 "packages/**",
                 "scripts/**",
                 "e2e/**",
@@ -123,9 +130,7 @@
                 "vercel.json",
                 ".github/workflows/deploy.yml",
                 "apps/demo/**",
-                "site.manifest.json",
-                "src/config/radio.ts",
-                "src/config/radio-flags.ts"
+                "site.manifest.json"
             ],
             "reserved": [".env", "deploy/**", "CHANGELOG.md", "public/_redirects"]
         },

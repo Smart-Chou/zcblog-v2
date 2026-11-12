@@ -14,16 +14,29 @@ const doc = bySlug("datastate");
 
 <AtomDoc doc={doc}>
     <DemoFrame layout="stack" caption="empty：圆形 icon 底 + h2 + 说明（真实空集，不是加载态）">
-        <DataState kind="empty" title="这个标签下还没有文章" message="换个标签，或者直接看全部笔记。" icon="tag" />
+        <DataState
+            kind="empty"
+            title="这个标签下还没有文章"
+            message="换个标签，或者直接看全部笔记。"
+            icon="tag"
+        />
     </DemoFrame>
 
     <DemoFrame layout="stack" caption="empty + action：操作区由 default slot 传入">
-        <DataState kind="empty" title="没有匹配的结果" message="试试更短的关键词，或清空筛选条件。" icon="search">
+        <DataState
+            kind="empty"
+            title="没有匹配的结果"
+            message="试试更短的关键词，或清空筛选条件。"
+            icon="search"
+        >
             <Link href="/blog/">回到全部笔记</Link>
         </DataState>
     </DemoFrame>
 
-    <DemoFrame layout="stack" caption="error：Alert tone=warning + 可选 mono 原因码（没有码就不渲染该行）">
+    <DemoFrame
+        layout="stack"
+        caption="error：Alert tone=warning + 可选 mono 原因码（没有码就不渲染该行）"
+    >
         <DataState
             kind="error"
             title="友圈快照读取失败"
@@ -33,6 +46,10 @@ const doc = bySlug("datastate");
     </DemoFrame>
 
     <DemoFrame layout="stack" caption="error（无原因码）：code 缺省时不渲染原因码行">
-        <DataState kind="error" title="相册索引取数失败" message="构建期没有取到相册清单，请检查数据源。" />
+        <DataState
+            kind="error"
+            title="相册索引取数失败"
+            message="构建期没有取到相册清单，请检查数据源。"
+        />
     </DemoFrame>
 </AtomDoc>

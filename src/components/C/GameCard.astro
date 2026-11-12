@@ -79,7 +79,9 @@ const segments = [1, 2, 3, 4, 5] as const;
                     <p class="game-card__rating" data-rating={rating}>
                         <span class="game-card__scale" aria-hidden="true">
                             {segments.map((segment) => (
-                                <i class:list={["game-card__seg", { "is-on": segment <= rating }]} />
+                                <i
+                                    class:list={["game-card__seg", { "is-on": segment <= rating }]}
+                                />
                             ))}
                         </span>
                         {/* 分数必须有一段可读文字：刻度条只是给眼睛的，读屏读到的是「4/5」 */}

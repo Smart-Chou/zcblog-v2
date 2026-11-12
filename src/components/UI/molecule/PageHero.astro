@@ -86,13 +86,11 @@ const hasActions = Astro.slots.has("default");
                         ))}
                     </ul>
                 )}
-                {
-                    hasActions && (
-                        <div class="page-hero__actions">
-                            <slot />
-                        </div>
-                    )
-                }
+                {hasActions && (
+                    <div class="page-hero__actions">
+                        <slot />
+                    </div>
+                )}
             </div>
         )
     }

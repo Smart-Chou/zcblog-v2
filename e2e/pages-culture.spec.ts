@@ -653,14 +653,17 @@ test("M8-6-2 结构：无 error 态、culture-note 两个数都报、卡顶边 1
     expect(note.length, "culture-note 口径说明被删了").toBeGreaterThan(20);
 
     // 顶边：2px → 1px border-subtle（M8-6-2 视觉偏差修正）
-    const edge = await page.locator(".culture-card").first().evaluate((node) => {
-        const style = getComputedStyle(node);
-        return {
-            width: style.borderBlockStartWidth || style.borderTopWidth,
-            color: style.borderBlockStartColor || style.borderTopColor,
-            radius: style.borderRadius,
-        };
-    });
+    const edge = await page
+        .locator(".culture-card")
+        .first()
+        .evaluate((node) => {
+            const style = getComputedStyle(node);
+            return {
+                width: style.borderBlockStartWidth || style.borderTopWidth,
+                color: style.borderBlockStartColor || style.borderTopColor,
+                radius: style.borderRadius,
+            };
+        });
     expect(edge.width, "卡顶边必须是 1px").toBe("1px");
     expect(edge.radius, "卡有圆角时顶边不该是硬线").toBeTruthy();
 
@@ -744,13 +747,19 @@ test("M8-6-2 移动四段（375/390）：snap 生效、Tab 可达、高度不跳
                 const box = node.getBoundingClientRect();
                 const cells = [...node.querySelectorAll(".culture-media__cell")];
                 const last = cells[cells.length - 1].getBoundingClientRect();
-                return { overhang: Math.round(last.right - box.right), scrollLeft: node.scrollLeft };
+                return {
+                    overhang: Math.round(last.right - box.right),
+                    scrollLeft: node.scrollLeft,
+                };
             });
             expect(
                 tail.overhang,
                 `${id}@${width}: 终点裁掉最后一张卡 ${tail.overhang}px`,
             ).toBeLessThanOrEqual(1);
-            expect(tail.scrollLeft, `${id}@${width}: 轨道不能横向滚动（数据量不足？）`).toBeGreaterThanOrEqual(0);
+            expect(
+                tail.scrollLeft,
+                `${id}@${width}: 轨道不能横向滚动（数据量不足？）`,
+            ).toBeGreaterThanOrEqual(0);
 
             // 触控滑动不与纵向滚动打架：轨道只吃 x（css scroll-snap-type 已断言）
             const overscroll = await track.evaluate(
@@ -761,11 +770,9 @@ test("M8-6-2 移动四段（375/390）：snap 生效、Tab 可达、高度不跳
 
         // 高度不跳：横向滑动所有轨道后，容器高度必须一致
         for (const id of RAIL_ORDER) {
-            await page
-                .locator(`[data-culture-rail-track="${id}"]`)
-                .evaluate((node) => {
-                    node.scrollLeft = node.scrollWidth;
-                });
+            await page.locator(`[data-culture-rail-track="${id}"]`).evaluate((node) => {
+                node.scrollLeft = node.scrollWidth;
+            });
         }
         const afterHeight = await page
             .locator(".culture-rails")
@@ -785,18 +792,15 @@ test("M8-6-2 移动四段（375/390）：snap 生效、Tab 可达、高度不跳
             if (hit) reached.add(hit);
             if (reached.size === RAIL_ORDER.length) break;
         }
-        expect(
-            [...reached].sort(),
-            `culture@${width}: Tab 到不了这四段里的某些卡片`,
-        ).toEqual([...RAIL_ORDER].sort());
+        expect([...reached].sort(), `culture@${width}: Tab 到不了这四段里的某些卡片`).toEqual(
+            [...RAIL_ORDER].sort(),
+        );
 
         console.log(`[mobile] ${width}: 四段 snap/Tab/高度/裁切 全部成立`);
     }
 });
 
-test("M8-6-2 axe 375：light/dark 下 serious+critical=0、incomplete=0（M-13）", async ({
-    page,
-}) => {
+test("M8-6-2 axe 375：light/dark 下 serious+critical=0、incomplete=0（M-13）", async ({ page }) => {
     for (const theme of THEMES) {
         await page.setViewportSize({ width: 375, height: 812 });
         await openPage(page, CULTURE.url, theme);

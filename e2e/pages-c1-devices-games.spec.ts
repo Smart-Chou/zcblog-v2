@@ -54,8 +54,7 @@ const GAMES = {
 const PAGES = [DEVICES, GAMES] as const;
 
 const EVIDENCE_DIR =
-    process.env.M861_EVIDENCE_DIR ??
-    path.resolve(ROOT, "docs/_reviews/M8-6/M8-6-1");
+    process.env.M861_EVIDENCE_DIR ?? path.resolve(ROOT, "docs/_reviews/M8-6/M8-6-1");
 
 async function openPage(page: Page, url: string, theme: Theme): Promise<void> {
     const response = await page.goto(url, { waitUntil: "load" });
@@ -483,7 +482,9 @@ test("M8-6-1 P1-03/P1-07：Hero meta 条件渲染 + 串流拓扑只桌面", asyn
         expect(chips[0], `${url}: 第一枚 chip 是总数`).toContain(String(total));
         const joined = chips.join(" | ");
         if (total === 0) {
-            expect(joined, `${url}: 0 款时不许出现「0 款通关」`).not.toMatch(/0\s*(款通关|finished)/);
+            expect(joined, `${url}: 0 款时不许出现「0 款通关」`).not.toMatch(
+                /0\s*(款通关|finished)/,
+            );
             expect(joined, `${url}: 0 小时时不许出现「0 小时记录」`).not.toMatch(
                 /0\s*(小时记录|hours logged)/,
             );

@@ -65,7 +65,9 @@ async function mediaRequests(page, sink) {
             playing: root?.getAttribute("data-playing"),
             title: root?.querySelector("[data-player-title]")?.textContent,
             playName: root?.querySelector("[data-player-play]")?.getAttribute("aria-label"),
-            hasAriaPressedOnPlay: root?.querySelector("[data-player-play]")?.hasAttribute("aria-pressed"),
+            hasAriaPressedOnPlay: root
+                ?.querySelector("[data-player-play]")
+                ?.hasAttribute("aria-pressed"),
             readyState: audio?.readyState,
             paused: audio?.paused,
             currentTime: audio?.currentTime,
@@ -77,7 +79,10 @@ async function mediaRequests(page, sink) {
 
     const before = await page.evaluate(() => {
         const audio = document.querySelector(".site-player audio");
-        return { t: audio?.currentTime ?? 0, node: (window.__sitePlayer?.root?.isConnected ?? false) };
+        return {
+            t: audio?.currentTime ?? 0,
+            node: window.__sitePlayer?.root?.isConnected ?? false,
+        };
     });
 
     // swup 换页：走站点的全局实例（与用户点导航同一条链路，不刷新页面）
@@ -97,7 +102,9 @@ async function mediaRequests(page, sink) {
             playing: root?.getAttribute("data-playing"),
             paused: audio?.paused,
             currentTime: audio?.currentTime,
-            sameNode: (window.__sitePlayer?.root?.isConnected ?? false) && root === window.__sitePlayer?.root,
+            sameNode:
+                (window.__sitePlayer?.root?.isConnected ?? false) &&
+                root === window.__sitePlayer?.root,
         };
     });
     log("C.beforeNavigate", before);
@@ -106,10 +113,13 @@ async function mediaRequests(page, sink) {
 
     await page.click("[data-player-close]");
     await page.waitForTimeout(600);
-    log("D.afterClose", await page.evaluate(() => ({
-        nodes: document.querySelectorAll(".site-player").length,
-        armed: localStorage.getItem("dogeared-radio-armed"),
-    })));
+    log(
+        "D.afterClose",
+        await page.evaluate(() => ({
+            nodes: document.querySelectorAll(".site-player").length,
+            armed: localStorage.getItem("dogeared-radio-armed"),
+        })),
+    );
     log("D.mediaRequests", media);
 
     /* ── F：回到顶部避让 ─────────────────────────────────── */
@@ -141,8 +151,18 @@ async function mediaRequests(page, sink) {
                       )
                     : null;
             return {
-                player: player && { top: player.top, bottom: player.bottom, left: player.left, right: player.right },
-                backToTop: top && { top: top.top, bottom: top.bottom, left: top.left, right: top.right },
+                player: player && {
+                    top: player.top,
+                    bottom: player.bottom,
+                    left: player.left,
+                    right: player.right,
+                },
+                backToTop: top && {
+                    top: top.top,
+                    bottom: top.bottom,
+                    left: top.left,
+                    right: top.right,
+                },
                 overlap,
             };
         });
@@ -164,7 +184,12 @@ async function mediaRequests(page, sink) {
             const player = document.querySelector(".site-player")?.getBoundingClientRect();
             const tabs = document.querySelector(".bottom-tabs")?.getBoundingClientRect();
             return {
-                player: player && { top: player.top, bottom: player.bottom, left: player.left, right: player.right },
+                player: player && {
+                    top: player.top,
+                    bottom: player.bottom,
+                    left: player.left,
+                    right: player.right,
+                },
                 tabs: tabs && { top: tabs.top, bottom: tabs.bottom },
                 gap: player && tabs ? tabs.top - player.bottom : null,
                 overflowX:

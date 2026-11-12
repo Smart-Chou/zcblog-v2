@@ -42,7 +42,10 @@ const log = [];
 
 for (const [name, url] of ROUTES) {
     for (const theme of THEMES) {
-        const page = await browser.newPage({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2 });
+        const page = await browser.newPage({
+            viewport: { width: 375, height: 812 },
+            deviceScaleFactor: 2,
+        });
         await page.goto(BASE + url, { waitUntil: "domcontentloaded" });
         await setTheme(page, theme);
         await page.screenshot({ path: path.join(OUT, `${name}-375-${theme}.png`) });
@@ -50,7 +53,12 @@ for (const [name, url] of ROUTES) {
         // axe 375 双主题（M-13）
         await page.addScriptTag({ content: AXE });
         const axe = await page.evaluate(async () => {
-            const r = await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } });
+            const r = await window.axe.run(document, {
+                runOnly: {
+                    type: "tag",
+                    values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+                },
+            });
             const count = (impact) => r.violations.filter((v) => v.impact === impact).length;
             return {
                 serious: count("serious"),
@@ -77,10 +85,16 @@ for (const [name, url] of ROUTES) {
                 const cs = getComputedStyle(el);
                 if (cs.position === "fixed" && r.right <= de.clientWidth + 1) continue;
                 if (r.right > de.clientWidth + 1 || r.left < -1) {
-                    out.push(`${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]} L${Math.round(r.left)} R${Math.round(r.right)}`);
+                    out.push(
+                        `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]} L${Math.round(r.left)} R${Math.round(r.right)}`,
+                    );
                 }
             }
-            return { scrollWidth: de.scrollWidth, clientWidth: de.clientWidth, offenders: out.slice(0, 15) };
+            return {
+                scrollWidth: de.scrollWidth,
+                clientWidth: de.clientWidth,
+                offenders: out.slice(0, 15),
+            };
         });
         log.push({ route: name, theme, overflow390: overflow });
         await page.close();
@@ -102,7 +116,9 @@ for (const width of [375, 640, 768]) {
             count: links.length,
             box: rects.map((r) => `${Math.round(r.width)}x${Math.round(r.height)}`),
             minGap: gaps.length ? Math.min(...gaps) : null,
-            current: links.filter((l) => l.getAttribute("aria-current") === "page").map((l) => l.getAttribute("data-tab")),
+            current: links
+                .filter((l) => l.getAttribute("aria-current") === "page")
+                .map((l) => l.getAttribute("data-tab")),
             bodyPadBottom: getComputedStyle(document.body).paddingBlockEnd,
             navPadBottom: nav ? getComputedStyle(nav).paddingBlockEnd : null,
         };
@@ -134,14 +150,18 @@ const shot = async (file, fn) => {
 };
 
 await shot("toc-open-375.png", async (page) => {
-    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", { waitUntil: "domcontentloaded" });
+    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", {
+        waitUntil: "domcontentloaded",
+    });
     await settle(page);
     await page.click('button[popovertarget="post-toc-drawer"]');
     await settle(page);
 });
 
 await shot("toc-closed-375.png", async (page) => {
-    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", { waitUntil: "domcontentloaded" });
+    await page.goto(BASE + "/article/beszel-server-monitoring-guide/", {
+        waitUntil: "domcontentloaded",
+    });
     await settle(page);
     await page.keyboard.press("Escape");
 });
@@ -151,18 +171,25 @@ await shot("albums-lightbox-375.png", async (page) => {
     await settle(page);
     const link = page.locator("#fancybox-gallery a").first();
     await link.click();
-    await page.waitForFunction(
-        () => {
-            const img = document.querySelector(".fancybox__slide.is-selected img, .fancybox__image");
-            return Boolean(img && img.complete && img.naturalWidth > 0);
-        },
-        undefined,
-        { timeout: 8000 },
-    ).catch(() => {});
+    await page
+        .waitForFunction(
+            () => {
+                const img = document.querySelector(
+                    ".fancybox__slide.is-selected img, .fancybox__image",
+                );
+                return Boolean(img && img.complete && img.naturalWidth > 0);
+            },
+            undefined,
+            { timeout: 8000 },
+        )
+        .catch(() => {});
     await page.waitForTimeout(400);
 });
 
-for (const [tag, side] of [["start", "start"], ["end", "end"]]) {
+for (const [tag, side] of [
+    ["start", "start"],
+    ["end", "end"],
+]) {
     const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
     await page.goto(BASE + "/culture/", { waitUntil: "domcontentloaded" });
     await settle(page);
@@ -187,4 +214,10 @@ for (const [tag, side] of [["start", "start"], ["end", "end"]]) {
 
 await browser.close();
 writeFileSync(path.join(OUT, "measurements.json"), JSON.stringify(log, null, 2));
-console.log(JSON.stringify(log.filter((l) => l.axe || l.overflow390 || l.bottomTabs), null, 2));
+console.log(
+    JSON.stringify(
+        log.filter((l) => l.axe || l.overflow390 || l.bottomTabs),
+        null,
+        2,
+    ),
+);

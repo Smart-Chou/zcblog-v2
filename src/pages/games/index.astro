@@ -148,7 +148,9 @@ const topology = (
 ).flatMap((entry) => {
     const device = deviceById.get(entry.id);
     if (!device) return [];
-    return [{ role: entry.role, icon: entry.icon, name: device.name, specs: device.specs.slice(0, 3) }];
+    return [
+        { role: entry.role, icon: entry.icon, name: device.name, specs: device.specs.slice(0, 3) },
+    ];
 });
 ---
 
@@ -265,12 +267,11 @@ const topology = (
                     </ul>
                     <p class="game-topology__foot">
                         <span>{copy.topologyFoot}</span>
-                        <a
-                            class="game-topology__link"
-                            href={isEn ? "/en/devices/" : "/devices/"}
-                        >
+                        <a class="game-topology__link" href={isEn ? "/en/devices/" : "/devices/"}>
                             {copy.topologyLink}
-                            <span class="game-topology__arrow" aria-hidden="true">↗</span>
+                            <span class="game-topology__arrow" aria-hidden="true">
+                                ↗
+                            </span>
                         </a>
                     </p>
                 </section>
