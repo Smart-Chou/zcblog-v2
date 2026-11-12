@@ -150,8 +150,41 @@ const fields = [
 </dialog>
 
 <script>
-    import { mountFriendApply } from "~/scripts/overlay-sheets";
-    mountFriendApply();
+    /*
+     * 行为按需加载（M8-9）：`overlay-sheets` 是「速查表 + 友链申请」共用的按需子树，
+     * 冷访客从不点「通过 GitHub 申请」时不该付这 2.2KB。
+     *
+     * 首屏只做两件便宜的事：给触发链接补 `aria-haspopup`、在 document 上挂一个捕获期
+     * click 委托（同步 preventDefault，否则浏览器会先跳转）。真正的弹层逻辑在第一次
+     * 点击时才 `import()`。没有 JS 时链接仍是直链，功能不降级 —— 与改动前一致。
+     */
+    const OPENER = ".friends-gh";
+
+    function upgradeOpeners(): void {
+        document
+            .querySelectorAll<HTMLElement>(OPENER)
+            .forEach((link) => link.setAttribute("aria-haspopup", "dialog"));
+    }
+
+    const guarded = window as unknown as { __faLazyBound?: boolean };
+    if (!guarded.__faLazyBound) {
+        guarded.__faLazyBound = true;
+        document.addEventListener(
+            "click",
+            (event) => {
+                const node = event.target as HTMLElement | null;
+                const opener = node?.closest<HTMLElement>(OPENER);
+                // 弹层内部（关闭键 / 复制键 / 点 backdrop）由模块自己的委托处理，
+                // 这里只认「打开」这一个入口。
+                if (!opener || !document.querySelector("#friend-apply")) return;
+                event.preventDefault();
+                void import("~/scripts/overlay-sheets").then((mod) => mod.mountFriendApply());
+            },
+            true,
+        );
+    }
+
+    upgradeOpeners();
     // swup 换页换了 DOM（含触发链接）：只补 aria，事件早已委托在 document 上
-    document.addEventListener("astro:page-load", () => mountFriendApply());
+    document.addEventListener("astro:page-load", upgradeOpeners);
 </script>

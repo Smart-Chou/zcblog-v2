@@ -124,6 +124,8 @@ export const navLinks: NavLink[] = [
     { label: "时间线", href: "/timeline/" },
     // C-2（M2-8b）：音乐。
     { label: "音乐", href: "/music/" },
+    // M8-4：实时电台（站级 SitePlayer + /radio/ 落地页）。
+    { label: "电台", href: "/radio/" },
     // C-2（M2-9）：文化聚合入口（番剧 / 豆瓣 / 音乐）。
     { label: "文化", href: "/culture/" },
     { label: "随笔", href: "/talks/" },

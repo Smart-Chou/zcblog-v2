@@ -292,4 +292,17 @@ const showRail = showToc || showAuthor || relatedPosts.length > 0;
 {frontmatter.markmap && <script>import "~/scripts/markmap-renderer.ts";</script>}
 {frontmatter.chart && <script>import "~/scripts/chart-renderer.ts";</script>}
 {frontmatter.reveal && <script>import "~/scripts/reveal-renderer.ts";</script>}
-{frontmatter.tabs !== false && <script>import "~/scripts/tabs";</script>}
+{frontmatter.tabs !== false && (
+    <script>
+        // 只有页面上真存在 tabs 容器才拉渲染器（M8-9）：当前 85 篇文章里 0 篇用 tabs，
+        // 无条件 import 等于每篇白付 572B gz。判据用构建期已知的 DOM 标记，不额外发请求。
+        import { onPageReady } from "~/utils/page-lifecycle";
+        let loaded = false;
+        const load = () => {
+            if (loaded || !document.querySelector(".tabs-container")) return;
+            loaded = true;
+            void import("~/scripts/tabs");
+        };
+        onPageReady(load);
+    </script>
+)}

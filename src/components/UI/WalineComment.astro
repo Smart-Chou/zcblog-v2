@@ -65,7 +65,6 @@ const isEn = locale === "en";
 
 <script>
     import { onPageReady } from "~/utils/page-lifecycle";
-    import { waline } from "~/config";
     import walineCssUrl from "@waline/client/waline.css?url";
     import walineMetaCssUrl from "@waline/client/waline-meta.css?url";
 
@@ -102,6 +101,10 @@ const isEn = locale === "en";
 
     async function doInitWaline() {
         if (walineInitializing || walineInstance) return;
+        // 配置在这里才取（M8-9）：`~/config` 静态 import 会把整份站点配置
+        // （含 feature 表，共 4.1KB gz）拖进每个含评论区的页面首屏，而它只在
+        // 真正初始化评论时被读一次。动态 import 不改变任何取值语义。
+        const { waline } = await import("~/config");
         const walineElement = document.getElementById("waline");
         if (!waline.enable || !walineElement) {
             console.error("Required elements or configuration are missing.");
