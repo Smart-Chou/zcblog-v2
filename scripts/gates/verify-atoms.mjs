@@ -89,7 +89,13 @@ function headingIndex(re, from = 0) {
 }
 
 const start56 = headingIndex(/^###\s+5\.6\s/);
-const end56 = start56 < 0 ? -1 : headingIndex(/^##\s+6\./, start56 + 1);
+// §5.6 的右边界必须是「下一个 ### 小节」或 §6，取更早的那个：
+// M8-4 在 §5.6 之后新开了 §5.7（organism 规格族），若仍只认 `## 6.`，
+// §5.7 里的 60px / rgb() 会被算到 §5.6 头上，P3/P6 误报。
+const end56BySection = start56 < 0 ? -1 : headingIndex(/^###\s+5\.7\s/, start56 + 1);
+const end56ByChapter = start56 < 0 ? -1 : headingIndex(/^##\s+6\./, start56 + 1);
+const end56Candidates = [end56BySection, end56ByChapter].filter((i) => i > start56);
+const end56 = end56Candidates.length > 0 ? Math.min(...end56Candidates) : -1;
 const section56 = start56 >= 0 ? lines.slice(start56, end56).join("\n") : "";
 
 const startComponents = headingIndex(/^####\s+5\.6\.1\s/, start56);

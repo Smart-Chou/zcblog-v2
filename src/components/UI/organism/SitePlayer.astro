@@ -97,7 +97,7 @@
     .site-player__toggle {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: var(--space-1);
         min-inline-size: 0;
         min-block-size: var(--space-11);
         flex: 1 1 auto;
@@ -138,15 +138,15 @@
     /* ── 直播标识 ─────────────────────────────────────────────── */
     .site-player__badge {
         flex: 0 0 auto;
-        padding: 0 4px;
+        padding: 0 var(--space-1);
         border: 1px solid var(--color-status-success-border);
         border-radius: var(--radius-xs);
         background: var(--color-status-success-bg);
         color: var(--color-status-success-fg);
         font-family: var(--font-mono);
-        font-size: 10px;
+        font-size: calc(var(--text-xs) * 0.85);
         font-weight: var(--font-weight-medium);
-        letter-spacing: 0.04em;
+        letter-spacing: var(--tracking-wide);
         white-space: nowrap;
     }
 

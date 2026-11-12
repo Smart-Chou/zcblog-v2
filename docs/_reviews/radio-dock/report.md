@@ -1,6 +1,6 @@
 # Dogeared Radio · 站级 SitePlayer（M8-4）
 
-> 2026-11-12 · 站级悬浮播放器，按 `blog2.0/docs/26-m8-4-player-spec.md` 落地。
+> 2026-11-12 · 站级悬浮播放器。契约已在 2026-11-12 并入 **DESIGN.md §5.7.1**（v1.2.0，D-0164）；`blog2.0/docs/26-m8-4-player-spec.md` 降为设计过程稿，冲突以 §5.7.1 为准。
 > 路由：`/radio/`（zh）· `/en/radio/`（en）· 已进主导航与侧边栏，可收录（D-0163）
 
 ## 1. 状态：从「页面级 Dock」升级为「站级 SitePlayer」

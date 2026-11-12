@@ -1,10 +1,11 @@
-# DESIGN.md · zcblog 设计系统真源 v1.1.0
+# DESIGN.md · zcblog 设计系统真源 v1.2.0
 
-> **状态**：v1.1.0（M1-1b：§3 值表对齐 Stitch 基线）· 2026-11-02 · 版本判定见 §8.1
+> **状态**：v1.2.0（M8-4：新增 §5.7 organism 规格族 + §5.7.1 SitePlayer）· 2026-11-12 · 版本判定见 §8.1
 > **Owner**：`blog-design`（`docs/11-team-org.md` §2）· **验收**：`blog-pm` 按本文 §9 逐项判定 · **视觉方向签字**：PO（周聪）
 > **上位文档**：`docs/16-m1-brief.md`（M1 目标与交付物）、`docs/12-product-charter.md`（产品定义与 P5 设计契约）
 > **下游消费方**：`tokens.json`（M1-2）、12 个核心组件（M1-3）、组件文档与视觉基线（M1-4）、门禁（M1-5）
 > **取代关系**：本文取代 `zcblog-v2/.claude/DESIGN.md`（v1 皮肤存档，冻结不再更新）。**冲突时以本文为准。**
+> **v1.2 已合并（2026-11-12）**：站级悬浮播放器 `SitePlayer` 的过程稿（`docs/26-m8-4-player-spec.md`）并入 **§5.7**，新开「organism 组件规格」一族——有生命周期 / 跨页单例 / 第三方网络依赖的组件不能套 §5.6 的「JS 0 字节 + props 画完」判据。同时把 `--z-overlay` 的语义扩写（§3.11）、归层表加第 16 行（§4.5）、登记三条实现例外（§6.2 X6）、给 JS 预算开一条带数字的例外（§7）。**§3 的 token 值与键集合一个字节没动**，所以 `tokens.json` 同步升 1.2.0 只是同版本号要求，不是色值/度量变更；视觉基线不重出。
 > **v1.1 已合并（2026-11-02）**：PO 给了 Google Stitch 的初步 UI（`blog2.0/_design/stitch-baseline/`）作为 M1 视觉基线，`tokens.json` 已按它落地（`t_f44ee43d`），本文 §3.3–§3.12 已按同一份 JSON 重写（本卡）——**文档与 JSON 现在是一套值**，不再有「以谁为准」的兜底。差异、推导与原值见 §3.14（历史记录）。
 > **CSS 架构（D-0100，2026-11-02）**：Tailwind 已移除；组件用 Astro scoped styles / `src/styles/` 原生 CSS；token 走 `tokens.json → tokens.css`；不写 utility class、`@apply`、`@theme`。
 > **性质**：这是**契约**，不是灵感板。写进来的东西要能被机器检查，或者能被第三方判断对错。
@@ -626,7 +627,7 @@ emphasis  ∈ strong | subtle | hover | focus | disabled | solid | fg | bg | bor
 | `--z-raised` | 1 | 抬升的卡片 / sticky 局部元素 |
 | `--z-dropdown` | 10 | 导航下拉、autocomplete |
 | `--z-sticky` | 20 | 固定导航、返回顶部、TOC |
-| `--z-overlay` | 30 | 遮罩、进度条 |
+| `--z-overlay` | 30 | 遮罩、进度条、站点级浮层（§5.7.1 SitePlayer） |
 | `--z-modal` | 50 | `<dialog>` / 搜索弹窗 |
 | `--z-toast` | 60 | 全局提示 |
 | `--z-skip-link` | 1000 | 跳转链接（必须最高） |
@@ -641,7 +642,7 @@ emphasis  ∈ strong | subtle | hover | focus | disabled | solid | fg | bg | bor
 
 ```jsonc
 {
-  "version": "1.1.0",              // 与 DESIGN.md 同版本号，见 §8.1
+  "version": "1.2.0",              // 与 DESIGN.md 同版本号，见 §8.1
   "designDoc": "docs/DESIGN.md",   // 反向指针，构建时可校验版本一致
   "palette": {
     "paper":   { "0": "#ffffff", "50": "#fdf9f2", "450": "#998f7e" /* … 11 档 */ },
@@ -954,6 +955,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 | 13 | PageHero | **molecule** | 组合 Icon + 结构元素（kicker / h1 / meta） |
 | 14 | SectionHead | atom | 标题 + 可选 slot；不 import 组件（action 由页面传入） |
 | 15 | DataState | **molecule** | 组合 Icon + Alert |
+| 16 | SitePlayer | **organism** | 持有 audio 元素 + 跨页单例 + 浏览器持久化（§4.3「跨组件 / 跨页」格）；规格见 §5.7.1 |
 
 ---
 
@@ -2377,6 +2379,123 @@ h1 **禁止** `clamp()` / `vw`（D-0149）：只允许上面两档字号的裸�
 
 ---
 
+### 5.7 organism 组件规格（M8-4 起的实践证明：不是所有组件都能写进 §5.6）
+
+§5.6 的 15 个组件都是「无行为或局部行为」的结构件：给 props 就能画完，JS 0 字节。**有生命周期、有跨页单例、有第三方网络依赖的组件不适合同一张表**——它们的主要风险不在「视觉值能不能算回 token」，而在「什么时候存在、换页会不会断、出错说给谁听」。§5.7 起承接这一类，字段顺序仍沿用 §5.1，但每个组件必须额外回答三件事：
+
+1. **存在性**：什么条件下有节点（不是「隐藏」的条件，是「存在」的条件）。
+2. **存活边界**：谁负责创建、谁负责销毁、换页/换路由时归属谁。
+3. **失效路径**：外部依赖（网络、CSP、第三方流）失败时，用户看到什么、读屏听到什么。
+
+> 与 §5.6 的关系：§5.7 的组件**不参与** P1–P10 门禁（那套判据绑定 12 个结构件，`verify-atoms.mjs` 的 `SPECS` 是硬枚举）。它们的机器约束是各自章节里写明的「可断言不变量」+ e2e 用例名。
+
+#### 5.7.1 SitePlayer（站点级悬浮播放器）
+
+- **层级**：organism　·　**状态**：草案　·　**Owner**：`blog-fe`　·　**规格版本**：1.0
+- **用途**：全站唯一的常驻音频出口。挂在 `main` 之外，换页不断播；未按过播放的访客全站零节点、零请求。
+- **何时不用**：页内一次性音频（文章里的单段广播剧）→ 页内播放器，不进悬浮层；需要多曲目 / 播放列表 / 歌词 → 那不是本组件，是音乐平台（§5.7.1 禁止第 10 条）；纯视觉的「正在收听」装饰 → 用 `Tag`。
+
+**Props**
+
+本组件没有 Astro props（`SitePlayer.astro` 只输出全局样式，不输出 DOM）。它的输入是**页面上的数据标记**，由脚本在挂载时读取：
+
+| 属性 | 必需 | 说明 |
+|---|---|---|
+| `data-radio-open` | 否 | 存在即「本页有唤起按钮」→ 该页无条件挂载播放器（`/radio/`） |
+| `data-radio-station` | 否 | 卡片点击时派发的电台 id（`radio-open` / `radio-station` 两个自定义事件） |
+| `radioPersistMode` | — | 编译期常量（`src/config/radio-flags.ts`）：`armed` = 按过播放才存在；`always` = 全站常驻 |
+
+电台本身（名称、副标题、流地址、是否直播）是站点数据（`src/config/radio.ts`），**不是组件属性**：组件不 import `~/content`，也不接受 URL 参数（D4）。
+
+**Slots**
+
+无。控件集合是闭集（六个），不接受页面扩展。
+
+**States**
+
+`data-state` 只有三个值——`idle` / `expanded` / `error`。它是**布局契约**（避让高度只认三种），play/pause/loading/ended 的差异用只供断言的 `data-playing`、`data-busy` 表达。
+
+| 状态 | 触发 | 视觉（用哪些 token） | ARIA |
+|---|---|---|---|
+| S0 无 | 未按过播放（`armed` 模式） | **不存在**：不是 `display:none`，是没有节点 | — |
+| S1 `idle` | 已 arm、收起 | 折叠 pill：`--radius-pill` + 1px `--color-border-strong` + `--color-bg-raised` + `--shadow-4` | 播放键名 `播放：{station}`；折叠键 `aria-expanded="false"` |
+| S2 `expanded` 播放中 | `play` 事件 | 卡：`--radius-lg` + 1px `--color-border-subtle` + `--color-bg-raised` + `--shadow-4`；播放键 `--color-accent-solid` 实底 | 播放键名翻成 `暂停：{station}`；`data-playing="true"` |
+| S3 `expanded` 暂停 | `pause` 事件 | 同 S2 | 名称回 `播放：{station}` |
+| S3b `ended` | `ended` 事件 | 进度回零（直播流不会触发，点播源才可达） | 播报 `播放结束` |
+| S4 `loading` | `loadstart` / `waiting` | 播放键换 spinner（`--duration-slower` + `--ease-linear` 的 infinite，§3.9 允许的两处之一），**按钮尺寸不变** | `aria-busy="true"`，退出立刻摘 |
+| S5 `error` | `error` 事件 / 源不可达 | 降级成错误 pill：`--color-status-danger-bg` + 1px `--color-status-danger-border` + 文案 `--color-status-danger-fg` | 播报错误一次；可重试、可关闭 |
+
+**S5 为什么不整块移除**：错误只会在用户点了播放之后发生；此时把控件抽走等于「点了按钮，按钮消失」，读屏得不到任何解释。留一个 `--space-11` 高、有文案、有两个出口的 pill。
+
+**可访问性**
+
+- role / 语义元素：根元素 `<aside>`（隐含 `complementary`）+ `aria-label`；**不加** `role="region"`——它是附属内容，不是要在地标列表里强调的主区。节点在 `main` 之外，因此换页不会被当作内容重读。
+- 播放 / 暂停：**名称随状态翻转，不用 `aria-pressed`**。toggle button 的语义是「按下状态在两次激活之间保持」，而播放改变的是「元素在做什么」。`aria-pressed` 只留给真正的 toggle：静音键（名称恒定 `静音`，`aria-pressed` 翻转）。
+- 折叠键：可读名称来自**可见文本**（电台名 + 副标题），额外提示只进 `title`。给它设 `aria-label` 会触发 `label-content-name-mismatch`——读屏说的和屏幕显示的不是一回事。
+- live region：常驻单节点、`role="status"` + `aria-live="polite"`，只写状态转移（正在播放 / 已暂停 / 播放结束 / 失败），写入前比对现有文本相同则不写。**`timeupdate` 永不写入**。换页不播报页面标题——@swup/a11y-plugin 已经在播 `Navigated to`，重复即噪音。
+- 键盘：`Esc` 收起为 pill（不停播）；关闭只有显式的关闭键。Tab 顺序只用原生顺序，不写正 `tabindex`。
+- 对比度（真跑，`scripts/probe-player-contrast.py` 复现）：曲目名 `fg-heading`/`bg-raised` **17.09 / 12.42**；正文级图标 `fg-default`/`bg-raised` **9.39 / 8.27**；副标题 `fg-subtle`/`bg-raised` **4.87 / 5.39**；焦点环 `ring-focus`/`bg-raised` **6.75 / 4.02**；pill 控件边界 `border-strong`/`bg-raised` **4.87 / 4.02**；播放键图标 `fg-on-accent`/`accent-solid` **6.75 / 5.15**；失败文案 `status-danger-fg`/`status-danger-bg` **8.19 / 5.63**；LIVE 徽标 `status-success-fg`/`status-success-bg` **4.60 / 5.62**；卡 hairline `border-subtle`/`bg-raised` **1.26 / 1.07**（装饰，按 §3.8 Border Ground Rule 不设门槛）。
+- **不用 `fg-muted` 落 `bg-raised`**：深色下只有 **4.02**，不过 4.5。副标题一律 `fg-subtle`。同理控件边界用 `border-strong`（4.87 / 4.02）而不是 `border-default`（深色 2.59）。
+- 焦点环 / 指针目标：全部可聚焦元素 `outline: 2px solid var(--color-ring-focus)` + offset 2px；主操作 44×44（`--space-11`），次级 24×44，命中区不小于 24×24。
+- reduced-motion：spinner 停转，只留文案；展开/收起只做 `opacity`，不做高度、不做位移。
+
+**尺寸**
+
+| 部件 | 收起 pill | 展开（> 768） | 展开（≤ 768） |
+|---|---|---|---|
+| inline-size | `max-content`，上限 `--layout-sidebar` | `min(--layout-sidebar, 100vw − --space-8)` | 视口 − 2 × `--space-3` |
+| 块高 | `--space-11` | 内容自适应（`ResizeObserver` 写 `--site-player-block-size`） | 同左 |
+| 定位 | `inset-inline-end: --space-4`；`inset-block-end: env(safe-area-inset-bottom) + --space-4` | 同左 | `inset-inline: --space-3`；`inset-block-end` 在 ≤ 640 额外抬高 60px（BottomTabs，M8-6-6） |
+| 层级 | `--z-overlay`（30）：必须压住 `--z-sticky`(20) 的导航与回到顶部，必须被 `--z-modal`(50) 盖住 | 同左 | 同左 |
+
+**块高不写死**：132 / 100 这类算式值只在旧稿里当验证用；实现用 `ResizeObserver` 写真实高度，避免改一行内边距就让避让失真。
+
+**三个避让不变量**（每条都可断言）：V1 与回到顶部按钮矩形不相交且间距 ≥ `--space-3`；V2 与导航不相交；V3 滚到文档底部时最后一行正文与页脚不被压住。手段是 `body:has(.site-player)` 时的 `#app` 底部内边距 + 抬高 `#back-to-top`——**播放器不存在时这两条规则不生效**，所以全站其它页面视觉零变化。
+
+**消费的 token（白名单，不得超出）**
+
+- 颜色：`--color-bg-raised` `--color-border-subtle` `--color-border-strong` `--color-fg-heading` `--color-fg-default` `--color-fg-subtle` `--color-accent-solid` `--color-accent-solid-hover` `--color-fg-on-accent` `--color-ring-focus` `--color-status-danger-{fg,bg,border}` `--color-status-success-{fg,bg,border}`
+- 度量：`--space-1 / 2 / 3 / 4 / 6 / 8 / 11`、`--radius-xs`、`--radius-lg`、`--radius-pill`、`--shadow-4`、`--layout-sidebar`、`--text-sm`、`--text-xs`、`--font-sans`、`--font-mono`、`--font-weight-medium`、`--leading-snug`、`--tracking-wide`
+- 动效：`--duration-fast`、`--duration-slower`、`--ease-standard`、`--ease-linear`
+- 层级：`--z-overlay`、`--z-sticky`
+
+字面量白名单 = §6.1 G3 的 `0` / `1px` / `2px` / 百分比 / `auto` / `env(safe-area-inset-bottom, 0px)`，另加一条本组件专属（登记在 §6.2 X6）：
+
+- **≤ 640 的底部导航抬高 60px** —— BottomTabs 的既有固定高度（M8-6-6），它本身还没进 token 闭集；这里只引用同一数字，不新造。
+
+LIVE 徽标字号用 `calc(var(--text-xs) * 0.85)`：4 字全大写 mono 标记，`--text-xs` 整档会把 `--layout-sidebar` 宽的卡撑开一行；按比例缩，不新开第六个字号 token。避让高度用组件局部变量 `--site-player-block-size`（`ResizeObserver` 写真实像素）——它不是设计 token，不进 `tokens.json`。
+
+**禁止（本组件专属）**
+
+1. 无数据时渲染空壳再靠 CSS 隐藏（S0 的判定是 `document.querySelector` 为 null + 0 条 media 请求）。
+2. 自动播放；无用户手势的 `play()`。
+3. `role="alert"` / `aria-live="assertive"`；`timeupdate` 写进 live region。
+4. 播放/暂停用 `aria-pressed`；给折叠键设与可见文本不一致的 `aria-label`。
+5. 进度条：直播流（无 duration、不可 seek）**不画进度条**——画一条永远 0 的条是假状态。换点播源才允许 `input[type=range]`。
+6. `backdrop-filter`、毛玻璃、渐变、跑马灯。
+7. 图标按钮无名称；✕ 只有图标。
+8. 任何 hex / `rgb()` / 颜色名 / `z-index` 字面量 / 组件里判断主题。
+9. 第三方音频库（howler / plyr / media-chrome 等）；新增运行时依赖为 0。
+10. 扩成音乐平台：播放列表、歌词、分享、歌单切换。**边界是「一个电台 + 六个控件」。**
+11. 组件内写死文案（G1）或硬编码流地址（地址只在 `src/config/radio.ts`）。
+12. 与页内播放器**同时出声**：document 上任意 `HTMLMediaElement` 起播时，本组件先 `pause()`（全站单路声音）。
+
+**依赖**
+
+- import 白名单：`~/config/radio`、`~/config/radio-flags`；无第三方、无 L1/L2 组件（复用 `Button` 会把 44 主操作与 24 次级两套尺寸拧在一起）。
+- 客户端 JS：**门控脚本 ≤ 0.5KB gz**（判 arm、装事件、`import()` 播放器 chunk），**播放器 chunk ≤ 4KB gz**；未 arm 的页面只有门控、零 media 请求。这是 §7「每个新组件默认 0 字节」的登记例外（§6.2 X6）。
+- 单例落在 DOM / `window`，不能只靠模块作用域：swup `reloadScripts: true` 每次换页重跑模块，模块级变量会被重置。
+- 关闭 = `pause()` → 摘 `src` → `load()` → 摘节点（断流，不是隐藏）。
+
+**视觉基线**
+
+- 不单独出页面级基线：arm-on-play 让未播放访客在 400+ 页上零节点，`e2e/__screenshots__/pages` 的 42 张因此**不必重出**——这正是「播放器不改变任何已存在页面」的机器证明。
+- 形态与避让由 `e2e/pages-radio.spec.ts`（11 条确定性断言：路由 / 导航入口 / 零节点零请求 / 交互契约 / ARIA / 无溢出 / 与 BottomTabs 不相交 / axe）与 `docs/_reviews/radio-dock/site-player-check.cjs`（A–F 六段真播断言）承担；出声类断言用 `RADIO_LIVE=1` 打开。
+
+> **与过程稿的关系**：`blog2.0/docs/26-m8-4-player-spec.md`（506 行）是设计期的完整推演；本章是合并后的契约版本，两者冲突时**以本章为准**。三处已知差异：① 不渲染进度条（源是无限直播流）；② `ended` 子态不可达但代码保留；③ 避让高度用 `ResizeObserver` 实测而不是 132 / 100 的算式常量。LIVE 徽标是本章新增（过程稿 DOM 骨架里没有）。
+
+---
+
 ## 6. 禁止项
 
 ### 6.1 硬禁止（12 条，全部可机器检查）
@@ -2405,6 +2524,7 @@ h1 **禁止** `clamp()` / `vw`（D-0149）：只允许上面两档字号的裸�
 | X3 | viz 6 色在深色下共用浅色值 | Bangumi | 分类色不是状态色；图表另有对比度要求 | blog-design | M2（C 层展示页） |
 | X4 | `Expressive Code` 的 `!important` 变量覆盖 | `global.css`（D-0057） | 第三方在 `.expressive-code` 上声明同名变量，只能提特异性 | blog-fe | 跟随 EC 升级 |
 | X5 | `Footer.astro` 的一次性断点 `480px` / `360px` | `src/components/Layout/Footer.astro:306,336` | 页脚网格在 360 附近确实需要更早收窄；M2 折进 `--bp-xs`(450) | blog-fe | M2 Header/Footer 重构 |
+| X6 | **新组件的 JS 预算例外**（门控 ≤0.5KB gz + chunk ≤4KB gz）、**LIVE 徽标字号** `calc(var(--text-xs) * 0.85)`、**≤640 底部导航抬高** `60px` | `src/components/UI/organism/SitePlayer.astro` | 播放器必须按需加载（未播放访客 0 请求）；徽标按比例缩不新开字号档；`60px` 是 BottomTabs（M8-6-6）尚未入 token 闭集的既有值。三项都登记在 §5.7.1 | blog-fe | BottomTabs 高度入 token 时一并收敛 |
 
 **登记规则**：新增例外必须在本表加一行 + 写消解时点；无时点的例外在评审时按违规处理。
 
@@ -2421,6 +2541,7 @@ h1 **禁止** `clamp()` / `vw`（D-0149）：只允许上面两档字号的裸�
 | 文章页 CSS（gz） | ≤ 40KB | **39.7KB**（R-31，已贴线） | R-31 明确要求「V2 加样式前先决定抬门禁还是裁 EC」 |
 | 文章页 JS（gz，门禁） | ≤ 40KB | p95 34.9KB | D-0052 / D-0056 |
 | 每个新组件的 JS | 默认 **0 字节** | 12 个组件的目标 | `16` §3.3「无客户端 JS（除非交互必需）」 |
+| 例外：SitePlayer（§5.7.1） | 门控 **≤ 0.5KB gz** + chunk **≤ 4KB gz** | 实测 297B / 3,092B gz | 唯一登记的行为组件（§6.2 X6）；未 arm 页面只有门控、零 media 请求 |
 | 新增字体文件 | **0** | 现有栈全部走系统/已有字体 | `16` §6.1 未结，不许顺手加 |
 | 新增运行时依赖 | **0** | — | `12` §7.3、R-34 |
 
@@ -2533,6 +2654,8 @@ grep -rn -- "--palette-" src/components src/pages src/styles --include=*.css --i
 6. 改动 §7 的任何预算上限。
 
 普通 patch（值微调、新增组件规格）不需要单独决策记录，但要有卡 + 证据。
+
+**v1.1.0 → v1.2.0 的判定（2026-11-12，§5.7 合并）**：按 §8.1 的 minor 判据「**新增**规格，向后兼容」——新增 §5.7 一族与 §5.7.1 一节，`tokens.json` 的键与值零改动，52 个语义键、8 档 z-index、6 个断点、9 档字号全部原样。因此不是 major（没有重命名/删除/改语法），也不是 patch（patch 指值变了要重出基线，这里基线不动）。同版本号要求（§3.12.1）让 `tokens.json` 的 `version` 一起升，仅此而已。
 
 ---
 

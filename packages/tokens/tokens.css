@@ -1,8 +1,8 @@
 /* ==========================================================================
    tokens.css — GENERATED FILE, DO NOT EDIT BY HAND
    source : packages/tokens/tokens.json
-   version: 1.1.0
-   sha256 : f0e394b26df972cb6d92f40b598cb79da1aa3efbc5339ac2159edd2ebb4e5481
+   version: 1.2.0
+   sha256 : 6eb4e711a5052e5586aebd7affe73038984aa8a6fceba5064c2fbb299ff54f58
    build  : node packages/tokens/scripts/build-tokens.mjs
    order  : :root{palette} → :root{primitive} → :root{semantic.light}
             → [data-theme="dark"]{semantic.dark} → @media{responsive}
