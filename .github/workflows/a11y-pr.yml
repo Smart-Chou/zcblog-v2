@@ -26,7 +26,7 @@ permissions:
 
 jobs:
     a11y-smoke:
-        name: a11y smoke (11 routes · strict)
+        name: a11y smoke (12 routes · strict)
         runs-on: ubuntu-latest
         timeout-minutes: 20
 
@@ -82,7 +82,7 @@ jobs:
               run: |
                   # 取第一篇已构建文章，避免把内容仓里某个 slug 写死在 workflow。
                   ARTICLE_ROUTE="$(find dist/article -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1 | sed 's|^dist||; s|$|/|')"
-                  ROUTES="/ /en/ /blog/1/ /archives/ /tags/ /culture/ /bangumi/ /douban/ /cookies/ /design/components/author/ /404.html"
+                  ROUTES="/ /en/ /blog/1/ /archives/ /tags/ /culture/ /bangumi/ /douban/ /cookies/ /radio/ /design/components/author/ /404.html"
                   if [ -n "$ARTICLE_ROUTE" ]; then
                     ROUTES="$ROUTES $ARTICLE_ROUTE"
                   fi
