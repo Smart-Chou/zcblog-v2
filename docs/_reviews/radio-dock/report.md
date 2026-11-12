@@ -1,7 +1,7 @@
 # Dogeared Radio · 站级 SitePlayer（M8-4）
 
 > 2026-11-12 · 站级悬浮播放器，按 `blog2.0/docs/26-m8-4-player-spec.md` 落地。
-> 路由：`/radio/`（zh）· `/en/radio/`（en）· `noindex`
+> 路由：`/radio/`（zh）· `/en/radio/`（en）· 已进主导航与侧边栏，可收录（D-0163）
 
 ## 1. 状态：从「页面级 Dock」升级为「站级 SitePlayer」
 
@@ -72,9 +72,23 @@ spec §6.2 第 12 条要求「不得与 `/music/` 页内播放器同时出声」
 验收脚本：`docs/_reviews/radio-dock/site-player-check.cjs`（A–F 六组真跑断言）。
 截图：`docs/_reviews/radio-dock/shots/site-player-*.png`。
 
-## 7. 明确没做
+## 7. 导航入口（D-0163）
 
-- 没有导航入口、没有 sitemap 收录、没有为 `/radio/` 单独出页面基线。
+- `navLinks` 在「音乐」后加「电台」；`sidebarConfig` 的「项目」组加「电台」。
+- 文案走 i18n 键 `nav.radio`（10 份词典都补了），不在组件里写死中文（§5.6.0 G1）。
+- `/radio/`、`/en/radio/` 去掉 `noindex`，已进 sitemap；页面可被收录。
+- 实测：桌面菜单 17 项一行排开（「电台」夹在「音乐」「文化」之间，两行是因为「快捷键」被折到第二行，既有布局行为）；375 菜单 4 行，无溢出。
+
+## 8. 验收
+
+- `e2e/pages-radio.spec.ts`：**11 passed / 1 skipped**（IV 类真出声用例默认跳过）；`RADIO_LIVE=1` 时 **12 passed**。
+- `verify-i18n`：**8/8**（I4 120 键 × 8 语言全部直译）。
+- `gates:all`：**8/8**（unclassified=0、total=51 不变）。
+- macOS 页面基线：**42 passed**（未重出——arm 策略下未播放访客零变化）。
+
+## 9. 明确没做
+
+- 没有为 `/radio/` 单独出页面基线（视觉零变化由 `pages` 42 张证明）。
 - 没有 now-playing 元数据（Radio Paradise API 无 CORS 头，硬拉会被浏览器拦；播放器只声明真实的 LIVE 状态并外链官方页面）。
 - 没有 HLS、没有电台目录、没有播放列表。
 - 没改 `#back-to-top` 的基础值（`bottom: 40px; right: 30px; z-index: 100` 是已登记漂移）：只在播放器存在时用 `:has()` 覆盖它的位置，无播放器的页面零变化。

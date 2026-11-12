@@ -157,6 +157,8 @@ function build(station: Station, volumeWritable: boolean): Player {
     playButton.type = "button";
     playButton.className = "site-player__play";
     playButton.dataset.playerPlay = "";
+    // 首屏就要有名字：`setPlaying` 之前是一个只有 svg 的按钮，axe 会判 button-name 违规
+    playButton.setAttribute("aria-label", `${COPY.play}：${station.name}`);
     playButton.replaceChildren(icon(ICONS.play));
 
     const toggleButton = document.createElement("button");
@@ -403,8 +405,11 @@ function bind(player: Player): void {
     player.muteButton.addEventListener("click", () => {
         const muted = !audio.muted;
         audio.muted = muted;
+        // spec §4.2 A4：静音键是真正的 toggle —— 名称恒定、aria-pressed 翻转。
+        // 改名（静音 → 取消静音）会让读屏在「名称」与「按下状态」两处同时变化，
+        // 也违反 A4 的「aria-label 相同」判据。
         player.muteButton.setAttribute("aria-pressed", String(muted));
-        player.muteButton.setAttribute("aria-label", muted ? COPY.unmute : COPY.mute);
+        player.muteButton.title = muted ? COPY.unmute : COPY.mute;
         player.muteButton.replaceChildren(icon(muted ? ICONS.mute : ICONS.volume, 16));
     });
     player.muteButton.setAttribute("aria-label", COPY.mute);

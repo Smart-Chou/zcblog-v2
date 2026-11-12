@@ -28,6 +28,11 @@
             "decision": "D-0144",
             "date": "2026-11-07",
             "summary": "M5-10：新增 public/icons.svg（构建期生成的图标 sprite）归 T；T/O/X 其余规则未改。"
+        },
+        {
+            "decision": "D-0163",
+            "date": "2026-11-12",
+            "summary": "M8-4：新增 src/config/radio.ts（电台数据，站点自有）与 src/config/radio-flags.ts（播放器存在策略），归 O；T/O/X 其余规则未改。"
         }
     ],
     "classes": {
@@ -118,7 +123,9 @@
                 "vercel.json",
                 ".github/workflows/deploy.yml",
                 "apps/demo/**",
-                "site.manifest.json"
+                "site.manifest.json",
+                "src/config/radio.ts",
+                "src/config/radio-flags.ts"
             ],
             "reserved": [".env", "deploy/**", "CHANGELOG.md", "public/_redirects"]
         },
