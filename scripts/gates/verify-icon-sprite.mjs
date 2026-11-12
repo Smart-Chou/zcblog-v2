@@ -20,7 +20,7 @@
  * 用法: node scripts/gates/verify-icon-sprite.mjs [--json]
  * 退出码: 0 = 全 PASS；1 = 有 FAIL
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -103,6 +103,52 @@ add(
 const headers = existsSync(HEADERS) ? readFileSync(HEADERS, "utf-8") : "";
 const headerOk = /^\/icons\.svg\n\s+Cache-Control:.*immutable/m.test(headers);
 add("S7 _headers 有 /icons.svg immutable", headerOk, headerOk ? "命中" : "缺少规则");
+
+/* S8 —— 源码引用的图标必须在清单里
+ *
+ * 为什么需要这条：S3 只查「清单 → sprite」，S4 只查「sprite → 清单」。
+ * 两侧都是生成物，于是「源码用了清单里没有的图标名」穿过整张网：
+ * `icon-markup.ts:52` 遇到未知名直接 `return ""`，页面静默少一个图标，
+ * 构建、门禁、e2e 全绿。`tabler:category` 就这样在 skills 页缺了一整版。
+ *
+ * 两种引用形式都要扫（实测各 105 / 26 处）：
+ *   - 模板：`<Icon name="tabler:category" />`
+ *   - 数据：`icon: "mingcute:code-line"`
+ */
+const SRC_DIR = path.join(ROOT, "src");
+const walk = (dir, out = []) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full, out);
+        else if (/\.(astro|ts|tsx|js|mjs)$/.test(entry.name)) out.push(full);
+    }
+    return out;
+};
+const referenced = new Set();
+for (const file of walk(SRC_DIR)) {
+    // 清单自己不算「引用」：它就是被查的对象
+    if (
+        file.endsWith(path.join("Icons", "index.ts")) ||
+        file.endsWith(path.join("Icons", "sprite.ts"))
+    ) {
+        continue;
+    }
+    const text = readFileSync(file, "utf-8");
+    for (const m of text.matchAll(/<Icon\b[^>]*\bname="([^"]+)"/g)) referenced.add(m[1]);
+    for (const m of text.matchAll(/\bicon:\s*"([^"]+)"/g)) referenced.add(m[1]);
+}
+// 只认 `collection:name` 形状，排除 favicon.svg / code 这类非图标串
+const iconish = [...referenced].filter((n) => /^[a-z-]+:[a-z0-9-]+$/.test(n));
+const notInManifest = iconish.filter(
+    (n) => !manifestIds.some((m) => m.name === n) && !inlineOnly.includes(n),
+);
+add(
+    "S8 源码引用的图标都在清单里",
+    notInManifest.length === 0,
+    notInManifest.length === 0
+        ? `引用 ${iconish.length} 个，全部命中`
+        : `未登记：${notInManifest.join(", ")}`,
+);
 
 /* 报告 */
 const json = process.argv.includes("--json");

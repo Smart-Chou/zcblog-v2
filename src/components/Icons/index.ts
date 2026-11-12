@@ -15,6 +15,8 @@ const iconSvgData: Record<string, string> = {
 		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m.707 5.046a1 1 0 0 0-1.414 0L7.758 10.58a1 1 0 1 0 1.414 1.414L11 10.168v6.075a1 1 0 0 0 2 0v-6.076l1.83 1.828a1 1 0 0 0 1.413-1.414z"/></svg>',
 	"mingcute:book-3-line":
 		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M4 10a4.5 4.5 0 0 0 1.671-3.5A4.5 4.5 0 0 0 4 3h12.5a3.5 3.5 0 1 1 0 7zm16 10a4.5 4.5 0 0 1-1.671-3.5c0-1.414.651-2.675 1.671-3.5H7.5a3.5 3.5 0 1 0 0 7z"/></svg>',
+	"mingcute:code-line":
+		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.216 4.106L9.784 19.894M6.5 7.757L2.257 12L6.5 16.243m11-8.486L21.743 12L17.5 16.243"/></svg>',
 	"mingcute:github-line":
 		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><defs><path id="SVGmFUv3dVk" fill="none" stroke="currentColor" d="M3 16c1.5.5 1.5 3.5 5 3l1-.2m6 2.2v-3c0-.86-.363-1.636-.943-2.183a.01.01 0 0 1 .005-.018C17.48 15.117 20 12.78 20 10.001c0-1.262-.52-2.433-1.406-3.399a.01.01 0 0 1-.002-.01c.632-1.537.048-3.52-.096-3.591c-.139-.07-1.957.288-3.45 1.445a.01.01 0 0 1-.009.002A10.3 10.3 0 0 0 12 4c-1.076 0-2.103.16-3.04.449a.01.01 0 0 1-.009-.002C7.458 3.29 5.64 2.931 5.5 3.001c-.144.072-.728 2.057-.095 3.593a.01.01 0 0 1-.002.01C4.518 7.57 4 8.74 4 10.002c0 2.779 2.52 5.116 5.938 5.798a.01.01 0 0 1 .005.018A3 3 0 0 0 9 18v3"/></defs><use href="#SVGmFUv3dVk" stroke-linecap="round" stroke-width="2"/><use href="#SVGmFUv3dVk" stroke-linecap="round" stroke-width="2"/></svg>',
 	"mingcute:hand-heart-line":
@@ -67,6 +69,8 @@ const iconSvgData: Record<string, string> = {
 		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14.127C19 17.2 15.498 20 11 20c-4.126 0-8-2.224-8-5.565c0-1.78.984-3.737 2.7-5.567c2.362-2.51 5.193-3.687 6.551-2.238c.415.44.752 1.39.749 2.062c2-1.615 4.308.387 3.5 2.693c1.26.557 2.5.538 2.5 2.742M15 4h1a5 5 0 0 1 5 5v1"/></svg>',
 	"tabler:brand-x":
 		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4 4l11.733 16H20L8.267 4zm0 16l6.768-6.768m2.46-2.46L20 4"/></svg>',
+	"tabler:category":
+		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 3a3 3 0 1 0 6 0a3 3 0 1 0-6 0"/></svg>',
 	"tabler:check":
 		'<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12l5 5L20 7"/></svg>',
 	"tabler:chevron-left":
