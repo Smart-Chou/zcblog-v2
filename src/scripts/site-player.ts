@@ -142,7 +142,7 @@ const ICONS = {
 function build(station: Station, volumeWritable: boolean): Player {
     const root = document.createElement("aside");
     root.className = "site-player";
-    root.dataset.state = "expanded";
+    root.dataset.state = "idle";
     root.dataset.playing = "false";
     root.setAttribute("aria-label", COPY.player);
 
