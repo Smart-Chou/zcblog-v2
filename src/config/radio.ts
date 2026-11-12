@@ -35,15 +35,12 @@ export const radioStations: RadioStation[] = [
         home: "https://radioparadise.com/music/what-is-playing",
         live: true,
     },
-    {
-        id: "nightride",
-        name: "Nightride FM",
-        detail: "Synthwave · 24/7",
-        note: "Synthwave 子频道 + 现场 DJ，适合从阅读切到写作的时候。",
-        url: "https://stream.nightride.fm/nightride.mp3",
-        home: "https://nightride.fm/",
-        live: true,
-    },
 ];
+
+// Nightride FM 已移除（D-0170 / D-0169）：该站查无任何授权文本可援引
+// —— /terms、/tos、/terms-of-use、/about 全部返回同一份 31,011 字节首页，
+// 旧条款页 nightridefm.creator-spring.com/terms-of-use 已 HTTP 410 Gone。
+// 「流可达」不等于「有权播」，故不进数据源，CSP 也同步收窄到只剩 RP 一个 origin。
+// 要加新电台：先在 decision-log 落一条批准（origin 必须精确，禁止 `*` 与宽泛 `https:`）。
 
 export const radioDefaultStation = radioStations[0].id;
