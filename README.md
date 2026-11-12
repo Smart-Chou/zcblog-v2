@@ -300,7 +300,9 @@ pnpm run preview
 | `pnpm test:e2e` | 运行 Playwright E2E 测试 |
 | `pnpm test:e2e:ui` | 以 UI 模式运行 E2E 测试 |
 | `pnpm visual:build:pages` | 用固定内容构建视觉基线用的 `dist/`（页面级基线专用，见下） |
-| `pnpm test:visual:pages` | 跑 6 页 × 2 主题 × 3 视口的页面级视觉基线 |
+| `pnpm test:visual:pages` | 跑 7 页 × 2 主题 × 3 视口的页面级视觉基线（42 条） |
+| `pnpm visual:build:states` | 构建 `/projects/` `/devices/` `/skills/` 的 empty / error 两态到 `.visual-states/` |
+| `pnpm test:visual:states` | 跑状态级视觉基线（3 页 × 2 态 × 2 主题 × 3 视口 = 36 条） |
 
 #### 视觉基线（截图回归）
 
@@ -309,9 +311,12 @@ pnpm run preview
 | 套件 | 覆盖 | 基线目录（macOS / Linux） | 阈值 |
 | ---- | ---- | ---- | ---- |
 | `/design/atoms` | 12 个原子 × 3 视口 × 2 主题 = 72 | `e2e/__screenshots__/design-atoms{,‑linux}/` | macOS 1% / Linux 0 px |
-| 页面级（V-0） | 6 页 × 3 视口（375/768/1280）× 2 主题 = 36 | `e2e/__screenshots__/pages{,‑linux}/` | macOS 0.1% / Linux 0 px |
+| 页面级（V-0） | 7 页 × 3 视口（375/768/1280）× 2 主题 = 42 | `e2e/__screenshots__/pages{,‑linux}/` | macOS 0.1% / Linux 0 px |
+| 状态级（§7.2） | 3 页 × 2 态（empty/error）× 3 视口 × 2 主题 = 36 | `e2e/__screenshots__/pages-states{,‑linux}/` | macOS 0.1% / Linux 0 px |
 
-页面级覆盖的 6 页：`/`、`/article/beszel-server-monitoring-guide/`、`/archives/`、`/albums/`、`/culture/`、`/projects/`。Linux 集必须在 CI 用的同一个镜像里生成，与 macOS 集互不比较。
+页面级覆盖的 7 页：`/`、`/article/beszel-server-monitoring-guide/`、`/archives/`、`/albums/`、`/culture/`、`/projects/`、`/404/`。状态级覆盖 `/projects/`、`/devices/`、`/skills/` 的 empty 与 error 分支。Linux 集必须在 CI 用的同一个镜像里生成，与 macOS 集互不比较。
+
+**三套基线各自计数，不要把数字合并**：`ci.yml` 里 `atoms 72` / `pages 42` / `states 36` 是三条独立硬断言。合成一个总数时，某一套整体被 skip 或少跑仍然会是绿的。
 
 **为什么页面级基线要先单独构建**：页面内容来自私有内容仓，多加一篇文章就会让首页/归档/热门列表整体位移。所以页面级基线跑在 `e2e/fixtures/pages-visual/` 的固定文章上，由 `CONTENT_ARTICLE_BASE` 指向该目录构建（常规构建/部署不设置此变量，行为不变）。所有 fixture 文章必须带 `upDate`，否则构建时间会进入像素。
 
@@ -336,10 +341,38 @@ docker run --rm --ipc=host -v "$PWD":/work -w /work \
 pnpm exec playwright test e2e/pages.visual.spec.ts
 ```
 
-**假红先排查服务器，不要急着 `--update-snapshots`**：`playwright.config.ts` 现在固定 `reuseExistingServer: false`，每次由 runner 自己起 4321 上的 `astro preview`——旧版本会复用残留 server，症状是 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，不是像素 diff。跑之前先 `pkill -f "astro preview"`，再确认第 1 步的固定内容构建跑过。配置同时固定 `--host 127.0.0.1` / `baseURL=http://127.0.0.1:4321`：本机 `astro preview` 默认只监听 `[::1]`，靠 `localhost` 解析会在 IPv6/IPv4 之间飘，表现为随机 `ERR_CONNECTION_REFUSED`。
+**假红先排查服务器，不要急着 `--update-snapshots`**：`playwright.config.ts` 现在固定 `reuseExistingServer: false`，每次由 runner 自己起 `astro preview`——旧版本会复用残留 server，症状是 `net::ERR_CONNECTION_REFUSED` 或比对到旧 `dist`，不是像素 diff。再确认第 1 步的固定内容构建跑过。配置同时固定 `--host 127.0.0.1` / `baseURL=http://127.0.0.1:4321`：本机 `astro preview` 默认只监听 `[::1]`，靠 `localhost` 解析会在 IPv6/IPv4 之间飘，表现为随机 `ERR_CONNECTION_REFUSED`。
+
+**preview 启动用 `--ignore-lock`，不是 `--force`**：astro 7.3.6 的 `preview` 没有 `--force`（那个 flag 只属于 `astro build`），写了会被静默忽略。只要 `.astro/preview.json` 里还留着**活着的** preview（兄弟卡并行跑、或被 SIGKILL 后 supervisor 拉起的实例），旧命令会以 exit 1 退出并报 `Another astro preview server is already running`，一条用例都不跑——整轮假红，而且报错文案自己推荐了这个不存在的 flag。`--ignore-lock` 既不读也不写 lock，多个 preview 可以在不同端口并存。要保留「一个 worktree 只留一个 preview」的纪律就手动 `astro preview stop` / `astro preview status`，别指望配置代劳：并行卡占着的 server 不该被别人的 runner 杀掉。
+
+**并发跑测请换端口，不要共享 4321 和 4401–4402**：同一个 worktree 里多张卡同时跑视觉门禁时，用 `PW_PREVIEW_PORT=4337 pnpm test:visual:pages` 与 `PW_STATES_PORT_BASE=4411 pnpm test:visual:states` 各自错开（或直接复制一份独立工作目录跑）。`pnpm test:visual:states` 自带 `PW_SKIP_PREVIEW=1`，因为它只服务 `.visual-states/` 下的静态目录，不读 `dist/`。
 
 
 新增/删除基线页面时：改 `e2e/pages.visual.spec.ts` 的 `PAGES`，然后**两平台都重新生成一遍**，并在 PR 里贴 diff 截图。远端图片、CDN 脚本、Waline 评论、hitokoto 一律在 spec 里打桩或拦断（见 spec 头部注释），不要为了「看起来更真实」放开网络——那会让门禁随机红。
+
+**状态级基线（§7.2）另走一套构建**：三页的 `empty` / `error` 分支只存在于 `PUBLIC_{PROJECTS,DEVICES,SKILLS}_STATE` 被设置的构建里，所以 `pnpm visual:build:states` 会按状态各构建一次整站到 `.visual-states/<state>/`（三页共用一次构建，成本 1/3）。状态 spec 自己起静态服务（`4401` 起），不读 `dist/`、不碰 `astro preview`。
+
+```bash
+# 1. 构建两个状态的站点（← 会写 .visual-states/，不动 dist/）
+pnpm visual:build:states
+
+# 2. macOS 基线
+pnpm exec playwright test e2e/pages-states.visual.spec.ts --update-snapshots
+
+# 3. Linux 基线（同一个镜像）
+docker run --rm --ipc=host -v "$PWD":/work -w /work \
+  -e PLAYWRIGHT_BASELINE_PLATFORM=linux \
+  mcr.microsoft.com/playwright:v1.63.0-noble \
+  bash -lc 'corepack enable && corepack pnpm install --frozen-lockfile && \
+            node scripts/visual/build-state-baseline.mjs && \
+            PW_SKIP_PREVIEW=1 corepack pnpm exec playwright test \
+              e2e/pages-states.visual.spec.ts --update-snapshots'
+
+# 4. 复核：两遍都必须 36 passed
+pnpm test:visual:states
+```
+
+`loading` 与 `filtered-empty` 两态**当前不在矩阵里**：`EntityStatus` 只有 `ok | empty | error`，三页模板没有 loading 分支，筛选 UI 也还没上 `main`（都在未合并的 `m8-wip-20261110` 上，见 decision-log D-0156「未决」）。对 `main` 生成那两态只会把 `ok` 版式录成假状态，所以宁缺勿假。该分支合入后：在 `scripts/visual/build-state-baseline.mjs` 与 spec 的 `STATES` 里各加一项，重新生成，「3 页 × 4 态 × 2 主题 × 3 视口 = 72」——矩阵是算出来的，不用手抄。
 
 
 ### 发布

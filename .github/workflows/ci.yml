@@ -122,9 +122,10 @@ jobs:
     #  4. 页面级基线跑在固定内容上（scripts/visual/build-pages-baseline.mjs）：内容仓加一篇
     #     文章不该让视觉门禁红。因此这里**不** checkout 私有文章仓，构建命令也换成该脚本。
     visual:
-        name: visual (atoms 72 + pages 42 · linux baselines)
+        # 三套像素基线分账，不合并成一个数字：任一套整体跳过时，合并计数仍然是绿的。
+        name: visual (atoms 72 + pages 42 + states 36 · linux baselines)
         runs-on: ubuntu-latest
-        timeout-minutes: 25
+        timeout-minutes: 30
         container:
             image: mcr.microsoft.com/playwright:v1.63.0-noble
             options: --ipc=host
@@ -197,6 +198,40 @@ jobs:
                   if ! grep -qE "^ +42 passed" "$RUNNER_TEMP/pages-visual-2.log"; then
                     echo "::error::页面级视觉基线第二遍未全绿（不稳定）"
                     tail -40 "$RUNNER_TEMP/pages-visual-2.log"
+                    exit 1
+                  fi
+
+            # §7.2 状态级基线：/projects/ /devices/ /skills/ 的 empty / error 两态，
+            # 3 页 × 2 态 × 2 主题 × 3 视口 = 36。状态 HTML 由
+            # scripts/visual/build-state-baseline.mjs 单独构建到 .visual-states/，
+            # spec 自己起静态服务（4401+），不读 dist/、不碰上面的 preview ——
+            # 所以 PW_SKIP_PREVIEW=1 连 preview 都不起，这一段不依赖前一个 step 的产物。
+            - name: Build state variants (3 pages × empty/error · §7.2)
+              run: node scripts/visual/build-state-baseline.mjs
+
+            - name: Visual regression · states 36 (pass 1/2)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  PW_SKIP_PREVIEW=1 corepack pnpm exec playwright test \
+                    e2e/pages-states.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/states-visual-1.log"
+                  if ! grep -qE "^ +36 passed" "$RUNNER_TEMP/states-visual-1.log"; then
+                    echo "::error::状态级视觉基线用例数不是 36（3 页 × 2 态 × 2 主题 × 3 视口）"
+                    tail -40 "$RUNNER_TEMP/states-visual-1.log"
+                    exit 1
+                  fi
+
+            - name: Visual regression · states 36 (pass 2/2 · stability)
+              shell: bash
+              run: |
+                  set -o pipefail
+                  PW_SKIP_PREVIEW=1 corepack pnpm exec playwright test \
+                    e2e/pages-states.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/states-visual-2.log"
+                  if ! grep -qE "^ +36 passed" "$RUNNER_TEMP/states-visual-2.log"; then
+                    echo "::error::状态级视觉基线第二遍未全绿（不稳定）"
+                    tail -40 "$RUNNER_TEMP/states-visual-2.log"
                     exit 1
                   fi
 

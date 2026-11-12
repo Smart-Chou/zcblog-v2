@@ -46,6 +46,15 @@ const BASELINE_PROJECTS = {
                 toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" as const },
             },
         },
+        {
+            name: "chromium-pages-states",
+            dir: "pages-states",
+            match: /pages-states\.visual\.spec\.ts$/,
+            // Same page-sized shots, same rationale as `pages`.
+            expect: {
+                toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" as const },
+            },
+        },
     ],
     linux: [
         {
@@ -64,10 +73,27 @@ const BASELINE_PROJECTS = {
             // third-party traffic stubbed → pixel-exact. M5-11 verified 0 drift over 2 runs.
             expect: { toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled" as const } },
         },
+        {
+            name: "chromium-linux-pages-states",
+            dir: "pages-states-linux",
+            match: /pages-states\.visual\.spec\.ts$/,
+            // State shots are built by `scripts/visual/build-state-baseline.mjs` inside this
+            // same image, so the set is reproducible to the pixel.
+            expect: { toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled" as const } },
+        },
     ],
 } as const;
 
-const [ATOMS, PAGES] = BASELINE_PROJECTS[PLATFORM];
+const [ATOMS, PAGES, STATES] = BASELINE_PROJECTS[PLATFORM];
+
+/**
+ * Preview port. Default 4321 keeps every existing recipe/CI step unchanged; the override
+ * exists because this repo hosts several cards running their visual gate in the same
+ * worktree at once — each runner needs its own port, or they queue up behind one lock.
+ * `baseURL` and `webServer.url` both read this value so they can never drift.
+ */
+const PORT = Number(process.env.PW_PREVIEW_PORT ?? 4321);
+const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
     testDir: "./e2e",
@@ -94,14 +120,15 @@ export default defineConfig({
     },
 
     use: {
-        baseURL: "http://127.0.0.1:4321",
+        baseURL: BASE_URL,
         trace: "on-first-retry",
     },
 
     projects: [
         {
             name: ATOMS.name,
-            testIgnore: PAGES.match,
+            // Atoms is the catch-all bucket: it must not swallow either page-sized suite.
+            testIgnore: [PAGES.match, STATES.match],
             expect: ATOMS.expect,
             snapshotPathTemplate: `{testDir}/__screenshots__/${ATOMS.dir}/{arg}{ext}`,
             use: { ...devices["Desktop Chrome"] },
@@ -113,15 +140,44 @@ export default defineConfig({
             snapshotPathTemplate: `{testDir}/__screenshots__/${PAGES.dir}/{arg}{ext}`,
             use: { ...devices["Desktop Chrome"] },
         },
+        {
+            // State-level shots (§7.2): the empty/error branches of the three C-1 entity
+            // pages. They come from separate builds (one per state) served by the spec
+            // itself, so this project owns its own snapshot dir and threshold, and the
+            // `webServer` below (which serves `dist/`) is irrelevant to it.
+            name: STATES.name,
+            testMatch: STATES.match,
+            expect: STATES.expect,
+            snapshotPathTemplate: `{testDir}/__screenshots__/${STATES.dir}/{arg}{ext}`,
+            use: { ...devices["Desktop Chrome"] },
+        },
     ],
 
-    webServer: {
-        // 用本地 bin 而不是 `pnpm exec`：webServer 由 /bin/sh 拉起，PATH 里不一定有 pnpm
-        // （本机走 corepack、CI 走 corepack shim）。这条命令在 macOS 与 Linux 镜像里都能跑。
-        // --force：.astro/preview.json 里可能残留上一次被 SIGKILL 的 pid（CI 步骤/容器
-        // 被中断时会发生），没有这个标志 astro preview 会直接退出，门禁假红。
-        command: "./node_modules/.bin/astro preview --host 127.0.0.1 --port 4321 --force",
-        url: "http://127.0.0.1:4321",
-        reuseExistingServer: false, // 本机残留 preview 会被误复用；一律由本次 runner 起新 server
-    },
+    // `PW_SKIP_PREVIEW=1` (what `pnpm test:visual:states` sets) turns the preview server off
+    // entirely: the states suite serves its own builds and never reads `dist/`, so requiring a
+    // fresh full-site build just to screenshot two static dirs would be pure cost — and it
+    // would make the state gate depend on whatever `dist/` a sibling card last wrote.
+    webServer:
+        process.env.PW_SKIP_PREVIEW === "1"
+            ? undefined
+            : {
+                  // 用本地 bin 而不是 `pnpm exec`：webServer 由 /bin/sh 拉起，PATH 里不一定有 pnpm
+                  // （本机走 corepack、CI 走 corepack shim）。这条命令在 macOS 与 Linux 镜像里都能跑。
+                  //
+                  // `--ignore-lock`（**不是 `--force`**）：astro 7.3.6 的 `preview` 只有
+                  // `--background/--port/--host/--open/--ignore-lock/--allowed-hosts`，**没有 `--force`** ——
+                  // 那个 flag 只存在于 `astro build`。写成 `--force` 会被静默忽略，于是只要
+                  // `.astro/preview.json` 里还留着兄弟卡/被 SIGKILL 的 run 的 preview（活着的），
+                  // preview 就以 exit 1 退出：「Another astro preview server is already running」——
+                  // 一句用例都不跑，整轮假红（astro 的报错文案还会自己推荐这个不存在的 flag）。
+                  // `--ignore-lock` 不读也不写 lock：不同端口上的多个 preview 可以并存，runner 也不会
+                  // 抢占别人的 server。worktree 级的「只留一个 preview」改为手动
+                  // `astro preview stop` / `status` 管理（`--ignore-lock` 实例不受这两条管辖）。
+                  //
+                  // `PW_PREVIEW_PORT` 是并发跑测的逃生口：同一 worktree 里多张卡同时跑视觉门禁时，
+                  // 各自换端口即可，不必 fork 出一份 config。
+                  command: `./node_modules/.bin/astro preview --host 127.0.0.1 --port ${PORT} --ignore-lock`,
+                  url: BASE_URL,
+                  reuseExistingServer: false, // 本机残留 preview 会被误复用；一律由本次 runner 起新 server
+              },
 });
