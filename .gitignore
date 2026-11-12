@@ -68,6 +68,9 @@ release-pack/
 dist-*/
 .visual-states/
 .scratch-*/
+# 同上，但 scratch 名也可能是「一条日志文件」而不是目录（.scratch-m866-build.log）。
+# 只写 .scratch-*/ 的话这些文件不被忽略，会长期污染 git status。
+.scratch-*
 .probe-*.mjs
 playwright.m7-*.config.ts
 playwright.m8-*.config.ts
