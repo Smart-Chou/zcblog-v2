@@ -36,6 +36,20 @@ import { test, expect, type Page } from "@playwright/test";
  * Thresholds live in `playwright.config.ts` per project (macOS 0.1% ratio, Linux 0 px).
  * Regenerate with:
  *   pnpm visual:build:pages && pnpm exec playwright test e2e/pages.visual.spec.ts --update-snapshots
+ *
+ * ## 整轮全红但代码没动时怎么判（花 30 秒，别急着重刷基线）
+ *
+ * 先看 Playwright 报的 expected / actual 尺寸：
+ *
+ * - **尺寸不同** → 布局层真的动了（高度变了），当回归处理。
+ * - **尺寸相同、差异却铺满整页** → 几乎不是主题回归，而是**滚动条出现与否**：
+ *   出现滚动条时内容宽度被抠掉约 15px，长行全部重排，于是每一行都"差一点"。
+ *   特征很好认：差异在右边缘形成一条通高竖条。重跑一轮即可；仍复现就查 `dist/`
+ *   是不是由 `pnpm visual:build:pages` 产出的（用错了全量构建，页面内容跟 fixture
+ *   不同，同样会整轮全红）。**不要**用 `--update-snapshots` 把这种假失败写进基线。
+ *
+ * 前提是 `playwright.config.ts` 的 `workers: 1` 别调大：42 张全尺寸截图并发跑会把
+ * preview server 和字体加载压出时序差，失败信息长得跟真回归很像，排查成本远高于省下的时间。
  */
 
 const PAGES = [
