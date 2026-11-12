@@ -15,18 +15,17 @@
 
 | 电台 | 流 | 说明 |
 |---|---|---|
-| **Radio Paradise · Main Mix**（默认） | `https://stream.radioparadise.com/mp3-128` | 人工策展、无广告，官方 stream links 页面明确面向第三方播放器 |
-| **Nightride FM** | `https://stream.nightride.fm/nightride.mp3` | Synthwave 24/7 社区电台 |
+| **Radio Paradise · Main Mix**（唯一） | `https://stream.radioparadise.com/mp3-128` | 人工策展、无广告，官方 stream links 页面明确面向第三方播放器 |
 
-`Devs.fm` 曾被选为第二台，但它的客户端一直停在启动动画（`Performing system diagnostics...`），页面与 JS chunk 里都没有音频源，因此按「不交付死按钮」处理，换成 Nightride。
+**只留一个电台**（D-0171，施工 `f8f82510`）：Nightride FM 已删除——该站查无任何可援引的授权文本（`/terms` `/tos` `/terms-of-use` `/about` 全部返回同一份首页，旧条款页 410 Gone）。「流可达」不等于「有权播」。`Devs.fm` 更早被排除：客户端停在启动动画，页面与 JS chunk 里都没有音频源。
 
-CSP：`media-src 'self' https://stream.radioparadise.com https://stream.nightride.fm`（精确 origin，无通配）。
+CSP：`media-src 'self' https://stream.radioparadise.com`（精确 origin，无通配；`dist/` 全站 `grep -rl nightride` = 0 文件）。
 
 ## 3. 与 spec 的差异（3 条，都有理由）
 
 | spec | 实现 | 理由 |
 |---|---|---|
-| §4.3 进度条 + `aria-valuetext` | **不渲染进度条** | 两个源都是**无限直播流**（无 duration、不可 seek）。画一条永远 0 的条是假状态。切到点播源时按 spec 补回。 |
+| §4.3 进度条 + `aria-valuetext` | **不渲染进度条** | 现存的源是**无限直播流**（无 duration、不可 seek）。画一条永远 0 的条是假状态。切到点播源时按 spec 补回。 |
 | §2.1 S3b `ended` 子态 | 代码保留处理，实际不触发 | 同上：直播流不会 `ended`。 |
 | §3.2 卡片高度算式 132 / 100 | 用 `ResizeObserver` 写真实高度到 `--site-player-block-size` | 文案长度与状态都真实变化，硬编码算式值会在 i18n 或长电台名下失效。避让不变量（V1–V3）不变。 |
 
