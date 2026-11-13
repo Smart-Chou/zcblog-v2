@@ -96,6 +96,10 @@ jobs:
             - name: Build
               env:
                   CI: true
+                  # 生产站是 pages.dev：canonical / sitemap / OG 全靠这个变量，
+                  # 不设就会用 src/config/site.ts 的默认值 marxchou.com，
+                  # 等于让新站替旧站做 SEO（D-0175 补记）。
+                  SITE_URL: https://zcblog-v2.pages.dev
                   ARTICLE_REPO_PATH: _articles
                   BLINKO_API_URL: https://memos.marxchou.com
                   BLINKO_API_TOKEN: ${{ secrets.BLINKO_API_TOKEN }}
