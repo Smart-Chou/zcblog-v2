@@ -9,7 +9,7 @@
 
 export const SPRITE_URL = "/icons.svg";
 
-export const SPRITE_VERSION = "e4a95966";
+export const SPRITE_VERSION = "ecc1283f";
 
 /** 图标名 → viewBox；键集合同时是「这个图标存在」的闭集。 */
 export const ICON_VIEWBOXES: Record<string, string> = {
@@ -93,4 +93,4 @@ export const ICON_VIEWBOXES: Record<string, string> = {
  * 图标自带 url(#id) / href("#id") 内部引用，跨文档 <use> 在宿主文档里解析不到，
  * 因此这几个图标继续内联输出（见 icon-markup.ts）。
  */
-export const ICON_INLINE_ONLY: string[] = ["logos:telegram", "mingcute:github-line"];
+export const ICON_INLINE_ONLY: string[] = ["logos:telegram"];
