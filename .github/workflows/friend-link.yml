@@ -10,7 +10,9 @@ on:
 permissions:
     contents: write
     issues: write
-    actions: write
+    # 本 workflow 现在走 PR + auto-merge，需要开 PR 的权限；
+    # 缺这条会报 GraphQL: Resource not accessible by integration (createPullRequest)。
+    pull-requests: write
 
 concurrency:
     group: friend-link-${{ github.event.issue.number }}
