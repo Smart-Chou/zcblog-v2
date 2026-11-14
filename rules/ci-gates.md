@@ -176,10 +176,28 @@ O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.ver
 
 所以新增门禁时：
 
-1. 不要无脑追加到 `gates:all` 末尾，先确认链上没有已知失败点；有的话把它挪到**最后一步**。
+1. 不要无脑追加到 `gates:all` 末尾，先确认链上没有已知失败点；有的话**修根因**（`verify-overlay` 就是这么修的，D-0193），修不了才临时挪到最后一步。
 2. 本地加完必须看**输出里有没有这个检查的判据行**，不能只看 exit code（exit 0 可能因为被短路而根本没跑）。
 3. CI 侧要单独加步骤，`ci.yml` 不会跟着 `package.json` 自动变。
 4. 已知长期红的检查用 `continue-on-error: true` 让它**可见但不阻断**，不要靠短路；根因修掉后立刻撤掉这个标记（D-0193 就是这么做的）。
+
+### 5.2 分支保护的必需检查不能来自带 `paths` 过滤的 workflow
+
+`gh-pages` / `cloudflare` / `vercel`（`deploy-matrix.yml`）与
+`assemble + build + verify`（`demo.yml`）都是 main 的必需检查，而这两个
+workflow 都用 `pull_request.paths` 过滤产物输入。
+
+于是**任何不碰这些路径的 PR 都拿不到这四个 check-run**，卡死在 `BLOCKED`。
+已踩两次：纯文档 PR（D-0192，补 `rules/**` `docs/**` `AGENTS.md` `.agents/**`）、
+纯 e2e PR（D-0194，补 `e2e/**`）。
+
+**判据不是「再补几个 glob」，而是**：一个 workflow 若要提供必需检查，它的
+`paths` 必须覆盖**全部**可能的改动面 —— 那等于不用 `paths`。反过来说，
+`paths` 过滤与「必需检查」本就不该共存于同一个 workflow。
+
+当前是「补全 glob」的折中：新增顶层目录时要记得同步两个 workflow 的 paths，
+否则又是一次 `BLOCKED`。彻底解法是把这四个 job 的内容抽到一个无 `paths`
+的轻量 workflow，或从必需列表里移除。
 
 <!-- D-0191 · 实测 CI job log 132521551699 -->
 
