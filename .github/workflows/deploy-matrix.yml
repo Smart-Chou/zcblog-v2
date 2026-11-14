@@ -67,8 +67,13 @@ jobs:
 
             # 私有内容仓：三个目标共用同一步（M3-7 §5.2 的「适配层」单点）。
             # fork PR 拿不到 ARTICLES_PAT，会在这里失败——这是已知限制，见 docs/deploy-matrix.md。
+            # 本 workflow 是 pull_request 触发的，外部 fork 的 PR 拿不到 secrets，无 PAT 时跳过。
             - name: Checkout articles (private)
+              if: ${{ env.ARTICLES_PAT != '' }}
               uses: actions/checkout@v5
+              continue-on-error: true
+              env:
+                  ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
               with:
                   repository: Smart-Chou/zcblog-articles
                   path: _articles
@@ -80,6 +85,10 @@ jobs:
                   cp _articles/*.md src/content/article/ 2>/dev/null || true
                   cp _articles/*.mdx src/content/article/ 2>/dev/null || true
                   cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  if [ -z "$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null)" ]; then
+                    echo "⚠️ 无私有内容仓访问权（外部 PR），改用仓内 fixture 文章"
+                    cp -r e2e/fixtures/pages-visual/content/article/*.md src/content/article/ 2>/dev/null || true
+                  fi
                   echo "📄 $(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l) 篇文章"
 
             - name: Normalize frontmatter (v1 布尔键 → v2 features)

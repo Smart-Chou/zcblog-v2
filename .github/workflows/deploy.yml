@@ -35,8 +35,14 @@ jobs:
             - name: Checkout zcblog
               uses: actions/checkout@v5
 
+            # 外部 fork 的 PR 拿不到 secrets，无 PAT 时跳过（否则 Authentication failed 让 CI 全红）。
+            # 内容落空由下面 Copy 步骤的 fixture 兜底。secrets 不能直接进 if，经 env 中转。
             - name: Checkout articles (private)
+              if: ${{ env.ARTICLES_PAT != '' }}
               uses: actions/checkout@v5
+              continue-on-error: true
+              env:
+                  ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
               with:
                   repository: Smart-Chou/zcblog-articles
                   path: _articles
@@ -51,6 +57,12 @@ jobs:
 
                   mkdir -p src/assets
                   cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  # 无私有仓访问权时（如手动 dispatch 而 PAT 失效）用 fixture 兜底，
+                  # 避免以 0 篇文章构建出空站还显示部署成功。
+                  if [ -z "$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null)" ]; then
+                    echo "⚠️ 未拿到私有仓文章，改用仓内 fixture 文章"
+                    cp -r e2e/fixtures/pages-visual/content/article/*.md src/content/article/ 2>/dev/null || true
+                  fi
                   echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
 
             - name: Content contract (A2b 未知字段)

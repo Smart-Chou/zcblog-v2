@@ -42,8 +42,14 @@ jobs:
 
             # 文章页/列表页的预算只有带真实内容才有意义；内容仓缺失时 article 页会归零，
             # 门禁变成「什么都没测」。所以和 ci.yml gates job 用同一套内容准备步骤。
+            # 外部 fork 的 PR 拿不到 secrets，无 PAT 时跳过（否则 Authentication failed 让 CI 全红）。
+            # 内容落空由下面 Copy 步骤的 fixture 兜底。secrets 不能直接进 if，经 env 中转。
             - name: Checkout articles (private)
+              if: ${{ env.ARTICLES_PAT != '' }}
               uses: actions/checkout@v5
+              continue-on-error: true
+              env:
+                  ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
               with:
                   repository: Smart-Chou/zcblog-articles
                   path: _articles
@@ -55,6 +61,11 @@ jobs:
                   cp _articles/*.md src/content/article/ 2>/dev/null || true
                   cp _articles/*.mdx src/content/article/ 2>/dev/null || true
                   cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  # 外部 PR 无私有仓访问权时用仓内 fixture 兜底，否则 0 篇文章会让断言退化成假绿。
+                  if [ -z "$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null)" ]; then
+                    echo "⚠️ 无私有内容仓访问权（外部 PR），改用仓内 fixture 文章"
+                    cp -r e2e/fixtures/pages-visual/content/article/*.md src/content/article/ 2>/dev/null || true
+                  fi
                   echo "📄 $(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l) 篇文章"
                   echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
 
