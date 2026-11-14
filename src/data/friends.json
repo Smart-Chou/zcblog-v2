@@ -40,5 +40,11 @@
         "link": "https://patrickwu.space/",
         "avatar": "https://avatars.githubusercontent.com/u/15316889",
         "style": "color: #fff; background-color: #61a3cf"
+    },
+    {
+        "id": "@Probe Test Site",
+        "link": "https://example.com/probe-test",
+        "avatar": "https://example.com/avatar.png",
+        "style": "color: #fff; background-color: #9b3b8d"
     }
 ]
