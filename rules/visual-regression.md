@@ -59,11 +59,13 @@ pnpm visual:build:pages
 # 2. macOS 基线
 pnpm exec playwright test e2e/pages.visual.spec.ts --update-snapshots
 
-# 3. Linux 基线：必须在 CI 用的同一个镜像里
+# 3. Linux 基线：必须在 CI 用的同一个镜像里，且浏览器按 lockfile 现装
+#    镜像 tag 与 @playwright/test 版本要匹配；换 playwright 版本时两处同步改。
 docker run --rm --ipc=host -v "$PWD":/work -w /work \
   -e PLAYWRIGHT_BASELINE_PLATFORM=linux \
   mcr.microsoft.com/playwright:v1.63.0-noble \
   bash -lc 'corepack enable && corepack pnpm install --frozen-lockfile && \
+            corepack pnpm exec playwright install --with-deps chromium && \
             node scripts/visual/build-pages-baseline.mjs && \
             corepack pnpm exec playwright test e2e/pages.visual.spec.ts --update-snapshots'
 
@@ -77,6 +79,36 @@ pnpm exec playwright test e2e/pages.visual.spec.ts
 - **Linux 集不能复用宿主 `node_modules`**：`rolldown` 是原生二进制，macOS 版在 Linux 容器里直接崩（症状是 `✗ empty 构建失败`）。用命名卷 `-v zcblog-linux-nm:/work/node_modules` 在容器内 `pnpm install --frozen-lockfile`。corepack 下 pnpm 偶发 TLS `ECONNRESET` 时改 `npm i -g pnpm@10`。<!-- D-0173 -->
 - 新增/删除基线页面：改 `e2e/pages.visual.spec.ts` 的 `PAGES`，**两平台都重出**，并在 PR 里贴 diff 截图。
 - `loading` 与 `filtered-empty` 两态**当前不在矩阵里**（`EntityStatus` 只有 `ok|empty|error`，筛选 UI 未合并）。对 `main` 生成那两态只会把 `ok` 版式录成假状态——宁缺勿假。<!-- D-0156 未决 · scripts/visual/build-state-baseline.mjs -->
+
+## 4.1 浏览器版本一变，整套基线必然全红（不是回归）
+
+「重渲染 0 像素漂移」的前提是**同一浏览器构建号**。Playwright 的浏览器 revision 跟着 npm 版本走（1.63 → `chromium_headless_shell-1243`，1.65 → `-1254`），而镜像 tag 是独立的：两者一旦脱节，结果是：
+
+| 现象 | 含义 |
+|---|---|
+| `browserType.launch: Executable doesn't exist at /ms-playwright/chromium_headless_shell-1254/...` | **镜像里没有新版浏览器**。不是代码问题，是 workflow 缺 `playwright install` |
+| 42 页全红、每页 ratio 都约 0.01、diff 图上的红点全在文字笔画边缘 | **浏览器换了字体栅格化**。亚像素抗锯齿变了，不是布局坏 |
+
+**判据：看 ratio 的分布，不看单页数字。** 布局真坏时不同页面的差异比例各不相同（有的 0.03、有的 0.4）；纯渲染噪声时**所有页都挤在同一个很小的比例上**（实测 PR #9 的 42 页全是 0.01）。再用 vision 看一张 diff 图，确认红点是「沿笔画边缘的碎点」而非「与元素轮廓一致的连续红边」。
+
+**遇到这种全红，不要在业务代码里找原因。** 顺序是：
+
+1. 确认是不是浏览器版本变了（对比 `package.json` 的 `@playwright/test` 与 workflow 的镜像 tag）
+2. 版本确实变了 → **两个平台都重出基线**，并在 PR 里说明「因 Chrome X→Y 的字体渲染变化重出」
+3. 重出前用 vision 抽查 2–3 张 diff 图，确认差异只在文字边缘、无位移、无间距变化
+
+**不要把 `maxDiffPixels: 0` 放宽成 0.01 来「解决」它。** 那会让这个门禁对真实的 1px 位移也失效——而这正是它存在的理由。
+
+### workflow 侧的铁律
+
+**不要依赖镜像里预装的浏览器。** 镜像只提供系统依赖（字体、库），浏览器必须按 lockfile 现装：
+
+```yaml
+- name: Install Playwright browsers (版本跟随 lockfile，不依赖镜像 tag)
+  run: corepack pnpm exec playwright install --with-deps chromium
+```
+
+`a11y-pr.yml` / `a11y-nightly.yml` 一直是这么做的；`ci.yml` 的 visual job 曾漏掉这步，导致 dependabot 升 playwright 时 12 个 atom docs 用例在 `browserType.launch` 就全挂。<!-- D-0190 -->
 
 ## 5. 坑：旧基线可能编码的是缺陷
 
