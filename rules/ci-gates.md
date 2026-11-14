@@ -34,11 +34,13 @@
 
 `content_inventory.py` 是 G1 的内容盘点工具（`python3 scripts/gates/content_inventory.py <content-dir> [--json out.json]`），退出码不表达契约；A2/A3 通过 `import parse_frontmatter` 复用它。不要把它当第六道内容门禁。
 
-## 2. `pnpm gates:all` 恰好包含 10 个
+## 2. `pnpm gates:all` 恰好包含 11 个
 
-`verify-atoms` → `verify-atom-docs` → `verify-component-inventory` → `verify-doc-drift` → `check-tokens` → `verify-surface-tokens` → `verify-entities` → `verify-package-boundary` → `verify-overlay` → `verify-icon-sprite`。全是串行 `&&`，任一红即停。<!-- package.json scripts.gates:all -->
+`verify-atoms` → `verify-atom-docs` → `verify-component-inventory` → `verify-doc-drift` → `check-tokens` → `verify-surface-tokens` → `verify-entities` → `verify-package-boundary` → `icons:check` → `verify-icon-sprite` → `verify-overlay`。全是串行 `&&`，任一红即停。
 
-**不在这 10 个里的**：`verify-component-docs`、`verify-i18n`、`verify-og`、`verify-deploy-artifacts`、`verify-m3-exit`、三道内容门禁、`perf-budget`。所以「`gates:all` 绿」≠「全部门禁绿」——内容与 dist 层要另外跑。
+**顺序是有意的**：`verify-overlay` 排最后，因为它的 2 个 licenses 未分类 FAIL 是已知长期状态（见 §5.1）。它 FAIL 只影响自己，不再短路前面任何一步。<!-- D-0191 -->
+
+**不在这 11 个里的**：`verify-component-docs`、`verify-i18n`、`verify-og`、`verify-deploy-artifacts`、`verify-m3-exit`、三道内容门禁、`perf-budget`。所以「`gates:all` 绿」≠「全部门禁绿」——内容与 dist 层要另外跑。
 
 ## 3. 逐门判据
 
@@ -103,6 +105,16 @@ I1 registry ↔ 词典双向一致 / I2 `astro.config.mjs` 的 i18n 段与 regis
 `sprite` 文件存在且是 `<svg>`+`<g id>` / `SPRITE_VERSION` = sprite 的 sha256 前 8 位 / 清单每个图标在 sprite 里有同名 `<g>` / sprite 每个 `<g>` 在清单里查得到 / id 唯一不含 `:` / `ICON_INLINE_ONLY` 不在 sprite 里 / `_headers` 有 `/icons.svg` immutable / **S8 源码引用的图标都在清单里**。
 **红 = 忘了跑 `node scripts/generate-icons.js`**，症状是线上缺图或缓存不失效，而构建不报错。S8 是补上「清单↔sprite 两侧都查、中间源码引用无人查」的缺口后加的。<!-- D-0173 -->
 
+### 3.8b `icons:check` — 生成物是否跟得上 `@iconify-json`
+
+`node scripts/generate-icons.js --check`：按当前 `node_modules` 里的 iconify 数据**重新渲染一遍**，三个生成物（`public/icons.svg` / `Icons/index.ts` / `Icons/sprite.ts`）必须与磁盘逐字节相同。任何不等 = 生成物过期。
+
+**为什么 S1–S8 不够**：S1–S8 查的是「清单 ↔ sprite ↔ 源码」三方**内部**一致性；三者可以一起过期，内部依然自洽。`icons:check` 引入的是与**外部数据源**（`@iconify-json/*` 的实际版本）的一致性。
+
+**为什么这个洞特别隐蔽**：`ci.yml` 的 visual job 跑 `scripts/visual/build-pages-baseline.mjs`，它直接 spawn `astro build`，**绕过 `pnpm build` 的 `fetch:all`**。所以只升 iconify 不重跑生成器时，CI 拿旧图标比旧基线 → 绿；而部署会重跑 `fetch:all` 出新的 → 线上是新图形。**门禁与线上静默分叉**，批次 1（`755b4b63`）就这么漏过一次。
+
+**红 = 跑 `pnpm run icons` 然后提交那三个文件**。判据与四种失效场景实测见 D-0191。<!-- package.json scripts.icons:check · PR #16 -->
+
 ### 3.9 `verify-package-boundary.mjs` — 包边界（W0 + B1–B4）
 
 W0 workspace 声明 + 三包 manifest/版本 lockstep + 发布状态合规（`tokens`/`og-image` 可发布、`ui` 仍 private）；B1 包内 `~/` 别名 = 0；B2 包内站点身份串 = 0（唯一豁免：包自身 npm name）；B3 依赖 ⊆ 白名单且站内互引必须 `workspace:*`；B4 站点私有数据（`src/data`、`src/config`、`src/assets/qr`、`public/assets/note` 抽样）不进包。
@@ -137,7 +149,7 @@ O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.ver
 | job | 步骤里的门禁 |
 |---|---|
 | `test` | `pnpm lint` → `type-check` → `test:unit` → `verify-atoms` + `verify-atom-docs` → `verify-component-inventory` + `verify-doc-drift` |
-| `contract` | `check-tokens` → `verify-surface-tokens` → `verify-package-boundary` → `verify-entities --json` |
+| `contract` | `check-tokens` → `verify-surface-tokens` → `verify-package-boundary` → `verify-entities --json` → `verify-overlay`（`continue-on-error`）→ `verify-icon-sprite` + `generate-icons.js --check` |
 | `visual` | 视觉基线四套（atoms 72 / pages 42 / states 36 / player 12，各连跑两遍）+ docs a11y |
 | `gates` | 真实内容构建 → `verify-build.mjs` → `verify-atom-docs --dist` → `check-legacy-keys` + `check-relative-assets --expect 22` → `perf-budget` |
 
@@ -149,8 +161,27 @@ O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.ver
 
 - **阻断部署**（`deploy.yml` 任一红即中断，不许注释、不许加 `|| true`）：A2b 内容契约、token 契约、P5 棘轮、实体契约、build、`verify-build.mjs`、A2、A3、性能预算、lint。只有两个 `fetch:*` 步骤被显式容忍。<!-- D-0175 -->
 - **阻断合并**（PR 上红）：`test` / `contract` / `visual` / `gates` **四个 job 的全部步骤**（`gates` job 要 checkout 私有内容仓，需要 `ARTICLES_PAT`）。
-- **只报告不阻断**：`report-data-freshness.mjs`（数据新鲜度）、实体 E7 的 180 天 WARN、inventory 的过期快照告警、`perf-budget` 的 `TARGET` 列。
+- **只报告不阻断**：`report-data-freshness.mjs`（数据新鲜度）、实体 E7 的 180 天 WARN、inventory 的过期快照告警、`perf-budget` 的 `TARGET` 列、`verify-overlay`（`continue-on-error: true`，因 2 个 licenses 文件未分类长期红）。
 - **里程碑门禁**：`verify-m3-exit` 五项。
+
+### 5.1 加门禁前必须先确认「它真的会跑」
+
+`pnpm gates:all` 是 `&&` 链，**一个长期 FAIL 的检查会静默吞掉它后面的一切**。
+2026-11-15 实测：`verify-overlay.mjs` 因 2 个 licenses 文件未分类 FAIL，排在它
+后面的 `verify-icon-sprite.mjs`（S1–S8）**从未执行过**，而单跑是 9/9 PASS。
+
+同时，`ci.yml` 是**手写步骤列表**，与 `package.json` 的 scripts 是两套独立
+事实源 —— 同一个脚本可能本地在跑、CI 却没写。当时 `verify-overlay.mjs` 与
+`verify-icon-sprite.mjs` 在两条路径上都是空的。
+
+所以新增门禁时：
+
+1. 不要无脑追加到 `gates:all` 末尾，先确认链上没有已知失败点；有的话把它挪到**最后一步**。
+2. 本地加完必须看**输出里有没有这个检查的判据行**，不能只看 exit code（exit 0 可能因为被短路而根本没跑）。
+3. CI 侧要单独加步骤，`ci.yml` 不会跟着 `package.json` 自动变。
+4. 已知长期红的检查用 `continue-on-error: true` 让它**可见但不阻断**，不要靠短路。
+
+<!-- D-0191 · 实测 CI job log 132521551699 -->
 
 ## 6. 红了先做这四件事
 
