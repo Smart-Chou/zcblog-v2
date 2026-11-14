@@ -53,6 +53,12 @@ jobs:
                   cp -r _articles/assets/* src/assets/ 2>/dev/null || true
                   echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
 
+            - name: Content contract (A2b 未知字段)
+              # 必须在 Normalize 之前跑：normalize 会删掉 v1 的 6 个布尔键，
+              # 之后跑就看不见「内容仓写了 v1 旧键」这一类（D-0179）。
+              # 判据从 content.config.ts + normalize-frontmatter.mjs 解析，不手抄。
+              run: python3 scripts/gates/check-content-contract.py src/content/article
+
             - name: Normalize frontmatter (v1 布尔键 → v2 features)
               run: node scripts/normalize-frontmatter.mjs src/content/article
 
@@ -126,6 +132,13 @@ jobs:
 
             - name: Performance budget (A6)
               run: python3 scripts/gates/perf-budget.py dist
+
+            - name: Data freshness (只报告，不阻断)
+              # D-0180：fetch-*.mjs 缺变量时静默 exit 0，导致数据陈旧 6 个月无人发现。
+              # 本步只把「跳过 / 失败 / 静态 / 陈旧」四类摊开写进 job summary，退出码恒 0。
+              # 以 git 提交时间为基准 —— mtime 在 CI 里被 checkout 刷成"刚刚"，不可用。
+              if: always()
+              run: node scripts/report-data-freshness.mjs
 
             - name: Lint (prettier --check)
               run: pnpm run lint
