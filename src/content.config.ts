@@ -30,7 +30,9 @@ export const article = defineCollection({
 
                 /**
                  * 硬约束 1–200：只保证「非空、不炸」。
-                 * 软规范 60–160 由 `scripts/lint-frontmatter.mjs` 检查（**脚本已就位**，G4 接进 CI 时以 warning 执行）。
+                 * 软规范 60–160 交给 lint —— **但那个 lint 脚本从未存在**：
+                 * 2026-11-14 核 `git log --all --diff-filter=A -- scripts/lint-frontmatter.mjs` 为空，
+                 * 此处原写「脚本已就位」是错的（同 D-0167 那类「声称存在」）。当前无人检查 60–160。
                  * v2 曾写 min(20)，实测 7 篇只有 4–13 字（reset-network 4、live2d 5、
                  * initialize-cloud-disk 6、vps-command 8、meilisearch 11、php-random-picture 11、
                  * handsome-beautify-record 13）——那是把内容债搬进构建约束，不是降级到 lint。

@@ -15,7 +15,7 @@
         "preview": "astro preview",
         "astro": "astro",
         "type-check": "tsc --noEmit",
-        "new-post": "node scripts/new-post.js",
+        "new-post": "bash scripts/new-post.sh",
         "preinstall": "npx only-allow pnpm",
         "fetch:all": "pnpm run talks & pnpm run douban & pnpm run friends & pnpm run bangumi & pnpm run popular & pnpm run stats & pnpm run icons",
         "icons": "node scripts/generate-icons.js",

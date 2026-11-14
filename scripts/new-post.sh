@@ -11,9 +11,12 @@ while [[ "$extension" != "md" && "$extension" != "mdx" ]]; do
 done
 
 # Step 3: 选择文件创建的位置
-read -p "请输入文件创建的位置（默认目录 './src/content/article'): " filepath
+# ⚠️ 默认落点是内容仓，不是 src/content/article —— 后者被 .gitignore 忽略，
+# 是构建从内容仓 cp 进来的缓存，写在那里下次构建就被覆盖、也提交不了。
+echo "提示：真实内容在内容仓 zcblog-articles，这里只是构建缓存（已 gitignore）。"
+read -p "请输入文件创建的位置（默认目录 '../zcblog-articles'): " filepath
 if [ -z "$filepath" ]; then
-  filepath="./src/content/article"
+  filepath="../zcblog-articles"
 fi
 
 # 创建目录（如果不存在）

@@ -106,7 +106,6 @@
                 "CONTRIBUTING.md",
                 "AGENTS.md",
                 "rules/**",
-                ".agents/skills/**",
                 "LICENSE",
                 "NOTICE"
             ],
@@ -140,7 +139,7 @@
         "X": {
             "label": "exclude",
             "upgrade": "ignore",
-            "rules": ["docs/_reviews/**", ".claude/**"],
+            "rules": ["docs/_reviews/**", ".claude/**", ".agents/skills/**"],
             "reserved": [
                 "dist/**",
                 "node_modules/**",

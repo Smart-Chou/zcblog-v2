@@ -111,7 +111,7 @@ W0 workspace 声明 + 三包 manifest/版本 lockstep + 发布状态合规（`to
 ### 3.10 `verify-overlay.mjs` — T/O/X 契约（O0–O7）
 
 O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.version` 与根 `package.json` lockstep、`changeLog` 每条是 `D-NNNN` + 合法日期 + 非空说明）；**O1 `git ls-files` 每个文件恰好命中一类，`unclassified=0`**；O2 不得同时命中两类；O3 T/O 每条规则至少命中 1 个 tracked 文件（死规则即红，`reserved` 允许 0 命中）；O4 anchors 存在且分类符合声明；O5 `theme-sync --list` 与门禁同口径；O6 七个合成探针落对类；O7 `apps/<site>/` overlay 字段完整。
-**最常见的红**：新增了顶层文件/目录但没在 `site.manifest.json` 加规则（先 `git add` 才会被扫到）。**修法**：给 `rules/` 这类新目录在清单里落一条 X 或 T 规则，再跑 `--report` 看分类分布。<!-- D-0144 -->
+**最常见的红**：新增了顶层文件/目录但没在 `site.manifest.json` 加规则（先 `git add` 才会被扫到）。**修法**：给新目录在清单里落一条规则，再跑 `--report` 看分类分布。**T 还是 X 有硬判据，别猜**：T（theme）会被 `theme-sync --apply` 覆盖并随主题包分发，只给「主题代码与主题工具链」；X（exclude）是「构建产物、缓存、评审档案、**Agent 上下文**」，AI 工具目录（`.claude/**`、`.agents/**`）一律 X。落进 T 的后果是下游站点执行 theme-sync 时被覆盖。`AGENTS.md`、`rules/**` 是给人读的治理文档 → T；`.agents/skills/**` 是 Agent 上下文 → X。<!-- D-0144 · D-0183 -->
 
 ### 3.11 dist 层三门
 
