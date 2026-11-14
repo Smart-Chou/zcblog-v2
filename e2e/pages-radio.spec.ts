@@ -253,6 +253,11 @@ test("light/dark × 390/768/1440：无横向溢出", async ({ page }) => {
 test("≤640：播放器不与底部导航相交", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/radio/");
+    // `.site-player` 由 SitePlayerGate.astro 里的 `void import("~/scripts/site-player")`
+    // 异步注入 —— goto() 返回时 HTML 已解析，但该 chunk 可能还没执行完。
+    // 直接 evaluate 会在元素出现前返回 null，是测试侧的竞态（main 曾因此在
+    // PR 绿、合并后红，见 D-0194）。等元素真的挂上再测量。
+    await page.waitForSelector(".site-player", { state: "attached", timeout: 10000 });
     const layout = await page.evaluate(() => {
         const player = document.querySelector(".site-player")?.getBoundingClientRect();
         const tabs = document.querySelector(".bottom-tabs")?.getBoundingClientRect();
