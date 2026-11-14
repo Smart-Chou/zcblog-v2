@@ -359,6 +359,10 @@ rows.sort((a, b) => GRADE_ORDER[a.grade] - GRADE_ORDER[b.grade] || b.ageDays - a
 const counts = { STALE: 0, WARN: 0, OK: 0 };
 for (const row of rows) counts[row.grade] += 1;
 const staticCount = rows.filter((r) => r.static).length;
+// 抓取状态是独立维度：D-0181 实测过「分级全 OK 但 3 个 fetch 正在失败」——
+// CI 每次提交都会刷新 git 时间，所以失败也能显示成"刚刚"。新鲜度不能代表抓取健康。
+const buildCounts = { ok: 0, skipped: 0, failed: 0, static: 0, unknown: 0 };
+for (const row of rows) buildCounts[row.buildKind] = (buildCounts[row.buildKind] || 0) + 1;
 const driftWarnings = await checkProducerDrift();
 
 // ── 终端输出 ──
@@ -391,6 +395,11 @@ function renderText() {
     lines.push(
         `   汇总: OK ${counts.OK} · WARN ${counts.WARN} · STALE ${counts.STALE}` +
             `（其中静态/手工维护 ${staticCount} 个）`,
+    );
+    lines.push(
+        `   抓取: ✅ 成功 ${buildCounts.ok} · ⏭ 跳过 ${buildCounts.skipped} · ` +
+            `❌ 失败 ${buildCounts.failed} · — 静态 ${buildCounts.static}` +
+            (buildCounts.failed > 0 ? "  ← 失败需人工看" : ""),
     );
 
     const stale = rows.filter((r) => r.grade === "STALE" && !r.static);
@@ -455,6 +464,11 @@ function renderMarkdown() {
     lines.push(
         `**汇总**：OK **${counts.OK}** · WARN **${counts.WARN}** · STALE **${counts.STALE}**` +
             ` （其中静态/手工维护 ${staticCount} 个）`,
+    );
+    lines.push(
+        `**抓取**：✅ 成功 **${buildCounts.ok}** · ⏭ 跳过 **${buildCounts.skipped}** · ` +
+            `❌ 失败 **${buildCounts.failed}** · — 静态 **${buildCounts.static}**` +
+            (buildCounts.failed > 0 ? " ← 失败需人工看" : ""),
     );
 
     const stale = rows.filter((r) => r.grade === "STALE" && !r.static);
