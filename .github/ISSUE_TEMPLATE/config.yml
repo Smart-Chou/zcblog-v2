@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+    - name: 使用问题 / 怎么装配成自己的博客
+      url: https://github.com/Smart-Chou/zcblog-v2/blob/main/README.md#消费者入口
+      about: 本仓没有开 Discussions。overlay 装配、npm 消费、升级与回滚先看 README 的「消费者入口」，以及 docs/overlay-contract.md、docs/npm-consumer.md。
+    - name: 文章内容有误 / 想改自己的文章
+      url: https://github.com/Smart-Chou/zcblog-v2/blob/main/CONTRIBUTING.md
+      about: 文章真源在私有仓，本仓 src/content/article/ 只是被 gitignore 的构建缓存 —— 改这里不会上线。先看 CONTRIBUTING 第 4 节。
+    - name: 安全问题（不要公开报）
+      url: https://github.com/Smart-Chou/zcblog-v2/security/advisories/new
+      about: 凭据泄露、XSS、内容加密可绕过请走私密 advisory，不要在 issue 里贴可复现的攻击载荷。

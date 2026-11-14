@@ -3,6 +3,10 @@
 > 可发布的 Astro 博客主题：原生 CSS + design tokens、M3E 组件、10 locale、64 atoms、
 > 独立文档站，以及 `create-site` 装配器。`marxchou.com` 是第一个客户，不是唯一客户。
 
+**是什么** —— 一个可发布的 **Astro 博客主题**（主题名 Dogeared，包名 `@marxchou/dogeared-*`）：原生 CSS + design tokens，没有 Tailwind、没有前端框架组件，配 `create-site` 装配器和一个独立文档站。
+**给谁用** —— 想自托管一个内容型博客、又不想被第二套设计系统绑架的人；以及想看「一个主题怎么当产品做」的开发者：治理规则、门禁、像素基线全在仓里。
+**当前状态** —— 生产站 <https://zcblog-v2.pages.dev> 在跑（Cloudflare Pages），三个包已发布到 npm，**欢迎 issue 和 PR**（见 [参与贡献](#参与贡献)）。
+
 ## 消费者入口
 
 ```bash
@@ -22,9 +26,9 @@ SITE_URL="https://your-site.example.com" \
 - 主题装配/overlay 契约：`docs/overlay-contract.md`
 - 只消费 npm 包：`docs/npm-consumer.md`（接入 §1–§4，升级 §5，回滚 §6，Node 22/24 × macOS/Linux 矩阵 §7）
 - 升级与版本：`docs/upgrade.md`
-- 示例站部署：`apps/demo/README.md`
+- 示例站部署：`apps/demo/README.md`（线上预览 <https://demo.zcblog-v2.pages.dev>）
 - 外部消费者验收记录：`docs/_reviews/M5-2/report.md`
-- npm `latest`（2026-11-06）：`@marxchou/dogeared-tokens@2.1.2`、`@marxchou/dogeared-og-image@2.1.2`；`ui` 仍 private
+- npm `latest`（2026-11-06）：`@marxchou/dogeared-tokens@2.1.2`、`@marxchou/dogeared-og-image@2.1.2`、`@marxchou/dogeared-ui@2.1.2`（三包均已公开）
 
 ## 参考站点：Marx's Blog
 
@@ -238,6 +242,46 @@ SITE_URL="https://your-site.example.com" \
 └── .env.example               # 环境变量示例
 ```
 
+## 项目结构导览
+
+上面那棵树回答「有什么文件」；这一节回答「我想改 X，该看哪份文档」。README 是消费者视角，**真源在 `AGENTS.md` + `rules/` + `docs/`**——说法冲突时以它们为准。
+
+### 想知道 X 该看哪
+
+| 我想… | 看这里 |
+| ---- | ---- |
+| 改视觉 / 配色 / 字号 | [`docs/DESIGN.md`](docs/DESIGN.md) §3 Token 体系；[`rules/component-api.md`](rules/component-api.md) |
+| 加一个组件 | [`rules/component-api.md`](rules/component-api.md)；[`.agents/skills/zcblog-new-feature/SKILL.md`](.agents/skills/zcblog-new-feature/SKILL.md) |
+| 改一篇文章 | 私有内容仓 `Smart-Chou/zcblog-articles`——**不是本仓**（`src/content/article/` 只是构建缓存） |
+| 加 / 改 frontmatter 字段 | [`rules/content-contract.md`](rules/content-contract.md)；契约本体 `src/content.config.ts` |
+| 门禁红了 | [`rules/ci-gates.md`](rules/ci-gates.md)（逐个脚本的判据 + 能不能只跑本地） |
+| 改部署 / 换平台 | [`docs/deploy-matrix.md`](docs/deploy-matrix.md)；[`rules/ci-gates.md`](rules/ci-gates.md) |
+| 改视觉基线（截图回归） | [`rules/visual-regression.md`](rules/visual-regression.md) |
+| 加 / 改 e2e 用例 | `e2e/*.spec.ts`；视觉相关的另见 [`rules/visual-regression.md`](rules/visual-regression.md) |
+| 改数据源抓取（随笔 / 豆瓣 / 番剧） | `scripts/fetch-*.mjs`；坑见 [`rules/pitfalls.md`](rules/pitfalls.md) |
+| 发 npm 包 / 动版本号 | [`docs/release.md`](docs/release.md)；`pnpm verify:versions` |
+| 把主题升级到别人的站点 | [`docs/overlay-contract.md`](docs/overlay-contract.md)、[`docs/upgrade.md`](docs/upgrade.md) |
+| 用 AI 工具改这个仓 | [`AGENTS.md`](AGENTS.md) 先读；任务化入口在 [`.agents/skills/`](.agents/skills/README.md) |
+| 踩过的坑 | [`rules/pitfalls.md`](rules/pitfalls.md)（缓存、假红、平台差异） |
+
+### 治理三层，按这个顺序读
+
+1. [`AGENTS.md`](AGENTS.md) —— 总纲：必遵规则、必读文档清单、验证命令。AI 编码工具进仓先读这份。
+2. [`rules/`](rules/)（6 篇）+ [`docs/`](docs/)（7 篇）—— 硬约束与契约正文：组件分层、token、内容契约、门禁、视觉基线、部署矩阵。
+3. [`.agents/skills/`](.agents/skills/README.md)（3 篇）—— 任务化入口（日常开发 / 加功能 / 内容运营），只回答「这次任务该读什么、跑哪些命令」。
+4. 仓外还有治理仓 `blog2.0`（决策记录 `decision-log.md`，只增不改）——**只在作者本机有效**；clone 到别处时以仓内 `rules/` + `docs/` 为准。
+
+### 双仓 + 三站，别搞混
+
+- **本仓** `Smart-Chou/zcblog-v2`：主题 + 站点源码，`push main` 自动部署。
+- **内容仓** `Smart-Chou/zcblog-articles`（私有）：文章与图片的唯一真源，推送后触发本仓重建。没有它的权限也能改主题，只是本地看不到文章。
+- **三个站**：生产 <https://zcblog-v2.pages.dev>；示例 overlay <https://demo.zcblog-v2.pages.dev>；第一个客户站 <https://marxchou.com>（代码冻结，只作参考）。
+
+### 还是找不到？
+
+- 先搜：`rg "关键词" rules/ docs/ src/`；组件计数只认 [`docs/component-inventory.json`](docs/component-inventory.json)，别在文档里手抄第二份。
+- 目录树里没列到的脚本，去 `package.json` 的 `scripts` 里找同名命令。
+
 ## 快速开始
 
 ```bash
@@ -255,6 +299,56 @@ pnpm run preview
 ```
 
 > 环境要求：Node.js 22+（CI 使用 22.x）、pnpm（`packageManager` 字段锁定 `pnpm@12`）。
+
+## 参与贡献
+
+**这个项目欢迎 issue 和 PR** —— 报 bug、提功能、改文档、改代码都算贡献。文章内容不在本仓（真源是私有仓 `zcblog-articles`），但主题本身是开放的。
+
+### 三种参与方式
+
+| 我想… | 入口 |
+| ---- | ---- |
+| 报 bug | [新建 Bug 报告](https://github.com/Smart-Chou/zcblog-v2/issues/new?template=bug_report.yml)（`.github/ISSUE_TEMPLATE/bug_report.yml`），写清复现步骤、期望 / 实际结果、Node 与 pnpm 版本 |
+| 提功能 / 提设计改动 | [新建功能请求](https://github.com/Smart-Chou/zcblog-v2/issues/new?template=feature_request.yml)（`.github/ISSUE_TEMPLATE/feature_request.yml`），先说「要解决什么问题」和使用场景 |
+| 改代码 | 先读 [`CONTRIBUTING.md`](CONTRIBUTING.md)，再按下面三步跑起来 |
+
+### 重大改动先开 issue
+
+新功能、改设计、动 token 或组件分层、加依赖——**先开 issue 对齐方向，再写代码**。仓里的门禁很硬（颜色只走语义 token、组件分层单向、JS/CSS 预算、像素基线），方向没对齐的实现大概率在 `pnpm gates:all` 上整轮返工。issue 里写清要解决的问题，比直接贴 500 行 diff 有用。
+
+### 最短上手路径
+
+```bash
+corepack enable   # 只支持 pnpm（package.json 锁定 pnpm@12）
+pnpm install
+pnpm dev          # → http://localhost:4321
+```
+
+**不需要配任何环境变量**就能起站：`.env` 不存在时所有外部数据源拉取都被跳过，页面照常渲染。两个如实的提醒：
+
+- `src/content/article/` 是 gitignored 的构建缓存，新 clone 里是**空的**；开发服务器会打一条 `[glob-loader] The base directory ... does not exist` 的 warn，不是坏了，是没内容。
+- 「随笔 / 豆瓣 / 番剧 / 热门」这些区块读的是仓里**已提交的 JSON 旧快照**（`src/data/*.json`），不是实时数据。
+
+改完提交前，至少跑这一串（新增文件先 `git add`，否则 overlay 门禁 O1 看不见未 tracked 文件）：
+
+```bash
+pnpm format && pnpm type-check && pnpm test:unit && pnpm gates:all
+```
+
+### 改之前先读
+
+| 文档 | 什么时候读 |
+| ---- | ---- |
+| [`AGENTS.md`](AGENTS.md) | 用 AI 编码工具（Claude Code / Codex / Cursor）改这个仓——**先让它读这份** |
+| [`rules/`](rules/) | 硬约束：组件分层、token、内容契约、门禁、视觉基线、踩坑 |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | 视觉真源：§3 token / §4 分层 / §5 组件规格 / §6 禁止项 / §7 预算 |
+
+### 不接受什么
+
+- 引入 Tailwind、Svelte 或任何第二套设计系统（含 utility class、`@apply`、`@theme`）
+- 提交 `src/content/article/` 或任何文章内容——真源是私有仓 `zcblog-articles`
+- 改 `.github/workflows/deploy.yml` 的发布链路，或给门禁加 `|| true` 绕过
+- 把格式化噪音、无关重排混进功能 PR（一个 PR 只做一件事，见 `CONTRIBUTING.md`）
 
 ## 可用脚本
 
@@ -506,6 +600,8 @@ description: 页面描述（可选）
 | 多语言翻译 | `src/data/i18n/zh.json`、`src/data/i18n/en.json` |
 
 ## 部署
+
+> **现状（2026-11）**：生产站已迁到 **Cloudflare Pages**——`push main` 触发 `.github/workflows/deploy.yml`，用 wrangler 发布到 `zcblog-v2` 项目的 production 环境（<https://zcblog-v2.pages.dev>，D-0175）。下面「GitHub Pages」一节保留为历史流程与备用目标；三平台产物差异与适配层见 [`docs/deploy-matrix.md`](docs/deploy-matrix.md)。
 
 ### GitHub Pages（主要部署方式）
 

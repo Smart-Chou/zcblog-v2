@@ -331,8 +331,17 @@ jobs:
             - name: Checkout zcblog
               uses: actions/checkout@v5
 
+            # 外部 fork 的 PR 拿不到 secrets（GitHub 不对 fork 派发 repository secrets），
+            # 这步若照常跑会 Authentication failed，整条 CI 红——外部贡献者的 PR 就永远合不了。
+            # 因此无 PAT 时跳过：下面的 cp 步骤本来就有 `|| true` 兜底，内容目录会空着，
+            # 但 gates job 的判据是契约/门禁而非文章数量，空内容不构成假绿（A2b 空目录判 exit 2）。
+            # `secrets` 上下文不能直接用在 `if:` 里（官方硬限制），经 env 中转；step 级 if 可读 env。
             - name: Checkout articles (private)
+              if: ${{ env.ARTICLES_PAT != '' }}
               uses: actions/checkout@v5
+              continue-on-error: true
+              env:
+                  ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
               with:
                   repository: Smart-Chou/zcblog-articles
                   path: _articles
@@ -344,6 +353,13 @@ jobs:
                   cp _articles/*.md src/content/article/ 2>/dev/null || true
                   cp _articles/*.mdx src/content/article/ 2>/dev/null || true
                   cp -r _articles/assets/* src/assets/ 2>/dev/null || true
+                  # 外部 fork 的 PR 拿不到 ARTICLES_PAT，上面三步会全部落空。落空时用仓内
+                  # fixture 兜底：否则内容为 0 → EXPECT_ARTICLES=0 → Verify build 的页数断言
+                  # 变成"0 等于 0"，是一处彻底的假绿（构建出 0 篇文章也能过）。
+                  if [ -z "$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null)" ]; then
+                    echo "⚠️ 无私有内容仓访问权（外部 PR），改用仓内 fixture 文章"
+                    cp -r e2e/fixtures/pages-visual/content/article/*.md src/content/article/ 2>/dev/null || true
+                  fi
                   echo "📄 $(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l) 篇文章"
                   echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
 
@@ -355,6 +371,12 @@ jobs:
                   content=$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l | tr -d ' ')
                   drafts=$(grep -l '^draft: *true' src/content/article/*.md 2>/dev/null | wc -l | tr -d ' ')
                   echo "内容 ${content} 篇，draft ${drafts} 篇 → 期望产出 $((content - drafts)) 篇"
+                  # 内容为 0 时不许继续：EXPECT_ARTICLES=0 会让 Verify build 的页数断言退化成
+                  # 「0 等于 0」，构建出空站也算通过——这是假绿，必须硬失败。
+                  if [ "$content" -eq 0 ]; then
+                    echo "::error::内容目录为空：既没拿到私有仓文章，fixture 兜底也失败。拒绝以 0 篇继续构建。"
+                    exit 1
+                  fi
                   echo "EXPECT_CONTENT=$content" >> "$GITHUB_ENV"
                   echo "EXPECT_ARTICLES=$((content - drafts))" >> "$GITHUB_ENV"
 

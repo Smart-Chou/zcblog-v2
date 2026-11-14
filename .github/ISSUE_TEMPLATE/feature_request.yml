@@ -1,0 +1,50 @@
+name: 功能请求
+description: 提出一个新功能、改进或设计调整（先讨论方向，再写代码）
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+    - type: textarea
+      id: problem
+      attributes:
+          label: 这个功能解决什么问题
+          description: 写现状的痛点、谁会遇到、多久遇到一次。**不要只写「我想要 X」** —— 需求背后的场景才是可讨论的部分。提之前先看 `AGENTS.md` 的 Must-follow rules：本仓禁 Tailwind / Svelte / 第二套设计系统。
+      validations:
+          required: true
+    - type: textarea
+      id: scenario
+      attributes:
+          label: 使用场景（哪条路由 / 哪个组件，什么条件触发）
+    - type: textarea
+      id: expected
+      attributes:
+          label: 你期望的行为
+          description: 描述可验收的结果（布局、交互、输出），不要写成实现方案。
+      validations:
+          required: true
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: 备选方案（考虑过但没选的方案，以及为什么不选）
+    - type: dropdown
+      id: willing-to-pr
+      attributes:
+          label: 是否愿意自己提 PR（愿意的话维护者会先给范围与验收标准）
+          options:
+              - 愿意，可以按项目要求改
+              - 愿意，但需要有人带（不熟 Astro / 不熟这个仓库）
+              - 不确定，先看讨论结果
+              - 不愿意，只提需求
+      validations:
+          required: true
+    - type: checkboxes
+      id: scope
+      attributes:
+          label: 影响范围
+          description: 多选。选得越准，越容易判断要跑哪些门禁、要不要重出视觉基线
+          options:
+              - label: 样式 / token（可能触动 `gates:surfaces` 棘轮与 324 张视觉基线）
+              - label: 组件（`src/components/**`，需补文档与组件清单）
+              - label: 路由 / 页面（`src/pages/**`、`src/layouts/**`）
+              - label: 构建 / 门禁（`scripts/**`、`.github/workflows/**`）
+              - label: 内容契约（frontmatter / `src/content.config.ts`）
+              - label: 其他（在下方补充说明）

@@ -1,0 +1,65 @@
+name: Bug 报告
+description: 报告一个可复现的问题（崩了、显示错了、门禁红了、构建失败）
+title: "[Bug]: "
+labels: ["bug"]
+body:
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: 问题描述
+          description: 一个 issue 只报一个现象。一句话说清哪里不对；「页面有问题」这类没有判据的描述会被要求重写。
+      validations:
+          required: true
+    - type: textarea
+      id: steps
+      attributes:
+          label: 复现步骤
+          description: 从干净 clone 出发，按顺序写能稳定复现的最短路径（哪条路由、点了什么、看到什么）。
+      validations:
+          required: true
+    - type: textarea
+      id: expected
+      attributes:
+          label: 期望行为
+    - type: textarea
+      id: actual
+      attributes:
+          label: 实际行为
+          description: 实际发生了什么；涉及数字时给实际值（例如像素差了几 px）。截图与录屏直接拖进这里。
+      validations:
+          required: true
+    - type: textarea
+      id: environment
+      attributes:
+          label: 环境
+          description: 一行一项：Node（`node -v`）、pnpm（`pnpm -v`）、系统、浏览器版本。视觉类问题必须写平台 —— 基线与字体栈按 macOS / Linux 分账。
+      validations:
+          required: true
+    - type: input
+      id: url
+      attributes:
+          label: 涉及页面
+          placeholder: https://zcblog-v2.pages.dev/tags/ 或本地路由 /tags/
+    - type: dropdown
+      id: reproducible
+      attributes:
+          label: 本地能复现吗
+          description: 干净 clone 后重装依赖再试一次，别只在自己的工作目录里确认
+          options:
+              - 可以稳定复现
+              - 不可以（只有线上或 CI 出现）
+              - 未试
+      validations:
+          required: true
+    - type: checkboxes
+      id: checks-run
+      attributes:
+          label: 已跑过的检查
+          options:
+              - label: "`pnpm build`"
+              - label: "`pnpm test:unit`"
+              - label: "`pnpm gates:all`"
+              - label: 未跑
+    - type: markdown
+      attributes:
+          value: 最后请把错误日志贴进来（完整堆栈、失败的断言、`RESULT FAIL` 那几行）。贴之前删掉 token、密码与内网 IP。

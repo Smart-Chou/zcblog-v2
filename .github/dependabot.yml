@@ -1,0 +1,35 @@
+version: 2
+updates:
+    # pnpm workspace 只有根 lockfile，packages/* 的依赖也解在这份里；只声明根目录，避免同一依赖开两次 PR。
+    - package-ecosystem: "npm"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+          day: "monday"
+      open-pull-requests-limit: 5
+      commit-message:
+          prefix: "chore(deps)"
+      groups:
+          minor-and-patch:
+              update-types: ["minor", "patch"]
+          major:
+              update-types: ["major"]
+      ignore:
+          # 三包 lockstep（tokens / ui / og-image 同步 2.1.2，见 docs/release.md）：版本由 changesets 推进，dependabot 不插手。
+          - dependency-name: "@marxchou/dogeared-tokens"
+          - dependency-name: "@marxchou/dogeared-ui"
+          - dependency-name: "@marxchou/dogeared-og-image"
+          # katex 被 pnpm-workspace.yaml 的 overrides 钉在 ^0.19.0；升 major 会被顶回去，只会开出装不上的 PR。
+          - dependency-name: "katex"
+            update-types: ["version-update:semver-major"]
+
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+          day: "monday"
+      commit-message:
+          prefix: "ci(deps)"
+      groups:
+          actions:
+              patterns: ["*"]
