@@ -228,12 +228,12 @@ async function runMerge() {
     list.push(entry);
     writeFileSync(FRIENDS_FILE, `${JSON.stringify(list, null, 4)}\n`);
 
-    // 注意：这里只是把改动写进工作区，真正的合并由 workflow 后续步骤开 PR + auto-merge 完成。
-    // 因此措辞必须是「已提交待合并」，不能说「已添加」——main 有分支保护，PR 没通过
-    // 检查之前什么都不会上线。issue 由 PR 正文的 `Closes #N` 在合并时自动关闭。
+    // 注意：这里只是把改动写进工作区，真正的合并由 workflow 后续步骤开 PR、站长手动合并。
+    // 因此措辞不能说「已添加」——PR 没合之前什么都不会上线。
+    // issue 由 PR 正文的 `Closes #N` 在合并时自动关闭。
     await comment(
         [
-            `✅ 已生成友链更新 **${entry.id}**，正在等待 CI 检查通过后自动合并（通常 5–10 分钟）。`,
+            `✅ 已生成友链更新 **${entry.id}**，已提交为 PR，等待站长合并。`,
             "",
             "> 机器人由站长在 Issue 上打 `approved` 标签触发；如信息有误，请直接在此 Issue 下说明。",
         ].join("\n"),
