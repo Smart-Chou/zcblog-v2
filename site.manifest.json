@@ -104,6 +104,7 @@
                 ".env.example",
                 "README.md",
                 "CONTRIBUTING.md",
+                "AGENTS.md",
                 "LICENSE",
                 "NOTICE"
             ],
