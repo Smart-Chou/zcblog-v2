@@ -21,6 +21,23 @@ on:
             - "scripts/deploy-matrix.sh"
             - "scripts/gates/verify-deploy-artifacts.mjs"
             - ".github/workflows/deploy-matrix.yml"
+            # ---- 治理文档也触发（D-0191）----
+            #
+            # 为什么必须加：gh-pages / cloudflare / vercel 是 main 分支保护的
+            # **必需检查**。如果 paths 只放产物输入，纯文档 PR 就永远不会创建
+            # 这三个 check-run，PR 状态卡在 BLOCKED 无法合并 —— 门禁与保护规则
+            # 互相死锁，谁也过不去。
+            #
+            # 以前没暴露是因为纯文档改动都直推 main、没走 PR。分支保护上线后
+            # 这条路被堵死（直推会被 protected branch hook 拒）。
+            #
+            # 代价：单次构建实测 ~74s，三 job 并行 ≈ 4 分钟，纯文档 PR 也要跑。
+            # 比「PR 永远合不了」便宜得多。且断言的是产物契约，文档改动理论上
+            # 不该影响它 —— 万一影响了，那正是该知道的事。
+            - "rules/**"
+            - "docs/**"
+            - "AGENTS.md"
+            - ".agents/**"
     push:
         branches: [main]
         paths:
