@@ -43,6 +43,11 @@
             "decision": "D-0189",
             "date": "2026-11-14",
             "summary": "新增 docs/06-performance-budget.md 归 T：解释 perf-budget.py 的 BUDGET/TARGET 两级阈值、棘轮约定与 --scale 负向验证。同时修掉 scripts/gates/perf-budget.py:25 与 rules/project-rules.md:110 指向该文件的死链。rules/a11y.md 与 rules/css-important.md 被既有 rules/** 通配覆盖，无需新增规则。"
+        },
+        {
+            "decision": "D-0193",
+            "date": "2026-11-15",
+            "summary": "docs/licenses/** 归 X：该目录是 M8-0 音频源许可取证记录（AUDIO-SOURCES.md 记六个 CC0 候选的托管路径/权利人/许可证/取证位置，CC0-1.0-legalcode.txt 是许可证全文，sha256 a2010f34…），属项目自有取证材料，不随主题升级替换，也不进客户端产物。此前两者未分类，导致 O1 长期unclassified=2、verify-overlay 恒红，进而让 gates:all 的 && 链短路，排在后面的 verify-icon-sprite.mjs（S1–S8）从未执行（见 D-0191）。"
         }
     ],
     "classes": {
@@ -148,7 +153,7 @@
         "X": {
             "label": "exclude",
             "upgrade": "ignore",
-            "rules": ["docs/_reviews/**", ".claude/**", ".agents/skills/**"],
+            "rules": ["docs/_reviews/**", ".claude/**", ".agents/skills/**", "docs/licenses/**"],
             "reserved": [
                 "dist/**",
                 "node_modules/**",

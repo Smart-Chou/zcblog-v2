@@ -122,14 +122,12 @@ jobs:
             # 图标，构建 / 门禁 / e2e 全绿。tabler:category 就这样在 skills 页缺过
             # 一整版。S8 正是为此写的。
             #
-            # 注意：verify-overlay.mjs 当前有 2 项 FAIL（docs/licenses/* 未登记分类）。
-            # 用 continue-on-error 单独放行，让它的红可见但不阻断其他门禁 ——
-            # 而不是继续靠 `&&` 短路把它后面的一切一起吞掉。
-            - name: Overlay structure gates (non-blocking, 2 known FAIL)
-              continue-on-error: true
+            # 2026-11-15 后续：docs/licenses/** 已归 X（D-0193），unclassified 归零，
+            # 这条不再长期红，所以是**硬门禁**（原先加的 continue-on-error 已撤）。
+            - name: Overlay structure gates (T/O/X O0–O7)
               run: node scripts/gates/verify-overlay.mjs
 
-            # 这条是硬门禁：图标 sprite / 清单 / 源码引用三方一致，且与 @iconify-json 一致。
+            # 图标 sprite / 清单 / 源码引用三方一致，且与 @iconify-json 一致。
             - name: Icon sprite + freshness gates (S1–S8 + icons:check)
               run: |
                   node scripts/gates/verify-icon-sprite.mjs
