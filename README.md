@@ -332,8 +332,12 @@ pnpm dev          # → http://localhost:4321
 改完提交前，至少跑这一串（新增文件先 `git add`，否则 overlay 门禁 O1 看不见未 tracked 文件）：
 
 ```bash
-pnpm format && pnpm type-check && pnpm test:unit && pnpm gates:all
+pnpm lint && pnpm type-check && pnpm test:unit && pnpm gates:all
 ```
+
+**用 `pnpm lint`（只读），不要用 `pnpm format`。** 后者是 `prettier -w .`，会把全库改成它喜欢的样子——你的 diff 里会混进几十个无关文件，review 的人看不出你到底改了什么。确实要统一格式时才跑 `format`，跑完逐项 review `git diff`。
+
+`pnpm gates:all` 目前会因为两处**既有**的 overlay 未分类项而红（`docs/licenses/AUDIO-SOURCES.md`、`docs/licenses/CC0-1.0-legalcode.txt`，见 `rules/ci-gates.md` §1）。这不是你弄坏的；除这两项外其余 9 个门禁应当全绿。
 
 ### 改之前先读
 
@@ -603,7 +607,7 @@ description: 页面描述（可选）
 
 > **现状（2026-11）**：生产站已迁到 **Cloudflare Pages**——`push main` 触发 `.github/workflows/deploy.yml`，用 wrangler 发布到 `zcblog-v2` 项目的 production 环境（<https://zcblog-v2.pages.dev>，D-0175）。下面「GitHub Pages」一节保留为历史流程与备用目标；三平台产物差异与适配层见 [`docs/deploy-matrix.md`](docs/deploy-matrix.md)。
 
-### GitHub Pages（主要部署方式）
+### GitHub Pages（历史流程 · 备用目标）
 
 推送至 `main` 或 `theme` 分支时自动触发；`zcblog-articles` 推送后由其 `notify.yml` 触发 `repository_dispatch (articles-updated)`；亦支持手动触发：
 
@@ -616,7 +620,7 @@ description: 页面描述（可选）
 
 ### Vercel（可选备用）
 
-项目保留 `vercel.json`（含 `tag → tags` 等重定向与构建内存配置）作为备用部署方案；当前生产部署为 GitHub Pages。
+项目保留 `vercel.json`（含 `tag → tags` 等重定向与构建内存配置）作为备用部署方案；当前生产部署为 Cloudflare Pages（见本节顶部现状说明）。
 
 ### 构建流程
 

@@ -67,6 +67,8 @@ pnpm dev
 
 **不要拿 `pnpm format` 当检查。** 它是 `prettier -w .`，会直接改写文件（包括你没打算动的）。要检查用 `pnpm lint`；确实要统一格式时才跑 `pnpm format`，之后逐项 review `git diff` 再提交。
 
+**注意 `pnpm lint` 不覆盖 Markdown。** `.prettierignore` 里有 `*.md` / `*.mdx`（这是有意的：格式化会吃掉中日韩字间的空格，也会打断手写的表格对齐），所以 `prettier --check .` 对 md 文件是空转——它报「All matched files use Prettier code style!」**不代表你的 md 格式被检查过**。判断某个文件是否真被检查：`pnpm exec prettier --file-info <file>`，返回 `{"ignored": true}` 就是没检查。
+
 看门禁结论只看 exit code 与末尾汇总行，不看日志里有没有 FAIL 字样 —— `pnpm gates:all | tail` 会把退出码吞掉，请用 `; echo exit=$?`。
 已知红项：`verify-overlay` 的 O1 目前因 `docs/licenses/*` 未登记为 T 类而红（记录在 `rules/ci-gates.md` §1）。你的改动没碰这些文件时，在 PR 里说明一句即可，不要去改 `site.manifest.json` 里与本次无关的行。
 

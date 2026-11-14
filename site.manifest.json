@@ -107,7 +107,10 @@
                 "AGENTS.md",
                 "rules/**",
                 "LICENSE",
-                "NOTICE"
+                "NOTICE",
+                ".github/ISSUE_TEMPLATE/**",
+                ".github/pull_request_template.md",
+                ".github/dependabot.yml"
             ],
             "reserved": [".changeset/**", "docs/release.md", ".github/workflows/release.yml"]
         },
