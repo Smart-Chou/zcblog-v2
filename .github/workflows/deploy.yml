@@ -135,6 +135,10 @@ jobs:
 
             # ---- S4 门禁：把验收标准变成机器（失败即中断部署）----
             - name: Verify build (A1 / A11 / A13 + pagefind)
+              # 生产构建要求 A13 三篇抽样全在：真实内容仓本来都有，缺任何一篇说明
+              # 内容链路出问题，不能被「跳过」掩盖（外部 PR 的 fixture 场景才允许跳过）。
+              env:
+                  A13_REQUIRE_ALL: "1"
               run: node scripts/verify-build.mjs
 
             - name: Content checks (A2 遗留字段 / A3 相对图)

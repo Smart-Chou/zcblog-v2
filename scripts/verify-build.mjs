@@ -75,13 +75,24 @@ if (mdFiles.length === EXPECT_CONTENT) {
 }
 
 // --------------------------------------------------------------- A13
-console.log("A13 features 渲染等价（抽样 3 篇）");
+// 抽样是「内容仓里存在的这几篇」而不是「仓库里必须有这几篇」：外部 PR 拿不到私有仓，
+// 走 fixture 兜底时这 3 篇不会全在。因此在场的才校验，缺席的跳过。
+// 但要有下限：一篇都没抽到时判红，避免「抽样空转」被当成通过。
+// 生产构建（deploy.yml）另设 A13_REQUIRE_ALL=1，要求 3 篇全在——真实内容仓本来就都有，
+// 缺任何一篇说明内容链路出问题，不能被"跳过"掩盖。
+const REQUIRE_ALL = process.env.A13_REQUIRE_ALL === "1";
+console.log(
+    `A13 features 渲染等价（抽样 ${FEATURE_SAMPLES.length} 篇${REQUIRE_ALL ? "，要求全在" : ""}）`,
+);
+let sampled = 0;
 for (const [slug, markers] of FEATURE_SAMPLES) {
     const file = join(DIST, "article", slug, "index.html");
     if (!existsSync(file)) {
-        fail(`${slug}: 产物缺失`);
+        if (REQUIRE_ALL) fail(`${slug}: 产物缺失（生产构建要求全在）`);
+        else console.log(`  - ${slug}: 不在本次内容中，跳过`);
         continue;
     }
+    sampled += 1;
     const html = readFileSync(file, "utf-8").toLowerCase();
     const missing = Object.entries(markers)
         .filter(([marker, min]) => count(html, marker) < min)
@@ -91,6 +102,15 @@ for (const [slug, markers] of FEATURE_SAMPLES) {
     } else {
         fail(`${slug}: 缺 ${missing.join(" / ")}`);
     }
+}
+if (REQUIRE_ALL && sampled < FEATURE_SAMPLES.length) {
+    fail(`A13 只抽到 ${sampled}/${FEATURE_SAMPLES.length} 篇，生产构建要求全部到位`);
+} else if (sampled === 0) {
+    fail(
+        `A13 抽样全部缺席（${FEATURE_SAMPLES.map(([s]) => s).join(" / ")}）——一篇都没抽到，A13 未被真正验证`,
+    );
+} else {
+    pass(`A13 实际抽到 ${sampled} 篇`);
 }
 
 // ------------------------------------------------------- pagefind 产物
