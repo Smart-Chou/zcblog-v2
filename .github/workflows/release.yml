@@ -60,7 +60,7 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
               with:
                   fetch-depth: 0
 
@@ -68,7 +68,7 @@ jobs:
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: "24"
                   cache: "pnpm"
@@ -148,7 +148,7 @@ jobs:
                   } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Upload pack dir
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: changeset-pack
                   path: ${{ env.PACK_DIR }}
@@ -165,13 +165,13 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: "24"
                   cache: "pnpm"
@@ -199,7 +199,7 @@ jobs:
                   } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Upload dry-run evidence
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: release-dry-run
                   path: ${{ runner.temp }}/dryrun
@@ -223,13 +223,13 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: "24"
                   cache: "pnpm"
@@ -250,7 +250,7 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Download pack dir
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               with:
                   name: changeset-pack
                   path: ${{ runner.temp }}

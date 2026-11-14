@@ -63,14 +63,14 @@ jobs:
 
         steps:
             - name: Checkout zcblog
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             # 私有内容仓：三个目标共用同一步（M3-7 §5.2 的「适配层」单点）。
             # fork PR 拿不到 ARTICLES_PAT，会在这里失败——这是已知限制，见 docs/deploy-matrix.md。
             # 本 workflow 是 pull_request 触发的，外部 fork 的 PR 拿不到 secrets，无 PAT 时跳过。
             - name: Checkout articles (private)
               if: ${{ env.ARTICLES_PAT != '' }}
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
               continue-on-error: true
               env:
                   ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
@@ -102,7 +102,7 @@ jobs:
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: "24"
                   cache: "pnpm"

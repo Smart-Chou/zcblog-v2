@@ -18,13 +18,13 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             - name: Install pnpm
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: "24"
                   cache: "pnpm"
@@ -66,13 +66,13 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: "24"
                   cache: "pnpm"
@@ -104,7 +104,7 @@ jobs:
 
             - name: Upload entity gate report on failure
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: entities-gate-report
                   path: ${{ runner.temp }}/entities-gate.json
@@ -135,7 +135,7 @@ jobs:
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             - name: Enable pnpm (corepack)
               run: corepack enable
@@ -237,7 +237,7 @@ jobs:
 
             - name: Upload visual diff on failure
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: visual-diff
                   path: |
@@ -329,7 +329,7 @@ jobs:
 
         steps:
             - name: Checkout zcblog
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             # 外部 fork 的 PR 拿不到 secrets（GitHub 不对 fork 派发 repository secrets），
             # 这步若照常跑会 Authentication failed，整条 CI 红——外部贡献者的 PR 就永远合不了。
@@ -338,7 +338,7 @@ jobs:
             # `secrets` 上下文不能直接用在 `if:` 里（官方硬限制），经 env 中转；step 级 if 可读 env。
             - name: Checkout articles (private)
               if: ${{ env.ARTICLES_PAT != '' }}
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
               continue-on-error: true
               env:
                   ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
@@ -387,7 +387,7 @@ jobs:
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: 22
                   cache: pnpm
@@ -440,7 +440,7 @@ jobs:
 
             - name: Upload perf report
               if: failure()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: perf-budget
                   path: |
