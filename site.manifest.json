@@ -105,6 +105,8 @@
                 "README.md",
                 "CONTRIBUTING.md",
                 "AGENTS.md",
+                "rules/**",
+                ".agents/skills/**",
                 "LICENSE",
                 "NOTICE"
             ],
