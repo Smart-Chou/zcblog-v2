@@ -46,6 +46,8 @@ on:
             - "docs/**"
             - "AGENTS.md"
             - ".agents/**"
+            # 只改 e2e 的 PR 同理（D-0194）
+            - "e2e/**"
     workflow_dispatch:
         inputs:
             deploy:

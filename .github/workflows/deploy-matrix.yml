@@ -38,6 +38,9 @@ on:
             - "docs/**"
             - "AGENTS.md"
             - ".agents/**"
+            # 只改 e2e 的 PR 同理（D-0194）：`e2e/**` 不在产物输入里，
+            # 但纯测试改动一样会让 PR 缺这三个 check-run 而永久 BLOCKED。
+            - "e2e/**"
     push:
         branches: [main]
         paths:
