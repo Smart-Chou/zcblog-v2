@@ -38,6 +38,11 @@
             "decision": "D-0165",
             "date": "2026-11-12",
             "summary": "src/config/radio.ts 与 radio-flags.ts 由 O 改判 T：电台清单是主题默认值（第三方公开流，不含站点身份），不是每个站点必须自备的 overlay 文件。改判后 demo / theme-template 装配不再缺文件；站点仍可用 overlay 同名文件覆盖。"
+        },
+        {
+            "decision": "D-0189",
+            "date": "2026-11-14",
+            "summary": "新增 docs/06-performance-budget.md 归 T：解释 perf-budget.py 的 BUDGET/TARGET 两级阈值、棘轮约定与 --scale 负向验证。同时修掉 scripts/gates/perf-budget.py:25 与 rules/project-rules.md:110 指向该文件的死链。rules/a11y.md 与 rules/css-important.md 被既有 rules/** 通配覆盖，无需新增规则。"
         }
     ],
     "classes": {
@@ -72,6 +77,7 @@
                 "docs/surface-token-baseline.json",
                 "docs/package-boundary.md",
                 "docs/overlay-contract.md",
+                "docs/06-performance-budget.md",
                 "docs/deploy-matrix.md",
                 "docs/upgrade.md",
                 "docs/npm-consumer.md",

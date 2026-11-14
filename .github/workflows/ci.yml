@@ -143,6 +143,15 @@ jobs:
             - name: Install dependencies
               run: corepack pnpm install --frozen-lockfile
 
+            # 容器镜像只是提供系统依赖（字体、库），浏览器本身必须按 lockfile 里的
+            # playwright 版本现装。镜像 tag 写死 v1.63.0，而 dependabot 会把
+            # @playwright/test 升到 1.65+：那时镜像里的 chromium_headless_shell-1254
+            # 不存在，12 个 atom docs 用例会在 browserType.launch 就全挂
+            # （报 "Executable doesn't exist at /ms-playwright/chromium_headless_shell-1254/..."）。
+            # a11y-pr.yml / a11y-nightly.yml 早就这么做，只有这里漏了。
+            - name: Install Playwright browsers (版本跟随 lockfile，不依赖镜像 tag)
+              run: corepack pnpm exec playwright install --with-deps chromium
+
             # 只构建，不跑 fetch:all：视觉门禁不该被第三方 API 抖动拖红
             # （内容相关的断言在 gates job 里）。文章内容用 e2e/fixtures/pages-visual/
             # 的固定副本，保证首页/归档/文章页在两次运行与两平台之间逐像素一致。

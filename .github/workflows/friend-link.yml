@@ -10,7 +10,9 @@ on:
 permissions:
     contents: write
     issues: write
-    actions: write
+    # 本 workflow 现在走 PR + auto-merge，需要开 PR 的权限；
+    # 缺这条会报 GraphQL: Resource not accessible by integration (createPullRequest)。
+    pull-requests: write
 
 concurrency:
     group: friend-link-${{ github.event.issue.number }}
@@ -52,7 +54,7 @@ jobs:
                   ISSUE_BODY: ${{ github.event.issue.body }}
               run: node .github/scripts/friend-link.mjs merge
 
-            - name: Commit to PR branch and enable auto-merge
+            - name: Open PR for manual merge
               env:
                   GH_TOKEN: ${{ github.token }}
                   ISSUE: ${{ github.event.issue.number }}
@@ -64,29 +66,26 @@ jobs:
                       exit 0
                   fi
 
-                  # 走 PR 而非直推 main：main 有分支保护（禁止强推/删除 + 9 个必需检查），
-                  # 用 GITHUB_TOKEN 直推会被 protected branch hook 拒绝。
+                  # 走 PR 而非直推 main：main 有分支保护，GITHUB_TOKEN 直推会被
+                  # `protected branch hook declined` 拒绝（已实测）。
                   BRANCH="friend-link/issue-${ISSUE}"
                   git checkout -b "$BRANCH"
                   git add src/data/friends.json
                   git commit -m "chore: add friend link (issue #${ISSUE})"
                   git push -u origin "$BRANCH"
 
-                  # PR 正文带 Closes，合并时 GitHub 自动关 issue——不需要额外 workflow
-                  # 去关，也不会出现「脚本说已添加、实际还没合」的假消息。
+                  # ⚠️ 为什么不用 --auto 自动合并（实测结论，勿改回去）：
+                  # GITHUB_TOKEN 创建的 PR 不会触发 pull_request workflow（GitHub 防递归）。
+                  # 必需检查因此永远不上报，--auto 会卡在 "Waiting for status to be reported"。
+                  # close+reopen 也绕不过——实测同样 0 个 check-runs。
+                  # 所以只能开 PR 等人工合并；合并时 `Closes` 会自动关 issue。
                   PR_URL=$(gh pr create --base main --head "$BRANCH" \
                     --title "chore: add friend link (issue #${ISSUE})" \
-                    --body "自动生成的友链更新，来自 issue #${ISSUE}。
+                    --body "自动生成的友链更新，来自 #${ISSUE}。
+
+                  **请站长手动合并**：这个 PR 由 \`GITHUB_TOKEN\` 创建，按 GitHub 的防递归机制
+                  不会触发 \`pull_request\` 检查，因此无法走 auto-merge（会一直等检查上报）。
+                  合并前请自行确认 \`friends.json\` 的 diff 只多了这一条。
 
                   Closes #${ISSUE}" | tail -1)
                   echo "已创建 $PR_URL"
-
-                  # ⚠️ 关键：用 GITHUB_TOKEN 创建的 PR 不会触发 pull_request workflow
-                  # （GitHub 防递归机制，除 workflow_dispatch / repository_dispatch 外都不触发）。
-                  # 必需检查因此永远不上报，`--auto` 会一直卡在 "Waiting for status to be
-                  # reported" 而永不合并。close + reopen 可让 pull_request 事件重新派发。
-                  gh pr close "$PR_URL"
-                  gh pr reopen "$PR_URL"
-
-                  gh pr merge "$PR_URL" --auto --squash --delete-branch
-                  echo "已开启 auto-merge：检查通过后自动合并"
