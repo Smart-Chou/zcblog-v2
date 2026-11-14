@@ -201,9 +201,23 @@ workflow 都用 `pull_request.paths` 过滤产物输入。
 
 <!-- D-0191 · 实测 CI job log 132521551699 -->
 
-## 6. 红了先做这四件事
+## 6. 红了先做这五件事
 
 1. **看 exit code，不看日志末尾**：管道会吞状态；`RESULT FAIL` 之后紧跟 `exit=0` 的现场是假的。
 2. **确认你跑的是同一条命令**：CI 用 `node scripts/gates/<脚本名>.mjs`，本地别加包装，也别只跑 `pnpm gates:all` 就以为覆盖了内容层。
 3. **区分「门禁抓对了」与「门禁自己坏了」**：A2b 的退出码 `2`、`verify-og` 的探针加载失败、`verify-overlay` 的 `unclassified` 都属于「先修门禁/清单，不是先改业务」。
 4. **别为了让门禁变绿而放宽判据**：`FROZEN_COUNTS`、`FROZEN_COMPONENT_TOTAL`、`pages_exempt`、`FROZEN_TOKEN_GAPS` 都是棘轮；动它们等于改契约，必须走 review 并在 `decision-log.md` 记账。
+5. **`webServer` 起不来时先看 node 版本**：任何 e2e / 视觉用例报
+   `Error: Process from config.webServer was not able to start. Exit code: 1`，
+   真实原因写在 `[WebServer]` 前缀的行里，通常是：
+
+       [WebServer] Node.js v22.23.1 is not supported by Astro!
+       [WebServer] Please upgrade Node.js to a supported version: ">=22.23.4"
+
+   Astro 7.4.11 的下限是 `>=22.23.4`，而 Hermes 自带 / `~/.local/bin` 的 node
+   是 **v22.23.1**（差一个补丁号），`/usr/local/bin/node` 是 v26.0.0。
+   由 gateway / 后台进程发起的测试会继承 Hermes 的 PATH，命中 22.23.1 →
+   一条用例都不跑就整轮假红。**修法**：跑测试前 `export PATH="/usr/local/bin:$PATH"`，
+   或显式用 `PW_PREVIEW_PORT` 之外的方式确认 `node -v` 满足 Astro 下限。
+
+   <!-- D-0195 · 2026-11-15 三次后台回归全部因此失败 -->
