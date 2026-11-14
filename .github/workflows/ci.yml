@@ -111,6 +111,30 @@ jobs:
                   retention-days: 7
                   if-no-files-found: ignore
 
+            # ---- 下面两条此前在 CI 里**完全不存在**（2026-11-15 补）----
+            #
+            # 症状来源：`pnpm gates:all` 是 `&&` 链，本地跑到 verify-overlay.mjs
+            # 因 2 个 licenses 文件未分类 FAIL 就短路，后面的 verify-icon-sprite
+            # 从未执行；而 CI 的 gates job 是手写步骤列表，本来就没写这两条。
+            # 结果：S1–S8 那 9 项检查在**两条路径上都是空的**。
+            #
+            # 危害：icon-markup.ts:52 遇到未登记图标直接 return ""，页面静默少一个
+            # 图标，构建 / 门禁 / e2e 全绿。tabler:category 就这样在 skills 页缺过
+            # 一整版。S8 正是为此写的。
+            #
+            # 注意：verify-overlay.mjs 当前有 2 项 FAIL（docs/licenses/* 未登记分类）。
+            # 用 continue-on-error 单独放行，让它的红可见但不阻断其他门禁 ——
+            # 而不是继续靠 `&&` 短路把它后面的一切一起吞掉。
+            - name: Overlay structure gates (non-blocking, 2 known FAIL)
+              continue-on-error: true
+              run: node scripts/gates/verify-overlay.mjs
+
+            # 这条是硬门禁：图标 sprite / 清单 / 源码引用三方一致，且与 @iconify-json 一致。
+            - name: Icon sprite + freshness gates (S1–S8 + icons:check)
+              run: |
+                  node scripts/gates/verify-icon-sprite.mjs
+                  node scripts/generate-icons.js --check
+
     # ---- 视觉门禁：/design/atoms 72 张 + 页面级 42 张像素基线（Linux）----
     # 与 test/gates 平行跑。四条硬约束：
     #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），

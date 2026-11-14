@@ -60,7 +60,7 @@
         "theme:sync": "node scripts/theme-sync.mjs --dry-run",
         "gates:icons": "node scripts/gates/verify-icon-sprite.mjs",
         "gates:content-contract": "python3 scripts/gates/check-content-contract.py",
-        "gates:all": "node scripts/gates/verify-atoms.mjs && node scripts/gates/verify-atom-docs.mjs && node scripts/gates/verify-component-inventory.mjs && node scripts/gates/verify-doc-drift.mjs && npm run icons:check --silent && node scripts/gates/check-tokens.mjs && node scripts/gates/verify-surface-tokens.mjs && node scripts/gates/verify-entities.mjs && node scripts/gates/verify-package-boundary.mjs && node scripts/gates/verify-overlay.mjs && node scripts/gates/verify-icon-sprite.mjs",
+        "gates:all": "node scripts/gates/verify-atoms.mjs && node scripts/gates/verify-atom-docs.mjs && node scripts/gates/verify-component-inventory.mjs && node scripts/gates/verify-doc-drift.mjs && node scripts/gates/check-tokens.mjs && node scripts/gates/verify-surface-tokens.mjs && node scripts/gates/verify-entities.mjs && node scripts/gates/verify-package-boundary.mjs && npm run icons:check --silent && node scripts/gates/verify-icon-sprite.mjs && node scripts/gates/verify-overlay.mjs",
         "probe:radio-empty": "node scripts/probe-radio-empty.mjs",
         "test:unit": "vitest run",
         "test:unit:watch": "vitest",
