@@ -5,8 +5,8 @@
  * 使用方法：node scripts/generate-icons.js
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from "fs";
-import { join, dirname } from "path";
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from "fs";
+import path, { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { createHash } from "crypto";
 import { gzipSync } from "zlib";
@@ -266,6 +266,27 @@ async function format(content, filepath) {
 }
 
 /**
+ * 只格式化不落盘：给 --check 用。
+ *
+ * 为什么走 stdin 而不是写到临时文件：prettier 的 `--stdin-filepath` 会按该路径的
+ * 配置与 parser 推断处理，输出与 `--write` 逐字节一致（已实测两个生成物均相同），
+ * 且不产生临时文件。生成器的「写盘 + prettier --write + 读回」三步在这里等价于
+ * 「管道过一遍 prettier」。
+ */
+async function formatInMemory(content, filepath) {
+    const { spawnSync } = await import("node:child_process");
+    const res = spawnSync(
+        join(ROOT_DIR, "node_modules", ".bin", "prettier"),
+        ["--stdin-filepath", filepath],
+        { input: content, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 },
+    );
+    if (res.status !== 0) {
+        throw new Error(`prettier --stdin-filepath 失败: ${res.stderr || res.stdout}`);
+    }
+    return res.stdout;
+}
+
+/**
  * 生成 icons.ts 文件
  */
 function generateIconsFile(iconsMap) {
@@ -303,6 +324,7 @@ export default iconSvgData;
  * 主函数
  */
 async function main() {
+    const CHECK = process.argv.includes("--check");
     console.log("🔍 扫描源文件中的图标使用...\n");
 
     // 获取所有源文件
@@ -362,21 +384,90 @@ async function main() {
     }
 
     // 生成输出文件（统一过一遍 prettier：CI 的 format:check 会逐字比对生成物）
-    const output = await format(generateIconsFile(iconsMap), OUTPUT_FILE);
+    const iconsFileRaw = generateIconsFile(iconsMap);
+
+    // 生成 sprite（public/icons.svg）+ 清单（sprite.ts）
+    const { sprite, manifest, inlineOnly } = buildSprite(iconsMap);
+    const version = createHash("sha256").update(sprite).digest("hex").slice(0, 8);
+    const manifestRaw = generateSpriteManifest(manifest, version, inlineOnly);
+
+    const targets = [
+        { file: OUTPUT_FILE, raw: iconsFileRaw, prettier: true },
+        { file: SPRITE_FILE, raw: sprite, prettier: false },
+        { file: MANIFEST_FILE, raw: manifestRaw, prettier: true },
+    ];
+
+    /* ── --check：只比对，不写盘 ──────────────────────────────────────────
+     *
+     * 存在的理由：`--build-pages-baseline.mjs` 直接 spawn `astro build`，绕过
+     * `pnpm build` 的 `fetch:all`，所以视觉门禁用的是**仓里已提交的**图标生成物。
+     * 只升 `@iconify-json/*` 却没重跑生成器时，CI 与线上会静默分叉：
+     * 门禁绿（比对的是旧图标的旧基线），线上却是新图标。
+     *
+     * 判据是「按当前 node_modules 里的 iconify 数据重新渲染一遍，逐字节等于磁盘上的」。
+     * 任何不等都说明生成物过期，需要跑 `pnpm run icons`。
+     */
+    if (CHECK) {
+        const stale = [];
+        for (const t of targets) {
+            const expected = t.prettier ? await formatInMemory(t.raw, t.file) : t.raw;
+            const actual = existsSync(t.file) ? readFileSync(t.file, "utf-8") : null;
+            if (actual === null) {
+                stale.push({ file: t.file, reason: "文件缺失" });
+            } else if (actual !== expected) {
+                // 给一个能定位的摘要：首个差异位置的上下文 + 两边长度
+                let i = 0;
+                const min = Math.min(actual.length, expected.length);
+                while (i < min && actual[i] === expected[i]) i++;
+                stale.push({
+                    file: t.file,
+                    reason: `首个差异在第 ${i} 字符`,
+                    actualLen: actual.length,
+                    expectedLen: expected.length,
+                    ctxActual: actual.slice(Math.max(0, i - 40), i + 40).replace(/\n/g, "⏎"),
+                    ctxExpected: expected.slice(Math.max(0, i - 40), i + 40).replace(/\n/g, "⏎"),
+                });
+            }
+        }
+
+        const rel = (f) => path.relative(ROOT_DIR, f);
+        if (stale.length === 0) {
+            console.log(`PASS 图标生成物与 @iconify-json 数据一致（${targets.length} 个文件）`);
+            console.log(`\n1/1 PASS ✅`);
+            process.exitCode = 0;
+        } else {
+            console.log(
+                `FAIL 图标生成物与 @iconify-json 数据不一致（${stale.length}/${targets.length} 个文件过期）`,
+            );
+            for (const s of stale) {
+                console.log(`     ${rel(s.file)} — ${s.reason}`);
+                if (s.actualLen !== undefined) {
+                    console.log(`       磁盘 ${s.actualLen} 字符 / 重新生成 ${s.expectedLen} 字符`);
+                    console.log(`       磁盘:     …${s.ctxActual}…`);
+                    console.log(`       应生成:   …${s.ctxExpected}…`);
+                }
+            }
+            console.log(`\n  修法: pnpm run icons`);
+            console.log(`  原因: package.json 的 @iconify-json/* 版本变了，或生成器逻辑改了，`);
+            console.log(`        但 public/icons.svg / Icons/index.ts / Icons/sprite.ts 没重跑。`);
+            console.log(
+                `        ci.yml 的 visual job 跑 build-pages-baseline.mjs 直调 astro build，`,
+            );
+            console.log(`        绕过 fetch:all，所以视觉基线比对的是**旧**图标 —— 不会变红。`);
+            console.log(`\n0/1 PASS ❌`);
+            process.exitCode = 1;
+        }
+        return;
+    }
+
+    const output = await format(iconsFileRaw, OUTPUT_FILE);
     writeFileSync(OUTPUT_FILE, output, "utf-8");
 
     console.log(`\n📝 已生成: ${OUTPUT_FILE}`);
     console.log(`📦 文件大小: ${(Buffer.byteLength(output, "utf-8") / 1024).toFixed(2)} KB\n`);
 
-    // 生成 sprite（public/icons.svg）+ 清单（sprite.ts）
-    const { sprite, manifest, inlineOnly } = buildSprite(iconsMap);
-    const version = createHash("sha256").update(sprite).digest("hex").slice(0, 8);
     writeFileSync(SPRITE_FILE, sprite, "utf-8");
-    writeFileSync(
-        MANIFEST_FILE,
-        await format(generateSpriteManifest(manifest, version, inlineOnly), MANIFEST_FILE),
-        "utf-8",
-    );
+    writeFileSync(MANIFEST_FILE, await format(manifestRaw, MANIFEST_FILE), "utf-8");
 
     console.log(
         `🧩 sprite: ${SPRITE_FILE}（${Object.keys(manifest).length} 个图标，v=${version}）`,
@@ -392,4 +483,9 @@ async function main() {
     console.log(`📝 已生成: ${MANIFEST_FILE}\n`);
 }
 
-main().catch(console.error);
+main().catch((err) => {
+    // 不能只 console.error：那样未捕获异常会被吞掉，进程仍以 0 退出，
+    // 门禁「报绿但没跑完」—— 这正是 D-0186 记过的那类失效。
+    console.error(err);
+    process.exitCode = 1;
+});
