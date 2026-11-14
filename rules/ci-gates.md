@@ -161,7 +161,7 @@ O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.ver
 
 - **阻断部署**（`deploy.yml` 任一红即中断，不许注释、不许加 `|| true`）：A2b 内容契约、token 契约、P5 棘轮、实体契约、build、`verify-build.mjs`、A2、A3、性能预算、lint。只有两个 `fetch:*` 步骤被显式容忍。<!-- D-0175 -->
 - **阻断合并**（PR 上红）：`test` / `contract` / `visual` / `gates` **四个 job 的全部步骤**（`gates` job 要 checkout 私有内容仓，需要 `ARTICLES_PAT`）。
-- **只报告不阻断**：`report-data-freshness.mjs`（数据新鲜度）、实体 E7 的 180 天 WARN、inventory 的过期快照告警、`perf-budget` 的 `TARGET` 列、`verify-overlay`（`continue-on-error: true`，因 2 个 licenses 文件未分类长期红）。
+- **只报告不阻断**：`report-data-freshness.mjs`（数据新鲜度）、实体 E7 的 180 天 WARN、inventory 的过期快照告警、`perf-budget` 的 `TARGET` 列。
 - **里程碑门禁**：`verify-m3-exit` 五项。
 
 ### 5.1 加门禁前必须先确认「它真的会跑」
@@ -179,7 +179,7 @@ O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.ver
 1. 不要无脑追加到 `gates:all` 末尾，先确认链上没有已知失败点；有的话把它挪到**最后一步**。
 2. 本地加完必须看**输出里有没有这个检查的判据行**，不能只看 exit code（exit 0 可能因为被短路而根本没跑）。
 3. CI 侧要单独加步骤，`ci.yml` 不会跟着 `package.json` 自动变。
-4. 已知长期红的检查用 `continue-on-error: true` 让它**可见但不阻断**，不要靠短路。
+4. 已知长期红的检查用 `continue-on-error: true` 让它**可见但不阻断**，不要靠短路；根因修掉后立刻撤掉这个标记（D-0193 就是这么做的）。
 
 <!-- D-0191 · 实测 CI job log 132521551699 -->
 
