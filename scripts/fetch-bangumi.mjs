@@ -8,6 +8,7 @@
 
 import { writeFile, readFile, mkdir } from "node:fs/promises";
 import { loadEnvFile } from "./lib/env.mjs";
+import { failFetch, okFetch, skipFetch } from "./lib/fetch-status.mjs";
 
 const API_BASE = "https://api.bgm.tv";
 const OUTPUT = "src/data/bangumi.json";
@@ -89,8 +90,7 @@ async function main() {
 
     const BANGUMI_USER_ID = process.env.BANGUMI_USER_ID;
     if (!BANGUMI_USER_ID) {
-        console.warn("⚠ 未设置 BANGUMI_USER_ID 环境变量，跳过获取");
-        process.exit(0);
+        skipFetch(OUTPUT, "未设置 BANGUMI_USER_ID 环境变量");
     }
 
     // 读旧缓存，用于部分失败时合并
@@ -119,7 +119,7 @@ async function main() {
     }
 
     if (freshCount === 0) {
-        console.warn("⚠ 所有分类获取失败，保留旧数据");
+        failFetch(OUTPUT, "所有分类获取失败");
         process.exit(0);
     }
 
@@ -136,6 +136,7 @@ async function main() {
     await writeFile(OUTPUT, JSON.stringify(bangumiData, null, 2) + "\n", "utf-8");
 
     const total = Object.values(bangumiData).reduce((sum, arr) => sum + arr.length, 0);
+    okFetch(OUTPUT, `${total} 条`);
     console.log(`✅ bangumi.json 已更新 (${total} 条)`);
 }
 

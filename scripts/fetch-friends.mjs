@@ -9,6 +9,7 @@
 
 import { writeFile, readFile, mkdir } from "node:fs/promises";
 import { loadEnvFile } from "./lib/env.mjs";
+import { failFetch, okFetch } from "./lib/fetch-status.mjs";
 
 const DEFAULT_RSS = "https://rsshub.rssforever.com/foreverblog/feeds";
 const OUTPUT = "src/data/friends-articles.json";
@@ -110,7 +111,7 @@ async function main() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         xml = await res.text();
     } catch (err) {
-        console.warn(`⚠ RSS 获取失败: ${err.message}，保留旧数据`);
+        failFetch(OUTPUT, `RSS 获取失败: ${err.message}`);
         process.exit(0);
     }
 
@@ -122,7 +123,7 @@ async function main() {
     }
 
     if (raw.length === 0) {
-        console.warn("⚠ 未解析到有效条目，保留旧数据");
+        failFetch(OUTPUT, "未解析到有效条目");
         process.exit(0);
     }
 
@@ -139,6 +140,7 @@ async function main() {
     await mkdir("src/data", { recursive: true });
     await writeFile(OUTPUT, JSON.stringify(items, null, 4) + "\n", "utf-8");
 
+    okFetch(OUTPUT, `${items.length} 条`);
     console.log(`✅ friends-articles.json 已更新 (${items.length} 条)`);
 }
 

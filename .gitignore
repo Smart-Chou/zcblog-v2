@@ -13,6 +13,9 @@ pnpm-debug.log*
 # env
 .env
 
+# 抓取状态日志（fetch-*.mjs → report-data-freshness.mjs 上报，本地/CI 生成，不入库）
+.cache/
+
 # macOS
 .DS_Store
 

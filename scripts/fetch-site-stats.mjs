@@ -18,6 +18,7 @@
 
 import { writeFile } from "node:fs/promises";
 import { loadEnvFile } from "./lib/env.mjs";
+import { failFetch, okFetch, skipFetch } from "./lib/fetch-status.mjs";
 
 const OUTPUT = "src/data/site-stats.json";
 const REQUEST_TIMEOUT = 15000;
@@ -30,10 +31,7 @@ async function main() {
     const shareSlug = process.env.UMAMI_SHARE_SLUG ?? "";
 
     if (!base || !websiteId || !shareSlug) {
-        console.warn(
-            "⚠ 未配置 UMAMI_API_URL/UMAMI_WEBSITE_ID/UMAMI_SHARE_SLUG，跳过全站统计抓取（保留旧数据）",
-        );
-        process.exit(0);
+        skipFetch(OUTPUT, "未配置 UMAMI_API_URL/UMAMI_WEBSITE_ID/UMAMI_SHARE_SLUG");
     }
 
     try {
@@ -76,9 +74,10 @@ async function main() {
                 4,
             ) + "\n",
         );
+        okFetch(OUTPUT, `浏览 ${pageviews} / 访客 ${visitors}`);
         console.log(`✅ 全站统计已更新：浏览 ${pageviews} / 访客 ${visitors}`);
     } catch (err) {
-        console.warn(`⚠ 全站统计抓取失败：${err.message}（保留旧数据）`);
+        failFetch(OUTPUT, `全站统计抓取失败：${err.message}`);
     }
 }
 

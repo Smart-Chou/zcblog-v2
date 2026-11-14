@@ -9,6 +9,7 @@
 
 import { writeFile } from "node:fs/promises";
 import { loadEnvFile } from "./lib/env.mjs";
+import { failFetch, okFetch, skipFetch } from "./lib/fetch-status.mjs";
 
 // Blinko 服务地址在 main() 中根据 BLINKO_API_URL 初始化
 // （模块顶层先于 .env 加载执行，不能在此直接读取环境变量）
@@ -79,8 +80,7 @@ async function main() {
 
     const TOKEN = process.env.BLINKO_API_TOKEN;
     if (!TOKEN || !BLINKO_BASE) {
-        console.warn("⚠ 未设置 BLINKO_API_URL 或 BLINKO_API_TOKEN 环境变量，跳过获取");
-        process.exit(0);
+        skipFetch(OUTPUT, "未设置 BLINKO_API_URL 或 BLINKO_API_TOKEN 环境变量");
     }
 
     // 分页拉取所有公开笔记
@@ -117,12 +117,12 @@ async function main() {
             page++;
         }
     } catch (err) {
-        console.warn(`⚠ 无法获取 Blinko API: ${err.message}，保留旧数据`);
+        failFetch(OUTPUT, `无法获取 Blinko API: ${err.message}`);
         process.exit(0);
     }
 
     if (allNotes.length === 0) {
-        console.warn("⚠ API 返回格式异常，保留旧数据");
+        failFetch(OUTPUT, "API 返回格式异常（未取到任何笔记）");
         process.exit(0);
     }
 
@@ -135,7 +135,7 @@ async function main() {
     );
 
     if (publicNotes.length === 0) {
-        console.warn("⚠ 无有效公开笔记，保留旧数据");
+        failFetch(OUTPUT, "无有效公开笔记");
         process.exit(0);
     }
 
@@ -159,6 +159,7 @@ async function main() {
     for (const item of items) delete item.sortDate;
 
     await writeFile(OUTPUT, JSON.stringify(items, null, 2) + "\n", "utf-8");
+    okFetch(OUTPUT, `${items.length} 条`);
     console.log(`✅ talks.json 已更新 (${items.length} 条)`);
 }
 

@@ -9,10 +9,12 @@
 import { writeFile, mkdir, readdir, unlink, access } from "node:fs/promises";
 import sharp from "sharp";
 import { loadEnvFile } from "./lib/env.mjs";
+import { failFetch, okFetch, skipFetch } from "./lib/fetch-status.mjs";
 
 const RSS_URL = (userId) => `https://www.douban.com/feed/people/${userId}/interests`;
 
 const OUTPUT_DIR = "src/data";
+const DATA_FILE = "src/data/douban.json";
 const COVER_DIR = "public/images/douban";
 const COVER_WIDTH = 300;
 const FETCH_TIMEOUT = 10000;
@@ -201,8 +203,7 @@ async function main() {
 
     const userId = process.env.DOUBAN_USER_ID;
     if (!userId) {
-        console.warn("⚠ 未设置 DOUBAN_USER_ID 环境变量，跳过获取");
-        process.exit(0);
+        skipFetch(DATA_FILE, "未设置 DOUBAN_USER_ID 环境变量");
     }
 
     // 1. 拉取 RSS
@@ -216,7 +217,7 @@ async function main() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         xml = await res.text();
     } catch (err) {
-        console.warn(`⚠ RSS 获取失败: ${err.message}，保留旧数据`);
+        failFetch(DATA_FILE, `RSS 获取失败: ${err.message}`);
         process.exit(0);
     }
 
@@ -228,7 +229,7 @@ async function main() {
     }
 
     if (raw.length === 0) {
-        console.warn("⚠ 未解析到有效条目，保留旧数据");
+        failFetch(DATA_FILE, "未解析到有效条目");
         process.exit(0);
     }
 
@@ -257,6 +258,7 @@ async function main() {
     const all = sortByDate([...clean(books), ...clean(movies), ...clean(music)]);
 
     await writeJson("douban.json", all);
+    okFetch(DATA_FILE, `书:${books.length} 影:${movies.length} 音:${music.length}`);
 
     // 7. 统计
     console.log(

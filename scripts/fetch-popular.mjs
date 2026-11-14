@@ -14,6 +14,7 @@
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { loadEnvFile } from "./lib/env.mjs";
+import { failFetch, okFetch, skipFetch } from "./lib/fetch-status.mjs";
 
 const OUTPUT = "src/data/popular.json";
 const ARTICLE_DIR = "src/content/article";
@@ -40,8 +41,10 @@ async function main() {
     const password = process.env.UMAMI_PASSWORD ?? "";
 
     if (!base || !websiteId || !username || !password) {
-        console.warn("⚠ 未配置 UMAMI_* 环境变量，跳过获取热门文章数据（保留旧数据）");
-        process.exit(0);
+        skipFetch(
+            OUTPUT,
+            "未配置 UMAMI_API_URL / UMAMI_WEBSITE_ID / UMAMI_USERNAME / UMAMI_PASSWORD 环境变量",
+        );
     }
 
     try {
@@ -141,11 +144,12 @@ async function main() {
         };
 
         await writeFile(OUTPUT, JSON.stringify(payload, null, 4) + "\n");
+        okFetch(OUTPUT, `${items.length} 条 · ${payload.windowEnd.slice(0, 10)}`);
         console.log(
             `✅ 热门文章数据已更新：${items.length} 条（窗口 ${payload.windowStart.slice(0, 10)} ~ ${payload.windowEnd.slice(0, 10)}）`,
         );
     } catch (err) {
-        console.warn(`⚠ 获取热门文章数据失败：${err.message}（保留旧数据）`);
+        failFetch(OUTPUT, `获取热门文章数据失败：${err.message}`);
     }
 }
 
