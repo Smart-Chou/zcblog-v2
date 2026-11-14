@@ -6,14 +6,12 @@ updates:
       schedule:
           interval: "weekly"
           day: "monday"
-      open-pull-requests-limit: 5
+      open-pull-requests-limit: 2
       commit-message:
           prefix: "chore(deps)"
       groups:
           minor-and-patch:
               update-types: ["minor", "patch"]
-          major:
-              update-types: ["major"]
       ignore:
           # 三包 lockstep（tokens / ui / og-image 同步 2.1.2，见 docs/release.md）：版本由 changesets 推进，dependabot 不插手。
           - dependency-name: "@marxchou/dogeared-tokens"
@@ -21,6 +19,11 @@ updates:
           - dependency-name: "@marxchou/dogeared-og-image"
           # katex 被 pnpm-workspace.yaml 的 overrides 钉在 ^0.19.0；升 major 会被顶回去，只会开出装不上的 PR。
           - dependency-name: "katex"
+            update-types: ["version-update:semver-major"]
+          # 不收 major：这不是库，是一个要长期跑在生产站上的站点仓。major 升级需要人工
+          # 评估破坏面（Astro / Vite 的 major 常常连带改配置与插件 API），自动开 PR 只会
+          # 堆一堆合不了的红 PR。需要升 major 时手动开 issue 或临时放开这一条。
+          - dependency-name: "*"
             update-types: ["version-update:semver-major"]
 
     - package-ecosystem: "github-actions"

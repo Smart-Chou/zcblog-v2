@@ -52,18 +52,41 @@ jobs:
                   ISSUE_BODY: ${{ github.event.issue.body }}
               run: node .github/scripts/friend-link.mjs merge
 
-            - name: Commit, push and trigger deploy
+            - name: Commit to PR branch and enable auto-merge
               env:
                   GH_TOKEN: ${{ github.token }}
+                  ISSUE: ${{ github.event.issue.number }}
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   if git diff --quiet -- src/data/friends.json; then
                       echo "friends.json 无变化，跳过提交（可能为重复申请）"
-                  else
-                      git add src/data/friends.json
-                      git commit -m "chore: add friend link (issue #${{ github.event.issue.number }})"
-                      git push
-                      # GITHUB_TOKEN 触发的 push 不会自动触发其它工作流，手动派发一次部署
-                      gh workflow run deploy.yml --ref main
+                      exit 0
                   fi
+
+                  # 走 PR 而非直推 main：main 有分支保护（禁止强推/删除 + 9 个必需检查），
+                  # 用 GITHUB_TOKEN 直推会被 protected branch hook 拒绝。
+                  BRANCH="friend-link/issue-${ISSUE}"
+                  git checkout -b "$BRANCH"
+                  git add src/data/friends.json
+                  git commit -m "chore: add friend link (issue #${ISSUE})"
+                  git push -u origin "$BRANCH"
+
+                  # PR 正文带 Closes，合并时 GitHub 自动关 issue——不需要额外 workflow
+                  # 去关，也不会出现「脚本说已添加、实际还没合」的假消息。
+                  PR_URL=$(gh pr create --base main --head "$BRANCH" \
+                    --title "chore: add friend link (issue #${ISSUE})" \
+                    --body "自动生成的友链更新，来自 issue #${ISSUE}。
+
+                  Closes #${ISSUE}" | tail -1)
+                  echo "已创建 $PR_URL"
+
+                  # ⚠️ 关键：用 GITHUB_TOKEN 创建的 PR 不会触发 pull_request workflow
+                  # （GitHub 防递归机制，除 workflow_dispatch / repository_dispatch 外都不触发）。
+                  # 必需检查因此永远不上报，`--auto` 会一直卡在 "Waiting for status to be
+                  # reported" 而永不合并。close + reopen 可让 pull_request 事件重新派发。
+                  gh pr close "$PR_URL"
+                  gh pr reopen "$PR_URL"
+
+                  gh pr merge "$PR_URL" --auto --squash --delete-branch
+                  echo "已开启 auto-merge：检查通过后自动合并"
