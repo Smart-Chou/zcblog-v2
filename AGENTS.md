@@ -29,6 +29,8 @@ zcblog-v2 是中文内容型个人站的 Astro 主题与组件系统（主题名
 - `rules/project-rules.md` — 项目硬性规则、提交约定与门禁总表。required before 任何提交。
 - `rules/component-api.md` — 组件 props / API 面与 §5.6 规格的对应关系。required before 改或新增 `src/components/**`。
 - `rules/ci-gates.md` — 每条门禁的判据、失败含义与「不许绕过」清单。required before 加跑、跳过或排查门禁。
+- `rules/a11y.md` — axe 的五个 WCAG tag、serious/critical 判红、`contrast incomplete` 不算通过、键盘与焦点环硬要求、`axe-known.json` 棘轮（当前为空数组，即全站 0 条 serious/critical）。required before 改交互组件、focus 样式或 `--color-ring-focus`。
+- `rules/css-important.md` — `!important` 的五类合法场景、六类严禁与三问准入，以及「先加 `html` 前缀补特异性，不够再硬顶」的本仓做法。required before 在任何 CSS 里写 `!important`。
 - `rules/visual-regression.md` — 基线的平台 / 阈值 / 更新与复验流程。required before 动视觉基线或改影响外观的 token。
 - `rules/content-contract.md` — 内容模型契约 v6（`.strict()`）与 normalize 规则。required before 改 `src/content.config.ts` 或处理文章。
 - `rules/pitfalls.md` — 已踩过的坑（缓存、假红、平台差异）。required before 把一次失败当新问题排查。
@@ -36,6 +38,7 @@ zcblog-v2 是中文内容型个人站的 Astro 主题与组件系统（主题名
 - `docs/overlay-contract.md` — T（主题可覆盖）/ O（站点身份，一字不动）/ X（缓存不入清单）的路径归属。required before 动 `site.manifest.json` 或 `theme-sync`。
 - `docs/package-boundary.md` — `packages/*` 三包边界 B1–B4 与判据。required before 动 `packages/*` 或跨包 import。
 - `docs/deploy-matrix.md` — GitHub Pages / Cloudflare Pages / Vercel 同一份产物的适配层。required before 改 `astro.config.mjs` 部署相关、`_redirects`、`vercel.json`。
+- `docs/06-performance-budget.md` — `BUDGET` / `TARGET` 两级阈值、棘轮约定（只许下调）、`--scale` 负向验证、JS 跟随静态 import 链的口径。required before 动 `perf-budget.py` 的阈值、改首屏脚本或引入新依赖。
 - `docs/release.md` — Changesets lockstep 发布链（只有 tag 推送或手动 dispatch 才进发布）。required before 发布或改 `release.yml`。
 - `docs/upgrade.md` — 站点维护者升级手册：哪些文件被覆盖、哪些绝对不动。required before 升级主题或迁移站点。
 - `docs/npm-consumer.md` — 只消费 npm 包（不 fork 主题）的接入与回滚矩阵。required before 支持外部消费者。
