@@ -214,10 +214,15 @@ workflow 都用 `pull_request.paths` 过滤产物输入。
        [WebServer] Node.js v22.23.1 is not supported by Astro!
        [WebServer] Please upgrade Node.js to a supported version: ">=22.23.4"
 
-   Astro 7.4.11 的下限是 `>=22.23.4`，而 Hermes 自带 / `~/.local/bin` 的 node
-   是 **v22.23.1**（差一个补丁号），`/usr/local/bin/node` 是 v26.0.0。
-   由 gateway / 后台进程发起的测试会继承 Hermes 的 PATH，命中 22.23.1 →
-   一条用例都不跑就整轮假红。**修法**：跑测试前 `export PATH="/usr/local/bin:$PATH"`，
-   或显式用 `PW_PREVIEW_PORT` 之外的方式确认 `node -v` 满足 Astro 下限。
+   **根因已修（2026-11-15）**：`~/.hermes/node` 原本是 v22.23.1（差一个补丁号），
+   而 gateway 的 `EnvironmentVariables.PATH` 里它排在 `node-26.12.1` **之前**，
+   于是所有 gateway 派生的子进程都命中 22.23.1 → 一条用例都不跑就整轮假红。
+   已把 `~/.hermes/node` 换成 **v26.12.1**（官方 x64 包，SHA256 校验，
+   并补回旧包额外带的 `corepack` 与 `etc/npmrc`）。`~/.local/bin/node` 是它的
+   符号链接，一并跟随。
 
-   <!-- D-0195 · 2026-11-15 三次后台回归全部因此失败 -->
+   **不要再靠 `export PATH="/usr/local/bin:$PATH"` 绕过** —— 那只是让交互 shell
+   躲开，gateway / cron / 子代理仍会踩。判据是 `node -v` 必须 ≥22.23.4，
+   而 `~/.hermes/node` 与 gateway PATH 的顺序都要核对。
+
+   <!-- D-0195 · 2026-11-15 三次后台回归全部因此失败，已升级至 v26.12.1 -->
