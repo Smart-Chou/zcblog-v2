@@ -135,7 +135,7 @@ jobs:
 
     # ---- 视觉门禁：/design/atoms 72 张 + 页面级 42 张像素基线（Linux）----
     # 与 test/gates 平行跑。四条硬约束：
-    #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.63.0），
+    #  1. 镜像 tag 必须与 package.json 的 @playwright/test 版本一致（1.65.0），
     #     镜像里的浏览器构建号跟版本绑定，跨版本截图不可比。
     #  2. 基线 e2e/__screenshots__/design-atoms-linux/ 与 pages-linux/ 就是在**这个镜像**里
     #     生成的（`--update-snapshots`），所以判定用 maxDiffPixels: 0，不放大阈值。
@@ -149,7 +149,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 35
         container:
-            image: mcr.microsoft.com/playwright:v1.63.0-noble
+            image: mcr.microsoft.com/playwright:v1.65.0-noble
             options: --ipc=host
         env:
             # 显式钉平台：基线目录与阈值由 project 决定（见 playwright.config.ts）
@@ -166,11 +166,15 @@ jobs:
               run: corepack pnpm install --frozen-lockfile
 
             # 容器镜像只是提供系统依赖（字体、库），浏览器本身必须按 lockfile 里的
-            # playwright 版本现装。镜像 tag 写死 v1.63.0，而 dependabot 会把
-            # @playwright/test 升到 1.65+：那时镜像里的 chromium_headless_shell-1254
+            # playwright 版本现装。镜像 tag 写死 v1.65.0，而 dependabot 会把
+            # @playwright/test 升到更高版本：那时镜像里的 chromium_headless_shell-<build>
             # 不存在，12 个 atom docs 用例会在 browserType.launch 就全挂
-            # （报 "Executable doesn't exist at /ms-playwright/chromium_headless_shell-1254/..."）。
+            # （报 "Executable doesn't exist at /ms-playwright/chromium_headless_shell-<build>/..."）。
             # a11y-pr.yml / a11y-nightly.yml 早就这么做，只有这里漏了。
+            #
+            # 注意：浏览器跟着 lockfile 走，但**基线**不是 —— Linux 基线是在某一版
+            # Chromium 里截的图，跨版本不可逐像素比。升 playwright 时必须同步重出
+            # `e2e/__screenshots__/*-linux/`，用 visual-baseline-linux.yml 手动触发。
             - name: Install Playwright browsers (版本跟随 lockfile，不依赖镜像 tag)
               run: corepack pnpm exec playwright install --with-deps chromium
 
