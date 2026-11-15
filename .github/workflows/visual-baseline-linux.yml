@@ -74,6 +74,7 @@ jobs:
               run: node scripts/visual/build-state-baseline.mjs
 
             - name: 重出基线
+              shell: bash
               env:
                   PLAYWRIGHT_BASELINE_PLATFORM: linux
               run: |
@@ -86,6 +87,7 @@ jobs:
                     --update-snapshots --reporter=list | tee "$RUNNER_TEMP/regen.log"
 
             - name: 稳定性复查（同镜像再跑一遍，必须全绿）
+              shell: bash
               env:
                   PLAYWRIGHT_BASELINE_PLATFORM: linux
               run: |
