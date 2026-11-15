@@ -46,6 +46,11 @@ jobs:
                   ref: ${{ inputs.branch }}
                   fetch-depth: 0
 
+            # 容器以 root 跑，checkout 出来的工作区属主不是 root → git 会报
+            # "dubious ownership" 并拒绝所有操作（exit 128）。
+            - name: 信任工作区目录
+              run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
             - name: 确认镜像 tag 与 package.json 对齐
               shell: bash
               run: |
