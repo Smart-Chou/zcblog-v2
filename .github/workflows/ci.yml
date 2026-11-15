@@ -159,11 +159,14 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v5
 
-            - name: Enable pnpm (corepack)
-              run: corepack enable
+            # playwright 的 noble 镜像从某个版本起不再带 corepack（v1.65.0 实测
+            # `corepack: not found`，exit 127）。容器里有 node，所以用 action-setup
+            # 装 pnpm 更稳，不依赖镜像内容。
+            - name: Install pnpm
+              uses: pnpm/action-setup@v6
 
             - name: Install dependencies
-              run: corepack pnpm install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             # 容器镜像只是提供系统依赖（字体、库），浏览器本身必须按 lockfile 里的
             # playwright 版本现装。镜像 tag 写死 v1.65.0，而 dependabot 会把
@@ -176,7 +179,7 @@ jobs:
             # Chromium 里截的图，跨版本不可逐像素比。升 playwright 时必须同步重出
             # `e2e/__screenshots__/*-linux/`，用 visual-baseline-linux.yml 手动触发。
             - name: Install Playwright browsers (版本跟随 lockfile，不依赖镜像 tag)
-              run: corepack pnpm exec playwright install --with-deps chromium
+              run: pnpm exec playwright install --with-deps chromium
 
             # 只构建，不跑 fetch:all：视觉门禁不该被第三方 API 抖动拖红
             # （内容相关的断言在 gates job 里）。文章内容用 e2e/fixtures/pages-visual/
@@ -195,7 +198,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test \
+                  pnpm exec playwright test \
                     e2e/design-atom-docs.a11y.spec.ts e2e/design-atoms.a11y.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/docs-a11y.log"
                   if ! grep -qE "^ +48 passed" "$RUNNER_TEMP/docs-a11y.log"; then
@@ -205,10 +208,10 @@ jobs:
                   fi
 
             - name: Visual regression · atoms 1/2
-              run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
+              run: pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
 
             - name: Visual regression · atoms 2/2 (stability)
-              run: corepack pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
+              run: pnpm exec playwright test e2e/design-atoms.visual.spec.ts --reporter=list --retries=0
 
             # M5-11 / V-0 建立 6 页；M6-6a 加 /404/ → 7 页 × 3 视口 × 2 主题 = 42。
             # 同上看条数，不信退出码。
@@ -216,7 +219,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test e2e/pages.visual.spec.ts \
+                  pnpm exec playwright test e2e/pages.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-visual-1.log"
                   if ! grep -qE "^ +42 passed" "$RUNNER_TEMP/pages-visual-1.log"; then
                     echo "::error::页面级视觉基线用例数不是 42（7 页 × 2 主题 × 3 视口）"
@@ -228,7 +231,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test e2e/pages.visual.spec.ts \
+                  pnpm exec playwright test e2e/pages.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-visual-2.log"
                   if ! grep -qE "^ +42 passed" "$RUNNER_TEMP/pages-visual-2.log"; then
                     echo "::error::页面级视觉基线第二遍未全绿（不稳定）"
@@ -248,7 +251,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  PW_SKIP_PREVIEW=1 corepack pnpm exec playwright test \
+                  PW_SKIP_PREVIEW=1 pnpm exec playwright test \
                     e2e/pages-states.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/states-visual-1.log"
                   if ! grep -qE "^ +36 passed" "$RUNNER_TEMP/states-visual-1.log"; then
@@ -261,7 +264,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  PW_SKIP_PREVIEW=1 corepack pnpm exec playwright test \
+                  PW_SKIP_PREVIEW=1 pnpm exec playwright test \
                     e2e/pages-states.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/states-visual-2.log"
                   if ! grep -qE "^ +36 passed" "$RUNNER_TEMP/states-visual-2.log"; then
@@ -301,7 +304,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test e2e/pages-radio.spec.ts \
+                  pnpm exec playwright test e2e/pages-radio.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-radio-1.log"
                   if ! grep -qE "^ +13 passed" "$RUNNER_TEMP/pages-radio-1.log"; then
                     echo "::error::pages-radio 用例数不是 13（RADIO_LIVE 默认关闭时必须是 13 passed / 1 skipped）"
@@ -318,7 +321,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test e2e/pages-radio.spec.ts \
+                  pnpm exec playwright test e2e/pages-radio.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/pages-radio-2.log"
                   if ! grep -qE "^ +13 passed" "$RUNNER_TEMP/pages-radio-2.log"; then
                     echo "::error::pages-radio 第二遍未全绿（不稳定）"
@@ -337,7 +340,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test e2e/pages-radio.visual.spec.ts \
+                  pnpm exec playwright test e2e/pages-radio.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/player-visual-1.log"
                   if ! grep -qE "^ +12 passed" "$RUNNER_TEMP/player-visual-1.log"; then
                     echo "::error::播放器元素基线用例数不是 12（3 形态 × 2 主题 × 2 视口）"
@@ -349,7 +352,7 @@ jobs:
               shell: bash
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test e2e/pages-radio.visual.spec.ts \
+                  pnpm exec playwright test e2e/pages-radio.visual.spec.ts \
                     --reporter=list --retries=0 | tee "$RUNNER_TEMP/player-visual-2.log"
                   if ! grep -qE "^ +12 passed" "$RUNNER_TEMP/player-visual-2.log"; then
                     echo "::error::播放器元素基线第二遍未全绿（不稳定）"

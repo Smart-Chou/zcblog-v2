@@ -58,13 +58,14 @@ jobs:
                       exit 1
                   fi
 
+            - name: 安装 pnpm
+              uses: pnpm/action-setup@v6
+
             - name: 安装依赖
-              run: |
-                  corepack enable
-                  corepack pnpm install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             - name: 安装浏览器（跟随 lockfile）
-              run: corepack pnpm exec playwright install --with-deps chromium
+              run: pnpm exec playwright install --with-deps chromium
 
             - name: 构建（固定 fixture 内容）
               run: node scripts/visual/build-pages-baseline.mjs
@@ -77,7 +78,7 @@ jobs:
                   PLAYWRIGHT_BASELINE_PLATFORM: linux
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test \
+                  pnpm exec playwright test \
                     e2e/design-atoms.visual.spec.ts \
                     e2e/pages.visual.spec.ts \
                     e2e/pages-states.visual.spec.ts \
@@ -89,7 +90,7 @@ jobs:
                   PLAYWRIGHT_BASELINE_PLATFORM: linux
               run: |
                   set -o pipefail
-                  corepack pnpm exec playwright test \
+                  pnpm exec playwright test \
                     e2e/design-atoms.visual.spec.ts \
                     e2e/pages.visual.spec.ts \
                     e2e/pages-states.visual.spec.ts \
