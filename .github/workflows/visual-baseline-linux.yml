@@ -1,0 +1,142 @@
+name: visual-baseline-linux
+
+# 手工触发的 Linux 视觉基线重出。
+#
+# 为什么需要它：Linux 基线（e2e/__screenshots__/*-linux/）只能在 CI 容器里产出 ——
+# 判定用的是 `maxDiffPixels: 0`，字体与 Chromium 构建号必须与产出时**完全**一致。
+# 本地是 macOS，产不出可用的 Linux 基线。
+#
+# 什么时候用：
+#   - 升级 @playwright/test（Chromium 构建号变了，截图不再逐像素可比）
+#   - 有意改动了页面布局，且已确认新渲染是对的
+#
+# 用法：Actions → visual-baseline-linux → Run workflow，填分支名。跑完会把这个分支的
+# 新基线 push 回同一个分支（用 bot 身份），随后人类 reviewer 看图确认。
+on:
+    workflow_dispatch:
+        inputs:
+            branch:
+                description: "要重出基线的分支（必须是本仓已有分支）"
+                required: true
+                type: string
+            confirm:
+                description: "确认要覆盖 Linux 基线（填 yes）"
+                required: true
+                type: string
+
+permissions:
+    contents: write
+
+concurrency:
+    group: visual-baseline-${{ inputs.branch }}
+    cancel-in-progress: false
+
+jobs:
+    regen:
+        name: 重出 Linux 基线（atoms 72 + pages 42 + states 36 + player 12）
+        if: inputs.confirm == 'yes'
+        runs-on: ubuntu-latest
+        container:
+            # tag 必须与 package.json 一致；浏览器另按 lockfile 现装（见下）
+            image: mcr.microsoft.com/playwright:v1.65.0-noble
+            options: --user root
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ inputs.branch }}
+                  fetch-depth: 0
+
+            - name: 确认镜像 tag 与 package.json 对齐
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  want=$(node -p "require('./package.json').devDependencies['@playwright/test'].replace(/^[^0-9]*/,'')")
+                  img=$(grep -oE 'playwright:v[0-9.]+' .github/workflows/ci.yml | head -1 | cut -d: -f2 | tr -d v)
+                  echo "package.json=$want  ci.yml 镜像=$img"
+                  if [ "$want" != "$img" ]; then
+                      echo "::error::镜像 tag ($img) 与 @playwright/test ($want) 不一致，跨版本截图不可比"
+                      exit 1
+                  fi
+
+            - name: 安装依赖
+              run: corepack pnpm install --frozen-lockfile
+
+            - name: 安装浏览器（跟随 lockfile）
+              run: corepack pnpm exec playwright install --with-deps chromium
+
+            - name: 构建（固定 fixture 内容）
+              run: node scripts/visual/build-pages-baseline.mjs
+
+            - name: 构建 states 产物
+              run: node scripts/visual/build-state-baseline.mjs
+
+            - name: 重出基线
+              env:
+                  PLAYWRIGHT_BASELINE_PLATFORM: linux
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test \
+                    e2e/design-atoms.visual.spec.ts \
+                    e2e/pages.visual.spec.ts \
+                    e2e/pages-states.visual.spec.ts \
+                    e2e/pages-radio.visual.spec.ts \
+                    --update-snapshots --reporter=list | tee "$RUNNER_TEMP/regen.log"
+
+            - name: 稳定性复查（同镜像再跑一遍，必须全绿）
+              env:
+                  PLAYWRIGHT_BASELINE_PLATFORM: linux
+              run: |
+                  set -o pipefail
+                  corepack pnpm exec playwright test \
+                    e2e/design-atoms.visual.spec.ts \
+                    e2e/pages.visual.spec.ts \
+                    e2e/pages-states.visual.spec.ts \
+                    e2e/pages-radio.visual.spec.ts \
+                    --reporter=list --retries=0 | tee "$RUNNER_TEMP/verify.log"
+                  if ! grep -qE "^ +162 passed" "$RUNNER_TEMP/verify.log"; then
+                      echo "::error::复查未全绿 —— 基线在这个镜像里不可复现"
+                      tail -40 "$RUNNER_TEMP/verify.log"
+                      exit 1
+                  fi
+
+            - name: 统计变更
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  changed=$(git status --porcelain -- 'e2e/__screenshots__/*-linux' | wc -l)
+                  echo "变更的 Linux 基线：$changed 张"
+                  git status --porcelain -- e2e/__screenshots__ | head -20
+                  echo "changed=$changed" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: 提交并推送
+              shell: bash
+              env:
+                  TARGET_BRANCH: ${{ inputs.branch }}
+              run: |
+                  set -euo pipefail
+                  # inputs.branch 是自由文本：只接受合法的分支名，挡掉注入与路径穿越
+                  if ! printf '%s' "$TARGET_BRANCH" | grep -qE '^[A-Za-z0-9._/-]+$' \
+                     || printf '%s' "$TARGET_BRANCH" | grep -qE '(^|/)\.\.(/|$)|^-'; then
+                      echo "::error::非法分支名：$TARGET_BRANCH"
+                      exit 1
+                  fi
+                  git config user.name "visual-baseline-bot"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add e2e/__screenshots__
+                  if git diff --cached --quiet; then
+                      echo "::notice::基线无变化，无需提交"
+                      exit 0
+                  fi
+                  node -p "const v=require('./package.json').devDependencies['@playwright/test']; \`chore(visual): 重出 Linux 基线（@playwright/test \${v}）\`" > "$RUNNER_TEMP/msg.txt"
+                  git commit -F "$RUNNER_TEMP/msg.txt"
+                  git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+
+            - name: 上传 diff（若有失败时的现场）
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: visual-baseline-linux-log
+                  path: |
+                      ${{ runner.temp }}/regen.log
+                      ${{ runner.temp }}/verify.log
+                  if-no-files-found: ignore
