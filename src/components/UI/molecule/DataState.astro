@@ -120,9 +120,14 @@ const isError = kind === "error";
         line-height: var(--leading-relaxed);
     }
 
+    /* 不再写死 `color: var(--color-fg-muted)`：这段代码在 `<Alert tone="warning">`
+       内部，应继承容器的告警语义色（`--color-status-warning-fg`）。
+       写 fg-muted 会让暗色下对比度只有 **4.40**（要求 4.5）：
+       #8c867a on #2c1f1b —— 差 0.1 就被 a11y nightly 判 serious。
+       继承后：暗色 4.97 / 亮色 4.58，两套主题都达标。
+       （D-0196，均为 axe-core 实测值） */
     .data-state__code {
         margin: var(--space-2) 0 0;
-        color: var(--color-fg-muted);
         font-family: var(--font-mono);
         font-size: var(--text-xs);
         line-height: var(--leading-tight);
