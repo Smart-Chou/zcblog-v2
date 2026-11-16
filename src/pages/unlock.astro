@@ -1,0 +1,100 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { site } from "~/config";
+import "~/styles/paid.css";
+
+const next = Astro.url.searchParams.get("next") || "";
+const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "";
+---
+
+<BaseLayout
+    title={`解锁付费内容 - ${site.title}`}
+    description="输入激活码，解锁付费文章。"
+    noindex={true}
+    showSidebar={false}
+>
+    <div class="paid-unlock-card" data-paid-unlock-page>
+        <h1>解锁付费内容</h1>
+        <p>购买后，激活码会发送给你。一码最多 3 台设备，解锁后 90 天内免输码。</p>
+        <form class="paid-unlock-form" data-paid-unlock-form>
+            <input
+                class="paid-input"
+                type="text"
+                inputmode="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="输入激活码，如 Z7K4-9QMX-3TWP-8R2N"
+                data-paid-unlock-input
+                aria-label="激活码"
+            />
+            <button class="paid-submit" type="submit" data-paid-unlock-submit>解锁</button>
+        </form>
+        <p class="paid-unlock-status" data-paid-unlock-status role="status"></p>
+        <p class="paid-note">
+            找不到激活码？请查看购买渠道的订单私信；仍未收到可在博客留言或邮件联系作者。
+        </p>
+        {
+            safeNext && (
+                <p class="paid-note">
+                    解锁后将返回：<code>{safeNext}</code>
+                </p>
+            )
+        }
+    </div>
+</BaseLayout>
+
+<script>
+    /*
+     * 只处理「兑换激活码」这一件事，所以就地写在页面里，不额外拉一个 chunk。
+     * 兑换成功后网关种下会话 Cookie，文章页再取密钥解密（见 rehype-encrypted
+     * 的收费分支）。
+     */
+    const API_BASE = import.meta.env.DEV
+        ? `${location.protocol}//${location.hostname}:8788/api/pay`
+        : "/api/pay";
+
+    const page = document.querySelector<HTMLElement>("[data-paid-unlock-page]");
+    const form = page?.querySelector<HTMLFormElement>("[data-paid-unlock-form]");
+    const input = page?.querySelector<HTMLInputElement>("[data-paid-unlock-input]");
+    const submit = page?.querySelector<HTMLButtonElement>("[data-paid-unlock-submit]");
+    const status = page?.querySelector<HTMLElement>("[data-paid-unlock-status]");
+
+    const say = (text: string, kind = "info") => {
+        if (!status) return;
+        status.textContent = text;
+        status.dataset.kind = kind;
+    };
+
+    form?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const code = input?.value.trim() || "";
+        if (!code) return;
+        if (submit) submit.disabled = true;
+        say("正在验证…");
+        try {
+            const res = await fetch(`${API_BASE}/redeem`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code }),
+            });
+            const data = (await res.json().catch(() => ({}))) as { error?: string };
+            if (!res.ok) {
+                say(
+                    data.error === "code_revoked" ? "该激活码已被停用" : "激活码无效，请重试",
+                    "error",
+                );
+                return;
+            }
+            say("解锁成功，正在跳转…");
+            const params = new URLSearchParams(location.search);
+            const nextPath = params.get("next") || "/";
+            /* 只允许站内相对路径，防止开放重定向 */
+            location.href = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
+        } catch {
+            say("网络错误，请稍后重试", "error");
+        } finally {
+            if (submit) submit.disabled = false;
+        }
+    });
+</script>
