@@ -1,0 +1,230 @@
+/* 付费阅读：付费墙与解锁后的正文容器 */
+
+.paid-block {
+    margin: 2rem 0;
+}
+
+.paid-gate {
+    position: relative;
+    overflow: hidden;
+    padding: 1.5rem;
+    border: 1px dashed color-mix(in srgb, var(--color-accent) 45%, transparent);
+    border-radius: calc(var(--radius) + 2px);
+    background:
+        radial-gradient(
+            120% 120% at 50% 0%,
+            color-mix(in srgb, var(--color-accent) 9%, transparent),
+            transparent 60%
+        ),
+        var(--color-surface-secondary);
+}
+
+.paid-gate[hidden] {
+    display: none;
+}
+
+.paid-gate-top {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+}
+
+.paid-lock {
+    flex: none;
+    font-size: 1.5rem;
+    line-height: 1.4;
+}
+
+.paid-title {
+    margin: 0 0 0.25rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-title);
+}
+
+.paid-desc {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-muted);
+}
+
+.paid-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+}
+
+.paid-buy,
+.paid-toggle,
+.paid-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.paid-buy {
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent);
+    color: #fff;
+}
+
+.paid-buy:hover {
+    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--color-accent) 86%, #000);
+}
+
+.paid-toggle {
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-body);
+}
+
+.paid-toggle:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.paid-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+.paid-form[hidden] {
+    display: none;
+}
+
+.paid-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.55rem;
+    background: var(--color-bg);
+    color: var(--color-body);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    letter-spacing: 0.03em;
+}
+
+.paid-input:focus {
+    border-color: var(--color-accent);
+    outline: 2px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+    outline-offset: 0;
+}
+
+.paid-submit {
+    border: 1px solid var(--color-accent);
+    background: var(--color-accent);
+    color: #fff;
+}
+
+.paid-submit:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.paid-msg {
+    min-height: 1.2em;
+    margin: 0.7rem 0 0;
+    font-size: 0.85rem;
+}
+
+.paid-msg[data-kind="error"] {
+    color: #c2413b;
+}
+
+.paid-msg[data-kind="info"] {
+    color: var(--color-muted);
+}
+
+.paid-note {
+    margin: 0.4rem 0 0;
+    font-size: 0.78rem;
+    color: var(--color-text-dimmed);
+}
+
+.paid-body[hidden] {
+    display: none;
+}
+
+.paid-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.9rem;
+    padding: 0.22rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    color: var(--color-accent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* /unlock/ 页 */
+.paid-unlock-card {
+    max-width: 560px;
+    margin: 3rem auto;
+    padding: 2rem;
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--radius) + 4px);
+    background: var(--color-surface);
+}
+
+.paid-unlock-card h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.4rem;
+}
+
+.paid-unlock-card p {
+    color: var(--color-muted);
+    font-size: 0.92rem;
+}
+
+.paid-unlock-form {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1.2rem;
+}
+
+.paid-unlock-status {
+    min-height: 1.4em;
+    margin-top: 0.9rem;
+    font-size: 0.9rem;
+}
+
+.paid-unlock-status[data-kind="error"] {
+    color: #c2413b;
+}
+
+@media (max-width: 560px) {
+    .paid-gate {
+        padding: 1.1rem;
+    }
+
+    .paid-form,
+    .paid-unlock-form {
+        flex-direction: column;
+    }
+
+    .paid-buy,
+    .paid-toggle,
+    .paid-submit {
+        width: 100%;
+    }
+}

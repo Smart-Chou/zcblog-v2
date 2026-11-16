@@ -25,7 +25,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { toHtml } from "hast-util-to-html";
-import { encryptContent } from "../utils/encrypt";
+import { encryptContent, VERSION_V2 } from "../utils/encrypt";
 import { visit } from "unist-util-visit";
 
 function childrenToHtml(nodes: any) {
@@ -52,18 +52,35 @@ export function rehypeEncrypted() {
         visit(tree, "element", (node, index, parent) => {
             if (!parent || index === undefined) return;
 
-            const cls = node.properties?.className;
+            /* remark 阶段的 h() 会写 `class`（字符串）而非 `className`（数组），
+               两处都要认，否则加密静默失效、明文与密码一起进产物。 */
+            const cls = node.properties?.className ?? node.properties?.class;
             const classList = Array.isArray(cls)
                 ? cls
                 : typeof cls === "string"
-                  ? cls.split(/\s+/)
+                  ? cls.split(/\s+/).filter(Boolean)
                   : [];
             if (!classList.includes("encrypted-container-wrapper")) return;
 
-            const password = String(node.properties["data-password"] || "");
-            const hint = String(node.properties["data-hint"] || "");
+            /*
+             * hastscript 会把 data-* 属性转成驼峰（dataPassword），而直接写
+             * properties 的路径保留连字符（data-password）。两种都要读，
+             * 否则密码恒为空 —— 加密被跳过，明文与密码一起进产物。
+             */
+            const props = node.properties || {};
+            const password = String(props["data-password"] ?? props.dataPassword ?? "");
+            const hint = String(props["data-hint"] ?? props.dataHint ?? "");
 
-            if (!password) return;
+            /*
+             * 没有密码时必须让构建失败。旧行为是 `return` —— 静默跳过加密，
+             * 明文正文原样进产物，而作者以为它已加密。这比报错危险得多。
+             */
+            if (!password) {
+                throw new Error(
+                    "[rehype-encrypted] 遇到 encrypted 区块但无法确定密码：" +
+                        '请在 :::encrypted{password="..."} 里写明，或设置 ENCRYPTION_PASSWORD 环境变量',
+                );
+            }
 
             const innerHtml = childrenToHtml(node.children || []);
 
@@ -101,7 +118,7 @@ function buildEncryptedBlock(encryptedData: string, context: string, hint: strin
             className: ["enc-block"],
             "data-encrypted": encryptedData,
             "data-slug": context,
-            "data-version": "2",
+            "data-version": VERSION_V2,
         },
         children: [buildGate(hint, uid), buildDialog(hint, uid), buildOutput(uid), scriptNode(uid)],
     };
@@ -261,13 +278,17 @@ function scriptNode(uid: string) {
 
 /**
  * 解锁 UI 状态机（内联经典脚本 —— 内容页不需要额外 chunk，也就没有「关闭态请求」）。
- * 解密部分与旧实现逐字节等价：PBKDF2-SHA256(100k) → AES-GCM，blob = salt(16)|iv(12)|tag(16)|ct。
+ * 解密：PBKDF2-SHA256 → AES-GCM，blob = salt(16)|iv(12)|tag(16)|ct。
+ * 参数按 data-version 分派（2026-11-16 起）：
+ *   v2 → 310k 迭代 + slug 作 AAD（新内容）
+ *   v1 → 100k 迭代、无 AAD（历史内容，仅为兼容保留）
  */
 function buildScript(uid: string): string {
     return `(function(){
 var id="${uid}";
 var c=document.getElementById("encrypted-container-"+id);if(!c)return;
 var d=c.getAttribute("data-encrypted"),s=c.getAttribute("data-slug");
+var ver=c.getAttribute("data-version")||"2";
 var gate=document.getElementById("encrypted-gate-"+id);
 var dlg=document.getElementById("encrypted-dialog-"+id);
 var openBtn=document.getElementById("encrypted-open-"+id);
@@ -283,9 +304,14 @@ async function dec(pwd){
 var r=b64toBuf(d),salt=r.slice(0,16),iv=r.slice(16,28),tag=r.slice(28,44),ct=r.slice(44);
 var buf=new Uint8Array(ct.length+16);buf.set(ct);buf.set(tag,ct.length);
 var enc=new TextEncoder();
+/* v2 用 310k 迭代 + slug 作 AAD；v1 用历史的 100k 且无 AAD。
+   两个参数都在构建期写进 data-version，避免客户端猜错。 */
+var it=ver==="1"?100000:310000;
 var km=await crypto.subtle.importKey("raw",enc.encode(pwd),"PBKDF2",false,["deriveBits","deriveKey"]);
-var key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:salt,iterations:100000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]);
-return new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:iv},key,buf));
+var key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:salt,iterations:it,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]);
+var gp={name:"AES-GCM",iv:iv};
+if(ver!=="1")gp.additionalData=enc.encode(s);
+return new TextDecoder().decode(await crypto.subtle.decrypt(gp,key,buf));
 }
 function cacheGet(){try{return sessionStorage.getItem(ck)}catch(err){return null}}
 function cacheSet(v){try{sessionStorage.setItem(ck,v)}catch(err){}}
