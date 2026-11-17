@@ -172,8 +172,13 @@ jobs:
                     echo "::error::未配置 secrets.CF_PAGES_TOKEN，无法部署生产"
                     exit 1
                   fi
+                  # 必须 pipefail：否则 `... | tee` 的退出码是 tee 的（恒 0），
+                  # wrangler 报错时这一步照样绿——本项目已因此假绿数日：
+                  #   ✘ ERROR: The Pages project "zcblog-v2" does not exist.
+                  # 实际项目名是 dogeared（wrangler pages project list 可查）。
+                  set -o pipefail
                   npx --yes wrangler@4.158.0 pages deploy dist \
-                    --project-name zcblog-v2 --branch main --commit-dirty=true \
+                    --project-name dogeared --branch main --commit-dirty=true \
                     2>&1 | tee "$RUNNER_TEMP/pages-deploy.log"
                   url=$(grep -oE 'https://[a-z0-9]+\.zcblog-v2\.pages\.dev' "$RUNNER_TEMP/pages-deploy.log" | tail -1)
                   echo "deployment_url=$url" >> "$GITHUB_OUTPUT"
