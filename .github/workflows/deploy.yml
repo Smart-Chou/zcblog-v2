@@ -57,11 +57,19 @@ jobs:
 
                   mkdir -p src/assets
                   cp -r _articles/assets/* src/assets/ 2>/dev/null || true
-                  # 无私有仓访问权时（如手动 dispatch 而 PAT 失效）用 fixture 兜底，
-                  # 避免以 0 篇文章构建出空站还显示部署成功。
-                  if [ -z "$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null)" ]; then
-                    echo "⚠️ 未拿到私有仓文章，改用仓内 fixture 文章"
-                    cp -r e2e/fixtures/pages-visual/content/article/*.md src/content/article/ 2>/dev/null || true
+
+                  # 生产部署（本 workflow 只由 push main / repository_dispatch /
+                  # workflow_dispatch 触发，**从不**由外部 PR 触发）必须拿到真实文章。
+                  # 这里以前用 e2e/fixtures 静默兜底，会构建出「部署成功但内容是
+                  # 测试数据」的站；虽然 build 之后的 verify-build.mjs 有
+                  # A13_REQUIRE_ALL=1 能拦住（fixture 缺 expressive-code /
+                  # blog-feature-demo），但那是 5 分钟构建之后、报错还指向
+                  # 「产物缺失」而非「内容没拿到」。改为在此 fail fast。
+                  count=$(ls src/content/article/*.md src/content/article/*.mdx 2>/dev/null | wc -l | tr -d ' ')
+                  if [ "$count" -eq 0 ]; then
+                    echo "::error::未拿到任何文章 —— ARTICLES_PAT 可能已失效或无 zcblog-articles 权限。"
+                    echo "::error::拒绝用 fixture 兜底构建生产站（会产出内容是测试数据的假成功）。"
+                    exit 1
                   fi
                   echo "🖼  $(find src/assets -type f 2>/dev/null | wc -l) 张图片"
 

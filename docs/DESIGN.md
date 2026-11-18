@@ -1,11 +1,11 @@
 # DESIGN.md · zcblog 设计系统真源 v1.2.0
 
 > **状态**：v1.2.0（M8-4：新增 §5.7 organism 规格族 + §5.7.1 SitePlayer）· 2026-11-12 · 版本判定见 §8.1
-> **Owner**：`blog-design`（`docs/11-team-org.md` §2）· **验收**：`blog-pm` 按本文 §9 逐项判定 · **视觉方向签字**：PO（周聪）
-> **上位文档**：`docs/16-m1-brief.md`（M1 目标与交付物）、`docs/12-product-charter.md`（产品定义与 P5 设计契约）
+> **Owner**：`blog-design`（`blog2.0/docs/11-team-org.md` §2）· **验收**：`blog-pm` 按本文 §9 逐项判定 · **视觉方向签字**：PO（周聪）
+> **上位文档**：`blog2.0/docs/16-m1-brief.md`（M1 目标与交付物）、`blog2.0/docs/12-product-charter.md`（产品定义与 P5 设计契约）
 > **下游消费方**：`tokens.json`（M1-2）、12 个核心组件（M1-3）、组件文档与视觉基线（M1-4）、门禁（M1-5）
 > **取代关系**：本文取代 `zcblog-v2/.claude/DESIGN.md`（v1 皮肤存档，冻结不再更新）。**冲突时以本文为准。**
-> **v1.2 已合并（2026-11-12）**：站级悬浮播放器 `SitePlayer` 的过程稿（`docs/26-m8-4-player-spec.md`）并入 **§5.7**，新开「organism 组件规格」一族——有生命周期 / 跨页单例 / 第三方网络依赖的组件不能套 §5.6 的「JS 0 字节 + props 画完」判据。同时把 `--z-overlay` 的语义扩写（§3.11）、归层表加第 16 行（§4.5）、登记三条实现例外（§6.2 X6）、给 JS 预算开一条带数字的例外（§7）。**§3 的 token 值与键集合一个字节没动**，所以 `tokens.json` 同步升 1.2.0 只是同版本号要求，不是色值/度量变更；视觉基线不重出。
+> **v1.2 已合并（2026-11-12）**：站级悬浮播放器 `SitePlayer` 的过程稿（`blog2.0/docs/26-m8-4-player-spec.md`）并入 **§5.7**，新开「organism 组件规格」一族——有生命周期 / 跨页单例 / 第三方网络依赖的组件不能套 §5.6 的「JS 0 字节 + props 画完」判据。同时把 `--z-overlay` 的语义扩写（§3.11）、归层表加第 16 行（§4.5）、登记三条实现例外（§6.2 X6）、给 JS 预算开一条带数字的例外（§7）。**§3 的 token 值与键集合一个字节没动**，所以 `tokens.json` 同步升 1.2.0 只是同版本号要求，不是色值/度量变更；视觉基线不重出。
 > **v1.1 已合并（2026-11-02）**：PO 给了 Google Stitch 的初步 UI（`blog2.0/_design/stitch-baseline/`）作为 M1 视觉基线，`tokens.json` 已按它落地（`t_f44ee43d`），本文 §3.3–§3.12 已按同一份 JSON 重写（本卡）——**文档与 JSON 现在是一套值**，不再有「以谁为准」的兜底。差异、推导与原值见 §3.14（历史记录）。
 > **CSS 架构（D-0100，2026-11-02）**：Tailwind 已移除；组件用 Astro scoped styles / `src/styles/` 原生 CSS；token 走 `tokens.json → tokens.css`；不写 utility class、`@apply`、`@theme`。
 > **性质**：这是**契约**，不是灵感板。写进来的东西要能被机器检查，或者能被第三方判断对错。
@@ -37,7 +37,7 @@
 
 > **一本被反复翻阅的暖色纸页笔记本：朱红墨迹、衬线标题、留白充分，深浅色都像同一个物件在不同光线下。**
 
-「Marx's Blog」的既有气质（暖纸 + 朱红 + 衬线）是资产，v1.0 **不换皮肤**，只把它从「一套好看的 CSS」升级为「一套可复用、可检查、可升级的契约」。产品化之后这个气质要服务的不再是一个人的博客，而是「50–500 篇内容的中文个人站」（`12-product-charter.md` §3.2）。
+「Marx's Blog」的既有气质（暖纸 + 朱红 + 衬线）是资产，v1.0 **不换皮肤**，只把它从「一套好看的 CSS」升级为「一套可复用、可检查、可升级的契约」。产品化之后这个气质要服务的不再是一个人的博客，而是「50–500 篇内容的中文个人站」（`blog2.0/docs/12-product-charter.md` §3.2）。
 
 ### 1.2 服务什么内容
 
@@ -84,7 +84,7 @@
 | P6 | **token 是唯一出口** | 组件里出现字面颜色/圆角/间距 = 违规（§6.1）；组件只消费语义色 + 度量 token |
 | P7 | **设计不能压爆性能** | 设计系统自身成本上限：`tokens.css` ≤ 12KB（raw，与 §7 同数）；不新增运行时依赖；不给全局样式表加新规则（R-31 文章页 CSS 39.7/40KB 已贴线） |
 
-> P7 不是口号：`13-package-boundaries.md` §5 已经把 `packages/tokens` 定为「先归集、不发布」的内部包，M1 的实现成本必须落在这个包内。
+> P7 不是口号：`blog2.0/docs/13-package-boundaries.md` §5 已经把 `packages/tokens` 定为「先归集、不发布」的内部包，M1 的实现成本必须落在这个包内。
 
 ---
 
@@ -92,7 +92,7 @@
 
 ### 3.1 三层词汇（先说清「语义」到底指哪一层）
 
-`16-m1-brief.md` §3.2 的规则是「组件只能用语义 token；palette 只在 tokens.css 里出现」。这句话在颜色上是完备的，但在间距/圆角上会引起歧义（`--space-4` 算不算语义？）。本文把它拆成三层，作为对 16 §3.2 的**澄清**（不是修改）：
+`blog2.0/docs/16-m1-brief.md` §3.2 的规则是「组件只能用语义 token；palette 只在 tokens.css 里出现」。这句话在颜色上是完备的，但在间距/圆角上会引起歧义（`--space-4` 算不算语义？）。本文把它拆成三层，作为对 16 §3.2 的**澄清**（不是修改）：
 
 | 层 | 命名 | 允许谁用 | 值的特点 |
 |---|---|---|---|
@@ -441,7 +441,7 @@ emphasis  ∈ strong | subtle | hover | focus | disabled | solid | fg | bg | bor
 
 - 迁移映射：`--font-body` → `--font-sans`；`--font-heading` → `--font-serif`；`--font-mono` 不变。
 - **v1.1 变更**：serif 栈首位加 `Newsreader`（Stitch 基线的主标题字），并去掉 `Playfair Display` / `Times New Roman` / emoji 段——`Newsreader` 缺席时由 `DM Serif Display` 兜底，中文由 `Source Han Serif SC` 兜底。**这是新增的一个字体下载项**，必须量 LCP/CLS（§10 未决 1）。sans 与 mono 栈未变。
-- **字体选型仍是 M1 开放问题**（`16-m1-brief.md` §6.1：现有字体 vs 自托管 vs 系统栈）。本节冻结的是**字族角色与顺序**（serif 标题 / sans 正文 / mono 代码），栈内容可以变，但必须同时改 `tokens.json` 与本节。
+- **字体选型仍是 M1 开放问题**（`blog2.0/docs/16-m1-brief.md` §6.1：现有字体 vs 自托管 vs 系统栈）。本节冻结的是**字族角色与顺序**（serif 标题 / sans 正文 / mono 代码），栈内容可以变，但必须同时改 `tokens.json` 与本节。
 - 禁止第四族（含 icon font）：图标一律 SVG（`src/components/Icons`）。
 
 #### 3.5.2 字号阶梯（9 档，12→56；不是等比数列，相邻比 1.11–1.38）
@@ -881,7 +881,7 @@ Stitch 是一份**视觉**基线，它的 mid-tone 没有考虑 WCAG 门槛（�
 | **L4 page** | `src/pages/`、`src/layouts/` | 取数据、决定信息架构、组合任意层 | 全部 | 被任何 L1–L3 反向 import |
 | **infra** | `src/components/BaseHead/` | 非视觉：meta / JSON-LD / CSP / 字体预载 | 配置 | 视觉组件（infra 不许渲染可见 UI） |
 
-**目录说明**：v1.0 **不强制**物理重组（避免与 M1-3 撞车）。现阶段只要求：**每个组件在自己的文档里声明层级**；物理迁移在 M2 首个切片做，最终对齐 `13-package-boundaries.md` §5 的 `packages/ui`。
+**目录说明**：v1.0 **不强制**物理重组（避免与 M1-3 撞车）。现阶段只要求：**每个组件在自己的文档里声明层级**；物理迁移在 M2 首个切片做，最终对齐 `blog2.0/docs/13-package-boundaries.md` §5 的 `packages/ui`。
 
 **目录大小写（M1-3 实测）**：实际目录是 `src/components/UI/`（大写），M1-3 的 10 atom + 2 molecule 落在 `UI/atom/` 与 `UI/molecule/`。**不要新建小写 `ui/`**：macOS 默认大小写不敏感会直接撞进现有 `UI/`，Linux CI 上则会出现两个目录。
 
@@ -936,7 +936,7 @@ page ──▶ organism ──▶ molecule ──▶ atom ──▶ token
 
 ### 4.5 M1 的 12 个核心组件 + M8-6-0 的 3 个结构件（归属层）
 
-`16-m1-brief.md` §3.3 叫它们「12 个核心 atom」。按 §4.4 的归层四问，其中 2 个实际是 molecule——**卡名不改，归层必须写对**，否则评审时「atom 里 import atom」会被判违规。
+`blog2.0/docs/16-m1-brief.md` §3.3 叫它们「12 个核心 atom」。按 §4.4 的归层四问，其中 2 个实际是 molecule——**卡名不改，归层必须写对**，否则评审时「atom 里 import atom」会被判违规。
 
 | # | 组件 | 实际层级 | 判定依据 |
 |---|---|---|---|
@@ -2612,7 +2612,7 @@ grep -rn -- "--palette-" src/components src/pages src/styles --include=*.css --i
 
 **③ 改 token**：先改 `tokens.json`，再 `node build-tokens.mjs` 生成 `tokens.css`，最后改本文对应表格与版本号。**顺序不能反**——先改组件再回填 token 是 `16` §4 明令禁止的做法（「不允许组件里先写死再回填」）。
 
-**④ 证据**：见 §8.4，缺一即退回（`11-team-org.md` §5.2 的交接三件套同口径）。
+**④ 证据**：见 §8.4，缺一即退回（`blog2.0/docs/11-team-org.md` §5.2 的交接三件套同口径）。
 
 **⑤ 签字**：QA 出 `PASS` / `REQUEST_CHANGES` / `ABORT`；PM 按 §9 判定；只有涉及 §1 视觉叙事/§2 原则的改动才需要 PO 签字。
 
@@ -2642,7 +2642,7 @@ grep -rn -- "--palette-" src/components src/pages src/styles --include=*.css --i
 - **基线一起回滚**：视觉基线是同一次提交里的 PNG；只回滚 token 不回滚基线，CI 会红在错误的地方。
 - 回滚演练：M1-5 至少做一次「改一个颜色 → 基线变红 → revert → 变绿」的证明（与 G5 的回滚演练同思路：**没演练过 = 没有**）。
 
-### 8.6 什么时候必须写 `decision-log.md`
+### 8.6 什么时候必须写 `blog2.0/docs/decision-log.md`
 
 以下六类改动**先写决策记录再动手**（`blog-pm` 维护，只增不改）：
 
@@ -2964,11 +2964,11 @@ raise SystemExit(1 if fail else 0)
 
 **参考**
 
-- `docs/16-m1-brief.md` §3.1–§3.2（DESIGN.md 提纲、token schema、命名约定）、§3.3（12 components）、§3.5（视觉基线）、§6（开放问题）
-- `docs/04-architecture.md` §1（构建期系统，运行期零服务器）、§4（单页 JS 构成：swup 16.7KB 占大头 → 组件默认 0 JS）
-- `docs/13-package-boundaries.md` §1（判定四问）、§2（三处跨层耦合及修复）、§3（UI 组件矩阵，🔧/⛔ 判定）、§5（`packages/tokens` 与 `packages/ui` 目标结构）
+- `blog2.0/docs/16-m1-brief.md` §3.1–§3.2（DESIGN.md 提纲、token schema、命名约定）、§3.3（12 components）、§3.5（视觉基线）、§6（开放问题）
+- `blog2.0/docs/04-architecture.md` §1（构建期系统，运行期零服务器）、§4（单页 JS 构成：swup 16.7KB 占大头 → 组件默认 0 JS）
+- `blog2.0/docs/13-package-boundaries.md` §1（判定四问）、§2（三处跨层耦合及修复）、§3（UI 组件矩阵，🔧/⛔ 判定）、§5（`packages/tokens` 与 `packages/ui` 目标结构）
 - `docs/06-performance-budget.md` §2（预算表）、§2.1（JS 口径与 40/28/30 门禁）、§3（HTML 构成）
-- `docs/12-product-charter.md` §5（P5 设计契约：硬编码 = 0）、§7（约束：Astro + 原生 CSS、不使用 Tailwind、不引入 Svelte 5）
+- `blog2.0/docs/12-product-charter.md` §5（P5 设计契约：硬编码 = 0）、§7（约束：Astro + 原生 CSS、不使用 Tailwind、不引入 Svelte 5）
 - `risks.md` R-31（文章页 CSS 贴线）、R-34（设计系统压爆预算）
-- `docs/decision-log.md` D-0094（动画改 LCP）、D-0088（删开场动画）、D-0089（CSS 滚动时间轴不可靠）、D-0057（对比度整改）
+- `blog2.0/docs/decision-log.md` D-0094（动画改 LCP）、D-0088（删开场动画）、D-0089（CSS 滚动时间轴不可靠）、D-0057（对比度整改）
 

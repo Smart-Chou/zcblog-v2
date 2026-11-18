@@ -9,40 +9,22 @@ name: Deploy matrix
 # `paths` 只放会改变产物的输入，纯文档/门禁改动不触发。
 on:
     pull_request:
-        paths:
-            - "src/**"
-            - "packages/**"
-            - "apps/**"
-            - "public/**"
-            - "astro.config.mjs"
-            - "vercel.json"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "scripts/deploy-matrix.sh"
-            - "scripts/gates/verify-deploy-artifacts.mjs"
-            - ".github/workflows/deploy-matrix.yml"
-            # ---- 治理文档也触发（D-0191）----
-            #
-            # 为什么必须加：gh-pages / cloudflare / vercel 是 main 分支保护的
-            # **必需检查**。如果 paths 只放产物输入，纯文档 PR 就永远不会创建
-            # 这三个 check-run，PR 状态卡在 BLOCKED 无法合并 —— 门禁与保护规则
-            # 互相死锁，谁也过不去。
-            #
-            # 以前没暴露是因为纯文档改动都直推 main、没走 PR。分支保护上线后
-            # 这条路被堵死（直推会被 protected branch hook 拒）。
-            #
-            # 代价：单次构建实测 ~74s，三 job 并行 ≈ 4 分钟，纯文档 PR 也要跑。
-            # 比「PR 永远合不了」便宜得多。且断言的是产物契约，文档改动理论上
-            # 不该影响它 —— 万一影响了，那正是该知道的事。
-            - "rules/**"
-            - "docs/**"
-            - "AGENTS.md"
-            - ".agents/**"
-            # 只改 e2e 的 PR 同理（D-0194）：`e2e/**` 不在产物输入里，
-            # 但纯测试改动一样会让 PR 缺这三个 check-run 而永久 BLOCKED。
-            - "e2e/**"
+        # D-0196：**不设 paths**。
+        #
+        # 本 workflow 的 matrix（gh-pages / cloudflare / vercel）是 main 分支
+        # 保护的**必需检查**。带 paths 过滤时，任何不碰那些 glob 的 PR 都拿不到
+        # 这三个 check-run，永远卡在 BLOCKED —— 已踩过三次（D-0192 纯文档、
+        # D-0194 纯 e2e、以及每次新增顶层目录）。
+        #
+        # 历次修法都是「再补几个 glob」，但判据不是 glob 覆盖度：一个 workflow
+        # 若要提供必需检查，它的 paths 必须覆盖**全部**可能的改动面 —— 那等于
+        # 不用 paths。两者本就不该共存。所以这里直接去掉，靠 concurrency 和
+        # cancel-in-progress 控制成本（实测三 job 并行 ≈ 3 分钟）。
+        #
+        # push(main) 仍保留 paths：那时 deploy.yml 在跑全套，重复构建没收益。
     push:
         branches: [main]
+        # 只有 push(main) 保留 paths —— 见上面 pull_request 的说明。
         paths:
             - "src/**"
             - "packages/**"

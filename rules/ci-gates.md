@@ -184,22 +184,29 @@ O0 清单自洽（`manifestVersion`/`theme`/`classes`/`anchors` 齐、`theme.ver
 ### 5.2 分支保护的必需检查不能来自带 `paths` 过滤的 workflow
 
 `gh-pages` / `cloudflare` / `vercel`（`deploy-matrix.yml`）与
-`assemble + build + verify`（`demo.yml`）都是 main 的必需检查，而这两个
-workflow 都用 `pull_request.paths` 过滤产物输入。
+`assemble + build + verify`（`demo.yml`）都是 main 的必需检查。
 
-于是**任何不碰这些路径的 PR 都拿不到这四个 check-run**，卡死在 `BLOCKED`。
-已踩两次：纯文档 PR（D-0192，补 `rules/**` `docs/**` `AGENTS.md` `.agents/**`）、
-纯 e2e PR（D-0194，补 `e2e/**`）。
+历史上这两个 workflow 的 `pull_request` 都带 `paths` 过滤，于是**任何不碰那些
+glob 的 PR 都拿不到这四个 check-run**，卡死在 `BLOCKED`。踩过三次：纯文档 PR
+（D-0192 补 `rules/**` `docs/**` `AGENTS.md` `.agents/**`）、纯 e2e PR
+（D-0194 补 `e2e/**`）、以及每次新增顶层目录。
 
 **判据不是「再补几个 glob」，而是**：一个 workflow 若要提供必需检查，它的
 `paths` 必须覆盖**全部**可能的改动面 —— 那等于不用 `paths`。反过来说，
 `paths` 过滤与「必需检查」本就不该共存于同一个 workflow。
 
-当前是「补全 glob」的折中：新增顶层目录时要记得同步两个 workflow 的 paths，
-否则又是一次 `BLOCKED`。彻底解法是把这四个 job 的内容抽到一个无 `paths`
-的轻量 workflow，或从必需列表里移除。
+**已按此判据重构（D-0196）**：两个 workflow 的 `pull_request` 触发器**整体去掉
+`paths`**，`push(main)` 保留（那时 `deploy.yml` 在跑全套，重复构建没收益）。
+实测代价：`deploy-matrix` 三个 job 并行 ≈ 3 分钟，`demo` ≈ 1 分钟，由
+`concurrency.cancel-in-progress` 兜住并发。
 
-<!-- D-0191 · 实测 CI job log 132521551699 -->
+为什么不抽一个「只报状态的轻量 workflow」：那会造出一个**不跑真实构建却报绿**
+的空检查，正是 §5.1「检查命令报绿 ≠ 东西被检查了」要禁的东西。要就真跑，不要
+就从必需列表里移除 —— 没有中间态。
+
+新增顶层目录时**不再需要**同步两个 workflow 的 paths。
+
+<!-- D-0191 · 实测 CI job log 132521551699 · 重构于 D-0196 -->
 
 ## 6. 红了先做这五件事
 
