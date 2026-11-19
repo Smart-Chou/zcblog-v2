@@ -44,30 +44,38 @@ test.describe("N-7 懒加载", () => {
         await expect(toc.locator(".toc-content .toc-list").first()).toBeVisible();
     });
 
-    test("分享：未滚动到底不发 share chunk，滚到后按钮可用", async ({ page }) => {
-        const jsRequests: string[] = [];
-        page.on("request", (r) => {
-            const u = r.url();
-            if (u.endsWith(".js")) jsRequests.push(u);
-        });
-
+    test("分享：不滚动也能点开微信弹层（PostShare 保持静态加载）", async ({ page }) => {
+        /**
+         * 这条**曾经断言的是反面**（「未滚动不发 share chunk，滚到后才可用」），
+         * 2026-11-18 实测证明那个设计是错的，已撤销：
+         *
+         *   e2e/overlays.spec.ts 的 `prepare()` 只 `page.goto` + 等字体/动画帧，
+         *   **不滚动**，随后直接点 `[data-share-action='wechat']`。
+         *   分享区在正文末尾（首屏外），懒加载后按钮既无 chunk 也未装委托 →
+         *   点击无效。回归实测（同口径只跑 overlays）：
+         *
+         *     b8803a0a（N-7 之前）  2 failed / 19 passed
+         *     N-7 之后              4 failed / 17 passed   ← 多的正是 share @light/@dark
+         *
+         *   而且收益不成比例：`share.ts` 本体 13,645B / gzip **4,977B**，N-7 只把
+         *   PostShare 外壳从 2,195B 降到 476B，省 1.7KB 却换来一个真实功能回归。
+         *   补过 `pointerdown` / `focusin` / `keydown` 三路兜底加载 —— **无效**：
+         *   `import()` 是异步的，playwright 的 click 在同一帧内走完
+         *   pointerdown→pointerup→click，第一次点击必然赶不上（实测 4 failed 不变）。
+         *
+         * 所以 `PostShare` 回归静态 `import "~/scripts/share"`，本条改为守住
+         * 「不滚动也能点开」这个真实用户路径。
+         */
         await page.goto(ARTICLE, { waitUntil: "load" });
 
-        // 分享区在正文末尾：首屏不该已经拉过分享逻辑
         const shareRoot = page.locator(".post-share, [data-share-root]").first();
-        const beforeCount = jsRequests.length;
-
-        await shareRoot.scrollIntoViewIfNeeded();
-        await page.waitForTimeout(800);
-
-        // 滚到分享区后应新增至少 1 个请求（share chunk）
-        const afterCount = jsRequests.length;
-        expect(afterCount, "分享区进入视口后应加载 share chunk").toBeGreaterThanOrEqual(
-            beforeCount,
-        );
-
-        // 功能可用：分享按钮可点击且存在（懒加载不得让按钮变成死键）
         await expect(shareRoot).toBeVisible();
+
+        // 关键：**不滚动**，直接点。分享区在视口外，playwright 会自动滚进去。
+        await page.locator("[data-share-action='wechat']").first().click();
+
+        // 微信弹层必须真的出现（这正是 overlays.spec.ts:183 的判据）
+        await expect(page.locator('[data-overlay="share"]')).toHaveCount(1);
     });
 
     test("预算棘轮：tocbot 不再进入文章页静态 JS 图（N-7 出口）", async () => {
