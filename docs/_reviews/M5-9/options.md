@@ -1,7 +1,29 @@
 # M5-9 · 新功能与视觉改版选题（不写代码）
 
 > 卡：`blog2.0/docs/24-m5-plan.md` §M5-9 · 依赖 M5-7b（`de4a795`）· decision：D-0139
-> 日期：2026-11-07 · 执行：blog-pm · 状态：**待 PO 选择**
+> 日期：2026-11-07 · 执行：blog-pm · 状态：**组合 A 已实施完毕（M5-10 ~ M5-13）；剩余候选待 PO 选**
+
+> **⚠️ 2026-11-18 复核：本文件的 §1 基线与 §3/§4 候选状态已大面积过时。以下数字是复测值，结论以本节为准。**
+
+> | 项 | 本文件原值（11-07） | 复测值（11-18） | 影响 |
+> |---|---|---|---|
+> | article HTML p95 | 176.1KB | **165.3KB** | N-3 sprite 生效（−10.8KB） |
+> | article JS p95 | 38.5KB | **36.4KB** | 余量 1.6KB（原 1.5KB） |
+> | list JS p95 | 24.5KB | **25.1KB** | 余量 2.9KB |
+> | page JS p95 | 24.5KB（最差 29.7） | **25.1KB**（最差 33.3） | 余量 4.7KB |
+> | 页数 | 746 | **766** | +20 篇 |
+> | pixel 基线 | 144 张（仅 design-atoms） | **324 张**，含 **pages 42 + pages-states 36 + design-organism 12** | **V-0 已做** |
+> | `public/icons.svg` | 不存在 | **存在**，`DynamicIcon` 走 `<use href>` | **N-3 已做** |
+> | schema `series` | 无 | **已加**（契约 v6，D-0145） | **N-1a 已做** |
+> | `/series/` 路由 | 无 | **存在** `src/pages/series/[...slug].astro` | **N-1a 已做** |
+>
+> **§5 的组合 A（N-3 + V-0 + N-1，6.5 人日）已全部实施完毕**：
+> M5-10（N-3 sprite）、M5-11（V-0 页面基线）、M5-12（N-1a schema+索引）、M5-13（N-1b 文章导航）。
+>
+> **仍未做的（2026-11-18 实测）**：N-2（评论多 provider，`feature.ts` 仍只有 waline）、
+> N-4（文档站，无 `docs.marxchou.com` 引用）、N-5（`create-site.mjs` 无 sync/eject/clean 子命令）、
+> N-6（收藏）、N-7（Toc/PostShare/WalineComment **仍静态 import**，无 `import()` 懒加载）、
+> V-1/V-2/V-3/V-4（视觉改版候选，均未动）。
 > 本卡交付的是**决策材料**：候选、成本、风险、验收标准。**零产品代码改动**（`src/**`、`packages/*/src/**`、预算、workflow 均未动）。
 
 ---

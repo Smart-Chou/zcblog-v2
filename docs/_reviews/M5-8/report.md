@@ -299,6 +299,40 @@ R10 待有 2FA 的会话清理。
 - 重新 `npm login --auth-type=web` 后立即完成 `npm trust` 的 WebAuthn，再 `unpublish @marxchou/dogeared-ui@0.0.0-stage`。
 
 
+
+### 11.6 收口进展（2026-11-18 核验）
+
+**R10 `0.0.0-stage` 占位 → 已清（本次实测）**
+
+PO 于 2026-11-18 WebAuthn 授权后执行删除：
+
+```text
+npm unpublish @marxchou/dogeared-ui@0.0.0-stage
+  -> - @marxchou/dogeared-ui@0.0.0-stage
+```
+
+`node scripts/release/verify-registry.mjs --min-age-hours=0` 实测：
+
+```text
+[FAIL] R6  @marxchou/dogeared-ui@2.1.2 没有 attestations（provenance 缺失）
+RELEASE_SUMMARY ... counts {PASS:26, FAIL:1, WARN:0, INFO:0}
+placeholder {tokens:"absent", ui:"absent", og-image:"absent"}
+```
+
+R10 已从 `INFO 1` 归零，**三个包的 placeholder 全是 `absent`**。§11.2 的第 2 项未收口项已关闭。
+
+**过程坑（值得进 pitfalls）**：`npm unpublish` 在**非 TTY** stdout 下会把一次性授权
+链接写成字面 `***`（日志原文 `b'***'`，长度 3），容易被误判成「Hermes 回显打码」。
+`terminal(pty=true)` 跑同一条命令，链接即明文。另：`--otp` 用不上——本账号是
+WebAuthn，入口是 `npm login --auth-type web`。
+
+**剩余唯一未收口项：R6（Trusted Publisher / provenance）**
+
+- 现状：`_npmUser: mifsh`、`dist.attestations: None`、`gitHead: 8f0894a3`（在 main 历史里）
+- 对比 `tokens@2.1.2`：`_npmUser: GitHub Actions`、带 SLSA v1 provenance
+- 结论不变：**这是 PO 已明确接受的路径 B 结果**，不是缺陷。§11.4 的警告仍然有效——
+  在 npmjs.com 完成 ui 的 Trusted Publisher 登记前**不要推 `v2.1.2` tag**。
+
 ---
 
 ## 12. 事故：恢复码被误用为 OTP，账号只读 72h（2026-11-07）
