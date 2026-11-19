@@ -21,6 +21,7 @@ export const {
     pageView,
     postView,
     donate,
+    comments,
     waline,
     search,
     umami,

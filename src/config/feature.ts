@@ -47,6 +47,28 @@ export interface WalineConfig {
 }
 
 /**
+ * 评论 provider 标识。
+ *
+ * 为什么单独一个类型、而不是把 provider 塞进 `WalineConfig`：三个 provider 的配置
+ * 形状完全不同（Waline/Twikoo 要 serverUrl、Giscus 要 repo+category），塞进去会让
+ * 「provider=giscus 时 serverUrl 该填什么」变成无解的必填项。provider 是**选路**，
+ * 具体配置留在各自的块里。
+ *
+ * 当前只实现 `none` / `waline`。`twikoo` / `giscus` 见挂起事项登记 H-12：
+ * 两者都要求放宽 CSP（Twikoo 走 CDN、Giscus 要 `frame-src`），需 PO 单独批准。
+ */
+export type CommentProvider = "none" | "waline";
+
+/**
+ * 评论系统选路配置。
+ *
+ * 与 `WalineConfig` 分开的原因见上方 `CommentProvider` 注释。
+ */
+export interface CommentsConfig {
+    provider: CommentProvider;
+}
+
+/**
  * 搜索功能配置
  */
 export interface SearchConfig {
@@ -150,9 +172,21 @@ export const donate: DonateConfig = {
 
 /**
  * 评论系统配置
+ *
+ * `provider` 是唯一选路依据。`waline.enable` 保留但**由 provider 派生**：
+ * 存量代码（`MarkdownLayout` / `FriendsContent` / `TalksContent` / `DonateContent`
+ * 四处）都在读 `waline.enable`，直接改成读 provider 会给每处都加一次解引用。
+ * 派生之后「provider=none 却忘关 waline.enable」这种自相矛盾的配置在结构上不可能存在。
  */
+export const comments: CommentsConfig = {
+    // 构建期覆盖，沿用 `PUBLIC_DONATE_STATE` / `PUBLIC_TALKS_STATE` 的既有约定：
+    // 验收脚本要产出「provider=none 的产物」才能验证零请求，否则只能测「开着的」
+    // 一侧。不设时默认 waline，生产行为不变。
+    provider: (import.meta.env.PUBLIC_COMMENTS_PROVIDER as CommentProvider) || "waline",
+};
+
 export const waline: WalineConfig = {
-    enable: true,
+    enable: comments.provider === "waline",
     serverUrl: "https://waline.marxchou.com",
     lang: "zh-CN",
     pageSize: 16,

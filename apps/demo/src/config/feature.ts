@@ -47,6 +47,22 @@ export interface WalineConfig {
 }
 
 /**
+ * 评论 provider 标识（与主题主仓同源）。
+ *
+ * 当前只实现 `none` / `waline`；`twikoo` / `giscus` 需放宽 CSP，见主题仓
+ * 挂起事项登记 H-12。示例站保持与主题一致的契约，否则消费者复制本文件后会
+ * 缺类型（门禁 O7 就是拦这个）。
+ */
+export type CommentProvider = "none" | "waline";
+
+/**
+ * 评论系统选路配置。
+ */
+export interface CommentsConfig {
+    provider: CommentProvider;
+}
+
+/**
  * 搜索功能配置
  */
 export interface SearchConfig {
@@ -149,10 +165,19 @@ export const donate: DonateConfig = {
 };
 
 /**
- * 评论系统配置
+ * 评论系统配置（示例 overlay）
+ *
+ * 示例站默认 `provider: "none"` —— 与既有的「外部服务全部关闭」一致
+ * （`donate.enable: false`、`ga: false`）。消费者改成 `"waline"` 并填 `serverUrl` 即可。
  */
+export const comments: CommentsConfig = {
+    // 示例站不接 env 覆盖：它必须是「零配置可构建」的样本，
+    // 而 `import.meta.env` 在 apps/demo 的 tsconfig 里没有 vite/client 类型。
+    provider: "none",
+};
+
 export const waline: WalineConfig = {
-    enable: false,
+    enable: comments.provider === "waline",
     serverUrl: "",
     lang: "zh-CN",
     pageSize: 16,
