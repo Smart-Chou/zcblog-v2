@@ -243,6 +243,12 @@ jobs:
                     e2e/article.spec.ts \
                     e2e/smoke.spec.ts \
                     e2e/overlays.spec.ts \
+                    e2e/encrypted-unlock.spec.ts \
+                    e2e/share-poster.spec.ts \
+                    e2e/share.spec.ts \
+                    e2e/quote-selection.spec.ts \
+                    e2e/annotations-article.spec.ts \
+                    e2e/annotations-hud.spec.ts \
                     --reporter=list --retries=1
 
             # ---- 系列路由 e2e：**不在此 job 内跑** ----

@@ -180,7 +180,17 @@ test("1440 关闭态：10 个分享钩子顺序不变、站外链接仍带真实
         const label = el.querySelector(".share-label") as HTMLElement;
         const count = el.querySelector(".share-count") as HTMLElement;
         return {
-            accentRule: getComputedStyle(el, "::before").width,
+            /**
+             * 竖条已经从 `::before` 伪元素改成**真实边框**（`share.css:35`
+             * `border-inline-start: 2px solid var(--color-accent-solid)`）。
+             * 换掉的原因写在 `share.css:40` 的注释里：伪元素会盖住
+             * `.share-label` / `.share-count`，**axe 判 color-contrast incomplete**。
+             *
+             * 所以这里必须读边框宽度，不能读 `::before` 的 width —— 伪元素已经
+             * 不存在了，`getComputedStyle(el, "::before").width` 恒为 `"auto"`，
+             * 断言会永久红（本条在接入 CI 前就一直红，与任何 JS 改动无关）。
+             */
+            accentRule: getComputedStyle(el).borderInlineStartWidth,
             iconsBg: getComputedStyle(icons).backgroundColor,
             labelFont: getComputedStyle(label).fontFamily,
             countText: count.textContent?.trim() ?? "",
