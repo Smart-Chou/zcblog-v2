@@ -208,7 +208,29 @@ for (const theme of THEMES) {
                         : ""),
             );
             expect(axe.serious, `axe serious: ${axe.violations.join(",")}`).toBe(0);
-            expect(axe.incomplete, `axe incomplete: ${axe.incompleteIds.join(",")}`).toBe(0);
+            /**
+             * `incomplete` 只记录、不判红 —— 这是本项目 M2-12 定下的政策原文
+             * （`docs/_reviews/M2-12/audit.md:14`：「incomplete 单独列，不判红」）。
+             * 这里原先是 `expect(axe.incomplete).toBe(0)`，与政策冲突，实测在
+             * `b8803a0a` 上就已经红了 2 条（search @light / @dark）。
+             *
+             * 2026-11-20 诊断确认红的原因**不是对比度不足**：
+             *   VIOLATIONS: []            ← 零违规
+             *   INCOMPLETE color-contrast × 3
+             *     <kbd>↑</kbd> / <kbd>↓</kbd> / <kbd>↵</kbd>
+             * 正是 M2-12 §6.2 记录的成因①「内容只有非文字字符 / 内容太短无法判定」——
+             * axe 无法为单个箭头字形算出前景/背景色，于是归入 incomplete。
+             * 换句话说：让它红，等于让「键盘提示用了 kbd 符号」变成失败。
+             *
+             * 保留可见性：计数与目标仍打在日志里，异常增多会在日志中显形，
+             * 但不再拦 CI（要拦的是 serious violations，上面那条）。
+             */
+            if (axe.incomplete > 0) {
+                console.log(
+                    `[axe] ${recipe.name} @${theme} incomplete=${axe.incomplete}（不判红，见 M2-12 §6.2）` +
+                        ` ${JSON.stringify(axe.incompleteIds)}`,
+                );
+            }
 
             const opened = await overlayAssets(page);
             const pulled = opened.filter((name) => !base.includes(name));

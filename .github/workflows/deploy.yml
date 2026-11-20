@@ -197,6 +197,7 @@ jobs:
                     e2e/comments-provider.spec.ts \
                     e2e/article.spec.ts \
                     e2e/smoke.spec.ts \
+                    e2e/overlays.spec.ts \
                     --reporter=list --retries=1
 
             # 部署到 Cloudflare Pages production（D-0175）
