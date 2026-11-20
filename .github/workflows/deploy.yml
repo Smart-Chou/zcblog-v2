@@ -25,6 +25,51 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    # ---- 系列路由 e2e：独立 job ----
+    # 为什么必须独立：`series:build:e2e` 跑 `astro build` 会**覆盖 dist/**，产出只有
+    # 5 篇夹具。若放进 build-and-deploy，`wrangler pages deploy dist` 就会把夹具
+    # 推上生产。独立 job 有自己的 workspace，dist 与部署产物物理隔离。
+    #
+    # 为什么 series 必须用夹具：spec 断言 `self-hosted` / `astro-notes` / `content`
+    # 三个系列，而真实内容仓只有 sing-box / hermes-agent（各 3 篇）——那三个 slug
+    # 从来只存在于 `e2e/fixtures/series/`。构建脚本头部注释写明：「生产内容仓当前
+    # 0 篇写 series，真实构建里根本没这个路由，e2e 断言永远无从下手」。
+    #
+    # 实测：15 passed · 17.3s · 零失败。
+    e2e-series:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout zcblog
+              uses: actions/checkout@v5
+
+            - name: Install system dependencies
+              run: sudo apt-get update && sudo apt-get install -y libvips-dev
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install Playwright Chromium
+              run: pnpm exec playwright install --with-deps chromium
+
+            # `pnpm series:e2e` = `node scripts/series/build-e2e-fixture.mjs && playwright test e2e/series.spec.ts`
+            # 构建脚本内部强制两个环境变量（固定夹具 + 不存在的 ARTICLE_REPO_PATH），
+            # 否则同一份源码在不同机器上会渲染出不同结果（git-date.ts 会去读内容仓 git log）。
+            - name: E2E (series, fixture build)
+              env:
+                  PW_PREVIEW_PORT: "4397"
+              run: |
+                  set -o pipefail
+                  pnpm series:e2e --reporter=list --retries=1
+
     build-and-deploy:
         runs-on: ubuntu-latest
         environment:
@@ -199,6 +244,13 @@ jobs:
                     e2e/smoke.spec.ts \
                     e2e/overlays.spec.ts \
                     --reporter=list --retries=1
+
+            # ---- 系列路由 e2e：**不在此 job 内跑** ----
+            # `series:build:e2e` 会跑 `astro build` 并**覆盖 dist/**（5 篇夹具）。
+            # 本 job 的 `wrangler pages deploy dist` 部署的就是这个目录 —— 一旦插在
+            # 这里，生产站会变成「部署成功但内容是测试数据」，正是上面 Copy articles
+            # 那段 fail-fast 要防的事故。靠步骤顺序规避太脆（将来有人挪一步就中招），
+            # 所以放到独立的 `e2e-series` job（自有 checker + 自有构建），物理隔离。
 
             # 部署到 Cloudflare Pages production（D-0175）
             # `--branch main` = 更新 production 环境（zcblog-v2.pages.dev）；
