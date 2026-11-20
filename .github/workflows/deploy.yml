@@ -167,6 +167,38 @@ jobs:
             - name: Lint (prettier --check)
               run: pnpm run lint
 
+            # ---- e2e 内容级回归（部署前跑，红则不发版）----
+            # H-13 第一步：此前 51 个 e2e spec 只有 6 个进 CI，且都在 fixture 内容上跑。
+            # 后果是实测过的：N-7 把 PostShare 改成视口懒加载后，overlays.spec.ts 红了两条
+            # （分享按钮在未滚动时点了没反应），而 CI 全绿、生产照样发版 —— 因为
+            # overlays / pages-article 这类依赖**真实文章**的 spec 根本不在任何 workflow 里。
+            #
+            # 为什么挂在 deploy 而不是 ci.yml：ci.yml 的 visual job 跑在 fixture（6 篇）
+            # 上，实测 dist/article/ 只有 6 篇、/article/bitwarden/ 直接 404，而这批 spec
+            # 全依赖真实文章 slug。deploy 是本仓唯一拿到完整内容仓并构建 86 篇的地方。
+            #
+            # 为什么在 Deploy 之前：坏产物一旦推上 pages.dev 就已经是「已发布」，
+            # 靠事后告警补救等于把回归交给用户发现。
+            #
+            # 耗时实测（本机 86 篇产物，4 spec / 53 用例）：**71 秒**，可接受。
+            - name: Install Playwright Chromium
+              run: pnpm exec playwright install --with-deps chromium
+
+            - name: E2E (content-backed regression)
+              # 显式列 spec：`--project=chromium*` 会吸入 1450 个测试（含全部视觉基线，
+              # 那是 ci.yml visual job 的职责，且基线是 linux 专用）。
+              # `PW_PREVIEW_PORT` 换端口，避免与任何残留 preview 抢 4321。
+              env:
+                  PW_PREVIEW_PORT: "4399"
+              run: |
+                  set -o pipefail
+                  pnpm exec playwright test \
+                    e2e/pages-article.spec.ts \
+                    e2e/comments-provider.spec.ts \
+                    e2e/article.spec.ts \
+                    e2e/smoke.spec.ts \
+                    --reporter=list --retries=1
+
             # 部署到 Cloudflare Pages production（D-0175）
             # `--branch main` = 更新 production 环境（zcblog-v2.pages.dev）；
             # 其它分支名是 preview。与 demo.yml 的 `--branch demo` 互不干扰。
