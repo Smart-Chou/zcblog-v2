@@ -21,8 +21,8 @@ import SectionHead from "~/components/UI/atom/SectionHead.astro";
 import DataState from "~/components/UI/molecule/DataState.astro";
 import Tag from "~/components/UI/atom/Tag.astro";
 import EssayItem from "~/components/UI/EssayItem.astro";
-import WalineComment from "~/components/UI/WalineComment.astro";
-import { site, author, waline } from "~/config";
+import Comments from "~/components/UI/Comments.astro";
+import { site, author, comments } from "~/config";
 import { talksPage } from "~/config/ui";
 import logo from "~/assets/logo.svg";
 import { t, getLocale, type Locale } from "~/utils/i18n";
@@ -224,5 +224,5 @@ const issueCode = resolved.issue?.code ?? "unknown";
         </div>
     </article>
 
-    {waline.enable && <WalineComment locale={loc} />}
+    {comments.provider !== "none" && <Comments locale={loc} />}
 </BaseLayout>

@@ -78,3 +78,6 @@ dist-*/
 playwright.m7-*.config.ts
 playwright.m8-*.config.ts
 playwright.baseline.config.ts
+
+# N-2b: 构建期从 npm 包拷入的第三方 CSS（scripts/copy-vendor-css.mjs）
+public/assets/vendor/

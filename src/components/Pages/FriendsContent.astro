@@ -22,8 +22,8 @@ import Alert from "~/components/UI/atom/Alert.astro";
 import FriendPill from "~/components/UI/FriendPill.astro";
 import FriendCard from "~/components/UI/FriendCard.astro";
 import FriendApply from "~/components/UI/FriendApply.astro";
-import WalineComment from "~/components/UI/WalineComment.astro";
-import { site, author, waline, friendsPage } from "~/config";
+import Comments from "~/components/UI/Comments.astro";
+import { site, author, comments, friendsPage } from "~/config";
 import siteAvatar from "~/assets/logo.svg";
 import { t, getLocale, type Locale } from "~/utils/i18n";
 import type { FriendsFeed } from "~/data/adapters/friends";
@@ -375,7 +375,7 @@ const countLabel = isEn ? `${resolved.total} friends` : `${resolved.total} ‰ΩçÂè
     }
     <FriendApply locale={loc} />
 
-    {waline.enable && <WalineComment locale={loc} />}
+    {comments.provider !== "none" && <Comments locale={loc} />}
 </BaseLayout>
 
 <script>

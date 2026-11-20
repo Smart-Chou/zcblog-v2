@@ -27,8 +27,8 @@ import Alert from "~/components/UI/atom/Alert.astro";
 import Icon from "~/components/UI/atom/Icon.astro";
 import QrCard from "~/components/UI/QrCard.astro";
 import DonatorsList from "~/components/UI/DonatorsList.astro";
-import WalineComment from "~/components/UI/WalineComment.astro";
-import { site, waline } from "~/config";
+import Comments from "~/components/UI/Comments.astro";
+import { site, comments } from "~/config";
 import { t, getLocale, type Locale } from "~/utils/i18n";
 import type { DonateFeed } from "~/data/adapters/donate";
 import type { ImageMetadata } from "astro";
@@ -410,5 +410,5 @@ const faq = isEn
         </section>
     </article>
 
-    {waline.enable && <WalineComment locale={loc} />}
+    {comments.provider !== "none" && <Comments locale={loc} />}
 </BaseLayout>

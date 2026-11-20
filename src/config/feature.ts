@@ -54,10 +54,32 @@ export interface WalineConfig {
  * 「provider=giscus 时 serverUrl 该填什么」变成无解的必填项。provider 是**选路**，
  * 具体配置留在各自的块里。
  *
- * 当前只实现 `none` / `waline`。`twikoo` / `giscus` 见挂起事项登记 H-12：
- * 两者都要求放宽 CSP（Twikoo 走 CDN、Giscus 要 `frame-src`），需 PO 单独批准。
+ * `giscus` 见挂起事项登记 H-12：它要求从 `'self'` 松开 `frame-src`，是本轮唯一
+ * 真正削弱隔离面的改动，需 PO 单独批准，故仍未实现。
  */
-export type CommentProvider = "none" | "waline";
+export type CommentProvider = "none" | "waline" | "twikoo";
+
+/**
+ * Twikoo 配置。
+ *
+ * **CSP 代价**：与 Waline 不同，Twikoo 有两种接入方式，代价差很多——
+ *   · 官方 CDN `<script src="https://cdn.jsdelivr.net/npm/twikoo/...">`：要放宽
+ *     `script-src`，等于允许运行任意第三方 JS；
+ *   · npm 包 + `import("twikoo")`（本项目采用）：脚本由 Vite 打包进 `'self'`，
+ *     **不需要放宽 `script-src`**，只在 `connect-src` 加一个云函数域名。
+ *
+ * 所以 H-12「是否允许第三方 CDN 脚本」这个决策**不阻塞 Twikoo**，只阻塞 Giscus。
+ *
+ * 体积：`twikoo.min.js` 359 KB / gzip **121 KB**。必须走动态 `import()` 懒加载——
+ * `scripts/gates/perf-budget.py` 只把**静态** import 计入首屏预算（见该文件
+ * `_static_imports()` 注释），懒加载 chunk 不计入 article 的 40 KB 预算。
+ */
+export interface TwikooConfig {
+    enable: boolean;
+    /** 云函数地址（腾讯云函数 / Vercel / Netlify 部署后的 HTTPS 端点） */
+    envId: string;
+    lang: string;
+}
 
 /**
  * 评论系统选路配置。
@@ -193,6 +215,21 @@ export const waline: WalineConfig = {
     reaction: [],
     search: false,
     whiteList: ["/donate/", "/friends/"],
+};
+
+/**
+ * Twikoo 配置。
+ *
+ * `enable` 与 `waline.enable` 同一套派生纪律：由 `comments.provider` 派生，
+ * 不存在「provider=twikoo 却忘关 waline」这种自相矛盾的配置。
+ *
+ * `envId` 留空 = 未部署云函数。此时组件不渲染，`connect-src` 也不会加入空串
+ * （见 `ContentSecurityPolicy.astro` 的 `.filter(Boolean)`）。
+ */
+export const twikoo: TwikooConfig = {
+    enable: comments.provider === "twikoo",
+    envId: "",
+    lang: "zh-CN",
 };
 
 /**

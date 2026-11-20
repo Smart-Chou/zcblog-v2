@@ -49,17 +49,27 @@ export interface WalineConfig {
 /**
  * 评论 provider 标识（与主题主仓同源）。
  *
- * 当前只实现 `none` / `waline`；`twikoo` / `giscus` 需放宽 CSP，见主题仓
+ * 已实现 `none` / `waline` / `twikoo`；`giscus` 需放宽 `frame-src`，见主题仓
  * 挂起事项登记 H-12。示例站保持与主题一致的契约，否则消费者复制本文件后会
  * 缺类型（门禁 O7 就是拦这个）。
  */
-export type CommentProvider = "none" | "waline";
+export type CommentProvider = "none" | "waline" | "twikoo";
 
 /**
  * 评论系统选路配置。
  */
 export interface CommentsConfig {
     provider: CommentProvider;
+}
+
+/**
+ * Twikoo 配置（示例站不启用，仅保持契约完整 —— O7 门禁要求示例站导出
+ * 主题实际 import 的所有符号）。
+ */
+export interface TwikooConfig {
+    enable: boolean;
+    envId: string;
+    lang: string;
 }
 
 /**
@@ -184,6 +194,15 @@ export const waline: WalineConfig = {
     reaction: [],
     search: false,
     whiteList: ["/donate/", "/friends/"],
+};
+
+/**
+ * Twikoo（示例站固定关闭：demo 必须零配置可构建，不能要求部署者先架云函数）。
+ */
+export const twikoo: TwikooConfig = {
+    enable: false,
+    envId: "",
+    lang: "zh-CN",
 };
 
 /**

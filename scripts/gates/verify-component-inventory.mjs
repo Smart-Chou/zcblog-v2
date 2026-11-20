@@ -58,7 +58,16 @@ const LEGACY_UI_SLUG_PREFIX = "ui-";
  * 12 → 11、total 48 → 47。这是**收紧**（分母只减不增），依据 `19-m2-plan.md`
  * §3 M2-2「消解进路由并在卡内删除该文件；§4.4 的 page-organism 债 -1」。
  */
-const FROZEN_COUNTS = { atom: 11, molecule: 4, ui: 24, layout: 1, "page-organism": 11, total: 51 };
+/**
+ * 冻结分母（P9）。改动这一行 = 一次显式的分母变更，必须同时说明新增/移除了什么。
+ *
+ * N-2b（2026-11-20）把 ui 24 → 26、total 51 → 53，新增两个组件：
+ *   · `UI/Comments.astro`      —— 评论 provider 选路（waline / twikoo），
+ *                                  替代四处调用点各自写 `waline.enable &&` 的重复判断
+ *   · `UI/TwikooComment.astro` —— Twikoo 评论区实现（N-2b）
+ * 两者都是**运行时装配壳**而不是视觉组件，故 status=pending、无 atom 归属。
+ */
+const FROZEN_COUNTS = { atom: 11, molecule: 4, ui: 26, layout: 1, "page-organism": 11, total: 53 };
 
 /** 唯一一个不进 UI 文档分母的 UI 文件：纯 slot 容器，无 props / 状态 / 样式。 */
 const LAYOUT_SHELLS = {
@@ -443,9 +452,9 @@ const uiCount = registeredUi.filter((entry) => entry.layer === "ui").length;
 const layoutCount = registeredUi.filter((entry) => entry.layer === "layout").length;
 addCheck(
     "I3",
-    "legacy UI 24 条 + layout 壳 1 条，UI/ 文件 100% 登记",
+    "legacy UI 26 条 + layout 壳 1 条，UI/ 文件 100% 登记",
     uiProblems.length === 0 &&
-        uiCount === 24 &&
+        uiCount === 26 &&
         layoutCount === 1 &&
         registeredUiFiles.size === uiFiles.length,
     `ui=${uiCount} layout=${layoutCount} 文件=${uiFiles.length}`,

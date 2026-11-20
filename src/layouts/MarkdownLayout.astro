@@ -19,11 +19,11 @@ import DynamicIcon from "~/components/Icons/DynamicIcon.astro";
 import { tocNodes } from "~/utils/toc";
 import Donate from "~/components/UI/Donate.astro";
 import Author from "~/components/UI/Author.astro";
-import WalineComment from "~/components/UI/WalineComment.astro";
+import Comments from "~/components/UI/Comments.astro";
 import MermaidRenderer from "~/components/Layout/MermaidRenderer.astro";
 import RelatedPosts from "~/components/Article/RelatedPosts.astro";
 import Breadcrumb from "~/components/Article/Breadcrumb.astro";
-import { site, postView, waline, donate, author as siteAuthor } from "~/config";
+import { site, postView, donate, author as siteAuthor } from "~/config";
 import { getRandomImageUrl } from "~/utils";
 import { seriesContextOf } from "~/utils/series";
 
@@ -250,9 +250,9 @@ const showRail = showToc || showAuthor || relatedPosts.length > 0;
                     <RelatedPosts relatedPosts={relatedPosts} variant="rail" />
                     {/* M6-3：评论只挪位（主栏底部，与 toc 稿一致），交互仍归 M7-2 */}
                     {
-                        frontmatter.waline && waline.enable && (
+                        frontmatter.waline && (
                             <div class="post-comments">
-                                <WalineComment locale={locale} />
+                                <Comments locale={locale} />
                             </div>
                         )
                     }

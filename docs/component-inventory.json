@@ -5,10 +5,10 @@
     "counts": {
         "atom": 11,
         "molecule": 4,
-        "ui": 24,
+        "ui": 26,
         "layout": 1,
         "page-organism": 11,
-        "total": 51
+        "total": 53
     },
     "slug_rules": {
         "atom": "atom/molecule 保持短名：button / card / pagination（15 条 = M1-6 的 12 条 + M8-6-0 的 3 条）",
@@ -82,8 +82,8 @@
             "doc_url": "/design/atoms/card/",
             "doc_page": "src/pages/design/atoms/card.astro",
             "status": "documented",
-            "usage_count": 9,
-            "usage_tags": 19
+            "usage_count": 10,
+            "usage_tags": 20
         },
         {
             "slug": "icon",
@@ -95,8 +95,8 @@
             "doc_url": "/design/atoms/icon/",
             "doc_page": "src/pages/design/atoms/icon.astro",
             "status": "documented",
-            "usage_count": 44,
-            "usage_tags": 125
+            "usage_count": 43,
+            "usage_tags": 113
         },
         {
             "slug": "avatar",
@@ -160,8 +160,8 @@
             "doc_url": "/design/atoms/alert/",
             "doc_page": "src/pages/design/atoms/alert.astro",
             "status": "documented",
-            "usage_count": 13,
-            "usage_tags": 23
+            "usage_count": 11,
+            "usage_tags": 21
         },
         {
             "slug": "skeleton",
@@ -186,8 +186,8 @@
             "doc_url": "/design/atoms/pagehero/",
             "doc_page": "src/pages/design/atoms/pagehero.astro",
             "status": "documented",
-            "usage_count": 1,
-            "usage_tags": 3
+            "usage_count": 8,
+            "usage_tags": 10
         },
         {
             "slug": "sectionhead",
@@ -199,8 +199,8 @@
             "doc_url": "/design/atoms/sectionhead/",
             "doc_page": "src/pages/design/atoms/sectionhead.astro",
             "status": "documented",
-            "usage_count": 2,
-            "usage_tags": 7
+            "usage_count": 8,
+            "usage_tags": 16
         },
         {
             "slug": "datastate",
@@ -212,8 +212,8 @@
             "doc_url": "/design/atoms/datastate/",
             "doc_page": "src/pages/design/atoms/datastate.astro",
             "status": "documented",
-            "usage_count": 1,
-            "usage_tags": 4
+            "usage_count": 6,
+            "usage_tags": 12
         },
         {
             "slug": "archive",
@@ -285,6 +285,18 @@
             "doc_page": null,
             "status": "pending",
             "usage_count": 2,
+            "usage_tags": 4
+        },
+        {
+            "slug": "comments",
+            "name": "Comments",
+            "kind": "ui",
+            "layer": "ui",
+            "file": "src/components/UI/Comments.astro",
+            "doc_url": "/design/components/comments/",
+            "doc_page": null,
+            "status": "pending",
+            "usage_count": 4,
             "usage_tags": 4
         },
         {
@@ -468,6 +480,18 @@
             "usage_tags": 4
         },
         {
+            "slug": "twikoocomment",
+            "name": "TwikooComment",
+            "kind": "ui",
+            "layer": "ui",
+            "file": "src/components/UI/TwikooComment.astro",
+            "doc_url": "/design/components/twikoocomment/",
+            "doc_page": null,
+            "status": "pending",
+            "usage_count": 1,
+            "usage_tags": 1
+        },
+        {
             "slug": "typewritertext",
             "name": "TypewriterText",
             "kind": "ui",
@@ -488,8 +512,8 @@
             "doc_url": "/design/components/walinecomment/",
             "doc_page": null,
             "status": "pending",
-            "usage_count": 5,
-            "usage_tags": 5
+            "usage_count": 2,
+            "usage_tags": 3
         },
         {
             "slug": "watermark",

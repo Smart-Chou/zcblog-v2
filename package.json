@@ -8,8 +8,8 @@
         "dev": "astro dev",
         "dev:clean": "rm -rf node_modules/.vite && astro dev",
         "start": "astro dev",
-        "build": "pnpm run normalize:content && (pnpm run fetch:all || true) && (pnpm run fetch:verify || true) && astro build && node scripts/postbuild/collapse-html-whitespace.mjs dist",
-        "build:ci": "pnpm run normalize:content && astro build && node scripts/postbuild/collapse-html-whitespace.mjs dist",
+        "build": "pnpm run normalize:content && node scripts/copy-vendor-css.mjs && (pnpm run fetch:all || true) && (pnpm run fetch:verify || true) && astro build && node scripts/postbuild/collapse-html-whitespace.mjs dist",
+        "build:ci": "pnpm run normalize:content && node scripts/copy-vendor-css.mjs && astro build && node scripts/postbuild/collapse-html-whitespace.mjs dist",
         "normalize:content": "node scripts/normalize-frontmatter.mjs src/content/article",
         "pagefind": "node scripts/pagefind.mjs",
         "preview": "astro preview",
@@ -76,7 +76,8 @@
         "audit:a11y": "playwright test e2e/export-audit.spec.ts",
         "audit:a11y:smoke": "AUDIT_BASELINE=0 AUDIT_ROUTES='/ /en/ /blog/1/ /archives/ /tags/ /culture/ /bangumi/ /douban/ /cookies/ /radio/ /design/components/author/ /404.html' playwright test e2e/export-audit.spec.ts",
         "preview:deploy": "wrangler pages deploy dist --project-name=zcblog-v2 --branch=${BRANCH:-local} --commit-dirty=true",
-        "icons:check": "node scripts/generate-icons.js --check"
+        "icons:check": "node scripts/generate-icons.js --check",
+        "copy:vendor-css": "node scripts/copy-vendor-css.mjs"
     },
     "dependencies": {
         "@astrojs/check": "^0.9.12",
@@ -115,6 +116,7 @@
         "satori": "^0.63.2",
         "sharp": "^0.35.5",
         "tocbot": "^4.36.8",
+        "twikoo": "^2.0.17",
         "unist-util-remove": "^4.0.0",
         "unist-util-visit": "^5.2.0",
         "uqr": "^0.1.3"

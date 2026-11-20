@@ -1,0 +1,27 @@
+---
+/**
+ * 评论选路组件（N-2b）。
+ *
+ * 为什么不把选路逻辑复制到四个调用点（`MarkdownLayout` / `FriendsContent` /
+ * `TalksContent` / `DonateContent`）：那四处原本都写成 `waline.enable && <WalineComment>`，
+ * 每处都要改成三段条件判断，改一处漏三处的风险太高。一个选路组件把
+ * 「provider → 具体实现」的映射收敛在一个地方，调用点只写 `<Comments locale>`。
+ *
+ * 为什么用 `Astro.props.provider` 而不是在模板里读 `comments.provider`：
+ * `apps/demo` 的 tsconfig 没有 `vite/client` 类型，`import.meta.env` 在那边不可用
+ * （N-2a 已踩过这个坑，O7 门禁拦下）。所以判断读 `src/config` 的常量，不读 env。
+ */
+import { comments } from "~/config";
+import WalineComment from "~/components/UI/WalineComment.astro";
+import TwikooComment from "~/components/UI/TwikooComment.astro";
+
+interface Props {
+    locale?: string;
+}
+
+const { locale = "zh" } = Astro.props;
+const provider = comments.provider;
+---
+
+{provider === "waline" && <WalineComment locale={locale} />}
+{provider === "twikoo" && <TwikooComment locale={locale} />}

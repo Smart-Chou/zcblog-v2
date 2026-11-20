@@ -1,0 +1,291 @@
+---
+/**
+ * Twikoo 评论区（N-2b）。
+ *
+ * 与 `WalineComment.astro` 的差异与共性：
+ *   · **共性**：同一套移动抽屉外壳（`~/scripts/comment-drawer`）、同样的
+ *     「点击展开才懒加载」纪律、同样的 SPA 重置与 View Transitions 清理。
+ *   · **差异**：Twikoo 的脚本来自 npm 包而非 CDN，所以 CSP 只需 `connect-src`。
+ *
+ * 为什么必须是动态 `import("twikoo")`，不能静态 import：
+ *   `twikoo.min.js` 是 **359 KB / gzip 121 KB**，而 `perf-budget.py` 的 article
+ *   JS 预算只有 **40 KB**（当前 32.6 KB）。该门禁的 `_static_imports()` 只统计
+ *   静态 import（注释原文：「`import("./x.js")` 是懒加载，不计入首屏」），所以
+ *   只有动态 import 才能既有功能又不炸预算。这与 Waline 的做法一致。
+ *
+ * 样式同理：`twikoo.css` 36 KB 用 `?url` 取地址、展开时才插 `<link>`。
+ */
+import "~/styles/comments.css";
+import { twikoo } from "~/config";
+
+interface Props {
+    locale?: string;
+}
+
+const { locale = "zh" } = Astro.props;
+const isEn = locale === "en";
+
+// `envId` 为空 = 云函数未部署。此时渲染一个「未配置」占位而不是空壳评论框，
+// 让部署者一眼看出缺的是配置而不是功能坏了。
+const configured = twikoo.enable && twikoo.envId !== "";
+---
+
+{
+    twikoo.enable && (
+        <div id="comment-wrapper" data-twikoo-locale={locale}>
+            <button id="twikoo-toggle" type="button" aria-expanded="false" aria-controls="twikoo">
+                {isEn ? "Show Comments" : "展开评论"}
+            </button>
+            {/* 移动端（≤640）贴底抽屉，桌面（≥641）`display: contents` 走正文流内联。
+                一套 DOM 两形态，与 WalineComment 完全同构。 */}
+            <div id="twikoo-drawer" class="comment-drawer" data-state="closed">
+                <div class="comment-drawer__scrim" data-drawer-dismiss aria-hidden="true" />
+                <div class="comment-drawer__sheet">
+                    <div class="comment-drawer__bar">
+                        <span class="comment-drawer__grip" aria-hidden="true" />
+                        <div class="comment-drawer__head">
+                            <div class="comment-drawer__heading">
+                                <h2 class="comment-drawer__title" id="twikoo-drawer-title">
+                                    {isEn ? "Comments" : "评论"}
+                                </h2>
+                                <p class="comment-drawer__meta">
+                                    <span class="comment-drawer__dot" aria-hidden="true" />
+                                    Twikoo · {isEn ? "loaded on demand" : "按需加载"}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="comment-drawer__close"
+                                data-drawer-dismiss
+                                aria-label={isEn ? "Close comments" : "关闭评论"}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.6"
+                                    stroke-linecap="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M4 4l8 8M12 4l-8 8" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="comment-drawer__body" id="twikoo-drawer-body">
+                        <div id="twikoo" data-twikoo-path={Astro.url.pathname} />
+                        {!configured && (
+                            <p class="twikoo-unconfigured">
+                                {isEn
+                                    ? "Twikoo cloud function is not configured yet (feature.ts → twikoo.envId)."
+                                    : "Twikoo 云函数尚未配置（feature.ts → twikoo.envId）。"}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+<style>
+    /* 只在「未配置」时出现的提示行，实体样式在 comments.css 里没有对应规则 */
+    .twikoo-unconfigured {
+        margin: var(--space-4) 0 0;
+        padding: var(--space-3) var(--space-4);
+        border: 1px dashed var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        color: var(--color-text-subtle);
+        font-size: var(--font-size-sm);
+        line-height: 1.6;
+    }
+</style>
+
+<script>
+    import { onPageReady } from "~/utils/page-lifecycle";
+
+    /**
+     * CSS 路径写死为站点同源资源，**不能**写成 `import css from "twikoo/dist/twikoo.css?url"`：
+     * `twikoo` 的 `exports` 只声明 `"."`，CSS 子路径未导出，构建期会报
+     * `"./dist/twikoo.css" is not exported under the conditions [...]`（实测 2026-11-20）。
+     *
+     * 该文件由 `scripts/copy-vendor-css.mjs` 在构建前从 npm 包拷到
+     * `public/assets/vendor/twikoo.css`（不进仓库，见 .gitignore）。
+     * 同源自托管 → `style-src 'self'` 已覆盖，不需要放宽 CSP。
+     */
+    const twikooCssUrl = "/assets/vendor/twikoo.css";
+
+    /**
+     * Twikoo 的模块类型只有 `init`。它没有 destroy() —— 切页时我们直接把容器
+     * 的 DOM 清空，效果等价（Twikoo 的实例状态全在那个容器里）。
+     */
+    type TwikooModule = {
+        init: (config: {
+            envId: string;
+            el: string;
+            lang: string;
+            path: string;
+            onCommentLoaded?: () => void;
+        }) => Promise<void>;
+    };
+
+    let twikooLoaded = false;
+    let twikooInitializing = false;
+    let commentDrawer: { toggle: () => void; reset: () => void } | null = null;
+
+    const injectedStyles = new Set<string>();
+
+    function ensureStylesheet(href: string): Promise<void> {
+        if (!href || injectedStyles.has(href)) return Promise.resolve();
+        injectedStyles.add(href);
+        return new Promise((resolve) => {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href;
+            link.onload = () => resolve();
+            link.onerror = () => resolve();
+            document.head.appendChild(link);
+        });
+    }
+
+    const toggleLabels: Record<string, { show: string; hide: string }> = {
+        zh: { show: "展开评论", hide: "收起评论" },
+        en: { show: "Show Comments", hide: "Hide Comments" },
+    };
+
+    function getLocale(): string {
+        const wrapper = document.getElementById("comment-wrapper");
+        return wrapper?.dataset.twikooLocale || "zh";
+    }
+
+    function syncCommentUi(visible: boolean) {
+        const toggle = document.getElementById("twikoo-toggle");
+        const twikooEl = document.getElementById("twikoo");
+        if (!toggle || !twikooEl) return;
+        const labels = toggleLabels[getLocale()] || toggleLabels.zh;
+        twikooEl.classList.toggle("visible", visible);
+        toggle.classList.toggle("active", visible);
+        toggle.textContent = visible ? labels.hide : labels.show;
+        toggle.setAttribute("aria-expanded", String(visible));
+    }
+
+    async function doInitTwikoo() {
+        if (twikooInitializing || twikooLoaded) return;
+        const twikooEl = document.getElementById("twikoo");
+        if (!twikooEl) return;
+
+        twikooInitializing = true;
+        try {
+            // 配置在这里才取：静态 import `~/config` 会把整份站点配置拖进首屏。
+            const { twikoo } = await import("~/config");
+            if (!twikoo.enable || !twikoo.envId) {
+                // 未配置云函数：占位文案已由 SSR 渲染，不发起任何请求。
+                return;
+            }
+
+            const [mod] = await Promise.all([
+                import("twikoo") as Promise<TwikooModule>,
+                ensureStylesheet(twikooCssUrl),
+            ]);
+
+            await mod.init({
+                envId: twikoo.envId,
+                el: "#twikoo",
+                lang: twikoo.lang,
+                path: twikooEl.dataset.twikooPath || location.pathname,
+            });
+            twikooLoaded = true;
+        } catch (error) {
+            // 云函数不可达时不能让整个页面挂掉：评论是增强能力，不是核心路径。
+            console.error("[twikoo] init failed:", error);
+        } finally {
+            twikooInitializing = false;
+        }
+    }
+
+    function resetTwikoo() {
+        const twikooEl = document.getElementById("twikoo");
+        // Twikoo 没有 destroy()：清空容器即等于销毁实例。
+        // 用 `replaceChildren()` 而不是 `innerHTML = ""` —— 前者不会触发 HTML
+        // 解析器，语义就是「移除所有子节点」，也让 XSS 扫描不必判断这里安全。
+        if (twikooEl) twikooEl.replaceChildren();
+        twikooLoaded = false;
+    }
+
+    const MOBILE_QUERY = "(max-width: 640px)";
+
+    function isMobileDrawer() {
+        return window.matchMedia(MOBILE_QUERY).matches;
+    }
+
+    async function getCommentDrawer() {
+        if (commentDrawer) return commentDrawer;
+        const { initCommentDrawer } = await import("~/scripts/comment-drawer");
+        commentDrawer = initCommentDrawer({
+            onShow: () => {
+                syncCommentUi(true);
+                if (!twikooLoaded) {
+                    requestAnimationFrame(() => {
+                        void doInitTwikoo();
+                    });
+                }
+            },
+            onHide: () => syncCommentUi(false),
+        });
+        return commentDrawer;
+    }
+
+    function setupTwikooToggle() {
+        const toggle = document.getElementById("twikoo-toggle");
+        const twikooEl = document.getElementById("twikoo");
+        if (!toggle || !twikooEl) return;
+        if (toggle.dataset.twikooReady) return;
+        toggle.dataset.twikooReady = "true";
+
+        toggle.addEventListener("click", () => {
+            if (isMobileDrawer()) {
+                void getCommentDrawer().then((drawer) => drawer?.toggle());
+                return;
+            }
+            if (twikooLoaded) {
+                syncCommentUi(!twikooEl.classList.contains("visible"));
+            } else {
+                syncCommentUi(true);
+                requestAnimationFrame(() => {
+                    void doInitTwikoo();
+                });
+            }
+        });
+    }
+
+    onPageReady(() => {
+        const toggle = document.getElementById("twikoo-toggle");
+        const twikooEl = document.getElementById("twikoo");
+        if (!toggle || !twikooEl) return;
+
+        commentDrawer?.reset();
+        commentDrawer = null;
+        const drawer = document.getElementById("twikoo-drawer");
+        if (drawer) {
+            drawer.dataset.state = "closed";
+            drawer.removeAttribute("role");
+            drawer.removeAttribute("aria-modal");
+            drawer.removeAttribute("aria-labelledby");
+        }
+        document.documentElement.classList.remove("comment-drawer-open");
+        syncCommentUi(false);
+        toggle.style.display = "";
+
+        setupTwikooToggle();
+    });
+
+    document.addEventListener("astro:before-swap", () => {
+        commentDrawer?.reset();
+        commentDrawer = null;
+        resetTwikoo();
+    });
+
+    setupTwikooToggle();
+</script>

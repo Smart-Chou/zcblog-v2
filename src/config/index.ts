@@ -23,6 +23,7 @@ export const {
     donate,
     comments,
     waline,
+    twikoo,
     search,
     umami,
     popular,

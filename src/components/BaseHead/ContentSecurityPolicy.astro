@@ -1,9 +1,16 @@
 ---
-import { config, waline, umami } from "~/config";
+import { config, waline, twikoo, umami } from "~/config";
 
 // 仅把已启用且配置了地址的服务加进放行清单（避免空串/未启用域名污染 CSP）
 const extraOrigins = [
     waline.enable && waline.serverUrl ? waline.serverUrl : null,
+    // Twikoo（N-2b）：只放 `connect-src`，**不放 `script-src`**。
+    // 原因：本项目走 npm 包 + `import("twikoo")`，脚本由 Vite 打包进 `'self'`；
+    // 只有官方 CDN 那种 `<script src="https://cdn.jsdelivr.net/...">` 才需要放宽
+    // `script-src`，而那等于允许运行任意第三方 JS、还要 SRI —— 见 H-12，未采用。
+    //
+    // `envId` 为空时 `.filter(Boolean)` 会把它滤掉，所以未部署云函数不会产生空串。
+    twikoo.enable && twikoo.envId ? twikoo.envId : null,
     umami.enable && umami.umamiBaseUrl ? umami.umamiBaseUrl : null,
 ].filter(Boolean);
 
