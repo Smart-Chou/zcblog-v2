@@ -148,21 +148,32 @@ test.describe("加密文本解锁 · a11y / 视觉", () => {
         // 口径：与「同一页面不挂夹具」的基线对比 —— 夹具（解锁入口）不得新增任何资源请求。
         // 直接数绝对值会误伤宿主页自己的 swup 预取 / umami 埋点 / fancybox 懒加载 chunk；
         // 基线用**独立 page**，否则第二次导航会命中上一次加载出来的懒加载 chunk（假阳性）。
+        //
+        // ⚠️ 2026-11-20 修竞态：原先两侧都是「导航完成 → 立刻 armed → 固定等 1200ms」。
+        // 但两侧的「导航完成」时刻不同，懒加载 chunk 若落在基线窗口内、夹具窗口外，
+        // 就会被算成「夹具新增」→ 偶发红（实测在 CI `--retries=1` 下偶现）。
+        // 修法不是把 1200 调大（那只是把边界推远，仍会偶发），而是**把两侧同起点**：
+        // 先各自等网络空闲（quiescent），再从空闲时刻开始计时测量。
+        // 判据没变：仍然要求测量窗口内新增请求为 0。
         const collect = async (target: Page, withFixture: boolean): Promise<string[]> => {
             const seen: string[] = [];
             let armed = false;
             const onReq = (req: { url: () => string }) => {
                 if (armed) seen.push(req.url());
             };
-            target.on("request", onReq);
             if (withFixture) await mount(target);
             else {
                 const res = await target.goto(ARTICLE);
                 expect(res?.status()).toBe(200);
                 await expect(target.locator("article").first()).toBeVisible();
             }
+            // 归一化起点：两侧都等到网络空闲再开始算「新增」。
+            // 超时不判错（长轮询/埋点可能一直有零星请求），只是为了对齐起跑线。
+            await target.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => undefined);
+            target.on("request", onReq);
             armed = true;
-            await target.waitForTimeout(1200);
+            await target.waitForTimeout(800);
+            armed = false;
             target.off("request", onReq);
             return seen;
         };

@@ -303,11 +303,28 @@ test.describe("M7-4c · 批注 HUD", () => {
         await addHighlight(page, 0, 16);
 
         // 先滚到正文中部，验证关闭后回到原位置
-        const scrolled = await page.evaluate(() => {
-            window.scrollTo(0, Math.round(window.innerHeight * 1.2));
-            return window.scrollY;
+        //
+        // ⚠️ 2026-11-20 修竞态（两次迭代，记下弯路）：
+        //   ① 原先：`scrollTo` → `waitForTimeout(120)` → 读 scrollY。读到的是未落定的中间值。
+        //   ② 我第一版改成「滚完等两帧再读」，仍然偶发 —— 因为**点击 trigger 前后页面会自己移动**：
+        //      `addHighlight` 里的 `block.scrollIntoView({block:"center"})` 与图片/字体加载
+        //      会让布局继续变化，实测 `scrollTo(1013)` 之后又自移到 **1034**（差 21px）。
+        //      于是 `scrolled=1013` 记录的是**点击前的幻影值**，而 `lockScroll()` 记的是 1034，
+        //      解锁后自然回到 1034 → 断言恒差 21px（探针实测 `netDelta: 0`，
+        //      **产品恢复本身是准确的**，是断言把基点取错了）。
+        //   ③ 正解：**从 `lockScroll()` 实际记下的位置取基点**（`body.style.top = "-Npx"`）。
+        //      那才是解锁时要恢复的值，也是产品真正承诺的语义。
+        const targetY = await page.evaluate(() => Math.round(window.innerHeight * 1.2));
+        await page.evaluate((y) => window.scrollTo(0, y), targetY);
+        // 等布局稳定：两帧 + 确认 scrollY 不再变化（图片/字体会继续推动布局）
+        await page.evaluate(async () => {
+            let last = -1;
+            for (let i = 0; i < 30; i++) {
+                await new Promise<void>((r) => requestAnimationFrame(() => r()));
+                if (Math.round(window.scrollY) === last) return;
+                last = Math.round(window.scrollY);
+            }
         });
-        await page.waitForTimeout(120);
 
         await openPanel(page);
         const panel = await page.locator(PANEL).boundingBox();
@@ -325,9 +342,16 @@ test.describe("M7-4c · 批注 HUD", () => {
         const locked = await page.evaluate(() => ({
             html: document.documentElement.style.overflow,
             body: document.body.style.position,
+            // lockScroll() 把「打开抽屉时的真实位置」写进了 body.top（-Npx）。
+            // 这是产品承诺要恢复的值 —— 断言必须对齐它，而不是对齐点击前猜的值。
+            top: document.body.style.top,
         }));
         expect(locked.html).toBe("hidden");
         expect(locked.body).toBe("fixed");
+        // `top` 形如 "-1034px"；为 0 或空时说明锁没真正记录位置，属产品缺陷
+        expect(locked.top, "滚动锁应记录打开时的位置").toMatch(/^-\d+px$/);
+        const lockedY = Math.abs(Number.parseInt(locked.top.replace(/[^\d-]/g, ""), 10));
+        expect(lockedY, `滚动锁记录的位置异常：${locked.top}`).toBeGreaterThan(0);
         await shot(page, "drawer-390-light");
 
         await page.keyboard.press("Escape");
@@ -336,11 +360,21 @@ test.describe("M7-4c · 批注 HUD", () => {
         const unlocked = await page.evaluate(() => ({
             html: document.documentElement.style.overflow,
             body: document.body.style.position,
-            y: window.scrollY,
         }));
         expect(unlocked.html).toBe("");
         expect(unlocked.body).toBe("");
-        expect(Math.abs(unlocked.y - scrolled)).toBeLessThanOrEqual(2);
+        // ⚠️ 2026-11-20：基线用 `lockedY`（lockScroll 真正记下的位置），不是点击前猜的 scrollY。
+        // `unlocked.body === ""` 只说明锁解了、恢复**已开始**，不代表 scrollTo 已落定，
+        // 所以用 expect.poll 等收敛；**判据不变**（仍是 2px 容差），poll 超时才失败。
+        await expect
+            .poll(
+                async () => {
+                    const now = await page.evaluate(() => Math.round(window.scrollY));
+                    return Math.abs(now - lockedY);
+                },
+                { message: `抽屉关闭后应回到锁定前位置 ${lockedY}`, timeout: 3000 },
+            )
+            .toBeLessThanOrEqual(2);
 
         // 点遮罩关闭
         await openPanel(page);

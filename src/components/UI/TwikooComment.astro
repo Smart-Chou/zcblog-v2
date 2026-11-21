@@ -77,11 +77,43 @@ const configured = twikoo.enable && twikoo.envId !== "";
                     <div class="comment-drawer__body" id="twikoo-drawer-body">
                         <div id="twikoo" data-twikoo-path={Astro.url.pathname} />
                         {!configured && (
-                            <p class="twikoo-unconfigured">
-                                {isEn
-                                    ? "Twikoo cloud function is not configured yet (feature.ts → twikoo.envId)."
-                                    : "Twikoo 云函数尚未配置（feature.ts → twikoo.envId）。"}
-                            </p>
+                            <div class="twikoo-unconfigured">
+                                <p class="twikoo-unconfigured__lead">
+                                    {isEn
+                                        ? "Comments are not enabled on this site."
+                                        : "本站暂未开通评论。"}
+                                </p>
+                                <p class="twikoo-unconfigured__hint">
+                                    {isEn ? (
+                                        <>
+                                            The theme is ready for Twikoo — deploy the cloud
+                                            function yourself following the{" "}
+                                            <a
+                                                href="https://twikoo.js.org/"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                official docs
+                                            </a>
+                                            , then put the address into{" "}
+                                            <code>feature.ts → twikoo.envId</code>.
+                                        </>
+                                    ) : (
+                                        <>
+                                            主题侧已具备接入条件（组件、CSP、懒加载与体积预算均已就位），评论服务需自行部署。按{" "}
+                                            <a
+                                                href="https://twikoo.js.org/"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Twikoo 官方文档
+                                            </a>
+                                            部署云函数后，把地址填进{" "}
+                                            <code>feature.ts → twikoo.envId</code> 即可。
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -91,15 +123,40 @@ const configured = twikoo.enable && twikoo.envId !== "";
 }
 
 <style>
-    /* 只在「未配置」时出现的提示行，实体样式在 comments.css 里没有对应规则 */
+    /* 只在「未配置」时出现的提示块，实体样式在 comments.css 里没有对应规则 */
     .twikoo-unconfigured {
         margin: var(--space-4) 0 0;
         padding: var(--space-3) var(--space-4);
         border: 1px dashed var(--color-border-subtle);
         border-radius: var(--radius-sm);
-        color: var(--color-text-subtle);
-        font-size: var(--font-size-sm);
+        color: var(--color-muted);
+        font-size: var(--text-sm);
         line-height: 1.6;
+    }
+
+    .twikoo-unconfigured__lead {
+        margin: 0;
+        color: var(--color-body);
+    }
+
+    .twikoo-unconfigured__hint {
+        margin: var(--space-2) 0 0;
+    }
+
+    /* 链接必须显式给色：这里的父级是 text-subtle，浏览器默认蓝在深浅两套主题下
+       都过不了 WCAG AA（axe 会判 color-contrast）。用站点 accent 实色。 */
+    .twikoo-unconfigured a {
+        color: var(--color-accent);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .twikoo-unconfigured code {
+        padding: 0 4px;
+        border-radius: 3px;
+        background: var(--color-surface-secondary);
+        color: var(--color-body);
+        font-size: 0.95em;
     }
 </style>
 

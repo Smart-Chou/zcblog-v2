@@ -42,6 +42,19 @@ const BASELINE_PROJECTS = {
             // Page shots are many times larger than atom specimens, so the same 1% ratio
             // would silently allow a whole card to move. 0.1% ≈ the macOS font-AA drift
             // measured on these pages while still red on any layout shift.
+            //
+            // ⚠️ CI-ONLY（H-11，2026-11-20 决定）：**不要指望在本机跑绿。**
+            // macOS 本地跑这个 project 稳定 18 failed（home / archives / 404 ×
+            // 3 视口 × 2 主题），diff 实测 **1%–17%**，而阈值是 0.1%。
+            //
+            // 根因不是抗锯齿：CI 容器（`…/playwright:v1.65.0-noble`）没装
+            // PingFang SC / Microsoft YaHei，中文全部 fallback 到 Noto Serif CJK，
+            // 整页高度实测 expected 3270px vs actual 3296px（差 26px），
+            // 内容流整体位移。**两边渲染的是不同字体，不是同一字体的不同栅格化。**
+            //
+            // 因此**不要放宽下面的 maxDiffPixelRatio** —— 要全绿得放宽到 0.17，
+            // 那已不是门禁。若需本地预判页面级视觉，唯一正确的路是在 Linux 容器里跑
+            // （与 CI 同栈），见 docs/_reviews/M5-15/h11-ci-only-visual.md。
             expect: {
                 toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" as const },
             },
@@ -50,7 +63,7 @@ const BASELINE_PROJECTS = {
             name: "chromium-pages-states",
             dir: "pages-states",
             match: /pages-states\.visual\.spec\.ts$/,
-            // Same page-sized shots, same rationale as `pages`.
+            // Same page-sized shots, same rationale as `pages` —— 同样 **CI-only**（H-11）。
             expect: {
                 toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" as const },
             },
