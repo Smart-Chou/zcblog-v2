@@ -38,7 +38,7 @@ jobs:
 
         steps:
             - name: Checkout zcblog
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
 
             # 文章页/列表页的预算只有带真实内容才有意义；内容仓缺失时 article 页会归零，
             # 门禁变成「什么都没测」。所以和 ci.yml gates job 用同一套内容准备步骤。
@@ -46,7 +46,7 @@ jobs:
             # 内容落空由下面 Copy 步骤的 fixture 兜底。secrets 不能直接进 if，经 env 中转。
             - name: Checkout articles (private)
               if: ${{ env.ARTICLES_PAT != '' }}
-              uses: actions/checkout@v5
+              uses: actions/checkout@v7
               continue-on-error: true
               env:
                   ARTICLES_PAT: ${{ secrets.ARTICLES_PAT }}
@@ -79,7 +79,7 @@ jobs:
               uses: pnpm/action-setup@v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v7
               with:
                   node-version: 22
                   cache: pnpm
@@ -121,7 +121,7 @@ jobs:
 
             - name: Upload perf report
               if: always()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: perf-budget
                   path: |
